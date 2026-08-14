@@ -1,0 +1,20 @@
+{
+  "body": {
+    "model": "kurumamod_example_carpack:models/entity/land-cluiser-prado-150.obj",
+    "texture": "kurumamod:textures/entity/car.png",
+    "scale": 1.074
+  },
+
+  "wheel": {
+    "model": "kurumamod:models/entity/wheel.obj",
+    "texture": "kurumamod:textures/entity/wheel.png",
+    "camber": -0.5
+  },
+
+  "designWheelBase": 3.20,
+  "designWheelRadius": 0.45,
+  "designRideHeight": 0.630,
+
+  "seat": [0.55, -0.10, 0.35],
+  "shadowRadius": 1.6
+}

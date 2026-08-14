@@ -1,0 +1,112 @@
+{
+  "car_exhaust": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:exhaust",
+        "stream": false
+      }
+    ]
+  },
+  "car_road": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_road",
+    "sounds": [
+      {
+        "name": "kurumamod:roadnoise",
+        "stream": false
+      }
+    ]
+  },
+  "car_wind": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_wind",
+    "sounds": [
+      {
+        "name": "kurumamod:wind",
+        "stream": false
+      }
+    ]
+  },
+  "car_slip": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_slip",
+    "sounds": [
+      {
+        "name": "kurumamod:slip",
+        "stream": false
+      }
+    ]
+  },
+  "car_shift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_shift",
+    "sounds": [
+      {
+        "name": "kurumamod:shift",
+        "stream": false
+      }
+    ]
+  },
+  "car_crash": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_crash",
+    "sounds": [
+      {
+        "name": "kurumamod:crash",
+        "stream": false
+      }
+    ]
+  },
+  "car_exhaust_high": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:exhaust_high",
+        "stream": false
+      }
+    ]
+  },
+  "race_light": {
+    "category": "master",
+    "subtitle": "subtitles.kurumamod.race_light",
+    "sounds": [
+      {
+        "name": "kurumamod:race_light",
+        "stream": false
+      }
+    ]
+  },
+  "race_start": {
+    "category": "master",
+    "subtitle": "subtitles.kurumamod.race_start",
+    "sounds": [
+      {
+        "name": "kurumamod:race_start",
+        "stream": false
+      }
+    ]
+  },
+  "race_split": {
+    "category": "master",
+    "subtitle": "subtitles.kurumamod.race_split",
+    "sounds": [
+      {
+        "name": "kurumamod:race_split",
+        "stream": false
+      }
+    ]
+  },
+  "race_finish": {
+    "category": "master",
+    "subtitle": "subtitles.kurumamod.race_finish",
+    "sounds": [
+      {
+        "name": "kurumamod:race_finish",
+        "stream": false
+      }
+    ]
+  }
+}

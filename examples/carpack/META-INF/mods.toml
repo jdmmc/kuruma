@@ -1,0 +1,31 @@
+# カーパックの見本。コードを一切持たない MOD jar。
+#
+# Forge の MOD jar は自動でデータパック兼リソースパックとして読まれるので、
+# 諸元（data/）と見た目（assets/）を 1 ファイルにまとめて配れる。
+modLoader = "lowcodefml"
+loaderVersion = "[47,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "kurumamod_example_carpack"
+version = "1.0.0"
+displayName = "KurumaMod Example Car Pack"
+# MOD 一覧に出る画像。jar の直下からの名前で書く（このフォルダ直下の kurumamod_example_carpack.png）
+logoFile = "kurumamod_example_carpack.png"
+# MOD 一覧に出る説明文。読む相手が日本語話者とは限らないので英語で書く
+description = '''An example car pack for KurumaMod. Adds two cars: a sample car with its own mesh, and a Prado that is spec-only.'''
+
+# KurumaMod が無いと車種を読む側がいないので、必須依存にする
+[[dependencies.kurumamod_example_carpack]]
+modId = "kurumamod"
+mandatory = true
+versionRange = "[1.0.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.kurumamod_example_carpack]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.21)"
+ordering = "NONE"
+side = "BOTH"

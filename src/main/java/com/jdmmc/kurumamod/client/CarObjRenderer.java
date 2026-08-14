@@ -1,0 +1,218 @@
+package com.jdmmc.kurumamod.client;
+
+import com.jdmmc.kurumamod.entity.CarEntity;
+import com.jdmmc.kurumamod.physics.CarSpec;
+import com.jdmmc.kurumamod.physics.Wheel;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+
+/**
+ * 車の描画。Blender で作った OBJ を、車体 1 つ ＋ タイヤ 4 つとして組み立てる。
+ *
+ * <h2>モデルのパスと基準寸法は {@link CarModel}（JSON）にある</h2>
+ *
+ * <ul>
+ *   <li>車体 … <b>原点は地面の高さ・前後輪の中点・左右中央</b>。
+ *       大きさは JSON の {@code bodyScale}（既定 1.0 ＝ メッシュのまま）</li>
+ *   <li>タイヤ … <b>原点は車軸の中心、回転軸は左右方向</b>。半径を {@code designWheelRadius} に書く。
+ *       <b>左側用を 1 つだけ</b>作る（右側は鏡像にして描く）。Blender で前方を -Y に向けると
+ *       +X が車体の左になるので、<b>ホイールの表を +X へ向けて作る</b>のがこれにあたる</li>
+ * </ul>
+ *
+ * <p>向きは Blender の標準のまま（前方 -Y・上 +Z）でよい。エンティティ空間への読み替えは
+ * {@link ObjModel} が読み込み時に済ませる。</p>
+ *
+ * <h2>タイヤは諸元に追従し、車体はしない</h2>
+ *
+ * <p><b>ホイールベース・トレッド・タイヤ半径はタイヤの位置と大きさの定義そのもの</b>なので、
+ * タイヤは {@link CarSpec} の値どおりに置いて拡大する（そうしないと見た目の接地点と、
+ * 物理が旋回を解いている位置がずれる）。<b>調整画面で寸法を動かすとタイヤだけが動く。</b></p>
+ *
+ * <p>車体のほうはメッシュの形が正で、ホイールベースに合わせて伸ばすとキャビンごと
+ * 伸びてしまうため追従させない。大きさは JSON の {@code bodyScale} で明示する。
+ * <b>寸法を大きく動かせばタイヤはフェンダーからはみ出す。</b></p>
+ *
+ * <h2>姿勢を掛ける順番</h2>
+ *
+ * <p>ヨー → ピッチ → ロールの順。<b>先にヨーを掛けてからでないと</b>、ピッチとロールを
+ * 世界座標のまま掛けることになり、車が東西を向いているときにロールがピッチとして出る。</p>
+ */
+public class CarObjRenderer extends EntityRenderer<CarEntity> {
+
+    public CarObjRenderer(EntityRendererProvider.Context context) {
+        super(context);
+        this.shadowRadius = CarModel.defaults().shadowRadius();
+    }
+
+    @Override
+    public ResourceLocation getTextureLocation(CarEntity car) {
+        return CarModel.get(car.getCarId()).bodyTexture();
+    }
+
+    @Override
+    public void render(CarEntity car, float entityYaw, float partialTick, PoseStack pose,
+                       MultiBufferSource buffer, int packedLight) {
+        CarModel model = CarModel.get(car.getCarId());
+        // 影の大きさは描画より前に読まれるので、JSON を書き換えた直後の 1 フレームだけ古い値で出る
+        this.shadowRadius = model.shadowRadius();
+
+        pose.pushPose();
+        applyRotations(car, pose, partialTick);
+
+        CarSpec spec = car.getSpec();
+        renderBody(car, model, spec, pose, buffer, packedLight);
+        renderWheels(car, model, spec, pose, buffer, packedLight, partialTick);
+
+        pose.popPose();
+        // 名前タグなどはバニラに任せる
+        super.render(car, entityYaw, partialTick, pose, buffer, packedLight);
+    }
+
+    /**
+     * 車体の姿勢。
+     *
+     * <p>渡ってくる {@code entityYaw} は {@code LevelRenderer} が<b>素の線形補間</b>で作った値で、
+     * ヨー角は ±180 度で折り返すため<b>真北をまたぐ瞬間に「-358 度ぶんの回転」と解釈され、
+     * 1 ティックで車体が 1 周する</b>。{@link Mth#rotLerp} で取り直すこと。</p>
+     */
+    private void applyRotations(CarEntity car, PoseStack pose, float partialTick) {
+        // 渡ってくる entityYaw も car.getYRot() も、他人の車ではバニラが 1.4 度刻みに
+        // 量子化した値から作られている。旋回中に回転の速さがガタつき、車体の端で
+        // いちばん大きく出る（ケツが揺れて見える）ので、自前で配った float を使う
+        float yaw = car.getRenderYaw(partialTick);
+        pose.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
+        // ここまで来ると「+X が車体右・+Y が上・-Z が車体前方」。傾きはこの向きで掛ける
+        // 姿勢もティックの間を補間する。位置だけ補間して傾きを生の同期値で描くと、
+        // 車体だけが 20Hz で階段状に動いてカクついて見える
+        pose.mulPose(Axis.XP.rotationDegrees(car.getRenderPitch(partialTick) * Mth.RAD_TO_DEG));
+        // ロールは正で右下がり。+X（右）を下げたいので符号を反転させる
+        pose.mulPose(Axis.ZP.rotationDegrees(-car.getRenderRoll(partialTick) * Mth.RAD_TO_DEG));
+    }
+
+    private void renderBody(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
+                            MultiBufferSource buffer, int packedLight) {
+        pose.pushPose();
+
+        // エンティティの位置はシャシー基準面。モデルは地面に立った状態で作られているので下げる。
+        // 現在の車高で下げてはいけない。サスを伸ばすとシャシー基準面も同じだけ上がるので、
+        // 車体とタイヤの両方を車高で動かすと打ち消し合い、車体とタイヤの間隔が変わらなくなる。
+        // 拡大より先に平行移動すること（後に置くと下げ量まで拡大される）
+        // 前後輪の中点まで下がる。エンティティの原点は<b>重心</b>なので、重心を前寄りにすると
+        // タイヤは相対的に後ろへ動く（前 56% なら 0.187m）。車体メッシュは前後輪の中点を
+        // 原点に作られているので、この差を埋めないとホイールアーチがタイヤから前へずれる。
+        // 荷重配分を入れた日にここを直し忘れ、body.offset で手当てする羽目になった
+        // エンティティ空間は -Z が前なので、物理側（+Z が前）とは符号が逆になる
+        double axleMidpoint = -spec.axleMidpointOffset();
+
+        CarModel.Vec3 offset = model.bodyOffset();
+        pose.translate(offset.x(), offset.y() - model.designRideHeight(), offset.z() + axleMidpoint);
+
+        // メッシュの作りの大きさを既定の車格へ正規化する。5.2m で作ったモデルに
+        // designWheelBase = 5.2 と書けば半分に縮み、ホイールアーチがタイヤの位置に合う。
+        //
+        // 比べる相手は CarSpec.DEFAULT であって、今の諸元ではない。ここを spec.wheelBase() に
+        // すると、ホイールベースのスライダーで車体まで伸び縮みする（キャビンごと伸びる）。
+        // 定数なので走行中に変わることはない
+        double fit = CarSpec.DEFAULT.wheelBase() / model.designWheelBase();
+
+        // その上に手で決める拡大率。原点が地面なので、上げると車体は上へ伸びる
+        CarModel.Vec3 scale = model.bodyScale();
+        pose.scale((float) (fit * scale.x()), (float) (fit * scale.y()), (float) (fit * scale.z()));
+
+        draw(model.bodyModel(), model.bodyTexture(), pose, buffer, packedLight, false);
+
+        // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
+        // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
+        ObjModel body = ObjModel.get(model.bodyModel());
+        CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
+        CarLights.renderBeams(car, body, pose, buffer);
+
+        pose.popPose();
+    }
+
+    private void renderWheels(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
+                              MultiBufferSource buffer, int packedLight, float partialTick) {
+        // 見た目だけ抑えた角度。物理が使う切れ角とは別物（大きく流したとき、進行方向に対して
+        // 垂直を超えたタイヤが描かれるのを防ぐ）
+        float steer = car.getVisualSteerAngle(partialTick);
+        CarModel.Vec3 offset = model.wheelOffset();
+
+        // 拡大率は 2 段構え。メッシュが作られた半径から諸元の半径へ正規化したうえで、
+        // JSON の拡大率を掛ける。前者があるので、調整画面でタイヤ半径を変えると
+        // 見た目もそのまま追従する（車高も上がるので接地したまま車体が持ち上がる）。
+        // 後者で縦（Y・Z）を触ると接地が崩れる——物理はこの補正を知らないため。
+        // 太さ（X）だけなら安全
+        double scale = spec.wheelRadius() / model.designWheelRadius();
+        CarModel.Vec3 wheelScale = model.wheelScale();
+        float scaleX = (float) (scale * wheelScale.x());
+        float scaleY = (float) (scale * wheelScale.y());
+        float scaleZ = (float) (scale * wheelScale.z());
+
+        for (Wheel wheel : Wheel.VALUES) {
+            pose.pushPose();
+
+            // 車軸の位置。前後・左右は諸元（ホイールベースとトレッドはタイヤの位置の定義
+            // そのものなので、ここを見た目の都合でずらすと接地点と食い違う）、上下はサスが
+            // どれだけ伸びているか。タイヤ中心 = シャシー基準面からサス長ぶん下。静止時は
+            // サス長 = 車高 - タイヤ半径 なので、タイヤはちょうど地面に接する。
+            // JSON のオフセットはこれに対する補正で、X は左右で符号を反転させて「外向き」にする
+            double outward = wheel.isLeft() ? -offset.x() : offset.x();
+            pose.translate(spec.wheelRightOffset(wheel) + outward,
+                    -car.getRenderSuspensionLength(wheel, partialTick) + offset.y(),
+                    -spec.wheelForwardOffset(wheel) + offset.z());
+
+            // キャンバー。負で「上が内側」（ネガティブキャンバー）になるよう、左右で符号を
+            // 反転させる。Z 軸まわりの正回転はタイヤの上を左（-X）へ倒す。
+            // 鏡像化より先に掛かるので、鏡像に倒れたりはしない
+            if (model.camber() != 0.0) {
+                float camber = (float) model.camber();
+                pose.mulPose(Axis.ZP.rotationDegrees(wheel.isLeft() ? camber : -camber));
+            }
+
+            // 舵は前輪だけ。切れ角は正で右だが、Y 軸まわりの正回転は左へ向くので反転する。
+            // 切れ角はラジアン（最大でも 0.61）なので、度へ直さずに渡すと 0.6 度しか切れず
+            // 「ハンドルを切ってもタイヤの向きが変わらない」ように見える
+            if (wheel.isFront()) {
+                pose.mulPose(Axis.YP.rotationDegrees(-steer * Mth.RAD_TO_DEG));
+            }
+
+            // タイヤの回転。輪ごとに持っているので、空転もロックも見える。
+            // X 軸まわりの正回転はタイヤ上部を後ろへ送る（＝後退）ので、前進には反転が要る
+            pose.mulPose(Axis.XP.rotationDegrees(
+                    -car.getWheelRoll(wheel, partialTick) * Mth.RAD_TO_DEG));
+
+            pose.scale(scaleX, scaleY, scaleZ);
+
+            // モデルは左側用。右側は鏡像にする。
+            // 鏡像化は頂点の段でやる（PoseStack ではなく ObjModel が X を反転する）。
+            // pose.scale(-1, 1, 1) だと法線行列が壊れて鏡像側の陰影だけおかしくなる——
+            // 理由は ObjModel#render の javadoc にある。ここより外側の回転は鏡像化された
+            // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
+            // ホイールの表裏が逆に見えるときはこの条件を反転させる
+            draw(model.wheelModel(), model.wheelTexture(), pose, buffer, packedLight, !wheel.isLeft());
+            pose.popPose();
+        }
+    }
+
+    /**
+     * モデルを 1 つ描く。
+     *
+     * <p>{@code entityCutoutNoCull} を使うのは 2 つ理由がある。<b>右側のタイヤを鏡像で描くと
+     * 面の巻き方向が裏返る</b>のでカリングを切る必要があること、そしてテクスチャの透明部分
+     * （窓やグリルの抜き）を使えるようにするため。</p>
+     */
+    private void draw(ResourceLocation model, ResourceLocation texture, PoseStack pose,
+                      MultiBufferSource buffer, int packedLight, boolean mirrorX) {
+        VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
+        ObjModel.get(model).render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX);
+    }
+}

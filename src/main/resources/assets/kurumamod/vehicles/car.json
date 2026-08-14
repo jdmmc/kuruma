@@ -1,0 +1,23 @@
+{
+  "designWheelBase": 3.12,
+  "designWheelRadius": 0.45,
+  "shadowRadius": 1.4,
+
+  "_seat": "運転席の位置 [m]。+X 右・+Y 上・-Z 前。助手席は左右反転で置かれる",
+  "seat": [0.5, -0.55, 0.2],
+
+  "body": {
+    "model": "kurumamod:models/entity/car.obj",
+    "texture": "kurumamod:textures/entity/car.png",
+    "offset": [0.0, 0.0, 0.0],
+    "scale": 1.0
+  },
+
+  "wheel": {
+    "model": "kurumamod:models/entity/wheel.obj",
+    "texture": "kurumamod:textures/entity/wheel.png",
+    "offset": [0.0, 0.0, 0.0],
+    "scale": 1.0,
+    "camber": 0.0
+  }
+}

@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+
+# 素材の原本（モデル・テクスチャ・音源）。変換したものだけを assets へ入れる
+sample/
+
+# 開発時の実行環境（ログ・設定・ワールドデータ）
+run/
+run-data/
+run-server/
+run-client2/
+runs/
+
+# IntelliJ IDEA
+.idea/
+out/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+bin/
+.settings/
+.metadata/
+.classpath
+.project
+*.launch
+eclipse/
+
+# Forge MDK
+forge*changelog.txt
+
+# カーパックを固めた jar（examples/carpack/README.md の手順の出力先）
+examples/*.jar

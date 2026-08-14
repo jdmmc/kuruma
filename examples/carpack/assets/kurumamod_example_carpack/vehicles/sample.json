@@ -1,0 +1,17 @@
+{
+  "body": {
+    "model": "kurumamod_example_carpack:models/entity/sample.obj",
+    "texture": "kurumamod_example_carpack:textures/entity/sample.png"
+  },
+
+  "wheel": {
+    "model": "kurumamod:models/entity/wheel.obj",
+    "texture": "kurumamod:textures/entity/wheel.png"
+  },
+
+  "designWheelBase": 3.12,
+  "designWheelRadius": 0.45,
+
+  "seat": [0.5, -0.25, 0.2],
+  "shadowRadius": 1.5
+}

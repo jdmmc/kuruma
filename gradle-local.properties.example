@@ -1,0 +1,21 @@
+# Example of the local-only settings. Copy this to gradle-local.properties to use it
+# (that name is in .gitignore, so nothing you write there reaches the repository).
+#
+# Note: .properties files are read as ISO-8859-1 by java.util.Properties, so this file is
+# kept in English. Values are read as UTF-8 (see build.gradle), so a path containing
+# non-ASCII characters is fine.
+#
+# The build and runClient work without this file; the settings are simply skipped.
+
+# Where to borrow external mods from. Pointing this at the mods folder of a real
+# CurseForge/Prism instance works. If the directory does not exist, nothing is added.
+#extra_mods_dir=C:/Users/<name>/curseforge/minecraft/Instances/<instance>/mods
+
+# Mods that contain classes, written as "name:version" (matching <name>-<version>.jar).
+# These go through fg.deobf via a flatDir repository: released jars use SRG names and
+# must be remapped to the official names the dev environment runs with.
+#extra_mods=fcl:20.42, fvtm:4.20.51
+
+# Jars with no classes - resource packs or data packs only - written as file names.
+# There is nothing to remap, so these are just copied into run*/resourcepacks/.
+#extra_resource_mods=Hashim's Extra Roads.jar

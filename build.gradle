@@ -1,0 +1,288 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+}
+
+
+// 手元だけの設定。<b>gradle.properties へ書いてはいけない</b>——あれは公開される
+// ファイルなので、各自の環境の絶対パスが混ざる。gradle-local.properties は
+// .gitignore 済みで、無ければ黙って何も足さずに素通りする。
+// 書き方は gradle-local.properties.example
+//
+// <b>UTF-8 で読むこと。</b>Properties.load(InputStream) は仕様上 ISO-8859-1 で
+// 読むので、日本語を含むパスを書いた人の設定が化ける（.properties を英語で
+// 書いているのも同じ事情。IntelliJ も既定で ISO-8859-1 として表示する）
+def localPropsFile = file('gradle-local.properties')
+if (localPropsFile.exists()) {
+    def localProps = new Properties()
+    localPropsFile.withReader('UTF-8') { localProps.load(it) }
+    localProps.each { key, value -> project.ext.set(key.toString(), value.toString()) }
+}
+
+group = mod_group_id
+version = mod_version
+
+base {
+    archivesName = mod_id
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+minecraft {
+    // The mappings can be changed at any time and must be in the following format.
+    // Channel:   Version:
+    // official   MCVersion             Official field/method names from Mojang mapping files
+    // parchment  YYYY.MM.DD-MCVersion  Open community-sourced parameter names and javadocs layered on top of official
+    //
+    // You must be aware of the Mojang license when using the 'official' or 'parchment' mappings.
+    // See more information here: https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
+    //
+    // Parchment is an unofficial project maintained by ParchmentMC, separate from MinecraftForge
+    // Additional setup is needed to use their mappings: https://parchmentmc.org/docs/getting-started
+    //
+    // Use non-default mappings at your own risk. They may not always work.
+    // Simply re-run your setup task after changing the mappings to update your workspace.
+    mappings channel: mapping_channel, version: mapping_version
+
+    // When true, this property will have all Eclipse/IntelliJ IDEA run configurations run the "prepareX" task for the given run configuration before launching the game.
+    // In most cases, it is not necessary to enable.
+    // enableEclipsePrepareRuns = true
+    // enableIdeaPrepareRuns = true
+
+    // This property allows configuring Gradle's ProcessResources task(s) to run on IDE output locations before launching the game.
+    // It is REQUIRED to be set to true for this template to function.
+    // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
+    copyIdeResources = true
+
+    // When true, this property will add the folder name of all declared run configurations to generated IDE run configurations.
+    // The folder name can be set on a run configuration using the "folderName" property.
+    // By default, the folder name of a run configuration is the name of the Gradle project containing it.
+    // generateRunFolders = true
+
+    // This property enables access transformers for use in development.
+    // They will be applied to the Minecraft artifact.
+    // The access transformer file can be anywhere in the project.
+    // However, it must be at "META-INF/accesstransformer.cfg" in the final mod jar to be loaded by Forge.
+    // This default location is a best practice to automatically put the file in the right place in the final jar.
+    // See https://docs.minecraftforge.net/en/latest/advanced/accesstransformers/ for more information.
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        // applies to all the run configs below
+        configureEach {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            // The markers can be added/remove as needed separated by commas.
+            // "SCAN": For mods scan.
+            // "REGISTRIES": For firing of registry events.
+            // "REGISTRYDUMP": For getting the contents of all registries.
+            property 'forge.logging.markers', 'REGISTRIES'
+
+
+            // Recommended logging level for the console
+            // You can set various levels here.
+            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            property 'forge.logging.console.level', 'debug'
+
+            // 開発環境は official（Mojang）名で走るが、他 mod（GeckoLib）が持ち込む mixin の
+            // refmap は SRG 名（m_118506_ など）で書かれている。これを教えておかないと
+            // 「could not find any targets matching ...」で mixin の適用に失敗して落ちる
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        // マルチプレイ検証用の 2 人。オフラインの UUID は名前から作られるので、
+        // 名前を分けないと同一人物と見なされて先に入っていた方が蹴り出される。
+        // 既定では --username が渡らず毎回 PlayerNNN のランダム名になるため、両方で固定する。
+        //
+        // 名前を親の client 側に置いてはいけない。parent は args も継承するので
+        // --username が二重に渡り、jopt-simple が MultipleArgumentsForOptionException を投げる。
+        // 作業ディレクトリも分ける（options.txt とログを取り合うため）
+        client1 {
+            parent runs.client
+            args '--username', 'Dev'
+        }
+
+        client2 {
+            parent runs.client
+            workingDirectory project.file('run-client2')
+            args '--username', 'Dev2'
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+            workingDirectory project.file('run-server')
+            // 他 MOD で作られたワールドを載せたときに、欠けたレジストリの削除を確認なしで通す。
+            // 確認待ちで止まると、コンソールへ入力できないこの起動方法では抜けられない
+            jvmArgs '-Dfml.queryResult=confirm'
+        }
+
+        // This run config launches GameTestServer and runs all registered gametests, then exits.
+        // By default, the server will crash when no gametests are provided.
+        // The gametest system is also enabled by default for other run configs under the /test command.
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            // example of overriding the workingDirectory set in configureEach above
+            workingDirectory project.file('run-data')
+
+            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+// Include resources generated by data generators.
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// 開発環境へ持ち込む外部 MOD。gradle.properties で指定する。
+// ディレクトリが無ければ何も足さずに起動するので、他の環境でこのビルドが壊れない
+def extraModsDir = project.hasProperty('extra_mods_dir') ? file(extra_mods_dir) : null
+def hasExtraMods = extraModsDir != null && extraModsDir.isDirectory()
+def extraMods = hasExtraMods
+        ? (project.findProperty('extra_mods') ?: '').split(',')
+                .collect { it.trim() }.findAll { !it.isEmpty() }
+        : []
+def extraResourceMods = hasExtraMods
+        ? (project.findProperty('extra_resource_mods') ?: '').split(',')
+                .collect { it.trim() }.findAll { !it.isEmpty() }
+        : []
+
+repositories {
+    // 本番インスタンスの mods フォルダ。外部 MOD をここから借りる
+    if (hasExtraMods) {
+        flatDir { dir extraModsDir }
+    }
+
+    // Put repositories for dependencies here
+    // ForgeGradle automatically adds the Forge maven and Maven Central for you
+
+    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so.
+    // See https://docs.gradle.org/current/userguide/declaring_repositories.html#sub:flat_dir_resolver
+    // flatDir {
+    //     dir 'libs'
+    // }
+}
+
+dependencies {
+    // Specify the version of Minecraft to use.
+    // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
+    // The "userdev" classifier will be requested and setup by ForgeGradle.
+    // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
+    // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // 開発環境へ持ち込む外部 MOD（道路 MOD の上で車を走らせて確かめるため）。
+    // 場所と中身は gradle.properties の extra_mods_dir / extra_mods。
+    //
+    // <b>run/mods/ へ置くのでは動かない。</b>配布 jar は SRG 名で難読化されている
+    // 一方、開発環境は official（Mojang）名で走っているため。fg.deobf を通して
+    // 変換する必要がある。
+    //
+    // <b>fg.deobf(files(...)) では変換されない。</b>ForgeGradle が
+    // 「files(...) dependencies are not deobfuscated. Use a flatDir repository instead」
+    // と言って<b>難読化されたまま通す</b>ので、flatDir 越しの座標指定にすること。
+    // group は flatDir では見られないので何でもよく、慣例で blank としている
+    extraMods.each { runtimeOnly fg.deobf("blank:${it}") }
+
+    // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
+    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
+    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
+    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
+    // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+
+    // Example mod dependency using a mod jar from ./libs with a flat dir repository
+    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
+    // The group id is ignored when searching -- in this case, it is "blank"
+    // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
+
+    // For more info:
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+}
+
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+// When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
+// See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [minecraft_version   : minecraft_version, minecraft_version_range: minecraft_version_range,
+                             forge_version       : forge_version, forge_version_range: forge_version_range,
+                             loader_version_range: loader_version_range,
+                             mod_id              : mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+                             mod_authors         : mod_authors, mod_description: mod_description,]
+
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+// Example for how to get properties into the manifest for reading at runtime.
+tasks.named('jar', Jar).configure {
+    // ライセンス条文を jar に同梱する。GPLv3 は「本ライセンスの写しを一緒に渡すこと」を
+    // 求めている（第 4 節）ので、これは礼儀ではなく条件
+    from('LICENSE')
+
+    manifest {
+        attributes(["Specification-Title"     : mod_id,
+                    "Specification-Vendor"    : mod_authors,
+                    "Specification-Version"   : "1", // We are version 1 of ourselves
+                    "Implementation-Title"    : project.name,
+                    "Implementation-Version"  : project.jar.archiveVersion,
+                    "Implementation-Vendor"   : mod_authors,
+                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")])
+    }
+
+    // This is the preferred method to reobfuscate your jar file
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+// クラスを持たない外部 MOD は mods/ へ置いても読まれない。
+// mods.toml が無い jar を Forge は「is missing mods.toml file」と言って無視するため。
+// pack.mcmeta を持つ＝リソースパックなので resourcepacks/ へ置き、
+// ゲーム内の「リソースパック」画面で有効にしてもらう。
+// assets しか入っていないのでサーバーには要らない
+if (!extraResourceMods.isEmpty()) {
+    [Client1: 'run', Client2: 'run-client2'].each { suffix, dir ->
+        tasks.register("copyResourcePacks${suffix}", Copy) {
+            from(extraModsDir) {
+                include extraResourceMods
+            }
+            into file("${dir}/resourcepacks")
+        }
+    }
+    // <b>afterEvaluate では間に合わない。</b>ForgeGradle が run タスクを作るのも
+    // afterEvaluate の中なので、どちらが先かは登録順しだいで findByName が null を返す
+    // （実際に返した）。matching は遅延評価なので、後から作られるタスクにも効く
+    tasks.matching { it.name == 'runClient' || it.name == 'runClient1' }
+            .configureEach { dependsOn 'copyResourcePacksClient1' }
+    tasks.matching { it.name == 'runClient2' }
+            .configureEach { dependsOn 'copyResourcePacksClient2' }
+}
