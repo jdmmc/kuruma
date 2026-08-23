@@ -257,11 +257,15 @@ a shorter stroke means stiffer springs and dampers.
 
 | Name | Name on the tuning screen | Unit | Default | Range |
 |---|---|---|---|---|
-| `friction` | Grip (friction coefficient) | — | 1.0 | 0.3 – 1.6 |
+| `friction` | Grip | — | 1.0 | 0.3 – 1.5 |
 | `cornering_stiffness` | Cornering power | — | 12.0 | 4 – 25 |
 | `rear_cornering_bias` | Rear grip bias (higher = more understeer) | — | 1.0 | 0.7 – 1.8 |
 | `longitudinal_stiffness` | Longitudinal slip stiffness | — | 18.0 | 5 – 40 |
 | `wheel_radius` | Tyre radius | m | 0.45 | 0.25 – 1.10 |
+
+**`friction` is the actual coefficient of friction (mu).** The tuning screen shows it
+relative to the default (times `CarSpec.REFERENCE_FRICTION`). That reference is 1.0 for
+now, so the number on the screen is the mu, but the two part ways if it ever changes.
 
 #### Body
 

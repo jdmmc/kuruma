@@ -72,6 +72,14 @@ public final class CarPhysics {
      */
     private static final double MIN_STEERING_GRIP = 0.45;
 
+    /**
+     * 変速時間のうち、駆動系を抜く／繋ぐのに使う割合（前後それぞれ）。
+     *
+     * <p>0 にすると 0/1 の切り替えに戻り、コーナー中の変速で横グリップが段差になる。
+     * 0.5 まで上げると駆動が 0 になる瞬間が消えて、変速そのものが感じられなくなる。</p>
+     */
+    private static final double SHIFT_RAMP = 0.35;
+
     private CarPhysics() {
     }
 
@@ -287,8 +295,8 @@ public final class CarPhysics {
         double rpm = Math.abs(drivelineSpeed * ratio) * 60.0 / (2.0 * Math.PI);
         state.engineRpm = Math.max(spec.idleRpm(), rpm);
 
-        if (state.shiftTimer > 0.0 || state.gear == 0) {
-            // 変速中は駆動系が切れている（差動制限のイニシャルトルクだけは残る）
+        if (state.gear == 0) {
+            // ニュートラルでは駆動系が切れている（差動制限のイニシャルトルクだけは残る）
             state.engineTorque = 0.0;
             state.driveTorque = 0.0;
             updateDifferential(spec, state);
@@ -316,11 +324,12 @@ public final class CarPhysics {
             double pedal = !spec.isManual() && state.gear == -1 ? state.brake : state.throttle;
             torque *= state.tractionControlThrottle * pedal;
         }
-        state.engineTorque = torque;
+        // 変速中は駆動系が切れる。ここを 0/1 で切り替えると横グリップが段差になって出る
+        state.engineTorque = torque * shiftEngagement(spec, state);
 
         // 後退は同じトルクを逆向きに掛ける
         double direction = state.gear == -1 ? -1.0 : 1.0;
-        state.driveTorque = torque * ratio * spec.drivetrainEfficiency() * direction;
+        state.driveTorque = state.engineTorque * ratio * spec.drivetrainEfficiency() * direction;
 
         for (Wheel wheel : Wheel.VALUES) {
             state.wheelDriveTorque[wheel.ordinal()] = state.driveTorque * spec.driveShare(wheel);
@@ -552,11 +561,58 @@ public final class CarPhysics {
      */
     private static double effectiveWheelInertia(CarSpec spec, CarState state, Wheel wheel) {
         double share = spec.driveShare(wheel);
-        if (share <= 0.0 || state.shiftTimer > 0.0 || state.gear == 0) {
+        if (share <= 0.0 || state.gear == 0) {
             return spec.wheelInertia();
         }
+        // 駆動系が切れている間はエンジン側の慣性も外れる。トルクと同じ割合で抜き差しすること
+        // （別々に切り替えると、片方だけ段差が残る）
         double ratio = spec.totalRatio(state.gear);
-        return spec.wheelInertia() + spec.engineInertia() * ratio * ratio * share;
+        return spec.wheelInertia()
+                + spec.engineInertia() * ratio * ratio * share * shiftEngagement(spec, state);
+    }
+
+    /**
+     * 変速中に駆動系がどれだけ繋がっているか。1 で直結、0 で完全に切れている。
+     *
+     * <p><b>変速を 0/1 で切り替えてはいけない。</b>コーナーを全開で回りながら変速すると、
+     * 縦に使っていたグリップが 1 ティックでまるごと横へ回るので、<b>その瞬間だけ車が内側へ食い込む</b>。
+     * 実測（2→3、中速コーナー・全開）で横 G が 0.90→1.07G、旋回半径が 44.4→31.9m と
+     * <b>0.35 秒だけ 28% 小さく回り</b>、抜けると戻る。「シフトアップでグリップが強く出る」という
+     * 違和感の正体はこれで、<b>タイヤでもデフでもなく変速の入り方</b>が作っていた。</p>
+     *
+     * <p>実車の自動変速機も駆動を切ってから繋ぐが、<b>抜くのにも繋ぐのにも時間をかける</b>
+     * （トルクフェーズ）。ここでは変速時間の前後 {@link #SHIFT_RAMP} ぶんを smoothstep で
+     * 抜き差しする。両端で傾きが 0 になるので、折れ目も残らない。</p>
+     *
+     * <p>中央では 0 まで落としきる。<b>落としきらないと変速そのものが感じられなくなる</b>ので、
+     * 消したいのは段差であって、変速で駆動が切れること自体ではない。</p>
+     */
+    private static double shiftEngagement(CarSpec spec, CarState state) {
+        if (state.shiftTimer <= 0.0) {
+            return 1.0;
+        }
+        double duration = spec.shiftSeconds();
+        if (duration <= 0.0) {
+            return 1.0;
+        }
+        double progress = clamp01(1.0 - state.shiftTimer / duration);
+        if (progress < SHIFT_RAMP) {
+            return 1.0 - smoothstep(progress / SHIFT_RAMP);
+        }
+        if (progress > 1.0 - SHIFT_RAMP) {
+            return smoothstep((progress - (1.0 - SHIFT_RAMP)) / SHIFT_RAMP);
+        }
+        return 0.0;
+    }
+
+    /** 両端で傾きが 0 になる補間。段差だけでなく折れ目も出したくないときに使う。 */
+    private static double smoothstep(double x) {
+        double t = clamp01(x);
+        return t * t * (3.0 - 2.0 * t);
+    }
+
+    private static double clamp01(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
     }
 
     // ------------------------------------------------------------------

@@ -1,7 +1,9 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
+import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
@@ -39,8 +41,14 @@ public final class CarCamera {
     /** 視線が既に合っているとみなす角度差 [度]。ここを下回れば動かさない。 */
     private static final float SETTLED_DEGREES = 0.05F;
 
-    /** 最高速で視野をどれだけ広げるか [度]。速度感を出すための味付け。 */
-    private static final float SPEED_FOV_GAIN = 12.0F;
+    /**
+     * 広がりを速度域のどこへ寄せるか。1 で速度に比例、0.5（平方根）で低中速側へ寄る。
+     *
+     * <p>比例にすると<b>変化のほとんどが滅多に出さない最高速側に溜まる</b>。
+     * 実際に走る 80〜150km/h では数度しか広がらず、効いているのか分からない。
+     * 平方根にすると 100km/h の時点で広がりの 6 割が出る。</p>
+     */
+    private static final double FOV_CURVE = 0.5;
 
     /** 自動追従を使うか。好みが分かれるので切れるようにしてある。 */
     private static boolean following = true;
@@ -105,17 +113,33 @@ public final class CarCamera {
         hasApplied = true;
     }
 
-    /** 車速に応じて視野を広げる。速度計を見なくても速さが分かるようにするため。 */
+    /**
+     * 車速に応じて視野を広げる。速度計を見なくても速さが分かるようにするため。
+     *
+     * <p><b>割合の分母は {@code maxSpeed} ではなく {@link CarSpec#topGearSpeed()}。</b>
+     * {@code maxSpeed} は暴走を止めるための上限で<b>実際には届かない</b>ため、
+     * そこで割ると全開でも割合が 1 に届かず、上限を上げるほど広がりが痩せていく。
+     * 既定の諸元では 300km/h で割ることになり、実際に出る 255km/h でも 0.85 止まりだった。</p>
+     *
+     * <p><b>広げる量は倍率ではなく度で足す。</b>倍率で掛けると視野を 100 度にしている人には
+     * 同じ 1.36 倍が 36 度ぶんの広がりとして出てしまう。プレイヤーが設定している視野角を
+     * 読んで、そこへ一定の度数を足した比を返す。</p>
+     */
     @SubscribeEvent
     public static void onComputeFov(ComputeFovModifierEvent event) {
-        CarEntity car = ridingCar(Minecraft.getInstance());
-        if (car == null) {
+        Minecraft minecraft = Minecraft.getInstance();
+        CarEntity car = ridingCar(minecraft);
+        if (car == null || ClientConfig.speedFov <= 0.0) {
             return;
         }
-        double ratio = Math.min(1.0, Math.abs(car.getRenderSpeed()) / car.getSpec().maxSpeed());
-        // 視野角そのものではなく倍率で来るので、既定 70 度を基準に換算する
-        float widened = (70.0F + SPEED_FOV_GAIN * (float) ratio) / 70.0F;
-        event.setNewFovModifier(event.getNewFovModifier() * widened);
+        double reference = car.getSpec().topGearSpeed();
+        if (reference <= 0.0) {
+            return;
+        }
+        double ratio = Math.min(1.0, Math.abs(car.getRenderSpeed()) / reference);
+        double base = minecraft.options.fov().get();
+        double widened = (base + ClientConfig.speedFov * Math.pow(ratio, FOV_CURVE)) / base;
+        event.setNewFovModifier(event.getNewFovModifier() * (float) widened);
     }
 
     /**

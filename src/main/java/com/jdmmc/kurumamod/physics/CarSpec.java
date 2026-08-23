@@ -39,7 +39,8 @@ package com.jdmmc.kurumamod.physics;
  * @param driveBias            駆動力の後輪配分。0 で前輪駆動、1 で後輪駆動
  * @param slipReferenceSpeed   滑り率を求めるときの分母の下限 [m/s]。低速で発散させないための下駄
  * @param rearCorneringBias    後輪のコーナリングパワー倍率。1 より大きいほどアンダーステア寄り
- * @param tireFriction         タイヤの摩擦係数。接地荷重に掛けたものがグリップの上限
+ * @param tireFriction         タイヤの摩擦係数。接地荷重に掛けたものがグリップの上限。
+ *                             調整画面では {@link #REFERENCE_FRICTION} を 1.00 とした相対値で出す
  * @param lowSpeedBlendSpeed   この速度以下では運動学モデルへ寄せる [m/s]
  * @param steerGripMargin      切れ角上限に対する余裕。1 を超えるとグリップを超えて切れる（＝滑らせられる）
  * @param visualSlipLimit      <b>見た目だけ</b>の、進行方向に対するタイヤ角の上限 [rad]。0 で無効。物理は一切読まない
@@ -120,6 +121,22 @@ public record CarSpec(
         double rollingResistance,
         double dragCoefficient,
         double stopThreshold) {
+
+    /**
+     * 基準の摩擦係数。<b>調整画面の「グリップ」1.00 がこの値</b>で、既定の車もここに置いてある。
+     *
+     * <p>物理が読むのは {@link #tireFriction()}（＝実際のμ）そのままで、
+     * 相対値にしてあるのは調整画面の目盛りだけ。1.00 を基準にしておくと、
+     * スライダーを動かした人が「既定からどれだけ増減させたか」を一目で読める。</p>
+     *
+     * <p><b>1.08 にしていたが 1.0 へ戻した。</b>グリップは加速には効いていない——
+     * 四駆でも駆動力を決めているのはエンジンのほうで、1.08 と 1.00 で 0-100km/h も
+     * 最大加速も滑り率も<b>まったく同じ</b>（5.34 秒・0.80G・0.05）。動くのは
+     * 制動距離（18.0→19.2m）と最大横 G（1.08→1.00G）だけなので、
+     * <b>上げても「曲がって止まる」ほうが強くなるだけだった</b>。
+     * 実車の乗用車用タイヤとしても 1.0 のほうが素直な値。</p>
+     */
+    public static final double REFERENCE_FRICTION = 1.0;
 
     /** 補助がいちばん緩いときに許す滑り率。 */
     private static final double LOOSEST_AID_SLIP = 0.35;
@@ -495,6 +512,21 @@ public record CarSpec(
     }
 
     /**
+     * 最高段でレブリミットまで回しきったときの速度 [m/s]。
+     *
+     * <p><b>この車が構造上出せる速度</b>。{@code maxSpeed} は暴走を止めるための上限で
+     * 実際には届かず、実際の最高速は抵抗と釣り合う速度で決まるので、
+     * 「どれだけ出しているか」を割合で表したいときの分母にはこちらを使う。</p>
+     */
+    public double topGearSpeed() {
+        double ratio = totalRatio(forwardGears());
+        if (ratio <= 0.0) {
+            return 0.0;
+        }
+        return redlineRpm * 2.0 * Math.PI / 60.0 / ratio * wheelRadius;
+    }
+
+    /**
      * バックの最高速度 [m/s]。
      *
      * <p>バックは 1 速と同じギア比なので、<b>レブリミットで回りきったときの速度</b>が
@@ -548,10 +580,15 @@ public record CarSpec(
         // 実測でタックイン 7.4 度・制動＋舵 18.7 度と、スピン判定の 45 度には遠い。
         // 落ち着かせたい人は調整画面で上げられる（1.25 が以前の既定）
         private double rearCorneringBias = 1.0;
-        private double tireFriction = 1.0;
+        private double tireFriction = REFERENCE_FRICTION;
         private double lowSpeedBlendSpeed = 3.0;
-        // 1 割ぶん多めに切れるようにして、その気になれば限界を超えて滑らせられる余地を残す
-        private double steerGripMargin = 1.1;
+        // グリップを使いきる定常旋回に必要な切れ角に掛ける倍率。1.0 は「限界ちょうどの
+        // 角度までしか切らせない」で、教科書どおりの位置。
+        // これは舵の応答の速さをそのまま決める。30m/s で舵を入れてから横 G が 90% に
+        // 立つまで、1.0 で 0.85 秒・1.1 で 0.70 秒・2.0 で 0.33 秒。
+        // 上げても最大横 G は動かない（どれも 1.00G）ので、変わるのは限界へ届く速さと
+        // 旋回半径だけ。ただし 4.0 を超えると前輪が逃げるだけになって逆に曲がらなくなる
+        private double steerGripMargin = 1.0;
         // 見た目だけの上限。進行方向に対して測るので、通常の走行（数度）には効かない
         private double visualSlipLimit = Math.toRadians(45.0);
         private double maxSteerAngle = Math.toRadians(35.0);
@@ -564,9 +601,13 @@ public record CarSpec(
         private double selfAligning = 0.0;
         private double pedalPressSeconds = 0.25;
         private double pedalReleaseSeconds = 0.12;
-        // 後輪駆動で前後 50:50 なら、駆動輪のグリップから決まる上限は mu*後軸荷重/車重 = 約 4.9m/s^2。
-        // それを超える値にすると、直進でも常に後輪が空転する車になる
-        private double peakTorque = 220.0;
+        // 281ps 相当。四駆（driveBias 0.5）なので駆動輪のグリップから決まる上限は
+        // mu*g = 約 10.6m/s^2 あり、350N·m でも最大加速 0.80G と 26% 余る
+        // （実測で滑り率 0.05・TCS は一度も介入しない）。0-100km/h は 5.63 秒。
+        // 220N·m だった頃は 8.96 秒・0.45G で、グリップを半分も使えていなかった。
+        // 後輪駆動（driveBias 0）へ振るときは上限が mu*後軸荷重/車重 = 約 4.9m/s^2 まで
+        // 落ちるので、そのままでは直進でも後輪が空転しきる
+        private double peakTorque = 350.0;
         private double peakTorqueRpm = 4200.0;
         private double torqueFalloff = 0.45;
         private double idleRpm = 800.0;
@@ -574,7 +615,9 @@ public record CarSpec(
         private double engineBrakeTorque = 35.0;
         private double engineInertia = 0.25;
         private double gearCount = 5.0;
-        private double firstGearRatio = 3.4;
+        // 3.4 では 1 速がレブまで 71km/h も引っ張って発進が鈍い（実車は 55〜60km/h）。
+        // 4.2 で 57.5km/h になり、最大加速が 0.73G から 0.80G へ上がる
+        private double firstGearRatio = 4.2;
         private double topGearRatio = 0.85;
         private double drivetrainEfficiency = 0.9;
         private double shiftSeconds = 0.35;
@@ -594,9 +637,10 @@ public record CarSpec(
         // 0 でオートマ、1 でマニュアル
         private double manualTransmission = 0.0;
         // 最高速はトルク曲線と抵抗から自然に決まる。これは暴走を止めるための上限。
-        // 抵抗と釣り合う速度（既定の諸元で 208km/h）より先に効いてしまうと、
-        // トルクや空気抵抗を変えても最高速がここで頭打ちになって動かなくなる
-        private double maxSpeed = 69.4; // 約 250km/h
+        // 抵抗と釣り合う速度（既定の諸元で 255km/h）より先に効いてしまうと、
+        // トルクや空気抵抗を変えても最高速がここで頭打ちになって動かなくなる。
+        // トルクを 220 から 350N·m へ上げたとき、250km/h のままだと実際に張り付いた
+        private double maxSpeed = 83.3; // 約 300km/h
         // 実車の転がり抵抗はおよそ 0.012G、空気抵抗は 100km/h で 0.03G 程度。
         // 抽象モデル時代の値（1.2 と 0.0035）は 10 倍ほど過大で、
         // 実トルクを入れると最高速に届かなくなる

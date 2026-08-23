@@ -86,6 +86,7 @@ public class KurumaMenuScreen extends Screen {
         slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);
         slider("camera_height", 0.0, 8.0, ClientConfig.CAMERA_HEIGHT);
         slider("camera_speed_pull", 0.0, 12.0, ClientConfig.CAMERA_SPEED_PULL);
+        slider("speed_fov", 0.0, 50.0, ClientConfig.SPEED_FOV);
 
         int available = height - LIST_TOP - FOOTER_HEIGHT;
         visibleRows = Math.max(1, Math.min(rows.size(), available / ROW_HEIGHT));

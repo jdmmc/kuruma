@@ -48,15 +48,23 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.DoubleValue CAMERA_DISTANCE = BUILDER
             .comment("追跡カメラの距離 [ブロック]。運転中は PageUp / PageDown でも刻める。",
                     "バニラの三人称は 4 固定だが、カメラの位置を自分で置いているので縛られない")
-            .defineInRange("cameraDistance", 8.0, 1.5, 24.0);
+            .defineInRange("cameraDistance", 5.0, 1.5, 24.0);
 
     public static final ForgeConfigSpec.DoubleValue CAMERA_HEIGHT = BUILDER
             .comment("追跡カメラの高さ [ブロック]。0 で車と同じ高さ、上げると見下ろす")
             .defineInRange("cameraHeight", 1.2, 0.0, 8.0);
 
     public static final ForgeConfigSpec.DoubleValue CAMERA_SPEED_PULL = BUILDER
-            .comment("最高速でさらに引く距離 [ブロック]。速度感が出る。0 で常に一定")
-            .defineInRange("cameraSpeedPull", 3.0, 0.0, 12.0);
+            .comment("最高速でさらに引く距離 [ブロック]。0 で常に一定。",
+                    "速度感が出そうに見えるが逆で、引くほど景色の流れが遅くなるので既定は 0。",
+                    "速さを見せるのは視野の広がり（speedFov）のほう")
+            .defineInRange("cameraSpeedPull", 0.0, 0.0, 12.0);
+
+    public static final ForgeConfigSpec.DoubleValue SPEED_FOV = BUILDER
+            .comment("速度で視野をどれだけ広げるか [度]。0 で広げない。",
+                    "この車が出せる速度（最高段でレブまで回した速度）に対する割合で決まるので、",
+                    "遅い車でも全開なら同じだけ広がる")
+            .defineInRange("speedFov", 25.0, 0.0, 50.0);
 
     public static final ForgeConfigSpec.EnumValue<GaugeTheme> GAUGE_THEME = BUILDER
             .comment("メーターの配色。CLASSIC=90 年代の純正メーター（黒い縁・白い数字・橙の針）、",
@@ -85,13 +93,16 @@ public final class ClientConfig {
     public static double gaugeOpacity = 0.6;
 
     /** 追跡カメラの距離 [ブロック]。 */
-    public static double cameraDistance = 8.0;
+    public static double cameraDistance = 5.0;
 
     /** 追跡カメラの高さ [ブロック]。 */
     public static double cameraHeight = 1.2;
 
     /** 最高速でさらに引く距離 [ブロック]。 */
-    public static double cameraSpeedPull = 3.0;
+    public static double cameraSpeedPull = 0.0;
+
+    /** 速度で視野をどれだけ広げるか [度]。 */
+    public static double speedFov = 25.0;
 
     /** メーターの配色。 */
     public static GaugeTheme gaugeTheme = GaugeTheme.CLASSIC;
@@ -125,6 +136,7 @@ public final class ClientConfig {
         cameraDistance = CAMERA_DISTANCE.get();
         cameraHeight = CAMERA_HEIGHT.get();
         cameraSpeedPull = CAMERA_SPEED_PULL.get();
+        speedFov = SPEED_FOV.get();
         gaugeTheme = GAUGE_THEME.get();
         gateDisplay = GATE_DISPLAY.get();
     }

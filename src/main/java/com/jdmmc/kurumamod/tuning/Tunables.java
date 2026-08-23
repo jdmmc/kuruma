@@ -85,9 +85,11 @@ public final class Tunables {
                             .detail(Tunables::frontRollShare))),
 
             new Group("tire", List.of(
+                    // 目盛りは既定を 1.00 とした相対値（実際のμは CarSpec.REFERENCE_FRICTION 倍）。
                     // ブレーキとサイドブレーキの効きもここから決まる（μg を少し超える踏力を用意する）
-                    TunableParameter.linear("friction", 0.3, 1.6, "%.2f",
+                    TunableParameter.linear("friction", 0.3, 1.5, "%.2f",
                                     CarSpec::tireFriction, CarSpec.Builder::tireFriction)
+                            .unit(CarSpec.REFERENCE_FRICTION)
                             .detail(Tunables::brakeForce),
                     TunableParameter.linear("cornering_stiffness", 4, 25, "%.1f",
                             CarSpec::corneringStiffness, CarSpec.Builder::corneringStiffness),
@@ -247,8 +249,7 @@ public final class Tunables {
 
     /** 最高段でレブリミットまで回したときの速度。ギアの高さの目安。 */
     private static String topGearSpeed(CarSpec spec) {
-        double wheelSpeed = spec.redlineRpm() * 2.0 * Math.PI / 60.0 / spec.totalRatio(spec.forwardGears());
-        return String.format("%.0f", wheelSpeed * spec.wheelRadius() * 3.6);
+        return String.format("%.0f", spec.topGearSpeed() * 3.6);
     }
 
     /** デフの種類。0 ならオープンデフ。 */
@@ -303,8 +304,9 @@ public final class Tunables {
 
     /** タイヤの摩擦係数から決まるブレーキとサイドブレーキの効き。 */
     private static String brakeForce(CarSpec spec) {
-        return String.format("制動 %.1f・サイド %.1f m/s²・配分 前 %.0f%%",
-                spec.brakeDecel(), spec.handbrakeDecel(), spec.brakeBias() * 100.0);
+        // 目盛りが相対値なので、実際のμもここで見せる（見えないと路面の倍率と突き合わせられない）
+        return String.format("μ%.2f・制動 %.1f・サイド %.1f m/s²・配分 前 %.0f%%",
+                spec.tireFriction(), spec.brakeDecel(), spec.handbrakeDecel(), spec.brakeBias() * 100.0);
     }
 
     /** レブと段の比から決まる変速点。ハンチングしていないことがここで分かる。 */
