@@ -3,10 +3,14 @@ package com.jdmmc.kurumamod.client;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.entity.CarEntity;
+import com.jdmmc.kurumamod.network.CarPartRequestPacket;
 import com.jdmmc.kurumamod.network.CarTuningPacket;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
+import com.jdmmc.kurumamod.part.PartFitment;
+import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.CarInput;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.player.Input;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -140,6 +144,33 @@ public final class CarClientDriver {
         // 衝突するので、ジャンプの押下状態をそのまま借りる
         car.setDriverInput(new CarInput(in.up, in.down, in.left, in.right,
                 shiftUp, shiftDown, in.jumping));
+    }
+
+    /** いま運転している車。運転していなければ null。 */
+    @Nullable
+    public static CarEntity driving() {
+        return driving;
+    }
+
+    /**
+     * 換装を<b>要求</b>する。運転していなければ何もしない。
+     *
+     * <p><b>手元では反映しない。</b>何を履けるか決めるのはサーバーなので、通ったかどうかは
+     * {@code CarPartsPacket} が戻ってきて初めて分かる。先に反映すると、サーバーが弾いた
+     * ときに<b>自分にだけ見える部品</b>が残る。</p>
+     *
+     * <p><b>キャンバー角だけは手元で先に反映してよい</b>（{@code CarPartScreen} がそうしている）。
+     * 部品と違って弾かれることが無く、範囲へ丸められるだけなので、先に出しても食い違わない。
+     * スライダーを動かすたびに送ると 1 秒に何十回も飛ぶので、送るのは離したときと閉じるとき。</p>
+     *
+     * @param setting その場所をどうしたいか（部品と、キャンバー角の上書き）
+     */
+    public static void requestPart(PartSlot slot, PartFitment.Setting setting) {
+        CarEntity car = driving;
+        if (car == null) {
+            return;
+        }
+        KurumaNetwork.CHANNEL.sendToServer(new CarPartRequestPacket(car.getId(), slot, setting));
     }
 
     /** 調整画面の値をサーバー側の車へ送る。運転していなければ何もしない。 */

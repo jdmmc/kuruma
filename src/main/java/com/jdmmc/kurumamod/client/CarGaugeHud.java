@@ -214,6 +214,12 @@ public final class CarGaugeHud {
             clearBounds();
             return;
         }
+        // 換装・セッティング画面が開いている間は引っ込める。どちらも下端を使うので
+        // 重なるし、開いているあいだは運転の入力も止まっている
+        if (ScreenStyle.isCarScreen()) {
+            clearBounds();
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         // 同乗者にも出す。速度も回転数も段も同期されているので描ける
         if (minecraft.player == null || minecraft.options.hideGui

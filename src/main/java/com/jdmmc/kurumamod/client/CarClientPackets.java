@@ -6,6 +6,9 @@ import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CourseLinesPacket;
 import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.network.RaceStandingsPacket;
+import com.jdmmc.kurumamod.part.CarPart;
+import com.jdmmc.kurumamod.part.CarParts;
+import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
@@ -85,6 +88,33 @@ public final class CarClientPackets {
                     minecraft.player.connection.enabledFeatures(),
                     minecraft.player.canUseGameMasterBlocks(),
                     minecraft.player.level().registryAccess());
+        }
+    }
+
+    /**
+     * 選べる部品の一覧を受け取る。
+     *
+     * <p>車種と違ってクリエイティブタブには並ばないので、入れ替えるだけでよい。
+     * 換装画面（{@code CarPartScreen}）は開くたびにここから引く。</p>
+     */
+    public static void applyCarParts(List<CarPart> parts) {
+        CarParts.replaceAll(parts);
+    }
+
+    /**
+     * 車 1 台の装着状態を受け取る。
+     *
+     * <p><b>運転している本人のぶんも捨てない。</b>諸元は調整画面が正なので送り返された
+     * ぶんを捨てるが、装着状態を決めるのは<b>サーバー</b>（部品の一覧と突き合わせて弾く）。
+     * 届いたものが正なので、そのまま入れる。</p>
+     */
+    public static void applyParts(int entityId, PartFitment parts) {
+        if (Minecraft.getInstance().level == null) {
+            return;
+        }
+        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
+        if (entity instanceof CarEntity car) {
+            car.setFitment(parts);
         }
     }
 

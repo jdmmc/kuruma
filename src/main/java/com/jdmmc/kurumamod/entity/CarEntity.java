@@ -1,6 +1,5 @@
 package com.jdmmc.kurumamod.entity;
 
-import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.CarRules;
 import com.jdmmc.kurumamod.Config;
 import com.jdmmc.kurumamod.car.CarType;
@@ -8,7 +7,9 @@ import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.CarImpact;
 import com.jdmmc.kurumamod.client.CarSeat;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
+import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
+import com.jdmmc.kurumamod.network.CarPartsPacket;
 import com.jdmmc.kurumamod.network.CarPushPacket;
 import com.jdmmc.kurumamod.network.CarSpecPacket;
 import com.jdmmc.kurumamod.network.CarStatePacket;
@@ -247,6 +248,16 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     private ResourceLocation carId = CarTypes.DEFAULT_ID;
     /** 車両諸元。調整画面から差し替えられる。 */
     private CarSpec spec = CarSpec.DEFAULT;
+    /**
+     * 装着している部品。<b>車種・諸元と並ぶ 3 つめの状態。</b>
+     *
+     * <p>いまは見た目だけを変える（{@code CarPartModel}）。物理には一切入らないので、
+     * サーバーが無人の車を解く結果は履いているものに依らない。</p>
+     *
+     * <p>諸元と違って<b>サーバーが決める</b>——手元にあるだけの部品を勝手に履けると、
+     * 他の人には見えない部品を履いた車が走ることになる（{@code CarPartRequestPacket}）。</p>
+     */
+    private PartFitment parts = PartFitment.EMPTY;
     /** 物理の状態。運転権を持っている側だけが進める。 */
     private final CarState state = new CarState();
     /** 各輪の接地面の高さ。毎ティック使い回す。 */
@@ -408,6 +419,31 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         if (!level().isClientSide) {
             KurumaNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> this),
                     new CarSpecPacket(getId(), spec));
+        }
+    }
+
+    /**
+     * 装着している部品。付けていない場所は車種の既定の見た目になる。
+     *
+     * <p><b>{@code getParts()} という名前は使えない。</b>Forge の {@code IForgeEntity} が
+     * 多分割エンティティ用に同じ名前（戻り値 {@code PartEntity<?>[]}）を持っているため。</p>
+     */
+    public PartFitment getFitment() {
+        return parts;
+    }
+
+    /**
+     * 装着している部品を差し替える。
+     *
+     * <p>見た目に効くので、サーバー側で変わったときは周囲のクライアントへ配る。
+     * 配らないと、換えた本人の画面でしか見た目が変わらない。車が現れるときのぶんは
+     * {@link #writeSpawnData} が運ぶ。</p>
+     */
+    public void setFitment(PartFitment parts) {
+        this.parts = parts;
+        if (!level().isClientSide) {
+            KurumaNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> this),
+                    new CarPartsPacket(getId(), parts));
         }
     }
 
@@ -1410,19 +1446,32 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         return super.canCollideWith(other);
     }
 
+    /**
+     * <b>シフト＋殴りで回収する。</b>アイテムには諸元も装着した部品も入るので、
+     * 置き直せば同じ車が同じセッティングで出てくる（{@link CarSpawnItem#stackFor(CarEntity)}）。
+     *
+     * <p><b>素の殴りでは壊れない。</b>調整画面で作り込んだ車が、振り向きざまの 1 発で
+     * 消えるのは取り返しがつかない。壊す意思を示すのがシフトで、それは<b>回収</b>でもある
+     * ——「壊す」しか用意しないと、直前の設定を残す手立てが無くなる。</p>
+     *
+     * <p>乗っている人がいる車は回収させない。座っている人ごと消えることになるため。</p>
+     */
     @Override
     public boolean hurt(DamageSource source, float amount) {
         if (level().isClientSide || isRemoved()) {
             return true;
         }
-        if (source.getEntity() instanceof Player player) {
-            if (!player.getAbilities().instabuild) {
-                spawnAtLocation(Kurumamod.CAR_ITEM.get());
-            }
-            discard();
-            return true;
+        if (!(source.getEntity() instanceof Player player) || !player.isShiftKeyDown()
+                || !getPassengers().isEmpty()) {
+            return false;
         }
-        return false;
+        ItemStack stack = CarSpawnItem.stackFor(this);
+        // 手が塞がっていたら足元へ落とす。回収できずに車だけ消えるのが最悪なので
+        if (!player.getInventory().add(stack)) {
+            spawnAtLocation(stack);
+        }
+        discard();
+        return true;
     }
 
     @Override
@@ -1450,6 +1499,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // ここは saveWithoutId 経由なので配信はしない（まだ誰も追跡していない）
             spec = CarSpecCodec.load(tag.getCompound("Spec"));
         }
+        // 装着している部品。知らない id もそのまま覚えておく（カーパックを入れ直せば戻る）
+        if (tag.contains("Parts")) {
+            parts = PartFitment.load(tag.getCompound("Parts"));
+        }
         // 姿勢。物理を引き継ぐときに takeOverPhysics がここから読む。
         // 保存しないと、ひっくり返ったまま放置した車がチャンクの読み直しで水平に戻る。
         // 単位はラジアン（/summon で横転した車を出すのにも使う）
@@ -1462,6 +1515,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         tag.putString("CarId", carId.toString());
         // 諸元を保存しないと、リログやチャンクの読み直しで調整が消えて車高が変わる
         tag.put("Spec", CarSpecCodec.save(spec));
+        // 保存しないと、リログやチャンクの読み直しで換装が消えて既定の見た目に戻る
+        if (!parts.isEmpty()) {
+            tag.put("Parts", parts.save());
+        }
         tag.putFloat("Pitch", entityData.get(DATA_PITCH));
         tag.putFloat("Roll", entityData.get(DATA_ROLL));
     }
@@ -1477,12 +1534,15 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         // 車種も一緒に。これが無いと、他人の車が全部既定の見た目で描かれる
         buf.writeResourceLocation(carId);
         CarSpecCodec.write(buf, spec);
+        // 装着した部品も。これが無いと、後から見た人には既定のホイールで見える
+        parts.write(buf);
     }
 
     @Override
     public void readSpawnData(FriendlyByteBuf buf) {
         carId = buf.readResourceLocation();
         spec = CarSpecCodec.read(buf);
+        parts = PartFitment.read(buf);
     }
 
     @Override

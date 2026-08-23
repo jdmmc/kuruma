@@ -82,5 +82,23 @@ public final class KurumaNetwork {
                 .decoder(CarPushPacket::new)
                 .consumerMainThread(CarPushPacket::handle)
                 .add();
+        // カーパックが足した部品。車種と同じ場面で配る
+        CHANNEL.messageBuilder(CarPartTypesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CarPartTypesPacket::encode)
+                .decoder(CarPartTypesPacket::new)
+                .consumerMainThread(CarPartTypesPacket::handle)
+                .add();
+        // 車 1 台の装着状態。走行中に換装したときだけ飛ぶ（現れるときはスポーンデータが運ぶ）
+        CHANNEL.messageBuilder(CarPartsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CarPartsPacket::encode)
+                .decoder(CarPartsPacket::new)
+                .consumerMainThread(CarPartsPacket::handle)
+                .add();
+        // 換装の要求。何を履けるかを決めるのはサーバーなので、結果ではなく要求を送る
+        CHANNEL.messageBuilder(CarPartRequestPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(CarPartRequestPacket::encode)
+                .decoder(CarPartRequestPacket::new)
+                .consumerMainThread(CarPartRequestPacket::handle)
+                .add();
     }
 }

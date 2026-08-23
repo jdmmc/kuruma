@@ -63,6 +63,10 @@ public final class CarHelp {
         if (!ClientConfig.showHelp) {
             return;
         }
+        // 換装・セッティング画面が開いている間は引っ込める（メーターと同じ理由）
+        if (ScreenStyle.isCarScreen()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.options.hideGui) {
             return;

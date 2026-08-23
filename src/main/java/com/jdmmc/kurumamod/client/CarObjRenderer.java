@@ -30,6 +30,13 @@ import net.minecraft.util.Mth;
  * <p>向きは Blender の標準のまま（前方 -Y・上 +Z）でよい。エンティティ空間への読み替えは
  * {@link ObjModel} が読み込み時に済ませる。</p>
  *
+ * <h2>ホイールは換装できる</h2>
+ *
+ * <p>車が {@code PartFitment} で部品を履いていれば、タイヤのモデル・テクスチャ・取り付け位置は
+ * そちらが決める（{@link CarPartModel}）。<b>置く位置と大きさの決め方は変わらない</b>——
+ * 位置は諸元、大きさは諸元のタイヤ半径をメッシュの作りの半径で割った比。部品が差し替えるのは
+ * 「どのメッシュをどれだけずらして描くか」だけで、接地の辻褄は物理側のままになる。</p>
+ *
  * <h2>タイヤは諸元に追従し、車体はしない</h2>
  *
  * <p><b>ホイールベース・トレッド・タイヤ半径はタイヤの位置と大きさの定義そのもの</b>なので、
@@ -143,15 +150,19 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // 見た目だけ抑えた角度。物理が使う切れ角とは別物（大きく流したとき、進行方向に対して
         // 垂直を超えたタイヤが描かれるのを防ぐ）
         float steer = car.getVisualSteerAngle(partialTick);
-        CarModel.Vec3 offset = model.wheelOffset();
+
+        // 履いている部品と車種の定義を重ねた結果。何も履いていなければ車種の値がそのまま返る。
+        // 重ね合わせは CarPartModel に寄せてあるので、ここは「部品があれば／無ければ」を知らない
+        CarPartModel.Wheel look = CarPartModel.wheelOf(model, car.getFitment());
+        CarModel.Vec3 offset = look.offset();
 
         // 拡大率は 2 段構え。メッシュが作られた半径から諸元の半径へ正規化したうえで、
         // JSON の拡大率を掛ける。前者があるので、調整画面でタイヤ半径を変えると
         // 見た目もそのまま追従する（車高も上がるので接地したまま車体が持ち上がる）。
         // 後者で縦（Y・Z）を触ると接地が崩れる——物理はこの補正を知らないため。
         // 太さ（X）だけなら安全
-        double scale = spec.wheelRadius() / model.designWheelRadius();
-        CarModel.Vec3 wheelScale = model.wheelScale();
+        double scale = spec.wheelRadius() / look.designRadius();
+        CarModel.Vec3 wheelScale = look.scale();
         float scaleX = (float) (scale * wheelScale.x());
         float scaleY = (float) (scale * wheelScale.y());
         float scaleZ = (float) (scale * wheelScale.z());
@@ -172,8 +183,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             // キャンバー。負で「上が内側」（ネガティブキャンバー）になるよう、左右で符号を
             // 反転させる。Z 軸まわりの正回転はタイヤの上を左（-X）へ倒す。
             // 鏡像化より先に掛かるので、鏡像に倒れたりはしない
-            if (model.camber() != 0.0) {
-                float camber = (float) model.camber();
+            if (look.camber() != 0.0) {
+                float camber = (float) look.camber();
                 pose.mulPose(Axis.ZP.rotationDegrees(wheel.isLeft() ? camber : -camber));
             }
 
@@ -197,7 +208,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             // 理由は ObjModel#render の javadoc にある。ここより外側の回転は鏡像化された
             // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
             // ホイールの表裏が逆に見えるときはこの条件を反転させる
-            draw(model.wheelModel(), model.wheelTexture(), pose, buffer, packedLight, !wheel.isLeft());
+            draw(look.model(), look.texture(), pose, buffer, packedLight, !wheel.isLeft());
             pose.popPose();
         }
     }

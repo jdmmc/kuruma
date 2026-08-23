@@ -62,6 +62,10 @@ public final class CarHud {
         if (!ClientConfig.showTelemetry) {
             return;
         }
+        // 換装・セッティング画面が開いている間は引っ込める（メーターと同じ理由）
+        if (ScreenStyle.isCarScreen()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         // 運転者に限らない。速度も回転数も路面も同期されているので同乗者にも出せるし、
         // カメラの状態は同乗者も切り替えられる（H で消せるのも同じ）。

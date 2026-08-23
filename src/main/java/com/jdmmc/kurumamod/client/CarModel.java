@@ -210,16 +210,22 @@ public record CarModel(
                 (float) number(root, "shadowRadius", base.shadowRadius()));
     }
 
-    private static JsonObject child(JsonObject parent, String key) {
+    /*
+     * 以下の読み取りは package-private。部品の見た目（CarPartModel）が同じ書き方の JSON を
+     * 読むので、そちらと共有する。書き方が 2 つに割れると、車の JSON では書ける形が
+     * 部品の JSON では書けない、ということが起きる。
+     */
+
+    static JsonObject child(JsonObject parent, String key) {
         return parent.has(key) && parent.get(key).isJsonObject()
                 ? parent.getAsJsonObject(key) : new JsonObject();
     }
 
-    private static double number(JsonObject json, String key, double fallback) {
+    static double number(JsonObject json, String key, double fallback) {
         return json.has(key) ? json.get(key).getAsDouble() : fallback;
     }
 
-    private static ResourceLocation location(JsonObject json, String key, ResourceLocation fallback) {
+    static ResourceLocation location(JsonObject json, String key, ResourceLocation fallback) {
         return json.has(key) ? new ResourceLocation(json.get(key).getAsString()) : fallback;
     }
 
@@ -229,7 +235,7 @@ public record CarModel(
      * <p>拡大率は 1 つの数字で書きたいことがほとんどで、そこで 3 つ並べさせると
      * 書き間違いが増える。個数が違えば既定値に落とす（半端に読むと原因が分かりにくい）。</p>
      */
-    private static Vec3 vector(JsonObject json, String key, Vec3 fallback) {
+    static Vec3 vector(JsonObject json, String key, Vec3 fallback) {
         if (!json.has(key)) {
             return fallback;
         }

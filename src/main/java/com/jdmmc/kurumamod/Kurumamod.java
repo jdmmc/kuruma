@@ -2,6 +2,7 @@ package com.jdmmc.kurumamod;
 
 import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
+import com.jdmmc.kurumamod.client.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
 import com.jdmmc.kurumamod.client.KurumaMenuScreen;
 import com.jdmmc.kurumamod.client.ObjModel;
@@ -28,10 +29,12 @@ import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.network.PacketDistributor;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypeLoader;
+import com.jdmmc.kurumamod.part.CarPartLoader;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.network.CarRulesPacket;
 import com.jdmmc.kurumamod.network.CarTypesPacket;
+import com.jdmmc.kurumamod.network.CarPartTypesPacket;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -139,6 +142,8 @@ public class Kurumamod {
     @SubscribeEvent
     public void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(new CarTypeLoader());
+        // 部品も同じ扱い。素性は data/<ns>/car_parts/*.json、見た目は assets/ 側
+        event.addListener(new CarPartLoader());
     }
 
     /**
@@ -155,12 +160,15 @@ public class Kurumamod {
     @SubscribeEvent
     public void onDatapackSync(OnDatapackSyncEvent event) {
         CarTypesPacket packet = CarTypesPacket.current();
+        CarPartTypesPacket parts = CarPartTypesPacket.current();
         CarRulesPacket rules = CarRulesPacket.current();
         if (event.getPlayer() != null) {
             KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(event::getPlayer), packet);
+            KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(event::getPlayer), parts);
             KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(event::getPlayer), rules);
         } else {
             KurumaNetwork.CHANNEL.send(PacketDistributor.ALL.noArg(), packet);
+            KurumaNetwork.CHANNEL.send(PacketDistributor.ALL.noArg(), parts);
             KurumaNetwork.CHANNEL.send(PacketDistributor.ALL.noArg(), rules);
         }
     }
@@ -200,6 +208,7 @@ public class Kurumamod {
             event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
                 ObjModel.clearCache();
                 CarModel.clearCache();
+                CarPartModel.clearCache();
                 CarPresets.clearCache();
             });
         }

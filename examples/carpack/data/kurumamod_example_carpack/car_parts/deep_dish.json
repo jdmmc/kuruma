@@ -1,0 +1,6 @@
+{
+  "_comment": "部品の素性。付ける場所と並び順だけ。見た目は assets/<pack>/car_parts/deep_dish.json にある",
+
+  "slot": "wheel",
+  "order": 30
+}
