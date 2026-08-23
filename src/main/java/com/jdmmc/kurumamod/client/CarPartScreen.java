@@ -308,7 +308,7 @@ public class CarPartScreen extends Screen {
     private void apply(Adjustment adjustment, @Nullable Double value) {
         CarEntity car = CarClientDriver.driving();
         if (car != null) {
-            car.setFitment(adjustment.with(car.getFitment(), slot, value));
+            car.setFitment(adjustment.apply(car.getFitment(), slot, value));
         }
     }
 
@@ -357,9 +357,9 @@ public class CarPartScreen extends Screen {
     private enum Adjustment {
 
         /** キャンバー角 [度]。負で「上が内側」。 */
-        CAMBER(PartFitment.CAMBER_MIN, PartFitment.CAMBER_MAX, 0.5, "camber", "%.1f") {
+        CAMBER(PartFitment.CAMBER_MIN, PartFitment.CAMBER_MAX, 0.5, 1.0, "camber", "%.1f") {
             @Override
-            double defaultValue(CarModel model, PartFitment fitment) {
+            double packDefault(CarModel model, PartFitment fitment) {
                 return CarPartModel.defaultCamber(model, fitment);
             }
 
@@ -370,15 +370,15 @@ public class CarPartScreen extends Screen {
             }
 
             @Override
-            PartFitment with(PartFitment fitment, PartSlot slot, @Nullable Double value) {
+            PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
                 return fitment.withCamber(slot, value);
             }
         },
 
         /** ホイールオフセット [mm]。<b>実車と同じ向きで、小さいほど外へ出る。</b> */
-        OFFSET(PartFitment.OFFSET_MIN, PartFitment.OFFSET_MAX, 1.0, "offset", "%.0f") {
+        OFFSET(PartFitment.OFFSET_MIN, PartFitment.OFFSET_MAX, 1.0, 1.0, "offset", "%.0f") {
             @Override
-            double defaultValue(CarModel model, PartFitment fitment) {
+            double packDefault(CarModel model, PartFitment fitment) {
                 return CarPartModel.defaultOffset(model, fitment);
             }
 
@@ -389,34 +389,79 @@ public class CarPartScreen extends Screen {
             }
 
             @Override
-            PartFitment with(PartFitment fitment, PartSlot slot, @Nullable Double value) {
+            PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
                 return fitment.withOffset(slot, value);
+            }
+        },
+
+        /**
+         * タイヤの太さ [%]。<b>メッシュのままが 100%。</b>
+         *
+         * <p>ミリで出さないのは、<b>何ミリなのかはメッシュ次第</b>だから。倍率なら、
+         * 部品を履き替えても「その部品の作りに対してどれだけ太いか」の意味が変わらない。</p>
+         */
+        WIDTH(PartFitment.WIDTH_MIN * 100.0, PartFitment.WIDTH_MAX * 100.0, 5.0, 0.01,
+                "width", "%.0f") {
+            @Override
+            double packDefault(CarModel model, PartFitment fitment) {
+                return CarPartModel.defaultWidth(model, fitment);
+            }
+
+            @Override
+            @Nullable
+            Double override(PartFitment fitment, PartSlot slot) {
+                return fitment.getWidth(slot);
+            }
+
+            @Override
+            PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
+                return fitment.withWidth(slot, value);
             }
         };
 
         static final Adjustment[] VALUES = values();
 
+        /** 範囲と刻みは<b>表示の単位</b>で書く（度・mm・%）。 */
         private final double min;
         private final double max;
         /** 目盛りの刻み。<b>これより細かくしても見た目では分からず、保存される値が半端になる。</b> */
         private final double step;
+        /**
+         * 表示の単位 1 つぶんが内部の単位でいくつか。
+         *
+         * <p>太さだけは画面が % で、持っているのは倍率（100% = 1.0）。<b>換算はここ 1 か所</b>で、
+         * 画面の中は最後まで表示の単位で通す。</p>
+         */
+        private final double unit;
         private final String name;
         private final String format;
 
-        Adjustment(double min, double max, double step, String name, String format) {
+        Adjustment(double min, double max, double step, double unit, String name, String format) {
             this.min = min;
             this.max = max;
             this.step = step;
+            this.unit = unit;
             this.name = name;
             this.format = format;
         }
 
-        abstract double defaultValue(CarModel model, PartFitment fitment);
+        /** 部品（カーパック）が指定している値。<b>内部の単位</b>。 */
+        abstract double packDefault(CarModel model, PartFitment fitment);
 
+        /** プレイヤーの上書き。<b>内部の単位</b>。していなければ null。 */
         @Nullable
         abstract Double override(PartFitment fitment, PartSlot slot);
 
-        abstract PartFitment with(PartFitment fitment, PartSlot slot, @Nullable Double value);
+        /** 上書きを入れ替える。<b>内部の単位</b>。null で上書きをやめる。 */
+        abstract PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value);
+
+        double toDisplay(double internal) {
+            return internal / unit;
+        }
+
+        double toInternal(double display) {
+            return display * unit;
+        }
 
         String key(String suffix) {
             return "screen.kurumamod.part." + name + "_" + suffix;
@@ -461,16 +506,17 @@ public class CarPartScreen extends Screen {
             updateMessage();
         }
 
-        /** いま描かれている値。上書きがあればそれ、無ければ部品（カーパック）の指定。 */
+        /** いま描かれている値（表示の単位）。上書きがあればそれ、無ければ部品の指定。 */
         private double effective() {
             Double override = adjustment.override(fitment(), slot);
-            return override != null ? override : defaultValue();
+            return override != null ? adjustment.toDisplay(override) : defaultValue();
         }
 
+        /** 部品（カーパック）が指定している値（表示の単位）。 */
         private double defaultValue() {
             CarEntity car = CarClientDriver.driving();
-            return car == null ? 0.0
-                    : adjustment.defaultValue(CarModel.get(car.getCarId()), car.getFitment());
+            return car == null ? 0.0 : adjustment.toDisplay(
+                    adjustment.packDefault(CarModel.get(car.getCarId()), car.getFitment()));
         }
 
         @Override
@@ -488,7 +534,7 @@ public class CarPartScreen extends Screen {
         @Override
         protected void applyValue() {
             // つまんでいる間はここが毎フレーム呼ばれる。送るのは離したときだけ
-            apply(adjustment, adjustment.fromSlider(this.value));
+            apply(adjustment, adjustment.toInternal(adjustment.fromSlider(this.value)));
         }
 
         @Override

@@ -96,7 +96,7 @@ public record CarPartModel(
                 part.model != null ? part.model : car.wheelModel(),
                 part.texture != null ? part.texture : car.wheelTexture(),
                 offsetOf(car, part, parts.getOffset(PartSlot.WHEEL)),
-                part.scale != null ? part.scale : car.wheelScale(),
+                scaleOf(car, part, parts.getWidth(PartSlot.WHEEL)),
                 // 重ねる順は「プレイヤーの上書き → 部品（カーパック）の指定 → 車種の指定」。
                 // パックが角度を書いていればそれが既定値になり、上書きを消せばそこへ戻る
                 camberOf(car, part, parts.getCamber(PartSlot.WHEEL)),
@@ -128,6 +128,23 @@ public record CarPartModel(
         CarModel.Vec3 base = part.offset != null ? part.offset : car.wheelOffset();
         return override == null ? base
                 : new CarModel.Vec3(-override / 1000.0, base.y(), base.z());
+    }
+
+    /**
+     * 実際に描く拡大率。<b>X（太さ）だけが上書きで動く。</b>
+     *
+     * <p>Y・Z（直径）には触らない——接地点は物理のタイヤ半径から決まっていて、
+     * 見た目だけ大きくしても物理は知らないため。</p>
+     */
+    private static CarModel.Vec3 scaleOf(CarModel car, CarPartModel part, @Nullable Double override) {
+        CarModel.Vec3 base = part.scale != null ? part.scale : car.wheelScale();
+        return override == null ? base : new CarModel.Vec3(override, base.y(), base.z());
+    }
+
+    /** その部品が指定している太さの倍率。指定していなければ車種の値。<b>上書きの戻り先。</b> */
+    public static double defaultWidth(CarModel car, PartFitment parts) {
+        CarPartModel part = partOf(parts);
+        return part.scale != null ? part.scale.x() : car.wheelScale().x();
     }
 
     /** その部品が指定しているキャンバー角。指定していなければ車種の値。<b>上書きの戻り先。</b> */

@@ -1,5 +1,0 @@
-{
-  "_comment": "見た目の定義は assets/kurumamod/car_parts/wheel_stance.json。id はファイル名で決まる",
-  "slot": "wheel",
-  "order": 20
-}

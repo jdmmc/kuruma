@@ -71,12 +71,26 @@ public final class PartFitment {
     public static final double OFFSET_MIN = -100.0;
     public static final double OFFSET_MAX = 50.0;
 
+    /**
+     * タイヤの太さの範囲。<b>メッシュのまま（＝カーパックが作った太さ）が 1.0 の倍率。</b>
+     *
+     * <p>ミリで持たないのは、<b>何ミリなのかはメッシュ次第</b>だから。倍率にしておけば、
+     * 部品が入れ替わっても「その部品の作りに対してどれだけ太いか」の意味が変わらない。</p>
+     *
+     * <p>太さだけを動かすのは、<b>直径（Y・Z）を触ると接地が崩れる</b>ため——接地点は物理の
+     * タイヤ半径から決まっていて、見た目の拡大を物理は知らない。直径を変えたいなら
+     * 調整画面のタイヤ半径を使う。</p>
+     */
+    public static final double WIDTH_MIN = 0.5;
+    public static final double WIDTH_MAX = 2.5;
+
     /** 何も付けていない状態。<b>＝車種の既定の見た目。</b> */
     public static final PartFitment EMPTY = new PartFitment(new EnumMap<>(PartSlot.class));
 
     private static final String KEY_ID = "Id";
     private static final String KEY_CAMBER = "Camber";
     private static final String KEY_OFFSET = "Offset";
+    private static final String KEY_WIDTH = "Width";
 
     /**
      * その場所の状態。
@@ -89,14 +103,16 @@ public final class PartFitment {
      * @param camber キャンバー角 [度] の上書き。null なら部品ないし車種の指定に従う
      * @param offset ホイールオフセット [mm] の上書き。<b>実車と同じ向きで、小さいほど外へ出る。</b>
      *               null なら部品ないし車種の指定に従う
+     * @param width  タイヤの太さの倍率の上書き。メッシュのままが 1.0。
+     *               null なら部品ないし車種の指定に従う
      */
     public record Setting(@Nullable ResourceLocation partId, @Nullable Double camber,
-                          @Nullable Double offset) {
+                          @Nullable Double offset, @Nullable Double width) {
 
-        public static final Setting NONE = new Setting(null, null, null);
+        public static final Setting NONE = new Setting(null, null, null, null);
 
         public boolean isEmpty() {
-            return partId == null && camber == null && offset == null;
+            return partId == null && camber == null && offset == null && width == null;
         }
     }
 
@@ -134,6 +150,12 @@ public final class PartFitment {
         return get(slot).offset();
     }
 
+    /** その場所の太さの倍率の上書き。していなければ null（＝部品ないし車種の指定）。 */
+    @Nullable
+    public Double getWidth(PartSlot slot) {
+        return get(slot).width();
+    }
+
     public boolean isEmpty() {
         return parts.isEmpty();
     }
@@ -168,7 +190,7 @@ public final class PartFitment {
      * @param partId 付ける部品。<b>null で「外す」</b>（車種の既定に戻る）
      */
     public PartFitment withPart(PartSlot slot, @Nullable ResourceLocation partId) {
-        return with(slot, new Setting(partId, getCamber(slot), getOffset(slot)));
+        return with(slot, new Setting(partId, getCamber(slot), getOffset(slot), getWidth(slot)));
     }
 
     /**
@@ -179,7 +201,7 @@ public final class PartFitment {
     public PartFitment withCamber(PartSlot slot, @Nullable Double camber) {
         return with(slot, new Setting(getPart(slot),
                 camber == null ? null : Mth.clamp(camber, CAMBER_MIN, CAMBER_MAX),
-                getOffset(slot)));
+                getOffset(slot), getWidth(slot)));
     }
 
     /**
@@ -189,7 +211,18 @@ public final class PartFitment {
      */
     public PartFitment withOffset(PartSlot slot, @Nullable Double offset) {
         return with(slot, new Setting(getPart(slot), getCamber(slot),
-                offset == null ? null : Mth.clamp(offset, OFFSET_MIN, OFFSET_MAX)));
+                offset == null ? null : Mth.clamp(offset, OFFSET_MIN, OFFSET_MAX),
+                getWidth(slot)));
+    }
+
+    /**
+     * タイヤの太さだけ入れ替える。
+     *
+     * @param width 太さの倍率。<b>null で「上書きをやめる」</b>（部品ないし車種の指定へ戻る）
+     */
+    public PartFitment withWidth(PartSlot slot, @Nullable Double width) {
+        return with(slot, new Setting(getPart(slot), getCamber(slot), getOffset(slot),
+                width == null ? null : Mth.clamp(width, WIDTH_MIN, WIDTH_MAX)));
     }
 
     // ------------------------------------------------------------------
@@ -209,6 +242,9 @@ public final class PartFitment {
             }
             if (setting.offset() != null) {
                 slot.putDouble(KEY_OFFSET, setting.offset());
+            }
+            if (setting.width() != null) {
+                slot.putDouble(KEY_WIDTH, setting.width());
             }
             tag.put(entry.getKey().getSerializedName(), slot);
         }
@@ -239,7 +275,7 @@ public final class PartFitment {
      */
     private static Setting readSetting(CompoundTag tag, String key) {
         if (tag.getTagType(key) == Tag.TAG_STRING) {
-            return new Setting(parseId(tag.getString(key), key), null, null);
+            return new Setting(parseId(tag.getString(key), key), null, null, null);
         }
         CompoundTag slot = tag.getCompound(key);
         ResourceLocation id = slot.contains(KEY_ID) ? parseId(slot.getString(KEY_ID), key) : null;
@@ -247,7 +283,9 @@ public final class PartFitment {
                 ? Mth.clamp(slot.getDouble(KEY_CAMBER), CAMBER_MIN, CAMBER_MAX) : null;
         Double offset = slot.contains(KEY_OFFSET)
                 ? Mth.clamp(slot.getDouble(KEY_OFFSET), OFFSET_MIN, OFFSET_MAX) : null;
-        return new Setting(id, camber, offset);
+        Double width = slot.contains(KEY_WIDTH)
+                ? Mth.clamp(slot.getDouble(KEY_WIDTH), WIDTH_MIN, WIDTH_MAX) : null;
+        return new Setting(id, camber, offset, width);
     }
 
     @Nullable
@@ -296,6 +334,10 @@ public final class PartFitment {
         if (setting.offset() != null) {
             buf.writeDouble(setting.offset());
         }
+        buf.writeBoolean(setting.width() != null);
+        if (setting.width() != null) {
+            buf.writeDouble(setting.width());
+        }
     }
 
     public static Setting readSetting(FriendlyByteBuf buf) {
@@ -305,7 +347,9 @@ public final class PartFitment {
                 ? Mth.clamp(buf.readDouble(), CAMBER_MIN, CAMBER_MAX) : null;
         Double offset = buf.readBoolean()
                 ? Mth.clamp(buf.readDouble(), OFFSET_MIN, OFFSET_MAX) : null;
-        return new Setting(id, camber, offset);
+        Double width = buf.readBoolean()
+                ? Mth.clamp(buf.readDouble(), WIDTH_MIN, WIDTH_MAX) : null;
+        return new Setting(id, camber, offset, width);
     }
 
     @Override

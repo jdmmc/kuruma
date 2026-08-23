@@ -29,8 +29,6 @@
   "screen.kurumamod.part.hint": "Click to fit  Drag to orbit  Wheel to zoom  Esc to go back",
   "screen.kurumamod.part.need_driving": "You can only swap parts while driving",
   "part_slot.kurumamod.wheel": "Wheels",
-  "part.kurumamod.wheel_wide": "Wide Wheels",
-  "part.kurumamod.wheel_stance": "Deep Dish Wheels",
   "preset.kurumamod.easy_drift": "Easy Drift",
   "preset.kurumamod.offroad": "Off-road",
   "tuning.kurumamod.group.suspension": "Suspension",
@@ -334,5 +332,8 @@
   "item.kurumamod.car.saved": "Settings saved",
   "screen.kurumamod.part.offset": "Offset  %smm",
   "screen.kurumamod.part.offset_changed": "Offset  %smm (default %smm)",
-  "screen.kurumamod.part.offset_reset": "Back to the offset the pack sets (lower sticks out more)"
+  "screen.kurumamod.part.offset_reset": "Back to the offset the pack sets (lower sticks out more)",
+  "screen.kurumamod.part.width": "Width  %s%%",
+  "screen.kurumamod.part.width_changed": "Width  %s%% (default %s%%)",
+  "screen.kurumamod.part.width_reset": "Back to the width the pack sets"
 }

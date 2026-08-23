@@ -29,8 +29,6 @@
   "screen.kurumamod.part.hint": "クリックで装着  ドラッグで回す  ホイールで寄り引き  Esc で戻る",
   "screen.kurumamod.part.need_driving": "車を運転しているときだけ換装できます",
   "part_slot.kurumamod.wheel": "ホイール",
-  "part.kurumamod.wheel_wide": "ワイドホイール",
-  "part.kurumamod.wheel_stance": "深リム",
   "preset.kurumamod.easy_drift": "イージードリフト",
   "preset.kurumamod.offroad": "オフロード",
   "tuning.kurumamod.group.suspension": "サスペンション",
@@ -334,5 +332,8 @@
   "item.kurumamod.car.saved": "セッティングを保存済み",
   "screen.kurumamod.part.offset": "オフセット  %smm",
   "screen.kurumamod.part.offset_changed": "オフセット  %smm（既定 %smm）",
-  "screen.kurumamod.part.offset_reset": "パックが指定したオフセットに戻す（小さいほど外へ出る）"
+  "screen.kurumamod.part.offset_reset": "パックが指定したオフセットに戻す（小さいほど外へ出る）",
+  "screen.kurumamod.part.width": "太さ  %s%%",
+  "screen.kurumamod.part.width_changed": "太さ  %s%%（既定 %s%%）",
+  "screen.kurumamod.part.width_reset": "パックが指定した太さに戻す"
 }
