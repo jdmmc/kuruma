@@ -47,6 +47,11 @@ import net.minecraft.util.Mth;
  * 伸びてしまうため追従させない。大きさは JSON の {@code bodyScale} で明示する。
  * <b>寸法を大きく動かせばタイヤはフェンダーからはみ出す。</b></p>
  *
+ * <h2>ガラス</h2>
+ *
+ * <p>透ける面は車体の後に別の {@code RenderType} で描き直す（{@link #draw}）。
+ * どの面が透けるかは {@link ObjModel} が読み込みのときに決めていて、ここは知らない。</p>
+ *
  * <h2>姿勢を掛ける順番</h2>
  *
  * <p>ヨー → ピッチ → ロールの順。<b>先にヨーを掛けてからでないと</b>、ピッチとロールを
@@ -214,16 +219,37 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     }
 
     /**
-     * モデルを 1 つ描く。
+     * モデルを 1 つ描く。<b>不透明な面と透ける面（ガラス）を 2 回に分けて描く。</b>
      *
      * <p>{@code entityCutoutNoCull} を使うのは 2 つ理由がある。<b>右側のタイヤを鏡像で描くと
      * 面の巻き方向が裏返る</b>のでカリングを切る必要があること、そしてテクスチャの透明部分
      * （窓やグリルの抜き）を使えるようにするため。</p>
+     *
+     * <p><b>ただし cutout は「抜くか、抜かないか」しか扱えない。</b>シェーダが
+     * α 0.1 未満を捨てるだけで混色しないので、半透明のテクスチャを貼っても
+     * <b>ガラスはべったり不透明に出る</b>。透かすには混色する {@code RenderType} が要る。</p>
+     *
+     * <p>そこで透ける面だけ {@code entityTranslucent}（同じくカリング無し）で描き直す。
+     * <b>順番が要点</b>——{@code MultiBufferSource} は {@code RenderType} が切り替わった
+     * 時点で前の面をまとめて流すので、この呼び分けがそのまま「車体を描いてからガラス」に
+     * なる。逆にすると、ガラスが深度を埋めた後ろに車体が来て<b>窓の向こうの車内が抜ける</b>。</p>
+     *
+     * <p>透ける面が 1 つも無ければ 2 パス目は呼ばない。呼ぶと {@code RenderType} が
+     * 切り替わって<b>何も描かない描画呼び出しがタイヤ 4 本ぶん増える</b>だけになる。</p>
      */
     private void draw(ResourceLocation model, ResourceLocation texture, PoseStack pose,
                       MultiBufferSource buffer, int packedLight, boolean mirrorX) {
+        ObjModel obj = ObjModel.get(model);
+
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
-        ObjModel.get(model).render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
-                1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX);
+        obj.render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE);
+
+        if (!obj.hasTranslucent()) {
+            return;
+        }
+        VertexConsumer glass = buffer.getBuffer(RenderType.entityTranslucent(texture));
+        obj.render(pose.last(), glass, packedLight, OverlayTexture.NO_OVERLAY,
+                1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.TRANSLUCENT);
     }
 }

@@ -48,16 +48,70 @@ import net.minecraft.world.phys.Vec3;
  *
  * <p>OBJ の V 軸は下が 0、Minecraft のテクスチャは上が 0 なので、読み込み時に反転する。
  * Blender 側で気にする必要はない。</p>
+ *
+ * <h2>半透明（ガラス）</h2>
+ *
+ * <p><b>テクスチャに半透明の画素を置くだけでは透けない。</b>車体を描いている
+ * {@code entityCutoutNoCull} は「α が 0.1 未満なら捨てる、それ以外は不透明」でしか扱わない
+ * （シェーダに混色そのものが無い）ので、α 128 の窓は<b>べったり不透明</b>に出る。
+ * 透かすには<b>別の {@code RenderType} で、車体を描いた後に描き直す</b>しかない。</p>
+ *
+ * <p>そこで頂点ごとに不透明度を持たせ、{@link Pass} で 2 回に分けて描く。
+ * <b>どちらのパスへ行くかは頂点の α ひとつで決まる</b>——名前を見るのは読み込みのときだけで、
+ * 描画中に名前を照合しない。α の決まり方:</p>
+ *
+ * <ol>
+ *   <li>MTL に {@code d}（または {@code Tr}）が書いてあればその値。Blender では
+ *       マテリアルの <b>Alpha</b> がそのまま出る</li>
+ *   <li>書いていなくて、オブジェクト名が {@value #GLASS_PREFIX} で始まるなら
+ *       {@value #GLASS_DEFAULT_ALPHA}。<b>マテリアルを割り当てていないメッシュでも
+ *       名前だけで透けさせられる</b>ようにするための逃げ道</li>
+ *   <li>どちらでもなければ 1.0（不透明）</li>
+ * </ol>
+ *
+ * <p>{@link #LIGHT_PREFIX} と違い、<b>知らない {@code glass*} を足しても穴は開かない</b>。
+ * 車体のパスから外れたぶんは必ず半透明のパスが拾うので、描かれなくなることがない。</p>
  */
 public final class ObjModel {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** 頂点 1 つあたりの float 数。位置 3・法線 3・UV 2・色 3。 */
-    private static final int STRIDE = 11;
+    /** 頂点 1 つあたりの float 数。位置 3・法線 3・UV 2・色 3・不透明度 1。 */
+    private static final int STRIDE = 12;
+
+    /** 頂点の中の不透明度の位置。 */
+    private static final int ALPHA_OFFSET = 11;
 
     /** {@link #isUvMapped} が「展開されている」と見なす UV の広がり。512px で約 1 画素。 */
     private static final float UV_MAPPED_EPSILON = 0.002F;
+
+    /**
+     * ガラスの名前の頭。{@code glass} / {@code glass_side} / {@code glass.001} が当たる
+     * （{@code glasshouse} は当たらない）。
+     *
+     * <p><b>これは既定値を与えるだけで、透けるかどうかを決めているのは頂点の α。</b>
+     * MTL が {@code d} を書いていればそちらが勝つ。</p>
+     */
+    public static final String GLASS_PREFIX = "glass";
+
+    /** マテリアルが透明度を書いていないガラスの不透明度。 */
+    private static final float GLASS_DEFAULT_ALPHA = 0.35F;
+
+    /**
+     * これ以上を「不透明」と見なす。
+     *
+     * <p>Blender は不透明なマテリアルにも {@code d 1.000000} と必ず書くので素通しの比較で
+     * 足りるが、他のツールが {@code 0.999999} と書いても拾えるようにしてある。</p>
+     */
+    private static final float OPAQUE_THRESHOLD = 0.999F;
+
+    /** どちらの描画パスか。{@code CarObjRenderer#draw} が 2 回に分けて呼ぶ。 */
+    public enum Pass {
+        /** 不透明な面。{@code entityCutoutNoCull} で先に描く */
+        OPAQUE,
+        /** 透ける面。{@code entityTranslucent} で車体の後に描く */
+        TRANSLUCENT
+    }
 
     /**
      * この名前で始まるオブジェクトは描かない。
@@ -88,6 +142,8 @@ public final class ObjModel {
     private final int triangleCount;
     /** オブジェクトごとの範囲（float の添字）。名前で選んで描くために持つ。 */
     private final List<Group> groups;
+    /** 透ける面を 1 つでも持っているか。無ければ 2 パス目を丸ごと省ける。 */
+    private final boolean translucent;
 
     /** OBJ の {@code o} / {@code g} ひと区切り。 */
     private record Group(String name, int from, int to) {
@@ -97,6 +153,20 @@ public final class ObjModel {
         this.vertices = vertices;
         this.triangleCount = vertices.length / (STRIDE * 3);
         this.groups = groups;
+
+        // 2 パス目が要るかは読み込みのときに数えておく。毎フレーム走査する値ではない。
+        // 判定はそのまま accepts に聞く——ここだけ別の式で数えると、灯火のレンズが
+        // 透けていたときに「何も描かない 2 パス目」が残るような食い違いが出る
+        boolean any = false;
+        for (int triangle = 0; triangle < triangleCount && !any; triangle++) {
+            any = accepts(triangle * 3 * STRIDE, null, Pass.TRANSLUCENT);
+        }
+        this.translucent = any;
+    }
+
+    /** 透ける面を持っているか。false なら半透明のパスは呼ばなくてよい。 */
+    public boolean hasTranslucent() {
+        return translucent;
     }
 
     /** その名前のオブジェクトを持っているか。 */
@@ -225,6 +295,14 @@ public final class ObjModel {
         render(pose, consumer, packedLight, packedOverlay, tintRed, tintGreen, tintBlue, alpha, null, false);
     }
 
+    /** 名前を選んで、左右を反転して描く。パスは不透明側。 */
+    public void render(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay,
+                       float tintRed, float tintGreen, float tintBlue, float alpha, String only,
+                       boolean mirrorX) {
+        render(pose, consumer, packedLight, packedOverlay, tintRed, tintGreen, tintBlue, alpha,
+                only, mirrorX, Pass.OPAQUE);
+    }
+
     /**
      * 名前を選んで描く。
      *
@@ -250,17 +328,18 @@ public final class ObjModel {
      * {@code entityCutoutNoCull} でカリングを切ってあるので問題にならない。</p>
      *
      * @param mirrorX 左右を反転して描くか
+     * @param pass 不透明な面と透ける面のどちらを描くか。{@code only} を指定したときは見ない
      */
     public void render(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay,
                        float tintRed, float tintGreen, float tintBlue, float alpha, String only,
-                       boolean mirrorX) {
+                       boolean mirrorX, Pass pass) {
         Matrix4f matrix = pose.pose();
         Matrix3f normal = pose.normal();
         float flip = mirrorX ? -1.0F : 1.0F;
 
         for (int triangle = 0; triangle < triangleCount; triangle++) {
             int base = triangle * 3 * STRIDE;
-            if (!accepts(base, only)) {
+            if (!accepts(base, only, pass)) {
                 continue;
             }
             for (int corner = 0; corner < 4; corner++) {
@@ -270,7 +349,7 @@ public final class ObjModel {
                         .color(vertices[offset + 8] * tintRed,
                                 vertices[offset + 9] * tintGreen,
                                 vertices[offset + 10] * tintBlue,
-                                alpha)
+                                vertices[offset + ALPHA_OFFSET] * alpha)
                         .uv(vertices[offset + 6], vertices[offset + 7])
                         .overlayCoords(packedOverlay)
                         .uv2(packedLight)
@@ -280,17 +359,60 @@ public final class ObjModel {
         }
     }
 
-    /** その三角形を描くか。光る部分は車体の描画から外し、指定されたときだけ描く。 */
-    private boolean accepts(int base, String only) {
+    /**
+     * その三角形を描くか。
+     *
+     * <p>光る部分は車体の描画から外し、名指しされたときだけ描く。それ以外は<b>頂点の
+     * 不透明度</b>でパスを振り分ける——透ける面は車体のパスから外れ、半透明のパスが拾う。</p>
+     */
+    private boolean accepts(int base, String only, Pass pass) {
+        String name = groupNameAt(base);
+        if (only != null) {
+            // 名指し（灯火のレンズ）はパスを問わない。RenderType は呼ぶ側が選んでいる
+            return name != null && name.equals(only);
+        }
+        if (name != null && name.startsWith(LIGHT_PREFIX)) {
+            return false;
+        }
+        boolean transparent = vertices[base + ALPHA_OFFSET] < OPAQUE_THRESHOLD;
+        return transparent == (pass == Pass.TRANSLUCENT);
+    }
+
+    /** その三角形が属するオブジェクトの名前。{@code o} も {@code g} も無い OBJ では null。 */
+    private String groupNameAt(int base) {
         for (Group group : groups) {
             if (base >= group.from() && base < group.to()) {
-                return only == null
-                        ? !group.name().startsWith(LIGHT_PREFIX)
-                        : group.name().equals(only);
+                return group.name();
             }
         }
-        // グループの外（o も g も無い OBJ）。車体として扱う
-        return only == null;
+        return null;
+    }
+
+    /**
+     * ガラスの名前か。
+     *
+     * <p>{@code glass} そのものと、区切り（{@code _} / {@code .}）が続くものだけを拾う。
+     * Blender は同じ名前が重なると {@code glass.001} を作るので、そこも当てておく。</p>
+     */
+    private static boolean isGlassName(String name) {
+        if (name == null || !name.startsWith(GLASS_PREFIX)) {
+            return false;
+        }
+        String rest = name.substring(GLASS_PREFIX.length());
+        return rest.isEmpty() || rest.charAt(0) == '_' || rest.charAt(0) == '.';
+    }
+
+    /**
+     * その面の不透明度。
+     *
+     * <p>MTL が {@code d} を書いていればそれが正。書いていないガラスにだけ既定値を当てる
+     * （マテリアルを割り当てていないメッシュでも名前だけで透けるように）。</p>
+     */
+    private static float faceAlpha(float materialAlpha, String groupName) {
+        if (materialAlpha < OPAQUE_THRESHOLD) {
+            return materialAlpha;
+        }
+        return isGlassName(groupName) ? GLASS_DEFAULT_ALPHA : 1.0F;
     }
 
     // ------------------------------------------------------------------
@@ -323,7 +445,8 @@ public final class ObjModel {
         Map<String, float[]> materials = new HashMap<>();
 
         List<Float> out = new ArrayList<>();
-        float[] color = {1.0F, 1.0F, 1.0F};
+        // 拡散色 3 ＋ 不透明度 1。マテリアルが無ければ白の不透明
+        float[] color = {1.0F, 1.0F, 1.0F, 1.0F};
 
         // tools/blender_gauge.py が置く基準の枠。書き出しから外し忘れても描かないよう、
         // 名前で捨てる。頂点は読み飛ばさないこと——OBJ のインデックスはファイル全体の
@@ -351,7 +474,7 @@ public final class ObjModel {
                 case "vt" -> uvs.add(new float[]{parseFloat(token[1]), 1.0F - parseFloat(token[2])});
                 case "mtllib" -> materials.putAll(loadMaterials(location, line.substring(7).trim(), resources));
                 case "usemtl" -> color = materials.getOrDefault(line.substring(7).trim(),
-                        new float[]{1.0F, 1.0F, 1.0F});
+                        new float[]{1.0F, 1.0F, 1.0F, 1.0F});
                 case "o", "g" -> {
                     // 直前のオブジェクトをここで閉じる。面は名前の後ろに並ぶので、
                     // 区切りが来た時点までが 1 つ
@@ -364,7 +487,10 @@ public final class ObjModel {
                 }
                 case "f" -> {
                     if (!skipping) {
-                        appendFace(out, token, positions, normals, uvs, color);
+                        // 不透明度は「マテリアルの d、無ければガラスの既定値」。
+                        // 名前を見るのはここだけで、描画中は頂点の α しか見ない
+                        appendFace(out, token, positions, normals, uvs, color,
+                                faceAlpha(color[3], groupName));
                     }
                 }
                 default -> {
@@ -394,7 +520,8 @@ public final class ObjModel {
      * 書き出された車体は 52 個の n-gon のうち 44 個が凹んでいて、面がはみ出していた。</p>
      */
     private static void appendFace(List<Float> out, String[] token, List<float[]> positions,
-                                   List<float[]> normals, List<float[]> uvs, float[] color) {
+                                   List<float[]> normals, List<float[]> uvs, float[] color,
+                                   float alpha) {
         int corners = token.length - 1;
         if (corners < 3) {
             return;
@@ -406,15 +533,16 @@ public final class ObjModel {
         }
 
         for (int[] triangle : PolygonTriangulator.triangulate(polygon)) {
-            appendVertex(out, token[triangle[0] + 1], positions, normals, uvs, color);
-            appendVertex(out, token[triangle[1] + 1], positions, normals, uvs, color);
-            appendVertex(out, token[triangle[2] + 1], positions, normals, uvs, color);
+            appendVertex(out, token[triangle[0] + 1], positions, normals, uvs, color, alpha);
+            appendVertex(out, token[triangle[1] + 1], positions, normals, uvs, color, alpha);
+            appendVertex(out, token[triangle[2] + 1], positions, normals, uvs, color, alpha);
         }
     }
 
     /** {@code 位置/UV/法線} の組を 1 頂点ぶん積む。UV も法線も省略されうる。 */
     private static void appendVertex(List<Float> out, String token, List<float[]> positions,
-                                     List<float[]> normals, List<float[]> uvs, float[] color) {
+                                     List<float[]> normals, List<float[]> uvs, float[] color,
+                                     float alpha) {
         String[] index = token.split("/", -1);
 
         float[] position = pick(positions, index[0]);
@@ -435,6 +563,7 @@ public final class ObjModel {
         out.add(color[0]);
         out.add(color[1]);
         out.add(color[2]);
+        out.add(alpha);
     }
 
     /**
@@ -459,6 +588,10 @@ public final class ObjModel {
      * （Blender の既定は 0.8 のグレーなので、そのままだとテクスチャが暗くなる）。</p>
      *
      * <p>MTL が無くても構わない。その場合は全体が白（テクスチャそのまま）になる。</p>
+     *
+     * <p>あわせて<b>不透明度（{@code d}、または裏返しの {@code Tr}）</b>も読む。Blender では
+     * マテリアルの <b>Alpha</b> がそのまま {@code d} として書き出されるので、ガラスの濃さは
+     * Blender 側で決められる（コードもテクスチャも触らずに済む）。</p>
      */
     private static Map<String, float[]> loadMaterials(ResourceLocation objLocation, String fileName,
                                                       ResourceManager resources) {
@@ -481,14 +614,30 @@ public final class ObjModel {
                 if (token[0].equals("newmtl") && token.length > 1) {
                     name = line.substring(7).trim();
                 } else if (token[0].equals("Kd") && token.length > 3 && name != null) {
+                    float[] existing = materials.get(name);
                     materials.put(name, new float[]{
-                            parseFloat(token[1]), parseFloat(token[2]), parseFloat(token[3])});
+                            parseFloat(token[1]), parseFloat(token[2]), parseFloat(token[3]),
+                            existing == null ? 1.0F : existing[3]});
+                } else if (token[0].equals("d") && token.length > 1 && name != null) {
+                    // Kd と d はどちらが先に来るか決まっていないので、揃うまで互いの値を残す
+                    setAlpha(materials, name, parseFloat(token[1]));
+                } else if (token[0].equals("Tr") && token.length > 1 && name != null) {
+                    // Tr は透明度（d の裏返し）。両方書く MTL もあるが、意味が同じなので上書きでよい
+                    setAlpha(materials, name, 1.0F - parseFloat(token[1]));
                 }
             }
         } catch (IOException | RuntimeException e) {
             LOGGER.warn("MTL の読み込みに失敗しました: {}", location, e);
         }
         return materials;
+    }
+
+    /** そのマテリアルの不透明度だけを差し替える。まだ Kd を読んでいなければ白で作る。 */
+    private static void setAlpha(Map<String, float[]> materials, String name, float alpha) {
+        float[] existing = materials.get(name);
+        materials.put(name, existing == null
+                ? new float[]{1.0F, 1.0F, 1.0F, alpha}
+                : new float[]{existing[0], existing[1], existing[2], alpha});
     }
 
     private static float parseFloat(String token) {
