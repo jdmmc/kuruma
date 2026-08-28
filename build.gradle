@@ -106,6 +106,14 @@ minecraft {
         client {
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             property 'forge.enabledGameTestNamespaces', mod_id
+
+            // 既定の 854x480 では狭すぎて、メーターや調整画面の重なりが実際の
+            // 見え方と食い違う。<b>Minecraft は窓の大きさを保存しない</b>ので、
+            // 起動のたびに引数で渡すしかない。
+            //
+            // ここへ置けば client1 / client2 にも継承される。--username と違って
+            // 子側では渡していないので、二重渡しにはならない
+            args '--width', '1920', '--height', '1080'
         }
 
         // マルチプレイ検証用の 2 人。オフラインの UUID は名前から作られるので、
