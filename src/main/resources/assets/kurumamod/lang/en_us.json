@@ -296,6 +296,8 @@
   "config.kurumamod.gauge_theme.tooltip": "Same dials, different colours. Compare them while driving.",
   "config.kurumamod.gauge_theme.classic": "90s OEM (dark bezel, orange needle)",
   "config.kurumamod.gauge_theme.modern": "Modern (silver bezel, red needle)",
+  "config.kurumamod.live_mirrors": "Live mirrors",
+  "config.kurumamod.live_mirrors.tooltip": "Heavy. To show the real view behind you, the world is rendered a second time every frame (roughly double the render cost, so expect lower fps). Only one mirror is refreshed per frame, so the cost does not grow with the number of mirrors. Does nothing unless the car model has mirrors. Turns itself off under Fabulous graphics and shader packs.",
   "config.kurumamod.gate_display": "Course gate display",
   "config.kurumamod.gate_display.tooltip": "How much of each race gate to draw. Turn it down once you know the course.",
   "config.kurumamod.gate_display.full": "Full (plane and posts)",

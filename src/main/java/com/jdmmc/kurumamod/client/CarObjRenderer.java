@@ -47,10 +47,16 @@ import net.minecraft.util.Mth;
  * 伸びてしまうため追従させない。大きさは JSON の {@code bodyScale} で明示する。
  * <b>寸法を大きく動かせばタイヤはフェンダーからはみ出す。</b></p>
  *
+ * <h2>ミラー</h2>
+ *
+ * <p>{@code mirror_*} のオブジェクトは車体とは別に描く（{@link MirrorRenderer}）。
+ * 映せるときは<b>そのミラーの視点から描き直した景色</b>を貼り、そうでなければ暗いガラスにする。</p>
+ *
  * <h2>ガラス</h2>
  *
- * <p>透ける面は車体の後に別の {@code RenderType} で描き直す（{@link #draw}）。
- * どの面が透けるかは {@link ObjModel} が読み込みのときに決めていて、ここは知らない。</p>
+ * <p>透ける面は<b>車体もタイヤも描き終えた最後</b>に、深度を書かない {@code RenderType} で
+ * 重ねる（{@link #renderGlass}）。どの面が透けるかは {@link ObjModel} が読み込みのときに
+ * 決めていて、ここは知らない。</p>
  *
  * <h2>姿勢を掛ける順番</h2>
  *
@@ -82,6 +88,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         CarSpec spec = car.getSpec();
         renderBody(car, model, spec, pose, buffer, packedLight);
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick);
+        // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
+        // 車体とタイヤを描き終えてから重ねる（理由は KurumaRenderTypes#glass）
+        renderGlass(model, spec, pose, buffer, packedLight);
 
         pose.popPose();
         // 名前タグなどはバニラに任せる
@@ -94,8 +103,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      * <p>渡ってくる {@code entityYaw} は {@code LevelRenderer} が<b>素の線形補間</b>で作った値で、
      * ヨー角は ±180 度で折り返すため<b>真北をまたぐ瞬間に「-358 度ぶんの回転」と解釈され、
      * 1 ティックで車体が 1 周する</b>。{@link Mth#rotLerp} で取り直すこと。</p>
+     *
+     * <p>{@link MirrorRenderer} も鏡の位置と向きを出すのにこれを呼ぶ。<b>車体の変換は
+     * 1 か所に保つこと</b>——別の式で書き直すと、車高や荷重配分を変えたときに
+     * 鏡だけが取り残される。</p>
      */
-    private void applyRotations(CarEntity car, PoseStack pose, float partialTick) {
+    static void applyRotations(CarEntity car, PoseStack pose, float partialTick) {
         // 渡ってくる entityYaw も car.getYRot() も、他人の車ではバニラが 1.4 度刻みに
         // 量子化した値から作られている。旋回中に回転の速さがガタつき、車体の端で
         // いちばん大きく出る（ケツが揺れて見える）ので、自前で配った float を使う
@@ -112,7 +125,52 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     private void renderBody(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
                             MultiBufferSource buffer, int packedLight) {
         pose.pushPose();
+        applyBodyTransform(model, spec, pose);
 
+        // ここでは不透明な面だけ。ガラスは renderGlass が最後に描く
+        ObjModel.get(model.bodyModel()).render(pose.last(),
+                buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+                packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
+                ObjModel.Pass.OPAQUE);
+
+        // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
+        // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
+        ObjModel body = ObjModel.get(model.bodyModel());
+        CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
+        CarLights.renderBeams(car, body, pose, buffer);
+
+        // 鏡面も同じ変換の中で描く。<b>車体のパスから外してあるので、ここが描かないと穴が開く</b>
+        MirrorRenderer.renderSurfaces(car, body, pose, buffer, packedLight, model.bodyTexture());
+
+        pose.popPose();
+    }
+
+    /**
+     * 車体の透ける面（ガラス）。<b>車体もタイヤも描き終えた後に呼ぶこと。</b>
+     *
+     * <p>ガラスは深度を書かない（{@link KurumaRenderTypes#glass}）ので、<b>後から描いたものは
+     * ガラスの色を通らない</b>。先に描いてしまうと、窓越しのタイヤにガラスの色が乗らない。</p>
+     */
+    private void renderGlass(CarModel model, CarSpec spec, PoseStack pose,
+                             MultiBufferSource buffer, int packedLight) {
+        ObjModel body = ObjModel.get(model.bodyModel());
+        if (!body.hasTranslucent()) {
+            return;
+        }
+        pose.pushPose();
+        applyBodyTransform(model, spec, pose);
+        body.render(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(model.bodyTexture())),
+                packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
+                ObjModel.Pass.TRANSLUCENT);
+        pose.popPose();
+    }
+
+    /**
+     * 車体メッシュを置く（平行移動と拡大）。姿勢はこれより先に掛かっている。
+     *
+     * <p>{@link MirrorRenderer} が鏡の世界での位置を出すのにも使う。</p>
+     */
+    static void applyBodyTransform(CarModel model, CarSpec spec, PoseStack pose) {
         // エンティティの位置はシャシー基準面。モデルは地面に立った状態で作られているので下げる。
         // 現在の車高で下げてはいけない。サスを伸ばすとシャシー基準面も同じだけ上がるので、
         // 車体とタイヤの両方を車高で動かすと打ち消し合い、車体とタイヤの間隔が変わらなくなる。
@@ -138,16 +196,6 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // その上に手で決める拡大率。原点が地面なので、上げると車体は上へ伸びる
         CarModel.Vec3 scale = model.bodyScale();
         pose.scale((float) (fit * scale.x()), (float) (fit * scale.y()), (float) (fit * scale.z()));
-
-        draw(model.bodyModel(), model.bodyTexture(), pose, buffer, packedLight, false);
-
-        // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
-        // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
-        ObjModel body = ObjModel.get(model.bodyModel());
-        CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
-        CarLights.renderBeams(car, body, pose, buffer);
-
-        pose.popPose();
     }
 
     private void renderWheels(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
@@ -248,8 +296,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         if (!obj.hasTranslucent()) {
             return;
         }
-        VertexConsumer glass = buffer.getBuffer(RenderType.entityTranslucent(texture));
-        obj.render(pose.last(), glass, packedLight, OverlayTexture.NO_OVERLAY,
+        // タイヤや部品にも透ける面があれば、そのメッシュの直後に重ねる。車体のガラスだけは
+        // 全部を描き終えた最後へ回してある（{@link #renderGlass}）
+        obj.render(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(texture)),
+                packedLight, OverlayTexture.NO_OVERLAY,
                 1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.TRANSLUCENT);
     }
 }

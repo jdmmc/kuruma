@@ -71,6 +71,14 @@ public final class ClientConfig {
                     "MODERN=銀の縁に平らな文字盤と赤い針。形は同じで色だけ変わる")
             .defineEnum("gaugeTheme", GaugeTheme.CLASSIC);
 
+    public static final ForgeConfigSpec.BooleanValue LIVE_MIRRORS = BUILDER
+            .comment("ルームミラー・ドアミラーに実際の後方の景色を映すかどうか。",
+                    "映すには世界をもう 1 回描くことになるので、そのぶん重くなる（フレームあたり 1 枚ずつ",
+                    "順繰りに更新するので、ミラーが何枚あっても描き直しは 1 回）。",
+                    "車のモデルが mirror_* のオブジェクトを持っていないと何も起きない。",
+                    "描画設定「最高」とシェーダーパックのときは自動で切れる")
+            .define("liveMirrors", false);
+
     public static final ForgeConfigSpec.EnumValue<GateDisplay> GATE_DISPLAY = BUILDER
             .comment("コースのゲートの見せ方。FULL=面と柱、POSTS=左右のポールのみ、HIDDEN=描かない")
             .defineEnum("gateDisplay", GateDisplay.FULL);
@@ -107,6 +115,9 @@ public final class ClientConfig {
     /** メーターの配色。 */
     public static GaugeTheme gaugeTheme = GaugeTheme.CLASSIC;
 
+    /** ミラーに実際の景色を映すか。 */
+    public static boolean liveMirrors = false;
+
     /** コースのゲートの見せ方。 */
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
@@ -138,6 +149,7 @@ public final class ClientConfig {
         cameraSpeedPull = CAMERA_SPEED_PULL.get();
         speedFov = SPEED_FOV.get();
         gaugeTheme = GAUGE_THEME.get();
+        liveMirrors = LIVE_MIRRORS.get();
         gateDisplay = GATE_DISPLAY.get();
     }
 

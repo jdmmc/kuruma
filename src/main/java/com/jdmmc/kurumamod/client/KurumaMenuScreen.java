@@ -81,6 +81,7 @@ public class KurumaMenuScreen extends Screen {
         toggle("show_help", ClientConfig.SHOW_HELP);
         cycle("gate_display", GateDisplay.class, ClientConfig.GATE_DISPLAY,
                 display -> Component.translatable(display.translationKey()));
+        toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);
 
         header("screen.kurumamod.menu.section.camera");
         slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);

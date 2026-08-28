@@ -1,8 +1,13 @@
 package com.jdmmc.kurumamod.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * この MOD が使う {@link RenderType}。
@@ -76,6 +81,94 @@ public final class KurumaRenderTypes extends RenderType {
                     .setDepthTestState(LEQUAL_DEPTH_TEST)
                     .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(false));
+
+    /**
+     * 車のガラス。<b>バニラの {@code entityTranslucent} を使ってはいけない。深度を書く。</b>
+     *
+     * <p>半透明なのに深度を書くと、<b>その後に描かれるものが「手前に何かある」と判定されて
+     * 弾かれる</b>。ゲートと光の筋で踏んだのと同じ地雷（{@link #TRANSLUCENT_OVERLAY}）だが、
+     * ガラスは画面を大きく覆うぶん被害が桁違いに大きい。実際に出た症状:</p>
+     *
+     * <ul>
+     *   <li><b>一人称で窓越しに他の車が見えない。</b>フロントガラスが目の前で画面をほぼ
+     *       覆うので、後から描かれるエンティティが全部消える。地形はエンティティより先に
+     *       描かれているので残る——「ガラスの向こうの<b>物</b>だけ消える」という形で出た</li>
+     *   <li><b>自分のタイヤが描画されない。</b>タイヤは車体より後に描かれるので、
+     *       同じ理由でガラスに弾かれる</li>
+     * </ul>
+     *
+     * <p>{@code COLOR_WRITE}（色だけ書いて深度は書かない）にすれば起きない。深度<b>テスト</b>は
+     * 残してあるので、壁の向こうのガラスが透けて見えることはない。</p>
+     *
+     * <p><b>深度を書かなくてもガラス同士の前後は合う。</b>{@code sortOnUpload} が積んだ
+     * 四角形を奥から手前へ並べ直すので、重なった半透明は正しい順で混色される——
+     * そもそも深度書き込みは半透明の前後を解く道具ではない。</p>
+     *
+     * <p>引き換えに、<b>ガラスより後に描かれたものにはガラスの色が乗らない</b>。だから
+     * {@code CarObjRenderer} は<b>車体もタイヤも描き終えた最後に</b>ガラスを描く。</p>
+     */
+    public static RenderType glass(ResourceLocation texture) {
+        return GLASS.computeIfAbsent(texture, location -> create(
+                "kurumamod_glass",
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                256,
+                true,
+                // 奥から手前へ並べ直す。深度を書かない代わりにこれが前後を解く
+                true,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                        .setTextureState(new TextureStateShard(location, false, false))
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP)
+                        .setOverlayState(OVERLAY)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .createCompositeState(false)));
+    }
+
+    /** テクスチャごとに 1 つ。<b>毎フレーム作ってはいけない</b>——別物として扱われて束ねられない。 */
+    private static final Map<ResourceLocation, RenderType> GLASS = new HashMap<>();
+
+    /**
+     * 鏡面に景色を貼るためのもの。<b>テクスチャは {@link MirrorRenderer} が持っている
+     * フレームバッファ</b>で、{@code ResourceLocation} では指せない。</p>
+     *
+     * <p>そこで {@code EmptyTextureStateShard} に「描く直前に GL のテクスチャ id を挿す」
+     * 仕事をさせている。<b>id は毎フレーム変わりうる</b>（描き先を作り直したとき）ので、
+     * 作るときに焼き込まず、流すときに聞きにいくこと。</p>
+     *
+     * <p><b>明るさを掛けない</b>（{@code POSITION_COLOR_TEX}）。映っている絵はすでに
+     * ライトを通って描かれているので、ここで陰影を重ねると二重に暗くなる。</p>
+     *
+     * <p>鏡 1 枚につき 1 つ作る。{@code RenderType} は同じものどうしでまとめて流されるので、
+     * <b>共用すると全部の鏡が同じテクスチャになる</b>。</p>
+     */
+    public static RenderType mirror(int slot) {
+        RenderType type = MIRRORS[slot];
+        if (type == null) {
+            type = create(
+                    "kurumamod_mirror_" + slot,
+                    DefaultVertexFormat.POSITION_COLOR_TEX,
+                    VertexFormat.Mode.QUADS,
+                    256,
+                    false,
+                    false,
+                    CompositeState.builder()
+                            .setShaderState(POSITION_COLOR_TEX_SHADER)
+                            .setTextureState(new EmptyTextureStateShard(
+                                    () -> RenderSystem.setShaderTexture(0, MirrorRenderer.textureId(slot)),
+                                    () -> {
+                                    }))
+                            .setDepthTestState(LEQUAL_DEPTH_TEST)
+                            .setCullState(NO_CULL)
+                            .createCompositeState(false));
+            MIRRORS[slot] = type;
+        }
+        return type;
+    }
+
+    private static final RenderType[] MIRRORS = new RenderType[MirrorRenderer.MAX_MIRRORS];
 
     private KurumaRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
                               boolean affectsCrumbling, boolean sortOnUpload, Runnable setup, Runnable clear) {

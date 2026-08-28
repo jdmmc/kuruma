@@ -94,6 +94,11 @@ public final class ObjModel {
      */
     public static final String GLASS_PREFIX = "glass";
 
+    /** 同じ平面と見なす法線の一致（cos 5 度）。 */
+    private static final double COPLANAR_COS = 0.996;
+    /** 同じ平面と見なす面までの距離 [m]。 */
+    private static final double COPLANAR_GAP = 0.002;
+
     /** マテリアルが透明度を書いていないガラスの不透明度。 */
     private static final float GLASS_DEFAULT_ALPHA = 0.35F;
 
@@ -137,6 +142,19 @@ public final class ObjModel {
      */
     public static final String LIGHT_PREFIX = "light_";
 
+    /**
+     * 鏡面の名前の頭。{@code mirror_rear}（ルームミラー）/ {@code mirror_left} /
+     * {@code mirror_right}。
+     *
+     * <p><b>左右のドアミラーは別々のオブジェクトにすること。</b>{@link #LIGHT_PREFIX} と違い、
+     * ミラーは 1 枚ごとに<b>自分の視点から世界を描き直す</b>ので、ミラーモディファイアで
+     * 1 オブジェクトにまとめると左右で同じ景色が映る。</p>
+     *
+     * <p>位置・向き・大きさは<b>メッシュから読む</b>（{@link MirrorFace}）ので、JSON に
+     * 座標を書く必要はない。</p>
+     */
+    public static final String MIRROR_PREFIX = "mirror_";
+
     /** 三角形の頂点が {@link #STRIDE} 個ずつ並んだもの。 */
     private final float[] vertices;
     private final int triangleCount;
@@ -144,6 +162,10 @@ public final class ObjModel {
     private final List<Group> groups;
     /** 透ける面を 1 つでも持っているか。無ければ 2 パス目を丸ごと省ける。 */
     private final boolean translucent;
+    /** 鏡面。読み込みのときに 1 度だけ measure しておく。 */
+    private final List<MirrorFace> mirrors;
+    /** その三角形が鏡の<b>反射面</b>か。ガワ（筐体）は車体として描くので、ここには入らない。 */
+    private final boolean[] mirrorSurface;
 
     /** OBJ の {@code o} / {@code g} ひと区切り。 */
     private record Group(String name, int from, int to) {
@@ -154,6 +176,28 @@ public final class ObjModel {
         this.triangleCount = vertices.length / (STRIDE * 3);
         this.groups = groups;
 
+        // 鏡を先に測る。accepts が「反射面かどうか」を見るので、パスを数えるより前に要る
+        this.mirrorSurface = new boolean[triangleCount];
+        List<MirrorFace> faces = new ArrayList<>();
+        for (Group group : groups) {
+            if (!group.name().startsWith(MIRROR_PREFIX)) {
+                continue;
+            }
+            MirrorFace face = measureMirror(group.name());
+            if (face == null) {
+                // 反射面が見つからなくても描画は続く（ぜんぶ車体として描かれる）。
+                // 黙って映らないと原因を探すことになるので、理由をログに残す
+                LOGGER.warn("{} から鏡にできる平面が見つからない（面が無いか、大きさが 0）",
+                        group.name());
+                continue;
+            }
+            faces.add(face);
+            for (int triangle : face.triangles()) {
+                mirrorSurface[triangle] = true;
+            }
+        }
+        this.mirrors = List.copyOf(faces);
+
         // 2 パス目が要るかは読み込みのときに数えておく。毎フレーム走査する値ではない。
         // 判定はそのまま accepts に聞く——ここだけ別の式で数えると、灯火のレンズが
         // 透けていたときに「何も描かない 2 パス目」が残るような食い違いが出る
@@ -162,6 +206,198 @@ public final class ObjModel {
             any = accepts(triangle * 3 * STRIDE, null, Pass.TRANSLUCENT);
         }
         this.translucent = any;
+    }
+
+    /**
+     * 鏡面 1 枚の幾何。<b>メッシュだけから決まる</b>ので、Blender で板を 1 枚置いて
+     * {@code mirror_rear} と名前を付ければそれで済む。
+     *
+     * @param center 面の中心（メッシュ空間）
+     * @param normal 面の向き。運転者のほうを向いている想定
+     * @param right  面の中で右へ伸びる軸（車体の右向きに揃えてある）
+     * @param up     面の中で上へ伸びる軸
+     * @param width  {@code right} 方向の幅 [m]
+     * @param height {@code up} 方向の高さ [m]
+     * @param triangles 反射面をなす三角形の番号。<b>ガワは含まない</b>
+     */
+    public record MirrorFace(String name, Vec3 center, Vec3 normal, Vec3 right, Vec3 up,
+                             double width, double height, int[] triangles) {
+
+        /** 横縦比。描き先の大きさと射影のアスペクトに使う。 */
+        public double aspect() {
+            return height < 1.0e-6 ? 1.0 : width / height;
+        }
+    }
+
+    /** 鏡面の一覧。持っていなければ空。 */
+    public List<MirrorFace> mirrors() {
+        return mirrors;
+    }
+
+    /**
+     * 鏡面を測る。
+     *
+     * <p><b>オブジェクト全体の平均法線を使ってはいけない。</b>ミラーは<b>筐体ごと 1 つの箱</b>で
+     * 作られるのが自然で、そうすると向かい合う面の法線が打ち消し合う（実測で
+     * {@code mirror_rear} は合計がちょうど 0、ドアミラーも長さ 0.28 まで潰れた）。</p>
+     *
+     * <p>そこで<b>面ごとに見て、いちばん広い平面</b>を反射面とする。残りの面は<b>車体として
+     * 普通に描かれる</b>ので、筐体が消えることはない。</p>
+     *
+     * <p><b>板がどちらを向いていても構わない。</b>映す向きは {@link MirrorRenderer} が車体基準で
+     * 決めるので、ここで要るのは「どの平面に貼るか」だけ。法線は<b>後ろ向きに揃えておく</b>
+     * ——面内の軸（右と上）をその法線から作るので、裏返っていると映像が左右逆になる。</p>
+     *
+     * <p>面内の軸は<b>車体の上向きから作る</b>——鏡は水平に置かれるものなので、上を基準にすれば
+     * 「映像の上」が鏡の上に一致する。</p>
+     */
+    private MirrorFace measureMirror(String name) {
+        List<Integer> group = new ArrayList<>();
+        for (int triangle = 0; triangle < triangleCount; triangle++) {
+            if (name.equals(groupNameAt(triangle * 3 * STRIDE))) {
+                group.add(triangle);
+            }
+        }
+
+        int[] best = null;
+        Vec3 bestNormal = null;
+        double bestArea = 0.0;
+        for (int candidate : group) {
+            Vec3 raw = triangleNormal(candidate);
+            double area = raw.length();
+            if (area < 1.0e-9) {
+                continue;
+            }
+            // 面の向きは問わない。ただし軸を作るために後ろ（+Z）向きへ揃える
+            Vec3 normal = raw.scale(1.0 / area);
+            if (normal.z < 0.0) {
+                normal = normal.scale(-1.0);
+            }
+            double offset = normal.dot(triangleCenter(candidate));
+
+            List<Integer> plane = new ArrayList<>();
+            double total = 0.0;
+            for (int other : group) {
+                Vec3 otherRaw = triangleNormal(other);
+                double otherArea = otherRaw.length();
+                if (otherArea < 1.0e-9
+                        || Math.abs(otherRaw.scale(1.0 / otherArea).dot(normal)) < COPLANAR_COS
+                        || Math.abs(normal.dot(triangleCenter(other)) - offset) > COPLANAR_GAP) {
+                    continue;
+                }
+                plane.add(other);
+                total += otherArea;
+            }
+            if (total > bestArea) {
+                bestArea = total;
+                bestNormal = normal;
+                best = plane.stream().mapToInt(Integer::intValue).toArray();
+            }
+        }
+        if (best == null) {
+            return null;
+        }
+
+        Vec3 up = Math.abs(bestNormal.y) > 0.99 ? new Vec3(0.0, 0.0, -1.0) : new Vec3(0.0, 1.0, 0.0);
+        Vec3 right = up.cross(bestNormal);
+        if (right.lengthSqr() < 1.0e-9) {
+            return null;
+        }
+        right = right.normalize();
+        up = bestNormal.cross(right).normalize();
+
+        // 反射面の頂点だけで広がりを測る（筐体を混ぜると鏡が大きすぎることになる）
+        double minRight = Double.MAX_VALUE;
+        double maxRight = -Double.MAX_VALUE;
+        double minUp = Double.MAX_VALUE;
+        double maxUp = -Double.MAX_VALUE;
+        for (int triangle : best) {
+            int base = triangle * 3 * STRIDE;
+            for (int corner = 0; corner < 3; corner++) {
+                int offset = base + corner * STRIDE;
+                Vec3 v = new Vec3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
+                minRight = Math.min(minRight, v.dot(right));
+                maxRight = Math.max(maxRight, v.dot(right));
+                minUp = Math.min(minUp, v.dot(up));
+                maxUp = Math.max(maxUp, v.dot(up));
+            }
+        }
+        double width = maxRight - minRight;
+        double height = maxUp - minUp;
+        if (width < 1.0e-4 || height < 1.0e-4) {
+            return null;
+        }
+
+        // 中心は広がりの中央。面に載せるため、法線方向だけは実際の平面の位置に合わせる
+        double onPlane = bestNormal.dot(triangleCenter(best[0]));
+        Vec3 center = right.scale((minRight + maxRight) * 0.5)
+                .add(up.scale((minUp + maxUp) * 0.5))
+                .add(bestNormal.scale(onPlane));
+        return new MirrorFace(name, center, bestNormal, right, up, width, height, best);
+    }
+
+    /** その三角形の法線。<b>長さが面積の 2 倍</b>になるので、広さの比較にそのまま使える。 */
+    private Vec3 triangleNormal(int triangle) {
+        int base = triangle * 3 * STRIDE;
+        Vec3 a = new Vec3(vertices[base], vertices[base + 1], vertices[base + 2]);
+        Vec3 b = new Vec3(vertices[base + STRIDE], vertices[base + STRIDE + 1], vertices[base + STRIDE + 2]);
+        Vec3 c = new Vec3(vertices[base + 2 * STRIDE], vertices[base + 2 * STRIDE + 1],
+                vertices[base + 2 * STRIDE + 2]);
+        return b.subtract(a).cross(c.subtract(a));
+    }
+
+    /** その三角形の重心。 */
+    private Vec3 triangleCenter(int triangle) {
+        int base = triangle * 3 * STRIDE;
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        for (int corner = 0; corner < 3; corner++) {
+            int offset = base + corner * STRIDE;
+            x += vertices[offset];
+            y += vertices[offset + 1];
+            z += vertices[offset + 2];
+        }
+        return new Vec3(x / 3.0, y / 3.0, z / 3.0);
+    }
+
+    /**
+     * 鏡面に、別に描いておいた景色を貼る。
+     *
+     * <p>UV は<b>メッシュの UV を使わない</b>。面内の 2 軸へ落とした位置をそのまま 0..1 に
+     * するので、Blender 側で展開する必要がない（板を 1 枚置いて名前を付けるだけでよい）。</p>
+     *
+     * <p><b>横は反転する。</b>鏡の位置にカメラを置いて後ろを向いて撮った絵は「振り返って
+     * 見た景色」であって、鏡に映る像はそれを左右反転したもの。<b>縦も反転する</b>——
+     * フレームバッファは下が原点なので、そのままでは上下が逆になる。</p>
+     *
+     * <p>頂点は {@code POSITION_COLOR_TEX} の順で積む（{@link KurumaRenderTypes#mirror}）。
+     * 明るさも法線も渡さない——映っている絵は<b>すでに light を通って描かれている</b>ので、
+     * ここで陰影を掛けると二重になる。</p>
+     */
+    public void renderMirror(PoseStack.Pose pose, VertexConsumer consumer, MirrorFace face,
+                             float red, float green, float blue, float alpha) {
+        Matrix4f matrix = pose.pose();
+        double halfWidth = face.width() * 0.5;
+        double halfHeight = face.height() * 0.5;
+
+        for (int triangle : face.triangles()) {
+            int base = triangle * 3 * STRIDE;
+            for (int corner = 0; corner < 4; corner++) {
+                int offset = base + Math.min(corner, 2) * STRIDE;
+                double dx = vertices[offset] - face.center().x;
+                double dy = vertices[offset + 1] - face.center().y;
+                double dz = vertices[offset + 2] - face.center().z;
+                Vec3 d = new Vec3(dx, dy, dz);
+                // 面内の位置を 0..1 へ。中心が 0.5
+                float s = (float) (0.5 + d.dot(face.right()) / (halfWidth * 2.0));
+                float t = (float) (0.5 + d.dot(face.up()) / (halfHeight * 2.0));
+                consumer.vertex(matrix, vertices[offset], vertices[offset + 1], vertices[offset + 2])
+                        .color(red, green, blue, alpha)
+                        .uv(1.0F - s, t)
+                        .endVertex();
+            }
+        }
     }
 
     /** 透ける面を持っているか。false なら半透明のパスは呼ばなくてよい。 */
@@ -360,6 +596,31 @@ public final class ObjModel {
     }
 
     /**
+     * 鏡面を、映さずにただの面として描く（暗いガラス）。
+     *
+     * <p>反射面だけを描くこと。<b>名前で丸ごと描くと筐体まで暗く塗ってしまう</b>——
+     * ガワは車体として既に描かれているので二重になる。</p>
+     */
+    public void renderMirrorPlain(PoseStack.Pose pose, VertexConsumer consumer, MirrorFace face,
+                                  int packedLight, float red, float green, float blue) {
+        Matrix4f matrix = pose.pose();
+        Matrix3f normal = pose.normal();
+        for (int triangle : face.triangles()) {
+            int base = triangle * 3 * STRIDE;
+            for (int corner = 0; corner < 4; corner++) {
+                int offset = base + Math.min(corner, 2) * STRIDE;
+                consumer.vertex(matrix, vertices[offset], vertices[offset + 1], vertices[offset + 2])
+                        .color(red, green, blue, 1.0F)
+                        .uv(vertices[offset + 6], vertices[offset + 7])
+                        .overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
+                        .uv2(packedLight)
+                        .normal(normal, vertices[offset + 3], vertices[offset + 4], vertices[offset + 5])
+                        .endVertex();
+            }
+        }
+    }
+
+    /**
      * その三角形を描くか。
      *
      * <p>光る部分は車体の描画から外し、名指しされたときだけ描く。それ以外は<b>頂点の
@@ -372,6 +633,11 @@ public final class ObjModel {
             return name != null && name.equals(only);
         }
         if (name != null && name.startsWith(LIGHT_PREFIX)) {
+            // 灯火は車体とは別に描く。呼ぶ側が必ず描くので穴は開かない
+            return false;
+        }
+        if (mirrorSurface[base / (3 * STRIDE)]) {
+            // 鏡の<b>反射面だけ</b>を外す。筐体（ガワ）はここで車体として描かれる
             return false;
         }
         boolean transparent = vertices[base + ALPHA_OFFSET] < OPAQUE_THRESHOLD;

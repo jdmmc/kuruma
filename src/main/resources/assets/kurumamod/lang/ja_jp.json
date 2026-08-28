@@ -296,6 +296,8 @@
   "config.kurumamod.gauge_theme.tooltip": "形は同じで色だけ変わります。走りながら見比べてください",
   "config.kurumamod.gauge_theme.classic": "90年代 純正（黒縁・橙の針）",
   "config.kurumamod.gauge_theme.modern": "モダン（銀縁・赤い針）",
+  "config.kurumamod.live_mirrors": "ミラーに後方を映す",
+  "config.kurumamod.live_mirrors.tooltip": "重くなります。ミラーに実際の後方を映すため、1 フレームごとに世界をもう 1 回描きます（描画の負荷がほぼ 2 倍。fps が落ちます）。ミラーが何枚あっても描き直しは 1 回で、順繰りに更新します。車のモデルにミラーが無ければ何も起きません。描画設定「最高」とシェーダーパックのときは自動で切れます",
   "config.kurumamod.gate_display": "コースのゲートの表示",
   "config.kurumamod.gate_display.tooltip": "レースのゲートをどこまで描くか。走り慣れたら減らしてください",
   "config.kurumamod.gate_display.full": "フル（面と柱）",
