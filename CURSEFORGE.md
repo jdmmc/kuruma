@@ -69,12 +69,17 @@ when you're really on it.
 **A car pack is a single jar — drop it in `mods/` and the cars are there.** No coding, no
 scripts. Model it in Blender, tune it in-game, ship it.
 
+**Never opened Blender?** The **[Vehicle Modeling Manual](https://static.jdm-mc.com/manual/MODELING.html)** takes you
+through one whole car — where the origin goes, the object names that become lights, glass and
+working mirrors, the two export settings people always get wrong, and what to check when the
+car comes out the wrong size.
+
 Want cars without making them? Grab
 **[Kuruma - Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** —
 two ready-to-drive cars, straight away.
 
 **And that same jar is the manual.** Rename it to `.zip` and open it: the full how-to
-(English and Japanese), the JSON for both cars, the Blender sizing gauges, and a CurseForge
+(English and Japanese), the modeling manual itself, the JSON for both cars, the Blender sizing gauges, and a CurseForge
 page template are all in there. Copy it, swap the cars for yours, ship it — the sample pack
 is yours to use, no credit needed.
 
@@ -201,12 +206,16 @@ What that means in practice:
 **カーパックは jar ひとつ。`mods/` に入れるだけで車が増えます。** コードもスクリプトも不要。
 Blender でモデルを作り、ゲーム内で味付けして、そのまま配れます。
 
+**Blender を触ったことがなくても大丈夫。** **[車両モデル作成マニュアル](https://static.jdm-mc.com/manual/MODELING.html)** が、
+原点の合わせかたから、灯火・ガラス・実際に映るミラーになるオブジェクト名、
+みんなが間違える書き出し設定、大きさがおかしいときの直しかたまで、1 台ぶんを通しで案内します。
+
 作るのはあとで、まずは乗りたい方へ。
 **[Kuruma - Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)**
 を入れれば、それだけで車が 2 台増えます。
 
 **そしてこの jar そのものが、カーパックの作り方の手引です。** 拡張子を `.zip` に変えて開けば、
-作り方の解説（日英）・2 台分の JSON・Blender 用の寸法ゲージ・CurseForge ページのひな型まで
+作り方の解説（日英）・モデル作成マニュアルそのもの・2 台分の JSON・Blender 用の寸法ゲージ・CurseForge ページのひな型まで
 入っています。丸ごとコピーして車を差し替えれば、それがあなたのカーパックです——**見本は自由に使ってかまいません。
 表示も許諾も不要です。**
 

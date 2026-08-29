@@ -135,6 +135,14 @@ The essentials:
 
 ## 5. Build the mesh (Blender)
 
+**The Blender side has a manual of its own** — [Vehicle Modeling Manual](https://static.jdm-mc.com/manual/MODELING.html).
+The same page sits **right here in this folder as `MODELING.html`** — open it in a browser and
+it works offline. It covers lining up the origin, the object names that carry meaning (lights,
+glass, mirrors), the traps in the export settings and a symptom-by-symptom troubleshooting
+table, with screenshots. **If you have never used Blender, start there.**
+
+What follows is only the summary:
+
 - Units are **metres**. There is no rule about overall length, width or height
 - **The body origin is: ground level, midpoint between the axles, centred left to right**
 - **Build one left-hand wheel only** (the right side is drawn mirrored)
