@@ -1,8 +1,8 @@
 {
   "itemGroup.kurumamod": "KurumaMod",
-  "item.kurumamod.car": "車",
-  "car.kurumamod.car": "車",
-  "entity.kurumamod.car": "車",
+  "item.kurumamod.car": "日産 シルビア S15",
+  "car.kurumamod.car": "日産 シルビア S15",
+  "entity.kurumamod.car": "日産 シルビア S15",
   "key.categories.kurumamod": "KurumaMod",
   "key.kurumamod.tuning": "セッティング画面",
   "screen.kurumamod.tuning.title": "車のセッティング",

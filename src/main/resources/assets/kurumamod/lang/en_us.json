@@ -1,8 +1,8 @@
 {
   "itemGroup.kurumamod": "KurumaMod",
-  "item.kurumamod.car": "Car",
-  "car.kurumamod.car": "Car",
-  "entity.kurumamod.car": "Car",
+  "item.kurumamod.car": "Nissan S15 Silvia",
+  "car.kurumamod.car": "Nissan S15 Silvia",
+  "entity.kurumamod.car": "Nissan S15 Silvia",
   "key.categories.kurumamod": "KurumaMod",
   "key.kurumamod.tuning": "Tuning Screen",
   "screen.kurumamod.tuning.title": "Car Setup",

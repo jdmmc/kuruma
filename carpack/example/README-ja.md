@@ -192,7 +192,7 @@ Blenderでのケージの適用方法は、スクリプト作成 → 新規 → 
 
 | キー | 型 | 既定値 | 意味 |
 |---|---|---|---|
-| `body.model` | id | `kurumamod:models/entity/car.obj` | 車体の OBJ |
+| `body.model` | id | `kurumamod:models/entity/s15.obj` | 車体の OBJ |
 | `body.texture` | id | `kurumamod:textures/entity/car.png` | 車体のテクスチャ |
 | `body.offset` | `[x,y,z]` | `[0,0,0]` | 車体の平行移動 [m]（+X 右・+Y 上・-Z 前） |
 | `body.scale` | 数字 1 つ or `[x,y,z]` | `1.0` | 車体の拡大率。原点が地面なので**上へ伸びる** |

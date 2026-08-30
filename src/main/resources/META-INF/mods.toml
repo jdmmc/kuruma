@@ -25,7 +25,7 @@ displayName = "${mod_name}" #mandatory
 # A URL for the "homepage" for this mod, displayed in the mod UI
 displayURL = "https://static.jdm-mc.com" #optional
 # Mod 一覧に出すロゴ。jar のルートからの名前で書く（src/main/resources/ の直下に置く）。
-# tools/LogoRender.java が car.obj / wheel.obj を焼いて作ったもの
+# tools/LogoRender.java が s15.obj / wheel.obj を焼いて作ったもの
 logoFile = "kurumamod.png"
 # A text field displayed in the mod UI
 #credits="Thanks for this example mod goes to Java" #optional

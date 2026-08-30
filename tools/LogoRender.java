@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.List;
 
 /**
- * car.obj / wheel.obj を焼いて Mod 一覧のロゴ（{@code mods.toml} の {@code logoFile}）を作る。
+ * s15.obj / wheel.obj を焼いて Mod 一覧のロゴ（{@code mods.toml} の {@code logoFile}）を作る。
  * 出力は {@code src/main/resources/kurumamod.png}。CurseForge のプロジェクトアバターにも
  * そのまま使える（400×400 推奨だが、512 を上げれば先方で縮む）。
  *
@@ -110,7 +110,7 @@ public class LogoRender {
     static List<Tri> buildScene(int bodyColor, double steerDeg) throws Exception {
         List<Tri> tris = new ArrayList<>();
 
-        Map<String, List<double[][]>> car = loadObj("car.obj");
+        Map<String, List<double[][]>> car = loadObj("s15.obj");
         for (Map.Entry<String, List<double[][]>> e : car.entrySet()) {
             String name = e.getKey();
             float[] col;

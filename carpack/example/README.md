@@ -218,7 +218,7 @@ That is all of it (14 keys). Any key not listed here is ignored.
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `body.model` | id | `kurumamod:models/entity/car.obj` | Body OBJ |
+| `body.model` | id | `kurumamod:models/entity/s15.obj` | Body OBJ |
 | `body.texture` | id | `kurumamod:textures/entity/car.png` | Body texture |
 | `body.offset` | `[x,y,z]` | `[0,0,0]` | Body translation [m] (+X right, +Y up, -Z forward) |
 | `body.scale` | one number or `[x,y,z]` | `1.0` | Body scale. The origin is at ground level, so it **grows upward** |
