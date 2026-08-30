@@ -38,8 +38,12 @@ public class CarSound extends AbstractTickableSoundInstance {
         ROAD,
         /** 風切り音。車速の 2 乗。 */
         WIND,
-        /** タイヤの悲鳴。滑り率とスリップ角。 */
-        SLIP
+        /** タイヤの悲鳴。滑り率とスリップ角。<b>舗装路の音。</b> */
+        SLIP,
+        /** 砂利を弾く音。砂利と土の上で、スキール音の代わりに鳴る。 */
+        GRAVEL,
+        /** 砂を掻く音。砂と雪の上で、スキール音の代わりに鳴る。 */
+        SAND
     }
 
     /**
@@ -67,6 +71,20 @@ public class CarSound extends AbstractTickableSoundInstance {
     /** これ以下の滑りでは鳴らさない。直進中の僅かな滑りで鳴りっぱなしになるのを防ぐ。 */
     private static final double SLIP_RATIO_THRESHOLD = 0.15;
     private static final double SLIP_ANGLE_THRESHOLD = 6.0;
+
+    /**
+     * 未舗装の路面音が鳴りはじめる／いちばん大きくなる撫で速さ [m/s]。
+     *
+     * <p><b>土煙（{@code CarDust} の 4.5m/s）より低いところから鳴らす。</b>砂利道は
+     * 歩く速さでもジャリジャリ鳴るのに対し、煙が立つのはもっと速くなってから。
+     * 同じ量から決めているが、しきい値は別でよい。</p>
+     */
+    private static final double LOOSE_MIN_SCRUB = 1.5;
+    private static final double LOOSE_FULL_SCRUB = 20.0;
+    /** 未舗装の路面音のいちばん大きいときの音量。{@link #looseOf} の路面ごとの差が掛かる。 */
+    private static final float LOOSE_VOLUME = 0.85F;
+    private static final float LOOSE_PITCH_BASE = 0.85F;
+    private static final float LOOSE_PITCH_SPAN = 0.40F;
 
     /** 音量の変化にひと呼吸置く。ティックごとに飛ぶと不自然に聞こえる。 */
     private static final float SMOOTHING = 0.35F;
@@ -135,6 +153,39 @@ public class CarSound extends AbstractTickableSoundInstance {
                 + 0.15 * Math.sin(2.0 * Math.PI * t / periods[2] + 4.2);
     }
 
+    /** その路面で鳴る未舗装の音と、その大きさ。 */
+    private record Loose(Role role, float gain) {
+    }
+
+    /**
+     * その路面で鳴る「未舗装の音」。舗装路と氷では鳴らない（null）。
+     *
+     * <p><b>粒の大きさで音源を分ける。</b>砂利と土は石が弾ける打撃音、砂と雪は連続した
+     * 衣擦れで、音としてはまるで別物。<b>ここは {@code RoadSurface} には置かない</b>
+     * ——どの音源を当てるかは音の側の都合で、路面そのものの性質ではない（グリップや
+     * 舞い上がりやすさと違って、これは物理にも見た目にも一切効かない）。</p>
+     *
+     * <p><b>大きさに {@code dustScale} を使ってはいけない。</b>あれは「どれだけ舞うか」
+     * であって「どれだけうるさいか」ではない——<b>雪は 0.9 とよく舞うが、いちばん静かな
+     * 路面</b>（音を吸う）。うるさい順は石が鉄板を叩く砂利が頭で、雪が最後。</p>
+     *
+     * <p>音源そのものの大きさは書き出しの段で揃えてある（{@code make_sounds.py} の
+     * {@code LOOSE_LOUDNESS}）ので、<b>ここの数字は路面どうしの差だけを表す</b>。</p>
+     *
+     * <p>切り替えに時定数は掛けない。氷のブロックへ乗り移るのと同じで<b>路面が変わるのは
+     * 実際に不連続な出来事</b>であり、音量の平滑化（{@link #SMOOTHING}）がひと呼吸ぶんの
+     * クロスフェードを作ってくれる。</p>
+     */
+    private static Loose looseOf(RoadSurface surface) {
+        return switch (surface) {
+            case GRAVEL -> new Loose(Role.GRAVEL, 1.00F);
+            case DIRT -> new Loose(Role.GRAVEL, 0.80F);
+            case SAND -> new Loose(Role.SAND, 0.85F);
+            case SNOW -> new Loose(Role.SAND, 0.55F);
+            case PAVED, ICE -> null;
+        };
+    }
+
     private static SoundEvent soundOf(Role role) {
         return switch (role) {
             case EXHAUST -> KurumaSounds.CAR_EXHAUST.get();
@@ -142,6 +193,8 @@ public class CarSound extends AbstractTickableSoundInstance {
             case ROAD -> KurumaSounds.CAR_ROAD.get();
             case WIND -> KurumaSounds.CAR_WIND.get();
             case SLIP -> KurumaSounds.CAR_SLIP.get();
+            case GRAVEL -> KurumaSounds.CAR_GRAVEL.get();
+            case SAND -> KurumaSounds.CAR_SAND.get();
         };
     }
 
@@ -212,8 +265,26 @@ public class CarSound extends AbstractTickableSoundInstance {
                 // 止まっているときは鳴らさない。停止寸前はスリップ角が跳ね上がるため
                 double speed = Math.abs(car.getRenderSpeed());
                 float gate = (float) Mth.clamp(speed / 3.0, 0.0, 1.0);
-                targetVolume = (float) Mth.clamp((longitudinal + lateral) * 0.7, 0.0, 1.0) * gate;
+                // ゴムが鳴くのは路面を掴んだまま滑るとき。掴む相手のほうが持っていかれる
+                // 未舗装では鳴らず、代わりに GRAVEL / SAND が出る。氷も掴めないので鳴らない
+                float bite = (float) car.getRenderSurface().gripScale();
+                targetVolume = (float) Mth.clamp((longitudinal + lateral) * 0.7, 0.0, 1.0)
+                        * gate * bite;
                 targetPitch = 1.0F + 0.3F * (float) Math.min(1.0, longitudinal);
+            }
+            case GRAVEL, SAND -> {
+                RoadSurface surface = car.getRenderSurface();
+                // 掻いている速さは土煙とまったく同じ量から取る。片方だけ直すと
+                // 見えている土煙と聞こえている音が食い違う
+                double scrub = car.getRenderScrubSpeed();
+                float t = (float) Mth.clamp(
+                        (scrub - LOOSE_MIN_SCRUB) / (LOOSE_FULL_SCRUB - LOOSE_MIN_SCRUB),
+                        0.0, 1.0);
+                Loose loose = looseOf(surface);
+                targetVolume = loose != null && loose.role() == role
+                        ? LOOSE_VOLUME * t * loose.gain()
+                        : 0.0F;
+                targetPitch = LOOSE_PITCH_BASE + LOOSE_PITCH_SPAN * t;
             }
             default -> {
                 targetVolume = 0.0F;

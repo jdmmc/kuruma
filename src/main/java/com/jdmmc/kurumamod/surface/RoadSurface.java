@@ -11,37 +11,46 @@ package com.jdmmc.kurumamod.surface;
  * 砂は両方悪いが、氷は<b>グリップが極端に低いのに転がり抵抗は舗装より低い</b>（だから
  * 滑って止まらない）。1 つの数字では表せない。</p>
  *
+ * <p><b>「舞い上がりやすさ」（{@link #dustScale()}）も同じ理由で別に持つ。</b>
+ * これは<b>グリップからは決して求められない</b>——氷はいちばん滑るのに巻き上げるものが
+ * 何も無く（固いので）、砂はよく滑りよく舞う。滑りやすさと舞いやすさは無関係で、
+ * 決めているのは<b>路面に載っている粒がどれだけ軽くて浮くか</b>。</p>
+ *
  * <p>Minecraft に依存しない。ブロックとの対応づけは {@link SurfaceLookup} の仕事。</p>
  */
 public enum RoadSurface {
 
     // 判定はこの順に行う。先に書いたものが優先されるので、細かいものから並べる
-    /** 氷。滑るが、転がり抵抗は低いので止まらない。 */
-    ICE("ice", 0.15, 0.5, 1.0),
-    /** 雪。 */
-    SNOW("snow", 0.45, 6.0, 1.0),
+    /** 氷。滑るが、転がり抵抗は低いので止まらない。<b>固いので何も舞わない</b>。 */
+    ICE("ice", 0.15, 0.5, 1.0, 0.0),
+    /** 雪。粉雪はよく舞う。 */
+    SNOW("snow", 0.45, 6.0, 1.0, 0.9),
     /**
      * 砂。乾いているとサラサラで沈むが、<b>濡れると締まって走りやすくなる</b>
      * （海岸の波打ち際が走れるのと同じ）ので、濡れ倍率だけ 1 を超える。
+     * いちばんよく舞う。
      */
-    SAND("sand", 0.55, 10.0, 1.10),
-    /** 砂利。 */
-    GRAVEL("gravel", 0.65, 3.0, 0.85),
+    SAND("sand", 0.55, 10.0, 1.10, 1.0),
+    /** 砂利。粒が重いぶん土ほどは舞わない。 */
+    GRAVEL("gravel", 0.65, 3.0, 0.85, 0.7),
     /** 土・草。濡れると泥になる。 */
-    DIRT("dirt", 0.75, 4.0, 0.55),
-    /** 舗装路。既定であり基準。タグは引かない。 */
-    PAVED("paved", 1.0, 1.0, 0.70);
+    DIRT("dirt", 0.75, 4.0, 0.55, 0.85),
+    /** 舗装路。既定であり基準。タグは引かない。<b>掻き飛ばすものが無い</b>。 */
+    PAVED("paved", 1.0, 1.0, 0.70, 0.0);
 
     private final String name;
     private final double gripScale;
     private final double rollingScale;
     private final double wetGripScale;
+    private final double dustScale;
 
-    RoadSurface(String name, double gripScale, double rollingScale, double wetGripScale) {
+    RoadSurface(String name, double gripScale, double rollingScale, double wetGripScale,
+                double dustScale) {
         this.name = name;
         this.gripScale = gripScale;
         this.rollingScale = rollingScale;
         this.wetGripScale = wetGripScale;
+        this.dustScale = dustScale;
     }
 
     private static final RoadSurface[] VALUES = values();
@@ -64,6 +73,16 @@ public enum RoadSurface {
     /** 転がり抵抗の倍率。濡れても変えていない。 */
     public double rollingScale() {
         return rollingScale;
+    }
+
+    /**
+     * 舞い上がりやすさ。0 で何も舞わない、1 でいちばん舞う。
+     *
+     * <p><b>走りには一切効かない。</b>タイヤが路面の材料を掻き飛ばして砂塵になる量
+     * （{@code CarDust}）だけを決める。</p>
+     */
+    public double dustScale() {
+        return dustScale;
     }
 
     /**

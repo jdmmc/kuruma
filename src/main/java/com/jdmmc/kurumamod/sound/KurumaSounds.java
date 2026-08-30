@@ -45,8 +45,23 @@ public final class KurumaSounds {
     public static final RegistryObject<SoundEvent> CAR_ROAD = register("car_road");
     /** 風切り音。車速で変わる。 */
     public static final RegistryObject<SoundEvent> CAR_WIND = register("car_wind");
-    /** タイヤの悲鳴。滑っているときだけ鳴る。 */
+    /** タイヤの悲鳴。滑っているときだけ鳴る。<b>舗装路の音</b>で、グリップに比例して鳴る。 */
     public static final RegistryObject<SoundEvent> CAR_SLIP = register("car_slip");
+    /**
+     * 砂利道の音。未舗装を走っている間ずっと鳴る。
+     *
+     * <p><b>スキール音の代わり</b>。ゴムが鳴くのは路面を掴んだまま滑るときなので、
+     * 掴む相手のほうが持っていかれる未舗装では鳴らない。代わりに小石が弾かれる音が出る。</p>
+     */
+    public static final RegistryObject<SoundEvent> CAR_GRAVEL = register("car_gravel");
+    /**
+     * 砂の音。砂と雪の上で鳴る。
+     *
+     * <p>砂利と分けてあるのは、<b>粒の大きさで音がまるで違う</b>から——砂利は石が弾ける
+     * 打撃音（重心 3973Hz・粒立ち 1.90）、砂は連続した衣擦れ（7727Hz・1.21）。
+     * 1 枚で兼ねるとどちらでもない音になる。</p>
+     */
+    public static final RegistryObject<SoundEvent> CAR_SAND = register("car_sand");
     /** 変速音。段が変わった瞬間に 1 回。 */
     public static final RegistryObject<SoundEvent> CAR_SHIFT = register("car_shift");
     /** 衝突音。ぶつかった速度差で音量とピッチが変わる。 */

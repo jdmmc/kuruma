@@ -82,6 +82,8 @@ public class KurumaMenuScreen extends Screen {
         cycle("gate_display", GateDisplay.class, ClientConfig.GATE_DISPLAY,
                 display -> Component.translatable(display.translationKey()));
         toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);
+        toggle("show_dust", ClientConfig.SHOW_DUST);
+        slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
 
         header("screen.kurumamod.menu.section.camera");
         slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);

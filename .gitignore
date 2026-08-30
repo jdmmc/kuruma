@@ -1,3 +1,6 @@
+# Python（tools/ のスクリプトが吐く）
+__pycache__/
+
 # Gradle
 .gradle/
 build/

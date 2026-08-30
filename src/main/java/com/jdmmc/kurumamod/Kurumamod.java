@@ -4,11 +4,13 @@ import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
 import com.jdmmc.kurumamod.client.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
+import com.jdmmc.kurumamod.client.DustParticle;
 import com.jdmmc.kurumamod.client.KurumaMenuScreen;
 import com.jdmmc.kurumamod.client.ObjModel;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
+import com.jdmmc.kurumamod.particle.KurumaParticles;
 import com.jdmmc.kurumamod.sound.KurumaSounds;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
@@ -20,6 +22,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -108,6 +111,7 @@ public class Kurumamod {
         ITEMS.register(modEventBus);
         ENTITY_TYPES.register(modEventBus);
         KurumaSounds.SOUNDS.register(modEventBus);
+        KurumaParticles.PARTICLE_TYPES.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
 
         // サーバーイベントなど、購読したいゲーム内イベントのために自身を登録する
@@ -180,6 +184,18 @@ public class Kurumamod {
         @SubscribeEvent
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(CAR.get(), CarObjRenderer::new);
+        }
+
+        /**
+         * 砂塵の粒を実際に描く係を結びつける。
+         *
+         * <p>種類そのものは両側で登録してある（{@link KurumaParticles}）。
+         * <b>描く係だけがクライアント側</b>で、絵は
+         * {@code assets/kurumamod/particles/dust.json} が指すスプライトの束。</p>
+         */
+        @SubscribeEvent
+        public static void onRegisterParticleProviders(RegisterParticleProvidersEvent event) {
+            event.registerSpriteSet(KurumaParticles.DUST.get(), DustParticle.Provider::new);
         }
 
         /**

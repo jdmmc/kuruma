@@ -79,6 +79,17 @@ public final class ClientConfig {
                     "描画設定「最高」とシェーダーパックのときは自動で切れる")
             .define("liveMirrors", false);
 
+    public static final ForgeConfigSpec.BooleanValue SHOW_DUST = BUILDER
+            .comment("未舗装路（土・砂・砂利・雪）を走ったときに土煙を舞い上げるかどうか。",
+                    "氷と舗装路では入れていても何も出ない（掻き飛ばすものが無いため）")
+            .define("showDust", true);
+
+    public static final ForgeConfigSpec.DoubleValue DUST_DENSITY = BUILDER
+            .comment("土煙の量の倍率。1.0 が既定。粒の数がそのまま増えるので、重いと感じたら下げる。",
+                    "0 は無い——消すのは showDust の役目。入り口が 2 つあると、",
+                    "どちらが効いているのか分からなくなる")
+            .defineInRange("dustDensity", 1.0, 0.25, 2.0);
+
     public static final ForgeConfigSpec.EnumValue<GateDisplay> GATE_DISPLAY = BUILDER
             .comment("コースのゲートの見せ方。FULL=面と柱、POSTS=左右のポールのみ、HIDDEN=描かない")
             .defineEnum("gateDisplay", GateDisplay.FULL);
@@ -118,6 +129,12 @@ public final class ClientConfig {
     /** ミラーに実際の景色を映すか。 */
     public static boolean liveMirrors = false;
 
+    /** 未舗装路で土煙を舞い上げるか。 */
+    public static boolean showDust = true;
+
+    /** 土煙の量の倍率。消すのは {@link #showDust} の役目なので 0 にはならない。 */
+    public static double dustDensity = 1.0;
+
     /** コースのゲートの見せ方。 */
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
@@ -150,6 +167,8 @@ public final class ClientConfig {
         speedFov = SPEED_FOV.get();
         gaugeTheme = GAUGE_THEME.get();
         liveMirrors = LIVE_MIRRORS.get();
+        showDust = SHOW_DUST.get();
+        dustDensity = DUST_DENSITY.get();
         gateDisplay = GATE_DISPLAY.get();
     }
 

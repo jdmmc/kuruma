@@ -39,6 +39,26 @@
       }
     ]
   },
+  "car_gravel": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_gravel",
+    "sounds": [
+      {
+        "name": "kurumamod:gravel",
+        "stream": false
+      }
+    ]
+  },
+  "car_sand": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_sand",
+    "sounds": [
+      {
+        "name": "kurumamod:sand",
+        "stream": false
+      }
+    ]
+  },
   "car_shift": {
     "category": "neutral",
     "subtitle": "subtitles.kurumamod.car_shift",

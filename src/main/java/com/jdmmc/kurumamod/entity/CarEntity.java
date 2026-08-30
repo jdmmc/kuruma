@@ -1079,6 +1079,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     // 描画向けの取得
     // ------------------------------------------------------------------
 
+    /** 滑りが「撫でる速さ」へ上乗せされる強さ。{@link #getRenderScrubSpeed(Wheel)} */
+    private static final double SCRUB_SLIP_GAIN = 1.2;
+
     /** 自分の手元で物理を解いているか（＝同期を待たずに自前の値を描画に使えるか） */
     private boolean hasLocalState() {
         return level().isClientSide && isControlledByLocalInstance();
@@ -1269,6 +1272,34 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         return hasLocalState()
                 ? state.wheelFrictionPower[wheel.ordinal()]
                 : entityData.get(DATA_WHEEL_FRICTION.get(wheel.ordinal()));
+    }
+
+    /**
+     * 接地面が路面を撫でる速さ [m/s]。
+     *
+     * <p>転がっているだけなら車速そのもの。縦に滑れば（ホイールスピン・ロック）その滑り率ぶん、
+     * 横を向いていれば車体スリップ角ぶんが上乗せされる。<b>タイヤが路面をどれだけ擦っているか</b>
+     * という 1 つの量で、未舗装で舞う砂塵（{@code CarDust}）と砂利の音（{@code CarSound}）の
+     * 両方がこれで決まる。<b>2 か所で別々に組み立てないこと</b>——片方だけ直すと、
+     * 見えている土煙と聞こえている音が食い違う。</p>
+     *
+     * <p>縦の滑り率は配ってある車輪の角速度と車速から組み直され、スリップ角はそのまま
+     * 配られているので、<b>他人の車でも読める</b>。</p>
+     */
+    public double getRenderScrubSpeed(Wheel wheel) {
+        double speed = Math.abs(getRenderSpeed());
+        double slip = Math.min(1.0, Math.abs(getRenderSlipRatio(wheel)));
+        double sideways = Math.abs(Math.sin(getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD));
+        return speed * (1.0 + SCRUB_SLIP_GAIN * (slip + sideways));
+    }
+
+    /** 4 輪でいちばん擦っている輪の値。音のように車 1 台で 1 つ決めたいとき用。 */
+    public double getRenderScrubSpeed() {
+        double worst = 0.0;
+        for (Wheel wheel : Wheel.VALUES) {
+            worst = Math.max(worst, getRenderScrubSpeed(wheel));
+        }
+        return worst;
     }
 
     /** 音に使うアクセルの踏み込み量 0..1。 */
