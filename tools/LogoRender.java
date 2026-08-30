@@ -18,7 +18,7 @@ import java.util.List;
  * <pre>
  * javac -encoding UTF-8 -d build/tools tools/LogoRender.java
  * java  -cp build/tools LogoRender
- * java  -cp build/tools LogoRender examples/carpack/examplepack.png "" Kuruma "Car Pack"
+ * java  -cp build/tools LogoRender carpack/example/examplepack.png "" Kuruma "Car Pack"
  * </pre>
  *
  * <p>引数は {@code [出力先] [モデルの置き場] [ワードマーク] [副題]}。空文字なら既定のまま。

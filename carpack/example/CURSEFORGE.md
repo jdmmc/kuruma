@@ -13,20 +13,19 @@
 
 # Kuruma - Sample Car Pack
 
-### Adds two cars to Kuruma.
+### Adds a car to Kuruma.
 
 > ### ⚠️ This is a car add-on pack. It also needs **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)**.
 > On its own it does nothing. Install Kuruma first and run the two together.
 
-A tall van and a big 4WD. Two completely different things to drive.  
-Both can be tuned in-game, so the numbers are a starting point, not something fixed.
+A tall, boxy van — and a set of deep dish wheels to put on it.  
+It can be tuned in-game, so the numbers are a starting point, not something fixed.
 
 ## 🚗 Cars in this pack
 
 | Car | What it's like |
 |---|---|
 | **Sample Car** | A tall, boxy van. 1500 kg, torque low down, and it leans. Not fast — but hustling that weight through a corner is its own kind of fun. |
-| **Land Cruiser Prado** | 2100 kg of diesel 4WD. Thick low-end torque, soft springs, and it is perfectly happy off the tarmac. |
 
 ## 📦 How to install
 
@@ -66,20 +65,19 @@ All rights reserved. Do not redistribute.
 
 # Kuruma - サンプルカーパック（日本語）
 
-### Kuruma に車を 2 台追加します。
+### Kuruma に車を 1 台追加します。
 
 > ### ⚠️ これは車追加パックです。**[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** が別に必要です。
 > これだけ入れても何も起きません。先に Kuruma を入れて、一緒に動作させる必要があります。
 
-背の高いバンと、大柄な 4WD。性格のまったく違う 2 台です。  
-どちらもゲーム内でいじれるので、 数字は「決められたもの」ではなく「初期値」です。
+背の高い箱形のバンと、それに履かせる深皿ホイールが 1 組。  
+ゲーム内でいじれるので、数字は「決められたもの」ではなく「初期値」です。
 
 ## 🚗 入っている車
 
 | 車 | どんな車か |
 |---|---|
 | **サンプルカー** | 背の高い箱形のバン。1500kg、低回転から太く、よく傾きます。速くはありませんが、重い車体をコーナーへねじ込むのはこれはこれで楽しい。 |
-| **ランドクルーザー プラド** | 2100kg のディーゼル 4WD。低速トルクが分厚く、足は柔らかめ。舗装路を外れても平気です。 |
 
 ## 📦 導入方法
 

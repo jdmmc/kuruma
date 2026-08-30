@@ -1,6 +1,6 @@
 {
   "body": {
-    "model": "kurumamod_example_carpack:models/entity/land-cluiser-prado-150.obj",
+    "model": "kurumamod_basic_carpack:models/entity/land-cluiser-prado-150.obj",
     "texture": "kurumamod:textures/entity/car.png",
     "scale": 1.074
   },

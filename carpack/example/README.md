@@ -5,12 +5,15 @@
 **You don't need Java to add a car to Kuruma.** Build a single mod jar that contains nothing
 but JSON and models, drop it in `mods/`, and the new cars show up.
 
-This `carpack/` folder is a **working example** that adds two cars.
+This `carpack/example/` folder is a **working example** that adds one car and one wheel part.
 
-| Car id | What it demonstrates |
+| Id | What it demonstrates |
 |---|---|
 | `kurumamod_example_carpack:sample` | The full set — its own body mesh, texture and lights |
-| `kurumamod_example_carpack:prado` | Spec and body mesh only. Wheels and textures are borrowed from Kuruma |
+| `kurumamod_example_carpack:deep_dish` | A wheel part: the defaults it can hand the fitment sliders |
+
+(`carpack/basic/` next door is the official pack that ships to players. It is the same
+layout with the documentation stripped out — a good look at what a finished pack contains.)
 
 **This example is free to use.**
 Copy it as the base of your own pack. No credit, no permission needed.
@@ -22,7 +25,7 @@ Copy it as the base of your own pack. No credit, no permission needed.
 Zip the contents of this folder, rename it to `.jar`, and put it in `mods/`.
 
 ```bash
-cd examples/carpack
+cd carpack/example
 jar --create --file ../kurumamod_example_carpack.jar .     # if you have a JDK
 zip -r ../kurumamod_example_carpack.jar .                  # zip works just as well
 ```
@@ -35,9 +38,9 @@ Rename-Item ..\kurumamod_example_carpack.zip kurumamod_example_carpack.jar
 
 **`META-INF/` and `pack.mcmeta` must sit at the top level of the jar.** Zipping the folder
 itself buries them one level deeper, and nothing happens when you load it. That is why the
-commands above run from **inside** `carpack`.
+commands above run from **inside** `example`.
 
-Start the game and open the creative tab: two more cars are there.
+Start the game and open the creative tab: the sample car is there.
 
 ## 2. Make it your own pack
 
@@ -45,7 +48,7 @@ Copy the example and replace `kurumamod_example_carpack` with your own name and 
 name. That is very nearly the whole job.
 
 ```
-carpack/
+carpack/example/
 ├─ META-INF/mods.toml                              ← modId is decided here
 ├─ pack.mcmeta
 ├─ kurumamod_example_carpack.png                   ← image in the mod list (logoFile in mods.toml)
@@ -128,7 +131,7 @@ full list is in [Appendix A](#a-looks--assetspackvehiclescarjson).
 The essentials:
 
 - **Models and textures are referenced with a namespace**, so you can borrow Kuruma's instead
-  of making your own (both example cars borrow the wheels)
+  of making your own (the sample car borrows Kuruma's wheels)
 - `designWheelBase` / `designWheelRadius` mean "**what size the mesh was built at**", not the
   size of this car. The real dimensions live in the spec, and the mesh is scaled by the ratio
 - The seat position is decided here too (the driver sits on the right)

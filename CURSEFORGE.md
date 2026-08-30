@@ -76,10 +76,10 @@ car comes out the wrong size.
 
 Want cars without making them? Grab
 **[Kuruma - Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** —
-two ready-to-drive cars, straight away.
+a ready-to-drive car, straight away.
 
 **And that same jar is the manual.** Rename it to `.zip` and open it: the full how-to
-(English and Japanese), the modeling manual itself, the JSON for both cars, the Blender sizing gauges, and a CurseForge
+(English and Japanese), the modeling manual itself, the JSON for the car and a wheel part, the Blender sizing gauges, and a CurseForge
 page template are all in there. Copy it, swap the cars for yours, ship it — the sample pack
 is yours to use, no credit needed.
 
@@ -212,10 +212,10 @@ Blender でモデルを作り、ゲーム内で味付けして、そのまま配
 
 作るのはあとで、まずは乗りたい方へ。
 **[Kuruma - Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)**
-を入れれば、それだけで車が 2 台増えます。
+を入れれば、それだけで車が 1 台増えます。
 
 **そしてこの jar そのものが、カーパックの作り方の手引です。** 拡張子を `.zip` に変えて開けば、
-作り方の解説（日英）・モデル作成マニュアルそのもの・2 台分の JSON・Blender 用の寸法ゲージ・CurseForge ページのひな型まで
+作り方の解説（日英）・モデル作成マニュアルそのもの・車と部品の JSON・Blender 用の寸法ゲージ・CurseForge ページのひな型まで
 入っています。丸ごとコピーして車を差し替えれば、それがあなたのカーパックです——**見本は自由に使ってかまいません。
 表示も許諾も不要です。**
 

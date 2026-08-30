@@ -4,12 +4,15 @@
 
 KurumaMod に車を足すのに **Java は要らない**。JSON とモデルだけの MOD jar を 1 つ作って `mods/` に入れれば車種が増える。
 
-この `carpack/` フォルダは**そのまま動く見本**で、車を 2 台足す。
+この `carpack/example/` フォルダは**そのまま動く見本**で、車を 1 台と部品を 1 つ足す。
 
-| 車種 | 何の見本か |
+| id | 何の見本か |
 |---|---|
 | `kurumamod_example_carpack:sample` | 車体メッシュ・テクスチャ・灯火まで自前で持つ、一通り揃った例 |
-| `kurumamod_example_carpack:prado` | 諸元と車体メッシュだけ。タイヤとテクスチャは KurumaMod のものを借りている |
+| `kurumamod_example_carpack:deep_dish` | ホイールの部品。換装画面のスライダーへ既定値を渡せることの例 |
+
+（隣の `carpack/basic/` はプレイヤーへ配っている公式パック。作りは同じで、
+説明の類を取り払ったもの。**出来上がったパックに何が入るか**はそちらを見るとよい。）
 
 **この見本は自由に使ってよい。**
 コピーして自分のカーパックの土台にしてよく、表示も許諾も要らない。
@@ -21,7 +24,7 @@ KurumaMod に車を足すのに **Java は要らない**。JSON とモデルだ�
 このフォルダの中身を zip で固めて `.jar` に改名し、`mods/` に入れるだけ。
 
 ```bash
-cd examples/carpack
+cd carpack/example
 jar --create --file ../kurumamod_example_carpack.jar .     # JDK があれば
 zip -r ../kurumamod_example_carpack.jar .                  # 無ければ zip でも同じ
 ```
@@ -33,9 +36,9 @@ Rename-Item ..\kurumamod_example_carpack.zip kurumamod_example_carpack.jar
 ```
 
 **`META-INF/` と `pack.mcmeta` が jar の直下に来ること。** フォルダごと固めると一段深くなり、
-`mods/` に入れても何も起きない。上のコマンドが `carpack` の**中**で実行されているのはこのため。
+`mods/` に入れても何も起きない。上のコマンドが `example` の**中**で実行されているのはこのため。
 
-起動してクリエイティブタブを見ると、車種が 2 台増えている。
+起動してクリエイティブタブを見ると、サンプルカーが増えている。
 
 ## 2. 自分のパックを作る
 
@@ -43,7 +46,7 @@ Rename-Item ..\kurumamod_example_carpack.zip kurumamod_example_carpack.jar
 これが作業のほぼすべて。
 
 ```
-carpack/
+carpack/example/
 ├─ META-INF/mods.toml                              ← modId をここで決める
 ├─ pack.mcmeta
 ├─ kurumamod_example_carpack.png                   ← MOD 一覧に出る画像（mods.toml の logoFile）
@@ -113,7 +116,7 @@ carpack/
 
 要点だけ:
 
-- **モデルとテクスチャは名前空間付きで指す**ので、自前で用意せず KurumaMod のものを借りてもよい（見本の 2 台ともタイヤを借りている）
+- **モデルとテクスチャは名前空間付きで指す**ので、自前で用意せず KurumaMod のものを借りてもよい（サンプルカーもタイヤは借りている）
 - `designWheelBase` / `designWheelRadius` は「**メッシュが何 m で作られているか**」であって、この車の寸法ではない。実際の寸法は諸元側にあり、その比で自動的に拡大される
 - 座席の位置もここで決める（運転席は右）
 
