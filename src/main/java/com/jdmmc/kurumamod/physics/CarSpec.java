@@ -45,7 +45,7 @@ package com.jdmmc.kurumamod.physics;
  * @param steerGripMargin      切れ角上限に対する余裕。1 を超えるとグリップを超えて切れる（＝滑らせられる）
  * @param visualSlipLimit      <b>見た目だけ</b>の、進行方向に対するタイヤ角の上限 [rad]。0 で無効。物理は一切読まない
  * @param maxSteerAngle        前輪の最大切れ角 [rad]
- * @param steerRateSeconds     中立から最大切れ角まで入れるのにかかる時間 [s]。0 で即座
+ * @param steerRateSeconds     中立からいま使える上限まで舵を入れるのにかかる時間 [s]。0 で即座
  * @param steerReturnSeconds   舵を放してから戻るまでの時間 [s]
  * @param selfAligning         セルフアライニングの強さ。1 で放すと前輪が完全に進行方向を向く。0 で中立へ戻る
  * @param pedalPressSeconds    アクセル／ブレーキを踏みきるまでの時間 [s]
@@ -596,9 +596,13 @@ public record CarSpec(
         private double visualSlipLimit = Math.toRadians(45.0);
         private double maxSteerAngle = Math.toRadians(35.0);
         // キーは 0/100 でも、舵とペダルが動く速さには限りがある。ここを有限にしておくと
-        // 「押している長さ」でアナログに操作できるようになる（0 にすると従来の即座）
-        private double steerRateSeconds = 0.30;
-        private double steerReturnSeconds = 0.18;
+        // 「押している長さ」でアナログに操作できるようになる（0 にすると従来の即座）。
+        // 基準は最大切れ角ではなく<b>いま使える切れ角の範囲</b>なので、
+        // 「中立からその速度で許される上限まで入れるのにかかる時間」を表す。
+        // 0.18 秒で 100km/h に 3 段・60km/h に 5 段の刻みが取れる（0.30 秒なら 5 段だが
+        // 立ち上がりが 0.65→0.76 秒と鈍る）
+        private double steerRateSeconds = 0.18;
+        private double steerReturnSeconds = 0.11;
         // 実車は舵を放すと前輪が自分から進行方向を向く。滑っているときはこれがカウンターになる。
         // 既定は無効（中立へ戻る）。使いたい人が入れる
         private double selfAligning = 0.0;
