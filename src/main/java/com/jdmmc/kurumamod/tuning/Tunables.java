@@ -280,7 +280,7 @@ public final class Tunables {
      * <p>タイヤを大きくすると車体が持ち上がり、同じギアリングを保つためにファイナルも上がる。</p>
      */
     private static String rideHeight(CarSpec spec) {
-        return String.format("車高 %.0fcm・ファイナル %.2f・登坂 %.0fcm",
+        return String.format("車高%.0f 終減速%.2f 登坂%.0fcm",
                 spec.staticRideHeight() * 100.0, spec.finalDriveRatio(), spec.maxClimbStep() * 100.0);
     }
 
@@ -291,7 +291,7 @@ public final class Tunables {
      * 沈み込みが前後で揃っていることもここで分かる。</p>
      */
     private static String springs(CarSpec spec) {
-        return String.format("%.0f/%.0f N/m・沈み %.1fcm",
+        return String.format("%.0f/%.0fN/m 沈み%.1fcm",
                 spec.frontSuspensionStiffness(), spec.rearSuspensionStiffness(),
                 spec.staticWheelLoad(Wheel.FRONT_LEFT) / spec.frontSuspensionStiffness() * 100.0);
     }
@@ -305,13 +305,13 @@ public final class Tunables {
     /** タイヤの摩擦係数から決まるブレーキとサイドブレーキの効き。 */
     private static String brakeForce(CarSpec spec) {
         // 目盛りが相対値なので、実際のμもここで見せる（見えないと路面の倍率と突き合わせられない）
-        return String.format("μ%.2f・制動 %.1f・サイド %.1f m/s²・配分 前 %.0f%%",
+        return String.format("μ%.2f 制動%.1f サイド%.1f 前%.0f%%",
                 spec.tireFriction(), spec.brakeDecel(), spec.handbrakeDecel(), spec.brakeBias() * 100.0);
     }
 
     /** レブと段の比から決まる変速点。ハンチングしていないことがここで分かる。 */
     private static String shiftPoints(CarSpec spec) {
-        return String.format("↑%.0f ↓%.0f rpm（上げた直後 %.0f）",
+        return String.format("↑%.0f ↓%.0f 直後%.0f",
                 spec.upshiftRpm(), spec.downshiftRpm(), spec.upshiftRpm() * spec.gearStep());
     }
 
