@@ -554,7 +554,7 @@ public record CarSpec(
         // （ホイールベース 2.6m）だと車が小さく見える。tools/blender_gauge.py の
         // SCALE と揃えること
         private double wheelBase = 3.12;
-        private double trackWidth = 1.80;
+        private double trackWidth = 2.00;
         private double mass = 1200.0;
         // 前 56：後 44。エンジンが前にある車の実測に近く、これがあってはじめて
         // 「前を厚くするとアンダー」というセッティングが意味を持つ（前後中央だと対称で効かない）
@@ -562,8 +562,8 @@ public record CarSpec(
         private double wheelRadius = 0.45; // 直径 0.90m。こちらも実車の 1.2 倍
         // ストロークは足の硬さの入り口でもある。沈み込みがストロークの一定割合になるよう
         // バネを決めているので、短くすればバネもダンパーも比例して硬くなる
-        // （25cm で 33,600/26,400N/m・固有振動数 1.59Hz。ここを 15cm にすると 56,000N/m 相当）
-        private double suspensionMaxLength = 0.25;
+        // （30cm で 28,000/22,000N/m・固有振動数 1.45Hz。ここを 15cm にすると 56,000N/m 相当）
+        private double suspensionMaxLength = 0.30;
         // スタビライザー。左右のサス変位の差に掛ける（左右が同じだけ沈む動きには効かない）。
         // バネを緩めた状態でロール量と前後バランスを別々に決めるための装置で、
         // 前を強くするとアンダー、後ろを強くするとオーバーになる
