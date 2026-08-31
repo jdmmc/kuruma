@@ -101,6 +101,14 @@ public final class CarPhysics {
     private static final double TURN_IN_BONUS = 2.0;
 
     /**
+     * 舵の変化率の基準にする範囲の下限。最大切れ角に対する割合。
+     *
+     * <p>変化率は「いま使える切れ角の範囲」を基準にするので、範囲が 0 に近づくと
+     * 舵がまったく動かなくなる。氷の上のように上限が 0.3 度まで絞られる場面のための下限。</p>
+     */
+    private static final double MIN_STEER_SPAN = 0.02;
+
+    /**
      * クラッチを切りきるまでの時間 [s]。速くてよい——切るのは踏むだけなので。
      *
      * <p>0 にすると駆動トルクが 1 ティックで断続するので、<b>変速を 0/1 で
@@ -250,7 +258,14 @@ public final class CarPhysics {
         boolean returning = Math.abs(target) < Math.abs(state.steerAngle)
                 || target * state.steerAngle < 0.0;
         double seconds = returning ? spec.steerReturnSeconds() : spec.steerRateSeconds();
-        state.steerAngle = approach(state.steerAngle, target, spec.maxSteerAngle(), seconds, dt);
+        // <b>基準にするのは最大切れ角ではなく、いま使える切れ角の範囲。</b>
+        // 最大切れ角（35 度）を基準にすると 117 度/秒 ＝ 1 ティックで 5.85 度動くので、
+        // 上限がそれより小さい速度域では<b>キーを 1 回叩いた時点で張り付き、制限が
+        // まったく効かなくなる</b>（100km/h で 1 ティック 4.38 度に対し上限 4.41 度）。
+        // 押している長さでアナログに操作できるという肝心の性質が、80km/h あたりから
+        // 上では死んでいた。範囲を基準にすれば、どの速度でも同じだけ刻める
+        double span = Math.max(limit, spec.maxSteerAngle() * MIN_STEER_SPAN);
+        state.steerAngle = approach(state.steerAngle, target, span, seconds, dt);
 
         // 速度が上がって上限が下がったときは、そちらには即座に従う
         state.steerAngle = Math.max(-limit, Math.min(limit, state.steerAngle));
