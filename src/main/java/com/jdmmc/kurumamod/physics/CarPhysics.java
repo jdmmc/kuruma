@@ -73,6 +73,89 @@ public final class CarPhysics {
     private static final double MIN_STEERING_GRIP = 0.45;
 
     /**
+     * 切り込みの上乗せ。まだグリップを使っていないうちだけ、切れ角の上限をこの割合だけ広げる。
+     * 効き方と必要なガードは {@link #turnInLimit}。
+     *
+     * <p>2.0 は「まだ何もしていない状態でだけ定常角度の 3 倍まで許す」という上限で、
+     * <b>実際に切り込む量はその半分ほど</b>——定常角度の 1.46 倍（72km/h）・1.81 倍（100km/h）・
+     * 2.33 倍（220km/h）で、実車のドライバーの切り込み量と同じ帯に収まる。</p>
+     *
+     * <p>これ以上上げても<b>割に合わない</b>（定速スキッドパッドの実測。spin は切り返し
+     * 560 条件のうちスピンした数で、上乗せ無しでも 18 件ある）:</p>
+     *
+     * <table>
+     *   <tr><th>強さ</th><th>spin</th><th>t90 72km/h</th><th>t90 100km/h</th><th>t90 220km/h</th><th>切り込み/定常 (220km/h)</th></tr>
+     *   <tr><td>0（無し）</td><td>18</td><td>0.65s</td><td>0.88s</td><td>2.06s</td><td>1.13</td></tr>
+     *   <tr><td><b>2.0</b></td><td>28</td><td>0.53s</td><td>0.66s</td><td>1.50s</td><td>2.33</td></tr>
+     *   <tr><td>4.0</td><td>29</td><td>0.51s</td><td>0.63s</td><td>1.34s</td><td>3.38</td></tr>
+     *   <tr><td>6.0</td><td>30</td><td>0.51s</td><td>0.61s</td><td>1.26s</td><td>4.22</td></tr>
+     * </table>
+     *
+     * <p>低中速では 2.0 で頭打ちになり（前輪のピークで蓋をされるため）、高速では伸び続けるが、
+     * 切り込みが定常の 4 倍を超えて<b>ドライバーの操作としては不自然</b>になる。</p>
+     *
+     * <p><b>調整画面には出さない。</b>車の性格ではなく「人はハンドルをこう回す」という話で、
+     * しかも {@code steerGripMargin} という同じ向きのつまみが既にある——2 つ並べると
+     * どちらが効いているのか分からなくなる。</p>
+     */
+    private static final double TURN_IN_BONUS = 2.0;
+
+    /**
+     * クラッチを切りきるまでの時間 [s]。速くてよい——切るのは踏むだけなので。
+     *
+     * <p>0 にすると駆動トルクが 1 ティックで断続するので、<b>変速を 0/1 で
+     * 切り替えてはいけない</b>のと同じ理由で有限にしてある（{@link #shiftEngagement} 参照）。</p>
+     */
+    private static final double CLUTCH_RELEASE_SECONDS = 0.08;
+
+    /**
+     * クラッチを繋ぎきるまでの時間 [s]。<b>切るときよりずっと遅くすること。</b>
+     *
+     * <p>ここが速いと、空吹かししたエンジンが車輪の回転へ<b>一瞬で引き戻される</b>。
+     * 実測で 0.12 秒だと 1 ティック（12.5ms）に 1001rpm 落ち、回転計も排気音も跳ねる。
+     * 0.30 秒にすると 1 ティックあたり 369rpm まで下がる。</p>
+     *
+     * <p>これは<b>ペダルを戻す速さ</b>で、{@link #CLUTCH_CAPACITY} に掛かる。
+     * 速くすると滑りの区間が短くなり、蹴りが乱暴になる。</p>
+     */
+    private static final double CLUTCH_ENGAGE_SECONDS = 0.30;
+
+    /**
+     * クラッチが伝えられるトルクの上限。最大トルクの何倍か。
+     *
+     * <p>実車の乾式単板クラッチは最大トルクの 1.3〜2 倍で切られる（それ以下だと登坂で滑り、
+     * 大きすぎると繋いだ瞬間が乱暴になる）。<b>諸元として持たない</b>——最大トルクが決まれば
+     * 決まってしまう値なので（[他の諸元から決まる値]の考え方）。</p>
+     *
+     * <p>ここで頭打ちになるぶんが<b>クラッチの滑り</b>。回転差を 1 ティックで埋めきれない
+     * ときは埋めきれないままエンジンが回り続ける。</p>
+     */
+    private static final double CLUTCH_CAPACITY = 1.6;
+
+    /**
+     * クラッチが直結したと見なす回転差 [rpm]。
+     *
+     * <p>滑っている間はトルクで繋ぐが、回転が揃ったら<b>直結の解きかたへ戻す</b>
+     * （エンジンの慣性を車輪側へ換算する {@link #effectiveWheelInertia} の経路）。
+     * そうしないと、普通に走っている間ずっと滑りクラッチを解くことになり、
+     * <b>加速も変速も今までと変わってしまう</b>。</p>
+     *
+     * <p>切り替わる瞬間に伝達トルクが {@code engineInertia * 差 / dt} だけ跳ねるので、
+     * 小さくすること。10rpm なら 2 速で 0.5m/s² 相当。</p>
+     */
+    private static final double CLUTCH_LOCK_RPM = 10.0;
+
+    /**
+     * 繋がりきったクラッチが回転を揃えるのにかける時間 [s]。
+     *
+     * <p>1 ティックで揃えようとすると必ず少し行き過ぎ、次のティックで逆向きのトルクが出る。
+     * 実測で伝達トルクが 560 → -93 → 308 → -27 と<b>符号を振りながら減衰した</b>。
+     * 数ティックかけて揃えれば出ない。ここは「揃うまでの時間」であって
+     * {@link #CLUTCH_ENGAGE_SECONDS}（ペダルを戻す時間）とは別。</p>
+     */
+    private static final double CLUTCH_SYNC_SECONDS = 0.05;
+
+    /**
      * 変速時間のうち、駆動系を抜く／繋ぐのに使う割合（前後それぞれ）。
      *
      * <p>0 にすると 0/1 の切り替えに戻り、コーナー中の変速で横グリップが段差になる。
@@ -150,7 +233,8 @@ public final class CarPhysics {
         if (speed > 1.0) {
             double required = steerForMaxCornering(spec, state, contact, speed);
             if (Double.isFinite(required)) {
-                limit = Math.min(limit, required * spec.steerGripMargin());
+                double steady = Math.min(limit, required * spec.steerGripMargin());
+                limit = Math.min(limit, turnInLimit(spec, state, contact, speed, steady));
             }
         }
 
@@ -170,6 +254,78 @@ public final class CarPhysics {
 
         // 速度が上がって上限が下がったときは、そちらには即座に従う
         state.steerAngle = Math.max(-limit, Math.min(limit, state.steerAngle));
+    }
+
+    /**
+     * 切れ角の上限 [rad]。定常旋回に必要な角度を、<b>まだタイヤが仕事をしていないうちだけ</b>広げる。
+     *
+     * <p>実車のドライバーの「切り込んでから戻す」を、上限の側で成立させるためのもの。
+     * 使っているグリップが増えるほど上乗せは減り、限界で {@code steady} に戻るので、
+     * <b>定常旋回の切れ角も旋回半径も最大横 G も変わらない</b>
+     * （定速スキッドパッドの実測で 100km/h の定常舵 2.40→2.43 度・半径 73.9→76.7m・1.00G のまま）。</p>
+     *
+     * <p>広げるぶんの上限が {@link #TURN_IN_BONUS}。効き方:</p>
+     *
+     * <table>
+     *   <tr><th>速度</th><th>横 G が 90% に立つまで</th><th>0.5 秒後の横 G</th></tr>
+     *   <tr><td>36km/h</td><td>0.50 → 0.50s</td><td>0.85 → 0.85G</td></tr>
+     *   <tr><td>72km/h</td><td>0.65 → 0.53s</td><td>0.79 → 0.88G</td></tr>
+     *   <tr><td>100km/h</td><td>0.88 → 0.66s</td><td>0.64 → 0.79G</td></tr>
+     *   <tr><td>150km/h</td><td>1.29 → 0.90s</td><td>0.42 → 0.61G</td></tr>
+     *   <tr><td>220km/h</td><td>2.06 → 1.50s</td><td>0.20 → 0.33G</td></tr>
+     * </table>
+     *
+     * <p><b>ガードが 4 つ要る。どれを外しても壊れる</b>（いずれも実測）:</p>
+     * <ul>
+     *   <li><b>回っていることも見る</b>（{@code speed * yawRate}）。横 G だけで見ると、
+     *       切り返しの途中で横 G が 0 を通る瞬間に上乗せが満タンへ復活し、まだ前の向きへ
+     *       回っている車にフルの切れ角を許して<b>振り回す</b>。切り返しのスピンが
+     *       28 件から <b>179 件</b>（560 条件中）へ増える</li>
+     *   <li><b>縦も含めて合成で見る</b>。横 G だけだと、転がり抵抗がグリップ枠の大半を
+     *       占める路面で上乗せが素通りする。<b>氷で車体スリップ角が 0.5 度から 17.3 度</b>になった</li>
+     *   <li><b>制動中は上乗せしない</b>。ABS が操舵性のためにわざと絞った上限を広げることになる。
+     *       フルブレーキ＋フルロックで停止まで、<b>33.5 度から 89.8 度＝スピン</b>になった</li>
+     *   <li><b>前輪をピークより深く切らせない</b>（下の {@code peak}）。低速では定常角度そのものが
+     *       ピークを越えているので、そこで上乗せすると<b>前輪が逃げるだけで逆に遅くなる</b>。
+     *       36km/h で切り込みが 17.5→27.7 度になり、t90 が 0.50→0.58 秒と<b>悪化</b>した。
+     *       蓋をすると低速では上乗せが丸ごと消え（27.7→17.5 度）、悪化しなくなる</li>
+     * </ul>
+     *
+     * @param steady この速度で定常旋回するのに要る切れ角（＝これまでの上限）。下回らせない
+     */
+    private static double turnInLimit(CarSpec spec, CarState state, GroundContact contact,
+                                      double speed, double steady) {
+        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY;
+        if (gripAccel <= 0.0) {
+            return steady;
+        }
+        // すでに使っているぶん。タイヤが出している力（縦横の合成）と、車が回っていることの
+        // 大きい方を見る。旋回中は speed*yawRate が横 G と一致し、切り返しの最中はこちらが残る
+        double committed = Math.max(
+                Math.hypot(state.lateralAcceleration, state.longitudinalAcceleration),
+                Math.abs(speed * state.yawRate));
+        double headroom = Math.max(0.0, 1.0 - committed / gripAccel);
+        double widened = steady
+                * (1.0 + TURN_IN_BONUS * headroom * Math.max(0.0, 1.0 - state.brake));
+
+        // 上乗せで前輪をピークより深く切らせない
+        double peak = Math.abs(selfAligningAngle(spec, state))
+                + peakFrontSlipAngle(spec, state, contact);
+        return Math.max(steady, Math.min(widened, peak));
+    }
+
+    /**
+     * 前輪が横力のピークを出すスリップ角 [rad]。
+     *
+     * <p>横へ回せるグリップ（摩擦円で縦に使っているぶんを引いた残り）を
+     * コーナリングパワー係数で割ったもの。{@link #steerForMaxCornering} と同じ摩擦円を使う。</p>
+     */
+    private static double peakFrontSlipAngle(CarSpec spec, CarState state, GroundContact contact) {
+        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY;
+        double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
+        double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
+        double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
+        return lateral / (GRAVITY * spec.corneringStiffness());
     }
 
     /**
@@ -288,27 +444,39 @@ public final class CarPhysics {
     private static void updateDrivetrain(CarSpec spec, CarState state, double dt, CarInput input) {
         state.gear = selectGear(spec, state, dt, input);
         java.util.Arrays.fill(state.wheelDriveTorque, 0.0);
+        updateClutch(spec, state, dt, input);
 
-        // 駆動輪の回転からエンジン回転数を逆算する。停止時はアイドルで下支えする
+        // 駆動輪の回転からエンジン回転数を逆算する。停止時はアイドルで下支えする。
+        // クラッチが切れているぶんだけ車輪から切り離され、下の方で自分の慣性で回る
         double ratio = spec.totalRatio(state.gear);
         double drivelineSpeed = drivenWheelSpeed(spec, state);
         double rpm = Math.abs(drivelineSpeed * ratio) * 60.0 / (2.0 * Math.PI);
-        state.engineRpm = Math.max(spec.idleRpm(), rpm);
-
-        if (state.gear == 0) {
-            // ニュートラルでは駆動系が切れている（差動制限のイニシャルトルクだけは残る）
-            state.engineTorque = 0.0;
-            state.driveTorque = 0.0;
-            updateDifferential(spec, state);
-            return;
+        // 停止時はアイドルで下支えする。クラッチの繋がり先もこの値
+        double target = Math.max(spec.idleRpm(), rpm);
+        // 直結の判定は<b>入るときだけ</b>行う。回転差で毎ティック見直してはいけない——
+        // 加速中は 1 ティックで駆動系が 43rpm 動くので、どんな閾値でも必ず外れて
+        // <b>普通に走っているだけで滑りっぱなしになる</b>（実測で制動距離が 21.4→12.1m、
+        // 氷での車体スリップ角が 0.5→90 度になった）。切れるのはクラッチを踏んだとき
+        // （サイドブレーキ）とニュートラルだけ
+        if (clutchEngagement(spec, state) < 1.0) {
+            state.clutchLocked = false;
+        } else if (!state.clutchLocked) {
+            state.clutchLocked = Math.abs(state.engineRpm - target) <= CLUTCH_LOCK_RPM;
+        }
+        if (state.clutchLocked) {
+            state.engineRpm = target;
         }
 
         updateTractionControl(spec, state, dt);
 
         // マニュアルでは段を自分で入れるので、バックでも W がアクセル。
-        // オートマは「停止して S でバック」なので、S がアクセルを兼ねる
+        // ニュートラルでも踏めば回る（空ぶかし）——駆動系が切れているだけで、
+        // エンジンが止まっているわけではない。
+        // オートマは「停止して S でバック」なので S がアクセルを兼ねる。
+        // <b>オートマのニュートラルでは回さない</b>——あちらの 0 は「前進中に S を踏んだ」
+        // のような過渡的な状態で、そこでアクセルを踏むのは空ぶかしの意図ではない
         boolean accelerating = spec.isManual()
-                ? input.throttle() && state.gear != 0
+                ? input.throttle()
                 : (input.throttle() && state.gear >= 1) || (input.brake() && state.gear == -1);
 
         double torque;
@@ -324,8 +492,23 @@ public final class CarPhysics {
             double pedal = !spec.isManual() && state.gear == -1 ? state.brake : state.throttle;
             torque *= state.tractionControlThrottle * pedal;
         }
+        // 直結しているなら、エンジンが出したトルクがそのまま駆動系へ行く（今までどおり。
+        // エンジンの慣性は effectiveWheelInertia が車輪側へ換算して受け持つ）。
+        // 滑っているなら、クラッチが伝えられるぶんだけを伝え、残りでエンジン自身が回る
+        double transmitted = state.clutchLocked
+                ? torque
+                : clutchTorque(spec, state, dt, torque, target);
+
         // 変速中は駆動系が切れる。ここを 0/1 で切り替えると横グリップが段差になって出る
-        state.engineTorque = torque * shiftEngagement(spec, state);
+        state.engineTorque = transmitted * shiftEngagement(spec, state);
+
+        if (state.gear == 0) {
+            // ニュートラルでは駆動系が切れている（差動制限のイニシャルトルクだけは残る）。
+            // エンジン自身は上で回してあるので、ここへ来るのは「車輪へは何も伝えない」だけ
+            state.driveTorque = 0.0;
+            updateDifferential(spec, state);
+            return;
+        }
 
         // 後退は同じトルクを逆向きに掛ける
         double direction = state.gear == -1 ? -1.0 : 1.0;
@@ -407,6 +590,15 @@ public final class CarPhysics {
         }
         if (state.gear <= 0) {
             return 1;
+        }
+
+        // クラッチが直結するまでは空吹かしになる。その回転で段を選ぶと、
+        // サイドブレーキを引いているだけでレブに当たって<b>勝手にシフトアップする</b>
+        // （実測で 3 速から 4 速へ上がり、解放後に高すぎる段で出てくる）。
+        // <b>ペダルが戻りきったかではなく、回転が揃って直結したかで見ること</b>——
+        // 繋ぎ戻しの途中はまだ空吹かしのままなので、そこで見ると同じことが起きる
+        if (!state.clutchLocked) {
+            return state.gear;
         }
 
         int gears = spec.forwardGears();
@@ -568,7 +760,24 @@ public final class CarPhysics {
         // （別々に切り替えると、片方だけ段差が残る）
         double ratio = spec.totalRatio(state.gear);
         return spec.wheelInertia()
-                + spec.engineInertia() * ratio * ratio * share * shiftEngagement(spec, state);
+                + spec.engineInertia() * ratio * ratio * share * drivelineEngagement(spec, state);
+    }
+
+    /**
+     * 駆動系がどれだけ繋がっているか。変速とクラッチの両方が掛かる。
+     *
+     * <p>駆動トルクと、車輪側へ換算したエンジンの慣性の<b>両方</b>にこれを掛けること。
+     * 片方だけだともう片方に段差が残る。</p>
+     *
+     * <p><b>0/1 で切り替えてはいけない。</b>滑っている間だけエンジンの慣性を車輪から
+     * 外すと、車輪が軽くなりすぎて（2 速で 26.3→2.3kg·m²）クラッチの容量トルクに
+     * 行き過ぎ、<b>伝達トルクが毎ティック ±560N·m と反転して発振する</b>
+     * （後輪の角速度が 26〜48rad/s を往復した）。ペダルの戻りに合わせて滑らかに
+     * 戻せば行き過ぎない。完全に切れているとき（サイドブレーキ）は 0 になるので、
+     * <b>後輪がロックする</b>という肝心の性質は保たれる。</p>
+     */
+    private static double drivelineEngagement(CarSpec spec, CarState state) {
+        return shiftEngagement(spec, state) * clutchEngagement(spec, state);
     }
 
     /**
@@ -586,6 +795,98 @@ public final class CarPhysics {
      *
      * <p>中央では 0 まで落としきる。<b>落としきらないと変速そのものが感じられなくなる</b>ので、
      * 消したいのは段差であって、変速で駆動が切れること自体ではない。</p>
+     */
+    /**
+     * サイドブレーキに合わせてクラッチを切る。<b>プレイヤーは操作しない</b>（マニュアルでも自動）。
+     *
+     * <p>サイドブレーキは後輪だけに掛かるので、<b>後輪を駆動していなければクラッチは要らない</b>
+     * （前輪駆動でサイドを引いても、エンジンに繋がっているのは前輪のまま）。切ってしまうと
+     * 前輪へ駆動を送れなくなり、前輪駆動のサイドターンが成立しなくなる。</p>
+     *
+     * <p>クラッチは 1 つの装置なので、要るときは全部切る。{@code driveBias} が 0 を
+     * 超えた瞬間に切り替わるが、後輪へ 1% でも駆動が行っていればエンジンは引きずられるので
+     * それでよい。</p>
+     */
+    private static void updateClutch(CarSpec spec, CarState state, double dt, CarInput input) {
+        double target = input.handbrake() && spec.driveBias() > 0.0 ? 0.0 : 1.0;
+        if (target > state.clutch) {
+            state.clutch = Math.min(target, state.clutch + dt / CLUTCH_ENGAGE_SECONDS);
+        } else {
+            state.clutch = Math.max(target, state.clutch - dt / CLUTCH_RELEASE_SECONDS);
+        }
+    }
+
+    /**
+     * クラッチがどれだけ繋がっているか。両端で傾きが 0 になるよう均してある。
+     *
+     * <p><b>マニュアルのニュートラルは完全に切れているのと同じ。</b>こうしておくと、
+     * エンジンが車輪の回転（＝0）へ引き戻されなくなり、<b>空ぶかしできる</b>。</p>
+     *
+     * <p><b>オートマのニュートラルでは切らない。</b>あちらの段 0 は「前進中に S を踏んだ」
+     * ときに通る<b>過渡的な状態</b>で、ブレーキを踏むたびに通る。ここで切ると、
+     * 止まりきってバックへ入る瞬間に<b>2600rpm のままクラッチミートになって車が飛び出す</b>
+     * （実測で制動＋フルロックの車体スリップ角が 33.5→71.1 度）。</p>
+     */
+    private static double clutchEngagement(CarSpec spec, CarState state) {
+        return state.gear == 0 && spec.isManual() ? 0.0 : smoothstep(state.clutch);
+    }
+
+    /**
+     * 滑っているクラッチが伝えるトルク [N*m]。あわせてエンジン自身の回転を進める。
+     *
+     * <p>ペダルが戻ったぶんだけ回転を揃えにいき、<b>そのために要るトルクをそのまま車へ渡す</b>。
+     * これでエンジンの角運動量が車へ伝わる——以前は回転数を車輪側の値へ混ぜているだけだったので、
+     * 7000rpm から繋いでもエンジンの運動エネルギー 67kJ がまるごと捨てられ、
+     * <b>車はぴくりとも動かなかった</b>（実測で速度変化 0.0000m/s）。</p>
+     *
+     * <p><b>「回転を揃えるのに要るトルク」を慣性だけから求めてはいけない。</b>
+     * 駆動系には路面からの反力が掛かっているので、それを無視すると<b>必要なトルクを
+     * 大きく低く見積もる</b>。エンジンと駆動系の換算慣性で解いたときは、伝達トルクが
+     * エンジンの出力の 1 割ほどにしかならず、<b>回転が永久に揃わないまま直結に戻れなくなった</b>
+     * ——サイドブレーキを一度引くと、そのあとずっと駆動トルクが 728〜1291N·m
+     * （本来 4400N·m）に落ちて<b>アクセルを踏んでもドリフトを維持できない</b>という形で出た。
+     * ペダルの戻りを「揃える速さ」として与えれば、路面の反力を知らなくても必ず揃う。</p>
+     *
+     * <p>クラッチを切っているとき（サイドブレーキ）とニュートラルでは容量が 0 になるので、
+     * 伝達 0・エンジンは生のトルクだけで回る＝空ぶかしになる。<b>場合分けは要らない。</b></p>
+     *
+     * @param torque エンジンが出している生のトルク（車輪へ伝わる前）
+     * @param target 繋がった先の回転数 [rpm]。アイドルで下支えした車輪側の回転
+     */
+    private static double clutchTorque(CarSpec spec, CarState state, double dt,
+                                       double torque, double target) {
+        double engineOmega = state.engineRpm * 2.0 * Math.PI / 60.0;
+        double targetOmega = target * 2.0 * Math.PI / 60.0;
+        double inertia = spec.engineInertia();
+        double engagement = clutchEngagement(spec, state);
+
+        // ペダルが戻ったぶんだけ回転を揃えにいく。<b>そのために要るトルクが、そのまま
+        // クラッチが伝えるトルクになる</b>——エンジンが失った角運動量が車へ渡る。
+        // エンジン自身が出しているトルクはそこへ足す（滑っていても駆動は伝わる）
+        double sync = Math.min(1.0, dt / CLUTCH_SYNC_SECONDS);
+        double wanted = engineOmega + (targetOmega - engineOmega) * engagement * sync;
+        double transmitted = torque + inertia * (engineOmega - wanted) / dt;
+
+        // クラッチが伝えられる上限。ここで頭打ちになるぶんが滑りとして残る
+        double capacity = CLUTCH_CAPACITY * spec.peakTorque() * engagement;
+        transmitted = Math.max(-capacity, Math.min(capacity, transmitted));
+
+        // 伝えられなかったぶんでエンジンが回る（吹け上がる／落ちる）
+        double next = engineOmega + dt * (torque - transmitted) / inertia;
+        state.engineRpm = Math.max(spec.idleRpm(),
+                Math.min(spec.redlineRpm(), next * 60.0 / (2.0 * Math.PI)));
+        return transmitted;
+    }
+
+    /**
+     * 駆動系がどれだけ繋がっているか。変速とクラッチの両方が掛かる。
+     *
+     * <p>駆動トルクと、車輪側へ換算したエンジンの慣性の<b>両方</b>にこれを掛けること。
+     * 片方だけだともう片方に段差が残る。</p>
+     *
+     * <p><b>エンジンの回転そのものにはクラッチだけを掛ける</b>（変速は掛けない）。
+     * 変速中も回転を車輪に追従させておかないと、シフトのたびにエンジンが吹け上がって
+     * 回転計と排気音が跳ねる。切りたいのは<b>駆動</b>であって回転の繋がりではない。</p>
      */
     private static double shiftEngagement(CarSpec spec, CarState state) {
         if (state.shiftTimer <= 0.0) {
@@ -673,6 +974,19 @@ public final class CarPhysics {
             // 横力が摩擦円を食い潰し、発進もバックもできない車になる）
             double referenceSpeed = Math.max(Math.abs(rollingSpeed), spec.slipReferenceSpeed());
 
+            // 縦の滑り率だけは、転がり方向の速度ではなく<b>接地面が路面を擦る速さそのもの</b>で
+            // 正規化する。転がり方向で割ると、車体が横を向くほど分母が cos(スリップ角) で
+            // 痩せていき、同じ空転量が<b>実際より大きな滑り率</b>として出る。すると
+            // 角速度の上限（clampAngularVelocity）が一緒に縮んで駆動輪が回れなくなり、
+            // ギア比で直結しているエンジンまで引きずり下ろされる——
+            // <b>深く横を向くほどエンジンの回転が落ちる</b>という形で出た（easy_drift・
+            // TCS 切・3 速 25m/s で、スリップ角 60 度まで 6976rpm を保つのに 75 度で 3360rpm）。
+            // 総速度で割れば分母は速度そのものなので痩せず、実測で 6984rpm と平らになる。
+            // <b>グリップ走行では slidingSpeed ≈ 0 なので referenceSpeed と一致する</b>ため、
+            // 0-100・最高速・制動距離・最大横 G・舵の立ち上がりはいずれも変わらない（実測で一致）。
+            double slipReference = Math.max(Math.hypot(rollingSpeed, slidingSpeed),
+                    spec.slipReferenceSpeed());
+
             // 横: スリップ角に比例して立ち上がる。
             // 後輪を少し硬くしておくと、限界でまず前が逃げる（アンダーステア）性格になる
             double slipAngle = Math.atan2(slidingSpeed, referenceSpeed);
@@ -693,9 +1007,9 @@ public final class CarPhysics {
             double brakeTorque = brakeTorque(spec, state, wheel, dt, inertia, wheelBrakeForce);
 
             double angularVelocity = advanceGrippingWheel(spec, state, wheel, dt, inertia,
-                    driveTorque, brakeTorque, rollingSpeed, referenceSpeed, longitudinalStiffness);
+                    driveTorque, brakeTorque, rollingSpeed, slipReference, longitudinalStiffness);
             double slipRatio = clampSlipRatio(
-                    (angularVelocity * spec.wheelRadius() - rollingSpeed) / referenceSpeed);
+                    (angularVelocity * spec.wheelRadius() - rollingSpeed) / slipReference);
             double longitudinalForce = longitudinalStiffness * slipRatio;
 
             // 摩擦円。合力が上限を超えたぶんを縦横まとめて削る
@@ -712,9 +1026,9 @@ public final class CarPhysics {
                 angularVelocity = clampAngularVelocity(spec,
                         state.wheelAngularVelocity[index] + dt / inertia
                                 * (driveTorque + brakeTorque - longitudinalForce * spec.wheelRadius()),
-                        rollingSpeed, referenceSpeed);
+                        rollingSpeed, slipReference);
                 slipRatio = clampSlipRatio(
-                        (angularVelocity * spec.wheelRadius() - rollingSpeed) / referenceSpeed);
+                        (angularVelocity * spec.wheelRadius() - rollingSpeed) / slipReference);
             }
 
             state.wheelAngularVelocity[index] = clampToRedline(spec, state, wheel, angularVelocity);
