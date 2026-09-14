@@ -16,7 +16,7 @@ Discord: [https://discord.gg/8QBtfEyXb](https://discord.gg/8QBtfEyXb)
 X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 
-![kuruma mod main image](https://media.forgecdn.net/attachments/1862/734/2026-08-13_10-45-43-png.png)
+![kuruma mod main image](https://media.forgecdn.net/attachments/1946/668/2026-09-14_21-18-02-png.png)
 
 ***
 
@@ -32,7 +32,7 @@ Hit **G** and the setup screen opens — right there, mid-drive. Springs, damper
 
 Build a track-day monster. Build a drift car. **Save it as a preset and hand it to your friends.**
 
-![kuruma mod image](https://media.forgecdn.net/attachments/1858/619/g-setting-png.png)
+![kuruma mod image](https://media.forgecdn.net/attachments/1946/670/2026-09-14_21-19-34-png.png)
 
 ## 🌧️ The road matters
 
@@ -79,14 +79,74 @@ Want cars without making them? Grab
 | <strong>Space</strong>        |Handbrake                            |
 | <strong>R / F</strong>        |Shift up / down (manual)             |
 | <strong>Shift</strong>        |Get out                              |
-| <strong>G</strong>            |Setup screen                         |
-| <strong>H</strong>            |Telemetry                            |
+| <strong>Shift</strong> + attack the car |Pick it up — the item keeps its setup and parts |
+| <strong>G</strong>            |Car setup (with Presets and Parts)   |
+| <strong>H</strong>            |Mod menu (display and camera settings) |
 | <strong>V</strong>            |Camera follow                        |
 | <strong>PageUp / PageDown</strong> |Camera distance                      |
 | <strong>L</strong>            |Headlights                           |
 | <strong>J</strong>            |Controller setup                     |
 
-All rebindable in Options → Controls.
+All rebindable in Options → Controls. A plain hit won't break a car — you need Shift, so one stray punch can't throw away a setup.
+
+## Settings
+
+### H — Mod menu
+
+Opens over the game without pausing it, so you can see the change while you drive. Also reachable from Mods → KurumaMod → Config.
+
+| | |
+|---|---|
+| **Display** | Control help · Telemetry · Speedometer and tachometer · Gauge size · Gauge opacity · Gauge colours (90s OEM / Modern) · Live mirrors (heavy — renders the world a second time) · Dust plumes · Dust density · Course gate display (full / posts only / hidden) |
+| **Camera** | Chase camera distance · Chase camera height · Extra pull-back at speed · Speed FOV |
+
+### G — Car setup
+
+Every slider, grouped in tabs: Suspension, Tires, Chassis, Engine, Gearbox, Driveline & Differential, Brakes & Resistance, Controls & Aids. Manual gearbox, ABS and traction control are in there too. Changed values turn yellow; each row has its own reset.
+
+- **Presets** — save your setup and load it on any car. From chat too: `/kuruma preset save|load|delete <name>`, `/kuruma preset list`
+- **Parts** — swap wheels, then set camber, offset and width. Drag to orbit the car, scroll to zoom (only while you're driving)
+
+### Server (`config/kurumamod-common.toml`)
+
+| | Default | |
+|---|---|---|
+| `abandonedCarLifetimeSeconds` | 600 | Removes cars nobody has sat in for this long. 0 keeps them forever |
+| `carCollision` | true | Whether cars hit each other. OPs can flip it in game with `/kuruma-admin collide true\|false` |
+
+## Racing
+
+### 1. Build a course (OP)
+
+A line is two points. Stand at one end and run `/kuruma-admin point`, walk to the other end and run it again.
+
+1. Mark the two ends of the start/finish line, **face the way you'll race**, and run `/kuruma-admin course create <name>`
+2. For each checkpoint, in order: mark its two ends, then `/kuruma-admin course checkpoint <name>`
+3. Set the default laps with `/kuruma-admin course laps <name> <1-99>` (3 if you don't)
+
+The direction you face is the only direction that counts, so nobody can farm laps by rocking back and forth over the line. Got it backwards? Face the right way and run `/kuruma-admin course direction <name>`. Running `create` again on the same name redraws the start line and clears its checkpoints and records. `/kuruma-admin course list` and `/kuruma-admin course remove <name>` do what they say.
+
+### 2. Time attack (anyone)
+
+No command needed. Drive across a start line and the clock starts. Each checkpoint shows your gap to your best lap, and your best is saved. `/kuruma timeattack reset` throws away a lap you've fluffed (so does getting out of the car).
+
+### 3. Race (anyone can host)
+
+1. Host: `/kuruma race open <course> [laps]`
+2. Everyone else: `/kuruma race join` (`/kuruma race entrants` to see who's in)
+3. Line up **behind** the start line. The host runs `/kuruma race start` and the lights count down
+4. The clock starts when you first cross the line. The race closes once everyone still in it has finished, and the results stay up for 15 seconds
+
+Getting out of your car doesn't retire you — flip it back over and carry on. To drop out, use `/kuruma race leave`. The host or an OP can end it early with `/kuruma race stop`. Miss a checkpoint and that lap isn't counted; you'll be told why.
+
+### Records
+
+| | |
+|---|---|
+| `/kuruma best` | Your best laps, with your theoretical best (best sectors combined) |
+| `/kuruma best top <course>` | Top 10 for a course |
+| `/kuruma best clear <course>` / `/kuruma best clear all` | Delete your own records |
+| `/kuruma best clearall <course>` | Delete everyone's records for a course (OP) |
 
 ## Requirements
 
@@ -126,7 +186,7 @@ KurumaMod is free software under the **GNU General Public License v3.0 only** (`
 Discord: [https://discord.gg/8QBtfEyXb](https://discord.gg/8QBtfEyXb)  
 X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
-![kuruma mod main image](https://media.forgecdn.net/attachments/1862/734/2026-08-13_10-45-43-png.png)
+![kuruma mod main image](https://media.forgecdn.net/attachments/1946/668/2026-09-14_21-18-02-png.png)
 
 ***
 
@@ -142,7 +202,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 サーキット用に詰めるもよし、ドリフト仕様に振るもよし。**プリセットとして保存して、友達に 渡せます。**
 
-![kuruma mod image](https://media.forgecdn.net/attachments/1858/619/g-setting-png.png)
+![kuruma mod image](https://media.forgecdn.net/attachments/1946/670/2026-09-14_21-19-34-png.png)
 
 ## 🌧️ 路面で世界が変わる
 
@@ -191,14 +251,74 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 | <strong>スペース</strong> |サイドブレーキ             |
 | <strong>R / F</strong> |シフトアップ / ダウン（MT）    |
 | <strong>Shift</strong> |降りる                 |
-| <strong>G</strong> |セッティング画面            |
-| <strong>H</strong> |テレメトリ               |
+| <strong>Shift</strong> ＋ 車を殴る |回収する（セッティングとパーツはアイテムに残る） |
+| <strong>G</strong> |セッティング画面（プリセット・パーツもここから） |
+| <strong>H</strong> |MOD メニュー（表示とカメラの設定） |
 | <strong>V</strong> |カメラ追従               |
 | <strong>PageUp / PageDown</strong> |カメラ距離               |
 | <strong>L</strong> |ヘッドライト              |
 | <strong>J</strong> |コントローラ設定            |
 
-キーはすべて「設定 → 操作設定」で変更できます。
+キーはすべて「設定 → 操作設定」で変更できます。素手で殴っただけでは車は壊れません。Shift を押しながらでないと回収できないので、うっかりの 1 発で作り込んだセッティングが消えることはありません。
+
+## 設定
+
+### H — MOD メニュー
+
+ゲームを止めずに走っている画面の上で開くので、変えた結果をその場で見ながら決められます。MOD 一覧の KurumaMod →「設定」からも開けます。
+
+| | |
+|---|---|
+| **表示** | 操作ヘルプ・テレメトリ・速度計と回転計・メーターの大きさ・メーターの濃さ・メーターの配色（90 年代純正 / モダン）・ミラーに後方を映す（重い。世界をもう 1 回描くため）・土煙・土煙の量・コースのゲートの表示（フル / ポールのみ / 非表示） |
+| **カメラ** | 追跡カメラの距離・追跡カメラの高さ・速度で引く量・速度で広がる視野 |
+
+### G — セッティング画面
+
+諸元のスライダーがタブごとに並びます（サスペンション、タイヤ、車体、エンジン、変速機、駆動系・デフ、ブレーキ・走行抵抗、操作と補助）。MT / AT の切り替え、ABS、トラクションコントロールもこの中にあります。既定から変えた項目は黄色になり、1 項目ずつ戻せます。
+
+- **プリセット** — セッティングを保存して、どの車にも読み込めます。チャットからも: `/kuruma preset save|load|delete <名前>`、`/kuruma preset list`
+- **パーツ** — ホイールを履き替えて、キャンバー・オフセット・太さを調整。ドラッグで車を回し、ホイールで寄り引き（運転中のみ）
+
+### サーバー（`config/kurumamod-common.toml`）
+
+| | 既定 | |
+|---|---|---|
+| `abandonedCarLifetimeSeconds` | 600 | 誰も乗っていない車をこの秒数で消す。0 で消さない |
+| `carCollision` | true | 車同士が当たるか。OP はゲーム内で `/kuruma-admin collide true\|false` でも切り替えられる |
+
+## レース
+
+### 1. コースを作る（OP）
+
+線は端 2 点で決めます。片方の端に立って `/kuruma-admin point`、もう片方の端まで歩いてもう一度。
+
+1. スタート／ゴールラインの両端を打ち、**走る向きを向いて** `/kuruma-admin course create <名前>`
+2. チェックポイントを通る順に: 両端を打って `/kuruma-admin course checkpoint <名前>`
+3. 周回数の既定を `/kuruma-admin course laps <名前> <1-99>` で決める（決めなければ 3）
+
+向いていた方向に跨いだときだけ数えるので、ラインの上を行ったり来たりして周回を稼ぐことはできません。向きを間違えたら、正しい向きを向いて `/kuruma-admin course direction <名前>`。同じ名前で `create` をやり直すとスタートラインを引き直し、チェックポイントと記録は消えます。一覧は `/kuruma-admin course list`、削除は `/kuruma-admin course remove <名前>`。
+
+### 2. タイムアタック（誰でも）
+
+コマンドは要りません。車でスタートラインを跨げば計測が始まります。チェックポイントを通るたびにベストラップとの差が出て、ベストは保存されます。ミスした周は `/kuruma timeattack reset` で捨てられます（車から降りても取り消されます）。
+
+### 3. レース（誰でも主催できる）
+
+1. 主催: `/kuruma race open <コース> [周回数]`
+2. 参加する人: `/kuruma race join`（誰が入っているかは `/kuruma race entrants`）
+3. スタートラインの**手前**に並び、主催が `/kuruma race start`。シグナルがカウントダウンします
+4. 計測は最初にラインを跨いだ瞬間から。残っている全員がゴールしたら締まり、リザルトが 15 秒出ます
+
+車から降りても脱落にはなりません——ひっくり返した車を立て直して走り続けられます。抜けるときは `/kuruma race leave`。主催か OP は `/kuruma race stop` で途中で終わらせられます。チェックポイントを取りこぼした周は数えられず、その理由が画面に出ます。
+
+### 記録
+
+| | |
+|---|---|
+| `/kuruma best` | 自分のベストラップと理論ベスト（区間ベストの合計） |
+| `/kuruma best top <コース>` | そのコースの上位 10 人 |
+| `/kuruma best clear <コース>` / `/kuruma best clear all` | 自分の記録を消す |
+| `/kuruma best clearall <コース>` | そのコースの全員の記録を消す（OP） |
 
 ## 動作環境
 
