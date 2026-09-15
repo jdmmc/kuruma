@@ -64,7 +64,7 @@ Want cars without making them? Grab
 
 **[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)** — Ready-to-drive cars, straight away.
 
-**And that same jar is the manual.** Rename it to `.zip` and open it: the full how-to (English and Japanese), the JSON for both cars, the Blender sizing gauges, and a CurseForge page template are all in there. Copy it, swap the cars for yours, ship it — the sample pack is yours to use, no credit needed.
+**And that same jar is the manual.** Rename it to `.zip` and open it: the full how-to (English and Japanese), the JSON for both cars, the Blender sizing gauges, and a CurseForge/Modrinth page template are all in there. Copy it, swap the cars for yours, ship it — the sample pack is yours to use, no credit needed.
 
 ***
 
@@ -154,11 +154,11 @@ Getting out of your car doesn't retire you — flip it back over and carry on. T
 
 ## Videos and streams
 
-Go ahead and use it in videos and streams — I'm looking forward to seeing how you drive it. Just put a link to this CurseForge page in the description of the video or stream. As long as the link is there, you don't need to ask.
+Go ahead and use it in videos and streams — I'm looking forward to seeing how you drive it. Just put a link to this CurseForge/Modrinth page in the description of the video or stream. As long as the link is there, you don't need to ask.
 
 ## Modpacks
 
-Modpacks are welcome. Please **add it as a CurseForge dependency rather than bundling the jar itself**, so that players always get the latest version.
+Modpacks are welcome. Please **add it as a CurseForge/Modrinth dependency rather than bundling the jar itself**, so that players always get the latest version.
 
 ## License
 
@@ -236,7 +236,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 を入れれば、それだけで車が 1 台増えます。
 
-**そしてこの jar そのものが、カーパックの作り方の手引です。** 拡張子を `.zip` に変えて開けば、 作り方の解説（日英）・2 台分の JSON・Blender 用の寸法ゲージ・CurseForge ページのひな型まで 入っています。丸ごとコピーして車を差し替えれば、それがあなたのカーパックです——**見本は自由に使ってかまいません。 表示も許諾も不要です。**
+**そしてこの jar そのものが、カーパックの作り方の手引です。** 拡張子を `.zip` に変えて開けば、 作り方の解説（日英）・2 台分の JSON・Blender 用の寸法ゲージ・CurseForge/Modrinth ページのひな型まで 入っています。丸ごとコピーして車を差し替えれば、それがあなたのカーパックです——**見本は自由に使ってかまいません。 表示も許諾も不要です。**
 
 ***
 
@@ -326,11 +326,11 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 ## 動画・配信での利用について
 
-動画や配信に使って問題ありません。 どんな走りをしてくれるのか楽しみにしています。 YouTube・配信：動画・LINE配信の概要欄に、この CurseForge ページのリンクを記載してください。 リンクを記載いただければ、許可は不要です。
+動画や配信に使って問題ありません。 どんな走りをしてくれるのか楽しみにしています。 YouTube・配信：動画・LINE配信の概要欄に、この CurseForge/Modrinth ページのリンクを記載してください。 リンクを記載いただければ、許可は不要です。
 
 ## モッドパックでの利用について
 
-モッドパックへ含めることは歓迎です。**jar 本体を同梱せず、CurseForge の参照（依存）として 追加**していただけると、プレイヤーに常に最新版が届くので助かります。ライセンス上の条件では なく、お願いです。
+モッドパックへ含めることは歓迎です。**jar 本体を同梱せず、CurseForge/Modrinth の参照（依存）として 追加**していただけると、プレイヤーに常に最新版が届くので助かります。ライセンス上の条件では なく、お願いです。
 
 ## ライセンス
 
