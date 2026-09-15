@@ -1,10 +1,3 @@
-# KurumaMod Basic Car Pack — CurseForge の説明欄
-
-CurseForge の説明欄に貼り付ける用の原稿。英語を上、日本語を下に置いてある
-（本体の `CURSEFORGE.md` と同じ並び）。
-
----
-
 # Kuruma - Basic Car Pack
 
 ### The official car pack for Kuruma.

@@ -7,8 +7,8 @@ Turn the key. Listen to it idle. Find a mountain road and go.
 
 🚗 **Car packs(Add-on):**
 
-- [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)
-- [Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack) (Template for making your own)
+- [Basic Car Pack](https://modrinth.com/mod/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)
+- [Sample Car Pack](https://modrinth.com/mod/kurumaexamplecarpack)
 
 Join Discord to get the latest updates! Make sure to follow us on X, too.
 
@@ -16,7 +16,7 @@ Discord: [https://discord.gg/8QBtfEyXb](https://discord.gg/8QBtfEyXb)
 X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 
-![kuruma mod main image](https://media.forgecdn.net/attachments/1946/668/2026-09-14_21-18-02-png.png)
+![kuruma mod main image](https://cdn.modrinth.com/data/ghlgwxFS/images/2eb5420a0de4355fee25a3b6f1d9092310c36ec4.png)
 
 ***
 
@@ -32,7 +32,7 @@ Hit **G** and the setup screen opens — right there, mid-drive. Springs, damper
 
 Build a track-day monster. Build a drift car. **Save it as a preset and hand it to your friends.**
 
-![kuruma mod image](https://media.forgecdn.net/attachments/1946/670/2026-09-14_21-19-34-png.png)
+![kuruma mod image](https://cdn.modrinth.com/data/ghlgwxFS/images/da95da1a1781570431056303523870a4162c6a04.png)
 
 ## 🌧️ The road matters
 
@@ -44,7 +44,7 @@ Roads from other mods work straight away.
 
 Set up a start line and checkpoints anywhere in the world, then race it properly — live standings, lap times, personal bests. Build a mountain touge, a city circuit, an airport runway sprint. **Multiplayer, timed to the millisecond.**
 
-![kuruma mod race image](https://media.forgecdn.net/attachments/1858/618/race-png.png)
+![kuruma mod race image](https://cdn.modrinth.com/data/ghlgwxFS/images/147b764ff262b1f1654c2d63b63733d7ae8589b0.png)
 
 ## 🎮 Wheel and gamepad ready
 
@@ -62,7 +62,7 @@ Want cars without making them? Grab
 
 **Never opened Blender?** The **[Vehicle Modeling Manual](https://static.jdm-mc.com/manual/MODELING.html)** takes you through one whole car — where the origin goes, the object names that become lights, glass and working mirrors, the two export settings people always get wrong, and what to check when the car comes out the wrong size.
 
-**[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)** — Ready-to-drive cars, straight away.
+**[Basic Car Pack](https://modrinth.com/mod/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)** — Ready-to-drive cars, straight away.
 
 **And that same jar is the manual.** Rename it to `.zip` and open it: the full how-to (English and Japanese), the JSON for both cars, the Blender sizing gauges, and a CurseForge/Modrinth page template are all in there. Copy it, swap the cars for yours, ship it — the sample pack is yours to use, no credit needed.
 
@@ -178,15 +178,15 @@ KurumaMod is free software under the **GNU General Public License v3.0 only** (`
 
 🚗 **カーパック(アドオン):**
 
-- [ベーシックカーパック（Basic Car Pack）](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (ランドクルーザープラド, 重いオフロード4x4)
-- [サンプルカーパック（Sample Car Pack）](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack) (カーパック制作者向けテンプレート)
+- [ベーシックカーパック（Basic Car Pack）](https://modrinth.com/mod/kurumabasiccarpack) (ランドクルーザープラド, 重いオフロード4x4)
+- [サンプルカーパック（Sample Car Pack）](https://modrinth.com/mod/kurumaexamplecarpack) (カーパック制作者向けテンプレート)
 
 最新のアップデートを受け取るには、Discordに参加しましょう！Xもあるよ。
 
 Discord: [https://discord.gg/8QBtfEyXb](https://discord.gg/8QBtfEyXb)  
 X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
-![kuruma mod main image](https://media.forgecdn.net/attachments/1946/668/2026-09-14_21-18-02-png.png)
+![kuruma mod main image](https://cdn.modrinth.com/data/ghlgwxFS/images/2eb5420a0de4355fee25a3b6f1d9092310c36ec4.png)
 
 ***
 
@@ -202,7 +202,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 サーキット用に詰めるもよし、ドリフト仕様に振るもよし。**プリセットとして保存して、友達に 渡せます。**
 
-![kuruma mod image](https://media.forgecdn.net/attachments/1946/670/2026-09-14_21-19-34-png.png)
+![kuruma mod image](https://cdn.modrinth.com/data/ghlgwxFS/images/da95da1a1781570431056303523870a4162c6a04.png)
 
 ## 🌧️ 路面で世界が変わる
 
@@ -214,7 +214,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的にレースできます。 リアルタイム順位表示、ラップタイム、自己ベスト。峠を作るのも、街中サーキットを作るのも、 滑走路で最高速を競うのも自由。**マルチプレイ対応、計測はミリ秒単位。**
 
-![kuruma mod race image](https://media.forgecdn.net/attachments/1858/618/race-png.png)
+![kuruma mod race image](https://cdn.modrinth.com/data/ghlgwxFS/images/147b764ff262b1f1654c2d63b63733d7ae8589b0.png)
 
 ## 🎮 ハンコン・パッド対応
 
@@ -232,7 +232,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 
 作るのはあとで、まずは乗りたい方へ。
 
-**[ベーシックカーパック（Basic Car Pack）](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)**
+**[ベーシックカーパック（Basic Car Pack）](https://modrinth.com/mod/kurumabasiccarpack)**
 
 を入れれば、それだけで車が 1 台増えます。
 
