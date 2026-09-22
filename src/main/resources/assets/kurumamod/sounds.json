@@ -5,7 +5,8 @@
     "sounds": [
       {
         "name": "kurumamod:exhaust",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 64
       }
     ]
   },
@@ -15,7 +16,8 @@
     "sounds": [
       {
         "name": "kurumamod:roadnoise",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 32
       }
     ]
   },
@@ -25,7 +27,8 @@
     "sounds": [
       {
         "name": "kurumamod:wind",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 32
       }
     ]
   },
@@ -35,7 +38,8 @@
     "sounds": [
       {
         "name": "kurumamod:slip",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 48
       }
     ]
   },
@@ -45,7 +49,8 @@
     "sounds": [
       {
         "name": "kurumamod:gravel",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 32
       }
     ]
   },
@@ -55,7 +60,8 @@
     "sounds": [
       {
         "name": "kurumamod:sand",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 32
       }
     ]
   },
@@ -65,7 +71,8 @@
     "sounds": [
       {
         "name": "kurumamod:shift",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 24
       }
     ]
   },
@@ -75,7 +82,8 @@
     "sounds": [
       {
         "name": "kurumamod:crash",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 64
       }
     ]
   },
@@ -85,7 +93,8 @@
     "sounds": [
       {
         "name": "kurumamod:exhaust_high",
-        "stream": false
+        "stream": false,
+        "attenuation_distance": 64
       }
     ]
   },
