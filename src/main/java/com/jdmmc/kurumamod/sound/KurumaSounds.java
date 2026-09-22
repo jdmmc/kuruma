@@ -19,13 +19,16 @@ import net.minecraftforge.registries.RegistryObject;
 public final class KurumaSounds {
 
     /**
-     * 音が届く距離 [ブロック]。
+     * サーバーがこの音を<b>どこまでのプレイヤーへ送るか</b> [ブロック]。
      *
-     * <p>既定の {@code createVariableRangeEvent} は 16 ブロックで、車には狭い。
-     * 音量から距離を決める仕組みなので（{@code volume > 1 ? 16*volume : 16}）、
-     * 音量が刻々と変わるこの用途では距離まで揺れてしまう。距離は固定で持つ。</p>
+     * <p><b>聞こえる範囲はここでは決まらない。</b>車の音はすべてクライアントが手元で鳴らして
+     * いるので、この値はどこにも使われていない（サーバーから鳴らすことになったときのために、
+     * いちばん遠くまで届く音に揃えてある）。実際の範囲は {@code SoundEngine#play} が
+     * {@code max(音量, 1) × attenuation_distance} で決めていて、後者は {@code sounds.json} の
+     * 項目（書かなければ 16）。音量は 1 を超えないので、<b>範囲を変えるなら sounds.json</b>。
+     * 以前はここを 32 にして「32 ブロック届く」つもりでいたが、実際には 16 だった。</p>
      */
-    private static final float RANGE = 32.0F;
+    private static final float RANGE = 64.0F;
 
     public static final DeferredRegister<SoundEvent> SOUNDS =
             DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, Kurumamod.MODID);
