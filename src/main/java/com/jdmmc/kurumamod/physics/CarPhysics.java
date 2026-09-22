@@ -488,11 +488,13 @@ public final class CarPhysics {
         // ニュートラルでも踏めば回る（空ぶかし）——駆動系が切れているだけで、
         // エンジンが止まっているわけではない。
         // オートマは「停止して S でバック」なので S がアクセルを兼ねる。
-        // <b>オートマのニュートラルでは回さない</b>——あちらの 0 は「前進中に S を踏んだ」
+        // <b>オートマのニュートラルでは回さない</b>——あちらの 0 は「後退中に W を踏んだ」
         // のような過渡的な状態で、そこでアクセルを踏むのは空ぶかしの意図ではない
         boolean accelerating = spec.isManual()
                 ? input.throttle()
-                : (input.throttle() && state.gear >= 1) || (input.brake() && state.gear == -1);
+                // 前進中の S は段を保つようになったので、W と同時押しでも駆動しないよう明示する
+                : (input.throttle() && !input.brake() && state.gear >= 1)
+                        || (input.brake() && state.gear == -1);
 
         double torque;
         if (accelerating) {
@@ -593,14 +595,17 @@ public final class CarPhysics {
             return selectGearManually(spec, state, input);
         }
 
-        // 後退中に W を踏んだ、あるいは前進中に S を踏んだらブレーキ扱い。駆動はニュートラル
+        // 後退中に W を踏んだらブレーキ扱い。駆動はニュートラル
         if (input.throttle() && state.forwardSpeed < -spec.stopThreshold()) {
             return 0;
         }
-        if (input.brake() && state.forwardSpeed > spec.stopThreshold()) {
-            return 0;
-        }
-        if (input.brake()) {
+        // 前進中に S を踏んでも<b>ニュートラルへ落とさない</b>。落とすと、離した瞬間に
+        // 下の「0 なら 1 速」を通って<b>車速に関係なく 1 速へ放り込まれ</b>、強烈な
+        // エンジンブレーキで後輪が滑る（実測で 25m/s から離した直後に後輪の滑り率 -0.44）。
+        // 段を保ったまま下の変速判定を通せば、減速に合わせてシフトダウンしていく。
+        // 駆動を切りたい場面（サイドブレーキ）はクラッチが受け持つ（updateClutch）
+        boolean movingForward = state.forwardSpeed > spec.stopThreshold();
+        if (input.brake() && !movingForward) {
             return -1; // 停止していれば S でバックに入る
         }
         if (state.gear <= 0) {
@@ -837,9 +842,9 @@ public final class CarPhysics {
      * <p><b>マニュアルのニュートラルは完全に切れているのと同じ。</b>こうしておくと、
      * エンジンが車輪の回転（＝0）へ引き戻されなくなり、<b>空ぶかしできる</b>。</p>
      *
-     * <p><b>オートマのニュートラルでは切らない。</b>あちらの段 0 は「前進中に S を踏んだ」
-     * ときに通る<b>過渡的な状態</b>で、ブレーキを踏むたびに通る。ここで切ると、
-     * 止まりきってバックへ入る瞬間に<b>2600rpm のままクラッチミートになって車が飛び出す</b>
+     * <p><b>オートマのニュートラルでは切らない。</b>あちらの段 0 は「後退中に W を踏んだ」
+     * ときに通る<b>過渡的な状態</b>。ここで切ると、
+     * 止まりきって 1 速へ入る瞬間に<b>2600rpm のままクラッチミートになって車が飛び出す</b>
      * （実測で制動＋フルロックの車体スリップ角が 33.5→71.1 度）。</p>
      */
     private static double clutchEngagement(CarSpec spec, CarState state) {
