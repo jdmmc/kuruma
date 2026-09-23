@@ -41,6 +41,7 @@ package com.jdmmc.kurumamod.physics;
  * @param rearCorneringBias    後輪のコーナリングパワー倍率。1 より大きいほどアンダーステア寄り
  * @param tireFriction         タイヤの摩擦係数。接地荷重に掛けたものがグリップの上限。
  *                             調整画面では {@link #REFERENCE_FRICTION} を 1.00 とした相対値で出す
+ * @param tireFalloff          ピークを越えて滑ったときに失うグリップの割合。0 で落ちない（ピークで頭打ち）
  * @param lowSpeedBlendSpeed   この速度以下では運動学モデルへ寄せる [m/s]
  * @param steerGripMargin      切れ角上限に対する余裕。1 を超えるとグリップを超えて切れる（＝滑らせられる）
  * @param visualSlipLimit      <b>見た目だけ</b>の、進行方向に対するタイヤ角の上限 [rad]。0 で無効。物理は一切読まない
@@ -89,6 +90,7 @@ public record CarSpec(
         double slipReferenceSpeed,
         double rearCorneringBias,
         double tireFriction,
+        double tireFalloff,
         double lowSpeedBlendSpeed,
         double steerGripMargin,
         double visualSlipLimit,
@@ -581,6 +583,7 @@ public record CarSpec(
         // 落ち着かせたい人は調整画面で上げられる（1.25 が以前の既定）
         private double rearCorneringBias = 1.0;
         private double tireFriction = REFERENCE_FRICTION;
+        private double tireFalloff = 0.0;
         private double lowSpeedBlendSpeed = 3.0;
         // グリップを使いきる定常旋回に必要な切れ角に掛ける倍率。1.0 は「限界ちょうどの
         // 角度までしか切らせない」で、教科書どおりの位置。
@@ -673,6 +676,7 @@ public record CarSpec(
             slipReferenceSpeed = spec.slipReferenceSpeed;
             rearCorneringBias = spec.rearCorneringBias;
             tireFriction = spec.tireFriction;
+            tireFalloff = spec.tireFalloff;
             lowSpeedBlendSpeed = spec.lowSpeedBlendSpeed;
             steerGripMargin = spec.steerGripMargin;
             visualSlipLimit = spec.visualSlipLimit;
@@ -774,6 +778,11 @@ public record CarSpec(
 
         public Builder tireFriction(double value) {
             tireFriction = value;
+            return this;
+        }
+
+        public Builder tireFalloff(double value) {
+            tireFalloff = value;
             return this;
         }
 
@@ -948,7 +957,7 @@ public record CarSpec(
                     wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     corneringStiffness, longitudinalStiffness,
-                    driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction,
+                    driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction, tireFalloff,
                     lowSpeedBlendSpeed, steerGripMargin, visualSlipLimit,
                     maxSteerAngle, steerRateSeconds, steerReturnSeconds, selfAligning,
                     pedalPressSeconds, pedalReleaseSeconds,

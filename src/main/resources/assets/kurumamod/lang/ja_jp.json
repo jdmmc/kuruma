@@ -42,6 +42,8 @@
   "tuning.kurumamod.rear_anti_roll.value": "%s N/m  前%s%%",
   "tuning.kurumamod.friction": "グリップ",
   "tuning.kurumamod.friction.value": "%s  %s",
+  "tuning.kurumamod.tire_falloff": "滑ったときのグリップ低下",
+  "tuning.kurumamod.tire_falloff.value": "-%s%%",
   "tuning.kurumamod.cornering_stiffness": "コーナリングパワー",
   "tuning.kurumamod.cornering_stiffness.value": "%s /rad",
   "tuning.kurumamod.rear_cornering_bias": "後輪の踏ん張り（大でアンダー）",

@@ -54,15 +54,23 @@ public final class CarPhysics {
     /** 低速で運動学モデルへ寄せる速さ [1/s]。大きいほど強く引き戻す。 */
     private static final double KINEMATIC_RELAXATION_RATE = 20.0;
 
-    /** トラクションコントロールの効きの強さ。滑り率の超過ぶんに掛けてアクセルを絞る。 */
-    private static final double TRACTION_CONTROL_GAIN = 3.0;
+    /**
+     * トラクションコントロールの効きの強さ。滑り率の超過ぶんに掛けてアクセルを絞る。
+     *
+     * <p>超過はピーク滑り率で割った尺度で測る（{@code aidSlipScale}）。比例なので閾値の上に
+     * 居座る量はこのゲインで決まり、3 だとピークをかなり越える。ピークを越えると落ちる
+     * タイヤ（{@code tireFalloff} 0.3）では、後輪駆動の舵＋全開が舗装で車体スリップ角 50〜56 度
+     * （スピン）になった。10 で 17〜24 度に収まり、0-100 は舗装 5.35→5.36 秒。</p>
+     */
+    private static final double TRACTION_CONTROL_GAIN = 10.0;
     /** トラクションコントロールの応答の速さ [1/s]。速すぎると振動する。 */
     private static final double TRACTION_CONTROL_RATE = 30.0;
 
-    /** ABS の効きの強さ。滑り率の超過ぶんに掛けてブレーキを緩める。 */
-    private static final double ABS_GAIN = 3.0;
-    /** ABS の応答の速さ [1/s]。 */
-    private static final double ABS_RATE = 30.0;
+    /**
+     * ABS がブレーキを緩める速さ [1/s]。滑り率が閾値をピーク滑り率 1 つぶん超えているとき、
+     * 1 秒あたりに緩める割合。<b>積分で効かせる</b>（{@link #modulateAxle}）。
+     */
+    private static final double ABS_INTEGRAL_RATE = 10.0;
 
     /**
      * 縦にグリップを使いきっていても、横へ回せるぶんとして残す割合。
@@ -192,7 +200,7 @@ public final class CarPhysics {
     public static void step(CarSpec spec, CarState state, GroundContact contact, double dt, CarInput input) {
         updateSteering(spec, state, contact, dt, input);
         updatePedals(spec, state, dt, input);
-        updateDrivetrain(spec, state, dt, input);
+        updateDrivetrain(spec, state, contact, dt, input);
         TireForces forces = computeTireForces(spec, state, contact, input, dt);
         updateSuspension(spec, state, contact, forces, dt);
         dampTumbling(spec, state, dt);
@@ -456,7 +464,8 @@ public final class CarPhysics {
      * 車輪側へ換算する。<b>低いギアほど回転部分が重く感じられる</b>のはこの項の効果で、
      * ギアごとに効き方が変わるため車輪の慣性に定数として混ぜてはいけない。</p>
      */
-    private static void updateDrivetrain(CarSpec spec, CarState state, double dt, CarInput input) {
+    private static void updateDrivetrain(CarSpec spec, CarState state, GroundContact contact, double dt,
+                                         CarInput input) {
         state.gear = selectGear(spec, state, dt, input);
         java.util.Arrays.fill(state.wheelDriveTorque, 0.0);
         updateClutch(spec, state, dt, input);
@@ -482,7 +491,7 @@ public final class CarPhysics {
             state.engineRpm = target;
         }
 
-        updateTractionControl(spec, state, dt);
+        updateTractionControl(spec, state, contact, dt);
 
         // マニュアルでは段を自分で入れるので、バックでも W がアクセル。
         // ニュートラルでも踏めば回る（空ぶかし）——駆動系が切れているだけで、
@@ -670,6 +679,26 @@ public final class CarPhysics {
         return requested;
     }
 
+    /** 既定の車が舗装路で縦のグリップのピークを出す滑り率。補助の閾値の基準 */
+    private static final double DEFAULT_PEAK_SLIP =
+            CarSpec.DEFAULT.tireFriction() / CarSpec.DEFAULT.longitudinalStiffness();
+
+    /**
+     * 補助（ABS・TCS）の閾値に掛ける倍率。その輪のピーク滑り率 ÷ {@link #DEFAULT_PEAK_SLIP}。
+     *
+     * <p>縦のピーク滑り率は μ / 縦のすべり剛性なので、路面と諸元で大きく変わる
+     * （舗装 0.056・氷 0.008）。閾値を固定の滑り率で持つと、氷では ABS がピークの 17 倍まで
+     * 滑らせることになり、<b>ピークを越えると落ちるタイヤ（{@code tireFalloff}）では
+     * そのぶんがまるごと制動距離に出る</b>。実車の ABS / TCS はピーク付近を狙う。</p>
+     *
+     * <p>既定の車・舗装路では 1 ちょうどなので、{@link CarSpec#absSlip()} /
+     * {@link CarSpec#tractionControlSlip()} の値はそこでの閾値として読める。</p>
+     */
+    private static double aidSlipScale(CarSpec spec, GroundContact contact, Wheel wheel) {
+        double peak = spec.tireFriction() * contact.gripScale(wheel) / spec.longitudinalStiffness();
+        return Math.max(1e-3, peak / DEFAULT_PEAK_SLIP);
+    }
+
     /**
      * ABS。ロックしかけた輪のブレーキを緩める。
      *
@@ -684,38 +713,46 @@ public final class CarPhysics {
      *
      * <p>{@code absSlip} を 0 にすれば無効になり、ロックさせられる。</p>
      */
-    private static void updateAbs(CarSpec spec, CarState state, double dt) {
-        double response = 1.0 - Math.exp(-dt * ABS_RATE);
+    private static void updateAbs(CarSpec spec, CarState state, GroundContact contact, double dt) {
         if (!Double.isFinite(spec.absSlip())) {
             java.util.Arrays.fill(state.brakeRelease, 1.0);
             return;
         }
         // 後軸は左右同圧（セレクトロー）。前軸は輪ごとに制御して操舵性を残す
-        modulateAxle(spec, state, response, Wheel.FRONT_LEFT, false);
-        modulateAxle(spec, state, response, Wheel.FRONT_RIGHT, false);
-        modulateAxle(spec, state, response, Wheel.REAR_LEFT, true);
+        modulateAxle(spec, state, contact, dt, Wheel.FRONT_LEFT, false);
+        modulateAxle(spec, state, contact, dt, Wheel.FRONT_RIGHT, false);
+        modulateAxle(spec, state, contact, dt, Wheel.REAR_LEFT, true);
     }
 
     /**
      * 1 輪ぶん、あるいは後軸まとめてブレーキを緩める。
      *
+     * <p><b>比例ではなく積分で効かせる。</b>比例（超過ぶんに比例して緩める）だと、緩めるには
+     * 超過し続けていなければならないので、滑り率が閾値の上に居座る。制動力はタイヤのμから
+     * 決めていて路面のμを知らないので、低μ路ほど踏力が余り、居座る量が大きくなる
+     * （氷ではピークの 50 倍を超えて、ほぼロックしたまま止まっていた）。
+     * ピークを越えるとグリップが落ちるタイヤ（{@code tireFalloff}）では、それがそのまま
+     * 制動距離に出る。積分なら閾値ちょうどに落ち着く。</p>
+     *
      * @param selectLow true なら軸の左右でロックの深い方に合わせ、同じ圧を掛ける
      */
-    private static void modulateAxle(CarSpec spec, CarState state, double response,
+    private static void modulateAxle(CarSpec spec, CarState state, GroundContact contact, double dt,
                                      Wheel wheel, boolean selectLow) {
         int index = wheel.ordinal();
-        double lock = -state.wheelSlipRatio[index];
+        // ピーク滑り率で割って測る（aidSlipScale）。セレクトローもこの尺度で比べる
+        double lock = -state.wheelSlipRatio[index] / aidSlipScale(spec, contact, wheel);
         int partner = -1;
         if (selectLow) {
             partner = (wheel.isLeft()
                     ? (wheel.isFront() ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT)
                     : (wheel.isFront() ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT)).ordinal();
-            lock = Math.max(lock, -state.wheelSlipRatio[partner]);
+            lock = Math.max(lock, -state.wheelSlipRatio[partner] / aidSlipScale(spec, contact, Wheel.VALUES[partner]));
         }
 
-        double excess = lock - spec.absSlip();
-        double target = excess > 0.0 ? Math.max(0.0, 1.0 - excess * ABS_GAIN) : 1.0;
-        double release = state.brakeRelease[index] + (target - state.brakeRelease[index]) * response;
+        // 超過をピーク滑り率いくつぶんかで測る。閾値より浅ければ同じ速さで踏み戻す
+        double excessPeaks = (lock - spec.absSlip()) / DEFAULT_PEAK_SLIP;
+        double release = Math.max(0.0, Math.min(1.0,
+                state.brakeRelease[index] - ABS_INTEGRAL_RATE * excessPeaks * dt));
         state.brakeRelease[index] = release;
         if (partner >= 0) {
             state.brakeRelease[partner] = release;
@@ -730,8 +767,13 @@ public final class CarPhysics {
      * ドライバーのアクセル操作と、この装置。</p>
      *
      * <p>{@code tractionControlSlip} を 0 にすれば無効になり、アクセルで自由に流せる。</p>
+     *
+     * <p><b>ABS と違って比例のままにしてある。</b>閾値（強さ 1.0 でピークの 0.9 倍）が
+     * ピークより下にあるので、積分で閾値ちょうどに張り付かせると<b>グリップを使い残す</b>
+     * （0-100 が舗装 5.35→5.40 秒・氷 22.2→25.4 秒と、どの路面でも遅くなった）。
+     * 比例の居座りがピークの少し上まで滑らせてくれている。</p>
      */
-    private static void updateTractionControl(CarSpec spec, CarState state, double dt) {
+    private static void updateTractionControl(CarSpec spec, CarState state, GroundContact contact, double dt) {
         if (!Double.isFinite(spec.tractionControlSlip())) {
             state.tractionControlThrottle = 1.0;
             return;
@@ -740,7 +782,7 @@ public final class CarPhysics {
         double slip = 0.0;
         for (Wheel wheel : Wheel.VALUES) {
             if (spec.driveShare(wheel) > 0.0) {
-                slip = Math.max(slip, state.wheelSlipRatio[wheel.ordinal()]);
+                slip = Math.max(slip, state.wheelSlipRatio[wheel.ordinal()] / aidSlipScale(spec, contact, wheel));
             }
         }
 
@@ -958,7 +1000,7 @@ public final class CarPhysics {
         }
 
         double brakeForce = commandedBrakeForce(spec, state, input);
-        updateAbs(spec, state, dt);
+        updateAbs(spec, state, contact, dt);
 
         double longitudinal = 0.0;
         double lateral = 0.0;
@@ -1036,7 +1078,11 @@ public final class CarPhysics {
             double gripLimit = spec.tireFriction() * contact.gripScale(wheel) * load;
             double magnitude = Math.hypot(longitudinalForce, lateralForce);
             if (magnitude > gripLimit) {
-                double scale = gripLimit / magnitude;
+                // 縦も横も剛性×荷重の直線なので、magnitude / gripLimit は
+                // 「ピークの何倍まで滑っているか」（縦横を合わせた正規化スリップ）そのもの
+                double overshoot = magnitude / gripLimit;
+                double slidingNow = Math.hypot(angularVelocity * spec.wheelRadius() - rollingSpeed, slidingSpeed);
+                double scale = gripLimit * slideGripFactor(spec, overshoot, slidingNow) / magnitude;
                 longitudinalForce *= scale;
                 lateralForce *= scale;
 
@@ -1154,6 +1200,29 @@ public final class CarPhysics {
         double max = (rollingSpeed + span) / spec.wheelRadius();
         double min = (rollingSpeed - span) / spec.wheelRadius();
         return Math.max(min, Math.min(max, angularVelocity));
+    }
+
+    /** ピークの何倍まで滑ったところでグリップが落ちきるか。既定のタイヤ（μ1.0）なら横は約 19 度 */
+    private static final double FALLOFF_FULL_OVERSHOOT = 4.0;
+    /** 接地面の滑り速度がこれに届くまでは落ち込みを弱める [m/s]。止まりかけで正則化された角度に騙されないため */
+    private static final double FALLOFF_SLIDE_SPEED = 1.0;
+
+    /**
+     * ピークを越えて滑っているときに、摩擦円の上限に掛ける倍率（1 以下）。
+     *
+     * <p>実タイヤの横力（縦力も）はピークを越えると下がる。ピークまでは直線のままにして、
+     * そこから {@link #FALLOFF_FULL_OVERSHOOT} 倍までを smoothstep で {@code 1 - tireFalloff} へ落とす。
+     * <b>ピーク以下は一切変えない</b>ので、グリップ走行の挙動はそのまま。</p>
+     *
+     * @param overshoot  ピークに対する正規化スリップ（1 を超えている前提）
+     * @param slideSpeed 接地面が路面を擦る速さ [m/s]
+     */
+    private static double slideGripFactor(CarSpec spec, double overshoot, double slideSpeed) {
+        if (spec.tireFalloff() <= 0.0) return 1.0;
+        double t = Math.min(1.0, (overshoot - 1.0) / (FALLOFF_FULL_OVERSHOOT - 1.0));
+        double shape = t * t * (3.0 - 2.0 * t);
+        double gate = Math.min(1.0, slideSpeed / FALLOFF_SLIDE_SPEED);
+        return 1.0 - spec.tireFalloff() * shape * gate;
     }
 
     private static double clampSlipRatio(double slipRatio) {
