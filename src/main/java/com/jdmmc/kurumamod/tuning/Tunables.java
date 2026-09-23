@@ -91,6 +91,10 @@ public final class Tunables {
                                     CarSpec::tireFriction, CarSpec.Builder::tireFriction)
                             .unit(CarSpec.REFERENCE_FRICTION)
                             .detail(Tunables::brakeForce),
+                    // ピークを越えて滑ったときに失うグリップ。表示は %、内部は割合
+                    TunableParameter.linear("tire_falloff", 0, 50, "%.0f",
+                                    CarSpec::tireFalloff, CarSpec.Builder::tireFalloff)
+                            .unit(0.01),
                     TunableParameter.linear("cornering_stiffness", 4, 25, "%.1f",
                             CarSpec::corneringStiffness, CarSpec.Builder::corneringStiffness),
                     TunableParameter.linear("rear_cornering_bias", 0.7, 1.8, "%.2f",
