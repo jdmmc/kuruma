@@ -42,6 +42,8 @@ package com.jdmmc.kurumamod.physics;
  * @param tireFriction         タイヤの摩擦係数。接地荷重に掛けたものがグリップの上限。
  *                             調整画面では {@link #REFERENCE_FRICTION} を 1.00 とした相対値で出す
  * @param tireFalloff          ピークを越えて滑ったときに失うグリップの割合。0 で落ちない（ピークで頭打ち）
+ * @param tireLoadSensitivity  タイヤの荷重感度。荷重を増やしてもグリップが比例して増えない度合い。
+ *                             0 で比例（荷重移動がバランスに効かない）。{@link #tireLoadFactor} を参照
  * @param lowSpeedBlendSpeed   この速度以下では運動学モデルへ寄せる [m/s]
  * @param steerGripMargin      切れ角上限に対する余裕。1 を超えるとグリップを超えて切れる（＝滑らせられる）
  * @param visualSlipLimit      <b>見た目だけ</b>の、進行方向に対するタイヤ角の上限 [rad]。0 で無効。物理は一切読まない
@@ -91,6 +93,7 @@ public record CarSpec(
         double rearCorneringBias,
         double tireFriction,
         double tireFalloff,
+        double tireLoadSensitivity,
         double lowSpeedBlendSpeed,
         double steerGripMargin,
         double visualSlipLimit,
@@ -398,6 +401,27 @@ public record CarSpec(
      * 停車時のシャシー基準面の地上高 [m]。スポーン位置を決めるのに使う。
      * 前後で硬さが違うと車体は傾くので、その中間を取る。
      */
+    /**
+     * タイヤが「実際に働かせる」荷重 [N]。グリップの上限も、横と縦の剛性もこれに比例する。
+     *
+     * <p>実車のタイヤは荷重を倍にしてもグリップが倍にならない（荷重感度）。
+     * <b>荷重移動が操縦性を変えるのはこの性質があるから</b>で、比例のままだと
+     * 内輪から外輪へ荷重を移しても軸の合計は変わらず、スタビの前後配分がアンダー／オーバーに
+     * ほとんど効かない（実測で前のロール剛性配分を 31%→76% に振っても、0.8G の
+     * アンダーステア勾配が 0.31→0.41 deg/g しか動かなかった）。</p>
+     *
+     * <p>{@code Fz0 · (Fz / Fz0)^(1 − 感度)}。基準の {@code Fz0} は<b>その輪の停車時荷重</b>なので、
+     * 停車時と直進では感度をいくつにしても何も変わらず、係数は車格に依らない無次元のまま。
+     * グリップと剛性を同じ割合で下げるので、ピークに達するスリップ角と滑り率も変わらない。</p>
+     */
+    public double tireLoadFactor(Wheel wheel, double load) {
+        double reference = staticWheelLoad(wheel);
+        if (tireLoadSensitivity <= 0.0 || load <= 0.0 || reference <= 0.0) {
+            return load;
+        }
+        return reference * Math.pow(load / reference, 1.0 - tireLoadSensitivity);
+    }
+
     public double staticRideHeight() {
         double front = staticSuspensionLength(Wheel.FRONT_LEFT);
         double rear = staticSuspensionLength(Wheel.REAR_LEFT);
@@ -584,6 +608,7 @@ public record CarSpec(
         private double rearCorneringBias = 1.0;
         private double tireFriction = REFERENCE_FRICTION;
         private double tireFalloff = 0.0;
+        private double tireLoadSensitivity = 0.15; // 0.30 では四駆の制動＋フルロックがスピンする
         private double lowSpeedBlendSpeed = 3.0;
         // グリップを使いきる定常旋回に必要な切れ角に掛ける倍率。1.0 は「限界ちょうどの
         // 角度までしか切らせない」で、教科書どおりの位置。
@@ -677,6 +702,7 @@ public record CarSpec(
             rearCorneringBias = spec.rearCorneringBias;
             tireFriction = spec.tireFriction;
             tireFalloff = spec.tireFalloff;
+            tireLoadSensitivity = spec.tireLoadSensitivity;
             lowSpeedBlendSpeed = spec.lowSpeedBlendSpeed;
             steerGripMargin = spec.steerGripMargin;
             visualSlipLimit = spec.visualSlipLimit;
@@ -783,6 +809,11 @@ public record CarSpec(
 
         public Builder tireFalloff(double value) {
             tireFalloff = value;
+            return this;
+        }
+
+        public Builder tireLoadSensitivity(double value) {
+            tireLoadSensitivity = value;
             return this;
         }
 
@@ -957,7 +988,7 @@ public record CarSpec(
                     wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     corneringStiffness, longitudinalStiffness,
-                    driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction, tireFalloff,
+                    driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction, tireFalloff, tireLoadSensitivity,
                     lowSpeedBlendSpeed, steerGripMargin, visualSlipLimit,
                     maxSteerAngle, steerRateSeconds, steerReturnSeconds, selfAligning,
                     pedalPressSeconds, pedalReleaseSeconds,

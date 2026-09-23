@@ -1052,12 +1052,15 @@ public final class CarPhysics {
             // 横: スリップ角に比例して立ち上がる。
             // 後輪を少し硬くしておくと、限界でまず前が逃げる（アンダーステア）性格になる
             double slipAngle = Math.atan2(slidingSpeed, referenceSpeed);
+            // タイヤが力に変える荷重。荷重感度のぶん、重い輪ほど割り引かれる。
+            // 転がり抵抗と摩擦の仕事率は実際の荷重のまま
+            double tireLoad = spec.tireLoadFactor(wheel, load);
             double corneringStiffness =
-                    spec.corneringStiffness() * (wheel.isFront() ? 1.0 : spec.rearCorneringBias()) * load;
+                    spec.corneringStiffness() * (wheel.isFront() ? 1.0 : spec.rearCorneringBias()) * tireLoad;
             double lateralForce = -corneringStiffness * slipAngle;
 
             // 縦: まず車輪の回転をグリップしている前提で進め、滑り率を求める
-            double longitudinalStiffness = spec.longitudinalStiffness() * load;
+            double longitudinalStiffness = spec.longitudinalStiffness() * tireLoad;
             double inertia = effectiveWheelInertia(spec, state, wheel);
             double driveTorque = state.wheelDriveTorque[index];
             // 制動力はブレーキ配分、転がり抵抗は接地荷重の比で分ける。
@@ -1075,7 +1078,7 @@ public final class CarPhysics {
             double longitudinalForce = longitudinalStiffness * slipRatio;
 
             // 摩擦円。合力が上限を超えたぶんを縦横まとめて削る
-            double gripLimit = spec.tireFriction() * contact.gripScale(wheel) * load;
+            double gripLimit = spec.tireFriction() * contact.gripScale(wheel) * tireLoad;
             double magnitude = Math.hypot(longitudinalForce, lateralForce);
             if (magnitude > gripLimit) {
                 // 縦も横も剛性×荷重の直線なので、magnitude / gripLimit は

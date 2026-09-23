@@ -95,6 +95,11 @@ public final class Tunables {
                     TunableParameter.linear("tire_falloff", 0, 50, "%.0f",
                                     CarSpec::tireFalloff, CarSpec.Builder::tireFalloff)
                             .unit(0.01),
+                    // 荷重を倍にしたときにグリップが倍にならない度合い。表示は %、内部は割合。
+                    // 0 だと荷重移動がバランスに効かず、スタビの前後配分がほとんど意味を持たない
+                    TunableParameter.linear("tire_load_sensitivity", 0, 40, "%.0f",
+                                    CarSpec::tireLoadSensitivity, CarSpec.Builder::tireLoadSensitivity)
+                            .unit(0.01),
                     TunableParameter.linear("cornering_stiffness", 4, 25, "%.1f",
                             CarSpec::corneringStiffness, CarSpec.Builder::corneringStiffness),
                     TunableParameter.linear("rear_cornering_bias", 0.7, 1.8, "%.2f",
