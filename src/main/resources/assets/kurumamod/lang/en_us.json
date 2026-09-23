@@ -44,6 +44,8 @@
   "tuning.kurumamod.friction.value": "%s  %s",
   "tuning.kurumamod.tire_falloff": "Grip loss when sliding",
   "tuning.kurumamod.tire_falloff.value": "-%s%%",
+  "tuning.kurumamod.tire_load_sensitivity": "Tyre load sensitivity",
+  "tuning.kurumamod.tire_load_sensitivity.value": "%s%%",
   "tuning.kurumamod.cornering_stiffness": "Cornering power",
   "tuning.kurumamod.cornering_stiffness.value": "%s /rad",
   "tuning.kurumamod.rear_cornering_bias": "Rear grip bias (higher = understeer)",
