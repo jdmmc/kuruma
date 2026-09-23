@@ -109,6 +109,17 @@ public final class CarGaugeHud {
     /** 単位の文字と、その下に置く小計器の位置（中心からの下向き）。 */
     private static final float UNIT_DY = 12.0F;
     private static final float SUBGAUGE_TOP = 19.0F;
+    /**
+     * 警告灯の文字の大きさ。<b>ここだけ {@link #SMALL_TEXT_SCALE} より小さい。</b>
+     *
+     * <p>0.75 では灯が目立ちすぎた。0.5 にしてあるのは、GUI スケールが偶数のとき
+     * フォントの 1px がちょうど画面の 1 画素に乗って滲まないから（0.6 のような端数は滲む）。</p>
+     */
+    private static final float LAMP_TEXT_SCALE = 0.5F;
+    /** 警告灯の高さと、文字の左右の余白・灯どうしの間隔。 */
+    private static final float LAMP_HEIGHT = 5.0F;
+    private static final float LAMP_PADDING = 1.0F;
+    private static final float LAMP_GAP = 1.0F;
 
     /** 目盛りの数字の大きさ。1.0 のままだと 3 桁が文字盤をふさぐ。 */
     private static final float LABEL_TEXT_SCALE = 0.75F;
@@ -298,12 +309,13 @@ public final class CarGaugeHud {
         GaugePainter.arc(graphics, 0.0F, 0.0F, RED_OUTER - RED_WIDTH, RED_OUTER,
                 angleFor(redline / top), angleFor(1.0), theme.redline);
         ticks(graphics, theme, top / 1000.0, major, major / 2.0, redline / top);
-        aidLamps(graphics, theme, car);
+        aidLamps(graphics, font, theme, car, false);
         needle(graphics, theme, rpm / top, warn);
 
         GaugePainter.flush(graphics);
 
         labels(graphics, font, theme, top / 1000.0, major, redline / top);
+        aidLamps(graphics, font, theme, car, true);
         centerText(graphics, font, Component.translatable("hud.kurumamod.rpm_scale"),
                 UNIT_DY, theme.unit);
 
@@ -463,15 +475,54 @@ public final class CarGaugeHud {
         }
     }
 
-    /** ABS と TCS の作動灯。回転計の中、実車の警告灯の位置。 */
-    private static void aidLamps(GuiGraphics graphics, GaugeTheme theme, CarEntity car) {
-        lamp(graphics, theme, -11.0F, SUBGAUGE_TOP, car.isAbsActive());
-        lamp(graphics, theme, 2.0F, SUBGAUGE_TOP, car.isTractionControlActive());
+    /**
+     * 警告灯。回転計の中、実車の警告灯の位置。上の段に ABS と TCS、下の段にサイドブレーキ。
+     *
+     * <p><b>灯そのものに名前を書く。</b>色の付いた四角だけでは何の灯なのか分からなかった。
+     * 実車の警告灯と同じく、消えているときも文字は薄く見えている——点いたときに初めて
+     * 名前が現れるのでは、何が点いたのか読む前に消えてしまう。</p>
+     *
+     * <p>図形と文字で 2 回呼ぶ（{@code text}）。図形を積んだら文字の前に
+     * {@link GaugePainter#flush} が要るため、置き場所の計算を 1 か所にまとめてある。</p>
+     */
+    private static void aidLamps(GuiGraphics graphics, Font font, GaugeTheme theme,
+                                 CarEntity car, boolean text) {
+        Component abs = Component.translatable("hud.kurumamod.lamp_abs");
+        Component tcs = Component.translatable("hud.kurumamod.lamp_tcs");
+        Component handbrake = Component.translatable("hud.kurumamod.lamp_handbrake");
+        // 上の段は左右対称にしたいので、幅の広いほうに揃える
+        float pairWidth = Math.max(lampWidth(font, abs), lampWidth(font, tcs));
+        float offset = pairWidth / 2.0F + LAMP_GAP / 2.0F;
+        float secondRow = SUBGAUGE_TOP + LAMP_HEIGHT + LAMP_GAP;
+        lamp(graphics, font, theme, abs, -offset, SUBGAUGE_TOP, pairWidth,
+                car.isAbsActive(), theme.aidOn, text);
+        lamp(graphics, font, theme, tcs, offset, SUBGAUGE_TOP, pairWidth,
+                car.isTractionControlActive(), theme.aidOn, text);
+        lamp(graphics, font, theme, handbrake, 0.0F, secondRow, lampWidth(font, handbrake),
+                car.isHandbrakeOn(), theme.handbrake, text);
     }
 
-    private static void lamp(GuiGraphics graphics, GaugeTheme theme, float left, float top, boolean on) {
-        GaugePainter.rect(graphics, left, top, left + 9.0F, top + 4.0F,
-                on ? theme.aidOn : theme.aidOff);
+    private static float lampWidth(Font font, Component label) {
+        return font.width(label) * LAMP_TEXT_SCALE + LAMP_PADDING * 2.0F;
+    }
+
+    private static void lamp(GuiGraphics graphics, Font font, GaugeTheme theme, Component label,
+                             float centerX, float top, float width, boolean on, int onColor,
+                             boolean text) {
+        float left = centerX - width / 2.0F;
+        if (!text) {
+            GaugePainter.rect(graphics, left, top, left + width, top + LAMP_HEIGHT,
+                    on ? onColor : theme.aidOff);
+            return;
+        }
+        // 大文字の字面（7px）を灯の高さの真ん中へ
+        float glyph = 7.0F * LAMP_TEXT_SCALE;
+        graphics.pose().pushPose();
+        graphics.pose().translate(centerX - font.width(label) * LAMP_TEXT_SCALE / 2.0F,
+                top + (LAMP_HEIGHT - glyph) / 2.0F, 0.0F);
+        graphics.pose().scale(LAMP_TEXT_SCALE, LAMP_TEXT_SCALE, 1.0F);
+        graphics.drawString(font, label, 0, 0, on ? theme.aidLabelOn : theme.aidLabel, false);
+        graphics.pose().popPose();
     }
 
     // ------------------------------------------------------------------

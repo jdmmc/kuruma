@@ -1338,6 +1338,16 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         return hasLocalState() && state.tractionControlThrottle < 0.99;
     }
 
+    /**
+     * サイドブレーキを引いているか。メーターの灯に使う。
+     *
+     * <p>操作そのものなので<b>運転している本人にしか分からない</b>（同期していない）。
+     * メーターは自分の車にしか出さないので、それで足りる。</p>
+     */
+    public boolean isHandbrakeOn() {
+        return hasLocalState() && driverInput.handbrake();
+    }
+
     /** ABS が介入しているか。 */
     public boolean isAbsActive() {
         if (!hasLocalState()) {
