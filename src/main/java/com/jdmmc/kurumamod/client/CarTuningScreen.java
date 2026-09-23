@@ -457,7 +457,18 @@ public class CarTuningScreen extends Screen {
         @Override
         protected void updateMessage() {
             setMessage(Component.translatable(
-                    parameter.valueKey(), parameter.labelArguments(CarTuning.spec())));
+                    parameter.valueKey(), translateArguments(parameter.labelArguments(CarTuning.spec()))));
+        }
+
+        /** 補足のうち {@link TunableParameter.Text} を翻訳つきの部品に直す。入れ子も辿る。 */
+        private static Object[] translateArguments(Object[] args) {
+            Object[] out = new Object[args.length];
+            for (int i = 0; i < args.length; i++) {
+                out[i] = args[i] instanceof TunableParameter.Text text
+                        ? Component.translatable(text.key(), translateArguments(text.args()))
+                        : args[i];
+            }
+            return out;
         }
 
         @Override
