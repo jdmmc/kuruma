@@ -34,9 +34,25 @@ public record TunableParameter(
         void set(CarSpec.Builder builder, double internalValue);
     }
 
-    /** 数値だけでは硬さの体感が分からない項目に添える補足（沈み込み量など）。 */
+    /**
+     * 数値だけでは硬さの体感が分からない項目に添える補足（沈み込み量など）。
+     *
+     * <p>返すのは {@link String} か {@link Text}。<b>言葉を含むなら必ず {@link Text} で返すこと。</b>
+     * 文字列はそのまま画面に出るので、日本語を書くと英語の画面にも日本語が出る。
+     * {@link String} で返してよいのは数字・記号・言語に依らない略号（FR、LSD、ON/OFF）だけ。</p>
+     */
     public interface Detail {
-        String of(CarSpec spec);
+        Object of(CarSpec spec);
+    }
+
+    /**
+     * 翻訳して出す補足。画面側で {@code Component.translatable(key, args)} に直す。
+     *
+     * <p>{@code Component} を直接返さないのは、このパッケージを Minecraft 抜きで
+     * {@code javac} に通して検算できるようにしておくため。{@code args} に {@link Text} を
+     * 入れ子にしてもよい。</p>
+     */
+    public record Text(String key, Object... args) {
     }
 
     /** スライダーの目盛りの割り当て方。 */

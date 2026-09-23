@@ -214,12 +214,12 @@ public final class Tunables {
                             .detail(spec -> spec.visualSlipLimit() <= 0.0 ? "OFF" : "ON"),
                     TunableParameter.linear("steer_rate", 0.0, 1.0, "%.2f",
                                     CarSpec::steerRateSeconds, CarSpec.Builder::steerRateSeconds)
-                            .detail(spec -> spec.steerRateSeconds() <= 0.0 ? "即座" : "ゆっくり"),
+                            .detail(spec -> detail(spec.steerRateSeconds() <= 0.0 ? "instant" : "gradual")),
                     TunableParameter.linear("steer_return", 0.0, 1.0, "%.2f",
                             CarSpec::steerReturnSeconds, CarSpec.Builder::steerReturnSeconds),
                     TunableParameter.linear("self_aligning", 0.0, 1.0, "%.2f",
                                     CarSpec::selfAligning, CarSpec.Builder::selfAligning)
-                            .detail(spec -> spec.selfAligning() <= 0.0 ? "中立へ戻る" : "進行方向を向く"),
+                            .detail(spec -> detail(spec.selfAligning() <= 0.0 ? "to_center" : "to_heading")),
                     TunableParameter.linear("pedal_press", 0.0, 1.0, "%.2f",
                             CarSpec::pedalPressSeconds, CarSpec.Builder::pedalPressSeconds),
                     TunableParameter.linear("pedal_release", 0.0, 1.0, "%.2f",
@@ -257,9 +257,18 @@ public final class Tunables {
     }
 
     /** デフの種類。0 ならオープンデフ。 */
-    private static String differentialType(CarSpec spec) {
+    private static Object differentialType(CarSpec spec) {
         boolean open = spec.diffLockRatio() <= 0.0 && spec.diffPreload() <= 0.0;
-        return open ? "オープンデフ" : "LSD";
+        return open ? detail("open_diff") : "LSD";
+    }
+
+    /**
+     * 言葉を含む補足。キーは {@code tuning.kurumamod.detail.<name>}、引数は書式済みの文字列で渡す。
+     *
+     * <p>日本語を直接返すと英語の画面にも日本語が出る（実際に「オープンデフ」「沈み」が混ざった）。</p>
+     */
+    private static TunableParameter.Text detail(String name, Object... args) {
+        return new TunableParameter.Text("tuning.kurumamod.detail." + name, args);
     }
 
     /** 1way / 1.5way / 2way の呼び名。 */
@@ -283,9 +292,11 @@ public final class Tunables {
      *
      * <p>タイヤを大きくすると車体が持ち上がり、同じギアリングを保つためにファイナルも上がる。</p>
      */
-    private static String rideHeight(CarSpec spec) {
-        return String.format("車高%.0f 終減速%.2f 登坂%.0fcm",
-                spec.staticRideHeight() * 100.0, spec.finalDriveRatio(), spec.maxClimbStep() * 100.0);
+    private static Object rideHeight(CarSpec spec) {
+        return detail("ride_height",
+                String.format("%.0f", spec.staticRideHeight() * 100.0),
+                String.format("%.2f", spec.finalDriveRatio()),
+                String.format("%.0f", spec.maxClimbStep() * 100.0));
     }
 
     /**
@@ -294,10 +305,11 @@ public final class Tunables {
      * <p>バネそのものは触れないので、代わりに<b>いくつになったか</b>を見せる。
      * 沈み込みが前後で揃っていることもここで分かる。</p>
      */
-    private static String springs(CarSpec spec) {
-        return String.format("%.0f/%.0fN/m 沈み%.1fcm",
-                spec.frontSuspensionStiffness(), spec.rearSuspensionStiffness(),
-                spec.staticWheelLoad(Wheel.FRONT_LEFT) / spec.frontSuspensionStiffness() * 100.0);
+    private static Object springs(CarSpec spec) {
+        return detail("springs",
+                String.format("%.0f", spec.frontSuspensionStiffness()),
+                String.format("%.0f", spec.rearSuspensionStiffness()),
+                String.format("%.1f", spec.staticWheelLoad(Wheel.FRONT_LEFT) / spec.frontSuspensionStiffness() * 100.0));
     }
 
     /** 車重と寸法から決まる慣性モーメント（ヨー／ピッチ／ロール）。 */
@@ -307,16 +319,21 @@ public final class Tunables {
     }
 
     /** タイヤの摩擦係数から決まるブレーキとサイドブレーキの効き。 */
-    private static String brakeForce(CarSpec spec) {
+    private static Object brakeForce(CarSpec spec) {
         // 目盛りが相対値なので、実際のμもここで見せる（見えないと路面の倍率と突き合わせられない）
-        return String.format("μ%.2f 制動%.1f サイド%.1f 前%.0f%%",
-                spec.tireFriction(), spec.brakeDecel(), spec.handbrakeDecel(), spec.brakeBias() * 100.0);
+        return detail("brakes",
+                String.format("%.2f", spec.tireFriction()),
+                String.format("%.1f", spec.brakeDecel()),
+                String.format("%.1f", spec.handbrakeDecel()),
+                String.format("%.0f", spec.brakeBias() * 100.0));
     }
 
     /** レブと段の比から決まる変速点。ハンチングしていないことがここで分かる。 */
-    private static String shiftPoints(CarSpec spec) {
-        return String.format("↑%.0f ↓%.0f 直後%.0f",
-                spec.upshiftRpm(), spec.downshiftRpm(), spec.upshiftRpm() * spec.gearStep());
+    private static Object shiftPoints(CarSpec spec) {
+        return detail("shift_points",
+                String.format("%.0f", spec.upshiftRpm()),
+                String.format("%.0f", spec.downshiftRpm()),
+                String.format("%.0f", spec.upshiftRpm() * spec.gearStep()));
     }
 
     /** 前軸と後軸が受け持つ重さ [kg]。配分の数字より、何 kg 乗っているかの方が掴みやすい。 */
