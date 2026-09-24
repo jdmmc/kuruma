@@ -237,7 +237,7 @@ public final class CarChaseCamera {
                 Mth.lerp(lift, bodyY + ClientConfig.cameraHeight, floorY + SHOWROOM_PIVOT_LIFT),
                 Mth.lerp(partial, car.zo, car.getZ()));
 
-        double speedRatio = Math.min(1.0, Math.abs(car.getRenderSpeed()) / car.getSpec().maxSpeed());
+        double speedRatio = Math.min(1.0, Math.abs(car.getRenderSpeed()) / car.getSpec().topGearSpeed());
         double distance = ClientConfig.cameraDistance + ClientConfig.cameraSpeedPull * speedRatio;
         distance = Mth.lerp(lift, distance,
                 Math.max(1.0, Math.max(distance, SHOWROOM_DISTANCE) + orbitZoom));

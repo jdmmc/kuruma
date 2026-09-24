@@ -329,7 +329,7 @@ public final class CarGaugeHud {
     private static void renderSpeedometer(GuiGraphics graphics, Font font, GaugeTheme theme,
                                           CarEntity car, CarSpec spec,
                                           float x, float y, float scale) {
-        double maxKmh = spec.maxSpeed() * 3.6;
+        double maxKmh = spec.topGearSpeed() * 3.6;
         // 20km/h 刻みから始めて、数字が重ならないところまで粗くする。
         // 最高速はセッティングとカーパックで変わるので、決め打ちにはできない
         int major = 20;

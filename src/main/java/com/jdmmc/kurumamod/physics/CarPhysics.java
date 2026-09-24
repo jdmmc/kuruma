@@ -31,6 +31,17 @@ public final class CarPhysics {
     /** 重力加速度 [m/s^2]。Minecraft の落下加速度ではなく現実の値を使う。 */
     public static final double GRAVITY = 9.81;
 
+    // 以下の 3 つは車の性格ではなく数値計算の都合で決まる値なので、諸元にしない
+
+    /** 滑り率・スリップ角を求めるときの分母の下限 [m/s]。低速で発散させないための下駄 */
+    public static final double SLIP_REFERENCE_SPEED = 2.0;
+
+    /** この速度以下では運動学モデルへ寄せる [m/s] */
+    private static final double LOW_SPEED_BLEND_SPEED = 3.0;
+
+    /** これ以下の速さは「停止している」とみなす [m/s] */
+    private static final double STOP_THRESHOLD = 0.3;
+
     /**
      * 1 輪が受け持つ荷重の上限（停車時荷重の何倍か）。
      *
@@ -433,7 +444,7 @@ public final class CarPhysics {
         // （腕は重心から前軸まで。前が重いほど短くなる）
         double frontLateral = state.lateralSpeed
                 + spec.wheelForwardOffset(Wheel.FRONT_LEFT) * state.yawRate;
-        double reference = Math.max(Math.abs(state.forwardSpeed), spec.slipReferenceSpeed());
+        double reference = Math.max(Math.abs(state.forwardSpeed), SLIP_REFERENCE_SPEED);
         double angle = Math.atan2(frontLateral, reference);
         // 後退中は前輪が引きずられる向きが逆になる
         return state.forwardSpeed < 0.0 ? -angle : angle;
@@ -508,7 +519,7 @@ public final class CarPhysics {
         double axleForce = spec.mass() * targetAccel / 2.0;
 
         double frontSlip = axleForce / (spec.corneringStiffness() * frontLoad);
-        double rearSlip = axleForce / (spec.corneringStiffness() * spec.rearCorneringBias() * rearLoad);
+        double rearSlip = axleForce / (spec.corneringStiffness() * rearLoad);
 
         // タイヤが滑らない理想の幾何。ここを下回らせてはいけない
         double geometric = spec.wheelBase() * targetAccel / (speed * speed);
@@ -610,7 +621,6 @@ public final class CarPhysics {
             // ニュートラルでは駆動系が切れている（差動制限のイニシャルトルクだけは残る）。
             // エンジン自身は上で回してあるので、ここへ来るのは「車輪へは何も伝えない」だけ
             state.driveTorque = 0.0;
-            updateDifferential(spec, state);
             return;
         }
 
@@ -621,50 +631,7 @@ public final class CarPhysics {
         for (Wheel wheel : Wheel.VALUES) {
             state.wheelDriveTorque[wheel.ordinal()] = state.driveTorque * spec.driveShare(wheel);
         }
-        updateDifferential(spec, state);
-    }
-
-    /**
-     * 機械式の差動制限（LSD）。左右の駆動輪のトルクをやり取りする。
-     *
-     * <p>そのままだと左右へ等トルクに配れるだけで、これは<b>オープンデフ</b>。コーナーで
-     * 内輪の荷重が抜けると、その輪が空転してしまい外輪へ駆動力を渡せない。クラッチ式の
-     * LSD は、左右の回転差に応じて<b>速い側から遅い側へトルクを移す</b>ことでこれを防ぐ。</p>
-     *
-     * <p>移せる量の上限は、イニシャルトルク（無入力でも効く分）＋駆動トルクに比例する分。
-     * アクセルを戻したときの効きは {@code diffCoastRatio} で変えられる
-     * （0 で 1way、0.5 で 1.5way、1 で 2way）。すべて 0 にすればオープンデフに戻る。</p>
-     *
-     * <p>移すだけなので軸の合計トルクは変わらない。</p>
-     */
-    private static void updateDifferential(CarSpec spec, CarState state) {
-        lockAxle(spec, state, Wheel.FRONT_LEFT, Wheel.FRONT_RIGHT);
-        lockAxle(spec, state, Wheel.REAR_LEFT, Wheel.REAR_RIGHT);
-    }
-
-    private static void lockAxle(CarSpec spec, CarState state, Wheel left, Wheel right) {
-        // 駆動していない軸にはデフが無い。左右の車輪は完全に独立
-        if (spec.driveShare(left) <= 0.0) {
-            return;
-        }
-        int leftIndex = left.ordinal();
-        int rightIndex = right.ordinal();
-
-        double axleTorque = state.wheelDriveTorque[leftIndex] + state.wheelDriveTorque[rightIndex];
-        double ratio = axleTorque < 0.0
-                ? spec.diffLockRatio() * spec.diffCoastRatio()
-                : spec.diffLockRatio();
-        double capacity = spec.diffPreload() + ratio * Math.abs(axleTorque);
-        if (capacity <= 0.0) {
-            return;
-        }
-
-        double difference = state.wheelAngularVelocity[leftIndex] - state.wheelAngularVelocity[rightIndex];
-        double transfer = spec.diffLockingRate() * difference;
-        transfer = Math.max(-capacity, Math.min(capacity, transfer));
-
-        state.wheelDriveTorque[leftIndex] -= transfer;
-        state.wheelDriveTorque[rightIndex] += transfer;
+        // 左右の配り直し（差動制限）は、車輪の応答が分かる computeTireForces の中で行う
     }
 
     /**
@@ -683,7 +650,7 @@ public final class CarPhysics {
         }
 
         // 後退中に W を踏んだらブレーキ扱い。駆動はニュートラル
-        if (input.throttle() && state.forwardSpeed < -spec.stopThreshold()) {
+        if (input.throttle() && state.forwardSpeed < -STOP_THRESHOLD) {
             return 0;
         }
         // 前進中に S を踏んでも<b>ニュートラルへ落とさない</b>。落とすと、離した瞬間に
@@ -691,7 +658,7 @@ public final class CarPhysics {
         // エンジンブレーキで後輪が滑る（実測で 25m/s から離した直後に後輪の滑り率 -0.44）。
         // 段を保ったまま下の変速判定を通せば、減速に合わせてシフトダウンしていく。
         // 駆動を切りたい場面（サイドブレーキ）はクラッチが受け持つ（updateClutch）
-        boolean movingForward = state.forwardSpeed > spec.stopThreshold();
+        boolean movingForward = state.forwardSpeed > STOP_THRESHOLD;
         if (input.brake() && !movingForward) {
             return -1; // 停止していれば S でバックに入る
         }
@@ -1080,74 +1047,39 @@ public final class CarPhysics {
         double brakeForce = commandedBrakeForce(spec, state, input);
         updateAbs(spec, state, contact, dt);
 
+        // 先に 4 輪ぶんの接地の条件を揃える。差動制限は左右の輪の応答を両方知らないと解けない
+        WheelContact[] contacts = new WheelContact[Wheel.VALUES.length];
+        for (Wheel wheel : Wheel.VALUES) {
+            contacts[wheel.ordinal()] = wheelContact(spec, state, contact, input, wheel, brakeForce, dt);
+        }
+        applyDifferential(spec, state, contacts, dt);
+
         double longitudinal = 0.0;
         double lateral = 0.0;
         double yawMoment = 0.0;
 
         for (Wheel wheel : Wheel.VALUES) {
             int index = wheel.ordinal();
-            double load = state.wheelLoad[index];
-            if (load <= 0.0) {
+            WheelContact c = contacts[index];
+            if (c == null) {
                 // 浮いている輪は路面へ力を出せないが、駆動トルクでは回る。
                 // ここで回さずに放置すると角速度が止まったままになり、
                 // 差動制限が「こちらが遅い輪だ」と誤認してトルクを空転側へ送ってしまう
                 spinFreeWheel(spec, state, wheel, dt, brakeForce * spec.brakeShare(wheel));
                 continue;
             }
-            double forwardOffset = spec.wheelForwardOffset(wheel);
-            double rightOffset = spec.wheelRightOffset(wheel);
-
-            // 車輪の位置での速度。車体の回転ぶんが乗るので、前輪と後輪でずれる
-            double wheelForward = state.forwardSpeed - rightOffset * state.yawRate;
-            double wheelRight = state.lateralSpeed + forwardOffset * state.yawRate;
-
-            // 速度をタイヤ自身の向きへ回してから測る。こうしておくと、
-            // 後退時にタイヤが「前進している」と誤認して力の向きが反転するのを避けられる
-            double steer = state.wheelSteerAngle[index];
-            double cos = Math.cos(steer);
-            double sin = Math.sin(steer);
-            double rollingSpeed = wheelForward * cos + wheelRight * sin;
-            double slidingSpeed = -wheelForward * sin + wheelRight * cos;
-
-            // 縦横どちらの滑りも、速度が 0 に近づくと角度・比が跳ね上がる。
-            // 分母に下限を入れて正則化する（これを怠ると、停止寸前にスリップ角が 90 度へ飛んで
-            // 横力が摩擦円を食い潰し、発進もバックもできない車になる）
-            double referenceSpeed = Math.max(Math.abs(rollingSpeed), spec.slipReferenceSpeed());
-
-            // 縦の滑り率だけは、転がり方向の速度ではなく<b>接地面が路面を擦る速さそのもの</b>で
-            // 正規化する。転がり方向で割ると、車体が横を向くほど分母が cos(スリップ角) で
-            // 痩せていき、同じ空転量が<b>実際より大きな滑り率</b>として出る。すると
-            // 角速度の上限（clampAngularVelocity）が一緒に縮んで駆動輪が回れなくなり、
-            // ギア比で直結しているエンジンまで引きずり下ろされる——
-            // <b>深く横を向くほどエンジンの回転が落ちる</b>という形で出た（easy_drift・
-            // TCS 切・3 速 25m/s で、スリップ角 60 度まで 6976rpm を保つのに 75 度で 3360rpm）。
-            // 総速度で割れば分母は速度そのものなので痩せず、実測で 6984rpm と平らになる。
-            // <b>グリップ走行では slidingSpeed ≈ 0 なので referenceSpeed と一致する</b>ため、
-            // 0-100・最高速・制動距離・最大横 G・舵の立ち上がりはいずれも変わらない（実測で一致）。
-            double slipReference = Math.max(Math.hypot(rollingSpeed, slidingSpeed),
-                    spec.slipReferenceSpeed());
-
-            // 横: スリップ角に比例して立ち上がる。
-            // 後輪を少し硬くしておくと、限界でまず前が逃げる（アンダーステア）性格になる
-            double slipAngle = Math.atan2(slidingSpeed, referenceSpeed);
-            // タイヤが力に変える荷重。荷重感度のぶん、重い輪ほど割り引かれる。
-            // 転がり抵抗と摩擦の仕事率は実際の荷重のまま
-            double tireLoad = spec.tireLoadFactor(wheel, load);
-            double corneringStiffness =
-                    spec.corneringStiffness() * (wheel.isFront() ? 1.0 : spec.rearCorneringBias()) * tireLoad;
-            double lateralForce = -corneringStiffness * slipAngle;
-
-            // 縦: まず車輪の回転をグリップしている前提で進め、滑り率を求める
-            double longitudinalStiffness = spec.longitudinalStiffness() * tireLoad;
-            double inertia = effectiveWheelInertia(spec, state, wheel);
+            double forwardOffset = c.forwardOffset;
+            double rightOffset = c.rightOffset;
+            double cos = c.cos;
+            double sin = c.sin;
+            double rollingSpeed = c.rollingSpeed;
+            double slidingSpeed = c.slidingSpeed;
+            double slipReference = c.slipReference;
+            double lateralForce = c.lateralForce;
+            double longitudinalStiffness = c.longitudinalStiffness;
+            double inertia = c.inertia;
             double driveTorque = state.wheelDriveTorque[index];
-            // 制動力はブレーキ配分、転がり抵抗は接地荷重の比で分ける。
-            // 荷重に比例させておくと、浮いている輪に転がり抵抗が掛からないのが自動で成り立ち、
-            // 片輪だけ砂に落ちたときの左右差がそのままヨーモーメントになる
-            double wheelBrakeForce = brakeForce * spec.brakeShare(wheel) * state.brakeRelease[index]
-                    + rollingResistanceForce(spec, contact, wheel, load)
-                    + handbrakeForce(spec, input, wheel);
-            double brakeTorque = brakeTorque(spec, state, wheel, dt, inertia, wheelBrakeForce);
+            double brakeTorque = c.brakeTorque;
 
             double angularVelocity = advanceGrippingWheel(spec, state, wheel, dt, inertia,
                     driveTorque, brakeTorque, rollingSpeed, slipReference, longitudinalStiffness);
@@ -1155,8 +1087,9 @@ public final class CarPhysics {
                     (angularVelocity * spec.wheelRadius() - rollingSpeed) / slipReference);
             double longitudinalForce = longitudinalStiffness * slipRatio;
 
+
             // 摩擦円。合力が上限を超えたぶんを縦横まとめて削る
-            double gripLimit = spec.tireFriction() * contact.gripScale(wheel) * tireLoad;
+            double gripLimit = c.gripLimit;
             double magnitude = Math.hypot(longitudinalForce, lateralForce);
             if (magnitude > gripLimit) {
                 // 縦も横も剛性×荷重の直線なので、magnitude / gripLimit は
@@ -1198,6 +1131,189 @@ public final class CarPhysics {
         }
 
         return new TireForces(longitudinal, lateral, yawMoment);
+    }
+
+    /**
+     * 1 輪の、この刻みでの接地の条件。タイヤの力と、差動制限の見積もりの両方が使う。
+     * 車輪の回転を進める前の値なので、どの輪から処理しても同じになる。
+     */
+    private static final class WheelContact {
+        double forwardOffset;
+        double rightOffset;
+        double cos;
+        double sin;
+        double rollingSpeed;
+        double slidingSpeed;
+        double slipReference;
+        double lateralForce;
+        double longitudinalStiffness;
+        double gripLimit;
+        double inertia;
+        double brakeTorque;
+    }
+
+    /** 接地の条件を揃える。浮いている輪は null。 */
+    private static WheelContact wheelContact(CarSpec spec, CarState state, GroundContact contact,
+                                             CarInput input, Wheel wheel, double brakeForce, double dt) {
+        int index = wheel.ordinal();
+        double load = state.wheelLoad[index];
+        if (load <= 0.0) {
+            return null;
+        }
+        double forwardOffset = spec.wheelForwardOffset(wheel);
+        double rightOffset = spec.wheelRightOffset(wheel);
+
+        // 車輪の位置での速度。車体の回転ぶんが乗るので、前輪と後輪でずれる
+        double wheelForward = state.forwardSpeed - rightOffset * state.yawRate;
+        double wheelRight = state.lateralSpeed + forwardOffset * state.yawRate;
+
+        // 速度をタイヤ自身の向きへ回してから測る。こうしておくと、
+        // 後退時にタイヤが「前進している」と誤認して力の向きが反転するのを避けられる
+        double steer = state.wheelSteerAngle[index];
+        double cos = Math.cos(steer);
+        double sin = Math.sin(steer);
+        double rollingSpeed = wheelForward * cos + wheelRight * sin;
+        double slidingSpeed = -wheelForward * sin + wheelRight * cos;
+
+        // 縦横どちらの滑りも、速度が 0 に近づくと角度・比が跳ね上がる。
+        // 分母に下限を入れて正則化する（これを怠ると、停止寸前にスリップ角が 90 度へ飛んで
+        // 横力が摩擦円を食い潰し、発進もバックもできない車になる）
+        double referenceSpeed = Math.max(Math.abs(rollingSpeed), SLIP_REFERENCE_SPEED);
+
+        // 縦の滑り率だけは、転がり方向の速度ではなく<b>接地面が路面を擦る速さそのもの</b>で
+        // 正規化する。転がり方向で割ると、車体が横を向くほど分母が cos(スリップ角) で
+        // 痩せていき、同じ空転量が<b>実際より大きな滑り率</b>として出る。すると
+        // 角速度の上限（clampAngularVelocity）が一緒に縮んで駆動輪が回れなくなり、
+        // ギア比で直結しているエンジンまで引きずり下ろされる——
+        // <b>深く横を向くほどエンジンの回転が落ちる</b>という形で出た（easy_drift・
+        // TCS 切・3 速 25m/s で、スリップ角 60 度まで 6976rpm を保つのに 75 度で 3360rpm）。
+        // 総速度で割れば分母は速度そのものなので痩せず、実測で 6984rpm と平らになる。
+        // <b>グリップ走行では slidingSpeed ≈ 0 なので referenceSpeed と一致する</b>ため、
+        // 0-100・最高速・制動距離・最大横 G・舵の立ち上がりはいずれも変わらない（実測で一致）。
+        double slipReference = Math.max(Math.hypot(rollingSpeed, slidingSpeed),
+                SLIP_REFERENCE_SPEED);
+
+        // 横: スリップ角に比例して立ち上がる
+        double slipAngle = Math.atan2(slidingSpeed, referenceSpeed);
+        // タイヤが力に変える荷重。荷重感度のぶん、重い輪ほど割り引かれる。
+        // 転がり抵抗と摩擦の仕事率は実際の荷重のまま
+        double tireLoad = spec.tireLoadFactor(wheel, load);
+        double corneringStiffness = spec.corneringStiffness() * tireLoad;
+        double lateralForce = -corneringStiffness * slipAngle;
+
+        // 縦: まず車輪の回転をグリップしている前提で進め、滑り率を求める
+        double longitudinalStiffness = spec.longitudinalStiffness() * tireLoad;
+        double inertia = effectiveWheelInertia(spec, state, wheel);
+        // 制動力はブレーキ配分、転がり抵抗は接地荷重の比で分ける。
+        // 荷重に比例させておくと、浮いている輪に転がり抵抗が掛からないのが自動で成り立ち、
+        // 片輪だけ砂に落ちたときの左右差がそのままヨーモーメントになる
+        double wheelBrakeForce = brakeForce * spec.brakeShare(wheel) * state.brakeRelease[index]
+                + rollingResistanceForce(spec, contact, wheel, load)
+                + handbrakeForce(spec, input, wheel);
+        double brakeTorque = brakeTorque(spec, state, wheel, dt, inertia, wheelBrakeForce);
+
+
+        WheelContact c = new WheelContact();
+        c.forwardOffset = forwardOffset;
+        c.rightOffset = rightOffset;
+        c.cos = cos;
+        c.sin = sin;
+        c.rollingSpeed = rollingSpeed;
+        c.slidingSpeed = slidingSpeed;
+        c.slipReference = slipReference;
+        c.lateralForce = lateralForce;
+        c.longitudinalStiffness = longitudinalStiffness;
+        c.gripLimit = spec.tireFriction() * contact.gripScale(wheel) * tireLoad;
+        c.inertia = inertia;
+        c.brakeTorque = brakeTorque;
+        return c;
+    }
+
+    /**
+     * 機械式の差動制限（クラッチ式 LSD）。左右の駆動輪のトルクをやり取りする。
+     *
+     * <p>そのままだと左右へ等トルクに配れるだけで、これは<b>オープンデフ</b>。コーナーで
+     * 内輪の荷重が抜けると、その輪が空転してしまい外輪へ駆動力を渡せない。</p>
+     *
+     * <p><b>摩擦として解く。</b>クラッチは容量に届くまでは<b>滑らずに締結</b>し、左右を同じ回転に
+     * 縛る——そのために要るぶんだけトルクを移す。容量を超えたら滑り、容量ぶんを速い側から遅い側へ移す。
+     * 容量はイニシャルトルク（予圧）＋軸のトルクに比例する分（カム式）で、アクセルを戻したときの効きは
+     * {@code diffCoastRatio} で変えられる（0 で 1way、0.5 で 1.5way、1 で 2way）。</p>
+     *
+     * <p>以前は回転差に比例して移していた（1rad/s あたり 40N·m）。旋回中の左右の回転差は
+     * 20m/s・半径 60m でも 1.3rad/s しかないので、<b>普段の走りではロック率も予圧も 1way/2way も
+     * 効いていなかった</b>（ロック率 0.5 と「1.0＋予圧 150」の挙動が小数まで一致した）。</p>
+     *
+     * <p><b>締結に要るトルクは、タイヤの反力込みで解くこと。</b>車輪の縦力は陰的に解いているので
+     * （{@link #advanceGrippingWheel}）、次の角速度は加えたトルクに対して {@code ω' = A + B·τ} と線形になる。
+     * 左右で {@code ω'} が揃う移し量は {@code (A_左 − A_右)/(B_左 + B_右)}。慣性だけで見積もると、
+     * 路面が押し返すぶんを知らないので大きく外れる（クラッチで踏んだのと同じ地雷）。</p>
+     *
+     * <p>移すだけなので軸の合計トルクは変わらない。</p>
+     */
+    private static void applyDifferential(CarSpec spec, CarState state, WheelContact[] contacts, double dt) {
+        lockAxle(spec, state, contacts, dt, Wheel.FRONT_LEFT, Wheel.FRONT_RIGHT);
+        lockAxle(spec, state, contacts, dt, Wheel.REAR_LEFT, Wheel.REAR_RIGHT);
+    }
+
+    private static void lockAxle(CarSpec spec, CarState state, WheelContact[] contacts, double dt,
+                                 Wheel left, Wheel right) {
+        // 駆動していない軸にはデフが無い。左右の車輪は完全に独立
+        if (spec.driveShare(left) <= 0.0) {
+            return;
+        }
+        int leftIndex = left.ordinal();
+        int rightIndex = right.ordinal();
+
+        double axleTorque = state.wheelDriveTorque[leftIndex] + state.wheelDriveTorque[rightIndex];
+        double ratio = axleTorque < 0.0
+                ? spec.diffLockRatio() * spec.diffCoastRatio()
+                : spec.diffLockRatio();
+        double capacity = spec.diffPreload() + ratio * Math.abs(axleTorque);
+        if (capacity <= 0.0) {
+            return;
+        }
+
+        double[] leftResponse = wheelResponse(spec, state, contacts[leftIndex], left, dt);
+        double[] rightResponse = wheelResponse(spec, state, contacts[rightIndex], right, dt);
+        // 左から右へ transfer だけ移すと、ω'左 = A左 − B左·transfer、ω'右 = A右 + B右·transfer
+        double lockingTransfer = (leftResponse[0] - rightResponse[0]) / (leftResponse[1] + rightResponse[1]);
+        double transfer = Math.max(-capacity, Math.min(capacity, lockingTransfer));
+
+        state.wheelDriveTorque[leftIndex] -= transfer;
+        state.wheelDriveTorque[rightIndex] += transfer;
+    }
+
+    /**
+     * 車輪に掛かる駆動トルクを τ だけ足したときの次の角速度を {@code A + B·τ} で表した {A, B}。
+     *
+     * <p>グリップしていれば縦力が陰的に効くので B は小さく（路面が押し返す）、
+     * 摩擦円を超えて滑っていれば縦力は一定なので {@code B = dt/I}。浮いている輪も {@code dt/I}。
+     * 角速度の上限（滑り率・レブ）は入れていない。外れたぶんは次の刻みで解き直される。</p>
+     */
+    private static double[] wheelResponse(CarSpec spec, CarState state, WheelContact c, Wheel wheel, double dt) {
+        int index = wheel.ordinal();
+        double omega = state.wheelAngularVelocity[index];
+        double drive = state.wheelDriveTorque[index];
+        if (c == null) {
+            double inertia = effectiveWheelInertia(spec, state, wheel);
+            return new double[]{omega + dt / inertia * drive, dt / inertia};
+        }
+        double radius = spec.wheelRadius();
+        double implicitTerm = dt * c.longitudinalStiffness * radius * radius / (c.inertia * c.slipReference);
+        double gripping = (omega + dt / c.inertia
+                * (drive + c.brakeTorque + c.longitudinalStiffness * radius * c.rollingSpeed / c.slipReference))
+                / (1.0 + implicitTerm);
+        double slipRatio = clampSlipRatio((gripping * radius - c.rollingSpeed) / c.slipReference);
+        double longitudinalForce = c.longitudinalStiffness * slipRatio;
+        if (Math.hypot(longitudinalForce, c.lateralForce) <= c.gripLimit) {
+            return new double[]{gripping, dt / c.inertia / (1.0 + implicitTerm)};
+        }
+        // 滑っている。路面が返す縦力は摩擦円の上限でほぼ一定
+        double saturated = Math.signum(longitudinalForce)
+                * Math.sqrt(Math.max(0.0, c.gripLimit * c.gripLimit - c.lateralForce * c.lateralForce));
+        double sliding = omega + dt / c.inertia * (drive + c.brakeTorque - saturated * radius);
+        return new double[]{sliding, dt / c.inertia};
     }
 
     /** 接地していない輪を、駆動トルクとブレーキだけで回す。 */
@@ -1326,10 +1442,10 @@ public final class CarPhysics {
         }
         if (input.throttle()) {
             // 後退中の W はブレーキ扱い。アクセルの踏み込み量をそのまま踏力に使う
-            return state.forwardSpeed < -spec.stopThreshold() ? full * state.throttle : 0.0;
+            return state.forwardSpeed < -STOP_THRESHOLD ? full * state.throttle : 0.0;
         }
         if (input.brake()) {
-            return state.forwardSpeed > spec.stopThreshold() ? full * state.brake : 0.0;
+            return state.forwardSpeed > STOP_THRESHOLD ? full * state.brake : 0.0;
         }
         return 0.0;
     }
@@ -1452,7 +1568,7 @@ public final class CarPhysics {
      * <p>効くのは 2 つそろったときだけ:</p>
      *
      * <ul>
-     *   <li><b>止まっている</b>（前後・横の合成速度が {@code stopThreshold} 以下）。
+     *   <li><b>止まっている</b>（前後・横の合成速度が {@link #STOP_THRESHOLD} 以下）。
      *       転がっている最中は自由に転がってよい——事故の見え方には手を入れず、
      *       <b>収拾がつかなくなったところだけ収める</b></li>
      *   <li><b>大きく傾いている</b>（{@link #TUMBLE_START} から効きはじめ
@@ -1469,7 +1585,7 @@ public final class CarPhysics {
      */
     private static void dampTumbling(CarSpec spec, CarState state, double dt) {
         // 止まっているときだけ。転がっている最中は勢いを削らない
-        if (Math.hypot(state.forwardSpeed, state.lateralSpeed) > spec.stopThreshold()) {
+        if (Math.hypot(state.forwardSpeed, state.lateralSpeed) > STOP_THRESHOLD) {
             return;
         }
         // 車体の上向きと世界の上向きのなす角。水平で 0、裏返しで π
@@ -1609,7 +1725,9 @@ public final class CarPhysics {
                         <= spec.rollingResistance() * averageRollingScale(state, contact) * dt) {
             state.forwardSpeed = 0.0;
         }
-        state.forwardSpeed = Math.max(-spec.maxReverseSpeed(), Math.min(spec.maxSpeed(), state.forwardSpeed));
+        // 前進も後退も、レブまで回しきった速度が上限（エンジンが回れる以上には進めない）。
+        // 実際の最高速は抵抗と釣り合う速度で決まり、ふつうはここまで届かない
+        state.forwardSpeed = Math.max(-spec.maxReverseSpeed(), Math.min(spec.topGearSpeed(), state.forwardSpeed));
     }
 
     /** 接地荷重で重み付けした転がり抵抗の倍率。停止しきい値に使う。 */
@@ -1644,7 +1762,7 @@ public final class CarPhysics {
      */
     private static void blendToKinematicAtLowSpeed(CarSpec spec, CarState state, double dt) {
         double speed = Math.hypot(state.forwardSpeed, state.lateralSpeed);
-        double blend = Math.min(1.0, speed / spec.lowSpeedBlendSpeed());
+        double blend = Math.min(1.0, speed / LOW_SPEED_BLEND_SPEED);
         if (blend >= 1.0) {
             return;
         }

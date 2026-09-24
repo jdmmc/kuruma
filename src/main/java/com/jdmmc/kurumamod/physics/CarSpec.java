@@ -47,14 +47,11 @@ package com.jdmmc.kurumamod.physics;
  * @param corneringStiffness   コーナリングパワー係数 [1/rad]。接地荷重に掛けて N/rad になる
  * @param longitudinalStiffness 縦方向のすべり剛性 [1/-]。接地荷重に掛けて滑り率 1 あたりの N になる
  * @param driveBias            駆動力の後輪配分。0 で前輪駆動、1 で後輪駆動
- * @param slipReferenceSpeed   滑り率を求めるときの分母の下限 [m/s]。低速で発散させないための下駄
- * @param rearCorneringBias    後輪のコーナリングパワー倍率。1 より大きいほどアンダーステア寄り
  * @param tireFriction         タイヤの摩擦係数。接地荷重に掛けたものがグリップの上限。
  *                             調整画面では {@link #REFERENCE_FRICTION} を 1.00 とした相対値で出す
  * @param tireFalloff          ピークを越えて滑ったときに失うグリップの割合。0 で落ちない（ピークで頭打ち）
  * @param tireLoadSensitivity  タイヤの荷重感度。荷重を増やしてもグリップが比例して増えない度合い。
  *                             0 で比例（荷重移動がバランスに効かない）。{@link #tireLoadFactor} を参照
- * @param lowSpeedBlendSpeed   この速度以下では運動学モデルへ寄せる [m/s]
  * @param steerGripMargin      切れ角上限に対する余裕。1 を超えるとグリップを超えて切れる（＝滑らせられる）
  * @param visualSlipLimit      <b>見た目だけ</b>の、進行方向に対するタイヤ角の上限 [rad]。0 で無効。物理は一切読まない
  * @param maxSteerAngle        前輪の最大切れ角 [rad]
@@ -65,7 +62,7 @@ package com.jdmmc.kurumamod.physics;
  * @param pedalReleaseSeconds  アクセル／ブレーキを戻しきるまでの時間 [s]
  * @param peakTorque           最大トルク [N*m]
  * @param peakTorqueRpm        最大トルクが出る回転数 [rpm]
- * @param torqueFalloff        最大トルク回転数から離れたときの落ち方。大きいほど尖った特性
+ * @param peakPowerRpm         最高出力が出る回転数 [rpm]。最大トルク回転数との比でトルク曲線の形が決まる
  * @param idleRpm              アイドル回転数 [rpm]。停止中でもここまでは回っている
  * @param redlineRpm           レブリミット [rpm]
  * @param engineBrakeTorque    アクセルを戻したときのエンジンブレーキ（レブリミット時） [N*m]
@@ -80,12 +77,9 @@ package com.jdmmc.kurumamod.physics;
  * @param diffPreload          差動制限のイニシャルトルク [N*m]。無入力でも効く分
  * @param diffLockRatio        駆動トルクのうち差動制限に回る割合。0 でオープンデフ
  * @param diffCoastRatio       アクセルを戻したときの効きの倍率。0 で 1way、0.5 で 1.5way、1 で 2way
- * @param diffLockingRate      左右の回転差 1rad/s あたりの伝達トルク [N*m]
  * @param manualTransmission   0 でオートマ、1 でマニュアル
- * @param maxSpeed             前進の最高速度 [m/s]
  * @param rollingResistance    転がり抵抗による減速度 [m/s^2]
  * @param dragCoefficient      空気抵抗の係数（速度の 2 乗に比例する減速度を作る）
- * @param stopThreshold        これ以下の速さは「停止している」とみなす閾値 [m/s]
  */
 public record CarSpec(
         double wheelBase,
@@ -108,12 +102,9 @@ public record CarSpec(
         double corneringStiffness,
         double longitudinalStiffness,
         double driveBias,
-        double slipReferenceSpeed,
-        double rearCorneringBias,
         double tireFriction,
         double tireFalloff,
         double tireLoadSensitivity,
-        double lowSpeedBlendSpeed,
         double steerGripMargin,
         double visualSlipLimit,
         double maxSteerAngle,
@@ -124,7 +115,7 @@ public record CarSpec(
         double pedalReleaseSeconds,
         double peakTorque,
         double peakTorqueRpm,
-        double torqueFalloff,
+        double peakPowerRpm,
         double idleRpm,
         double redlineRpm,
         double engineBrakeTorque,
@@ -139,12 +130,9 @@ public record CarSpec(
         double diffPreload,
         double diffLockRatio,
         double diffCoastRatio,
-        double diffLockingRate,
         double manualTransmission,
-        double maxSpeed,
         double rollingResistance,
-        double dragCoefficient,
-        double stopThreshold) {
+        double dragCoefficient) {
 
     /**
      * 基準の摩擦係数。<b>調整画面の「グリップ」1.00 がこの値</b>で、既定の車もここに置いてある。
@@ -210,8 +198,24 @@ public record CarSpec(
     /** ファイナルをタイヤ半径 1m あたりでいくつにするか。ギアリングに効くのは 総減速比÷半径。 */
     private static final double FINAL_DRIVE_PER_RADIUS = 4.92 / 0.45;
 
-    /** シフトアップ回転数はレブリミットの何割か。 */
-    private static final double UPSHIFT_FRACTION = 0.886;
+    /**
+     * シフトアップ回転数の上限はレブリミットの何割か。
+     *
+     * <p>レブちょうどにはできない。リミッターでトルクが切れるので、回転が<b>そこへ届かず</b>
+     * いつまでも上がらない。1 速では 1 ティックの 4 分の 1 で 40rpm ほど上がるので、
+     * それより十分大きく空ける。</p>
+     */
+    private static final double UPSHIFT_CEILING = 0.98;
+
+    /** 変速点を探す刻み [rpm]。見つけた区間の中は直線で補う。 */
+    private static final double UPSHIFT_SEARCH_STEP = 25.0;
+
+    /** 落ち方で形を持っていた頃の既定。何も書かれていない古いデータはこの形で読む。 */
+    public static final double LEGACY_TORQUE_FALLOFF = 0.45;
+
+    /** 落ち方の範囲。以前のスライダーの範囲と同じ。 */
+    private static final double MIN_TORQUE_FALLOFF = 0.1;
+    private static final double MAX_TORQUE_FALLOFF = 0.9;
 
     /** シフトダウン回転数は「シフトアップ後に落ちる回転数」の何割か。1 を超えるとハンチングする。 */
     private static final double DOWNSHIFT_FRACTION = 0.60;
@@ -304,7 +308,57 @@ public record CarSpec(
      */
     public double engineTorque(double rpm) {
         double offset = (rpm - peakTorqueRpm) / peakTorqueRpm;
-        return Math.max(0.0, peakTorque * (1.0 - torqueFalloff * offset * offset));
+        return Math.max(0.0, peakTorque * (1.0 - torqueFalloff() * offset * offset));
+    }
+
+    /**
+     * トルク曲線の落ち方。<b>最大トルク回転数と最高出力回転数の比から決まる。</b>
+     *
+     * <p>諸元表に載っているのは「最大トルク ○N·m／○rpm・最高出力 ○ps／○rpm」なので、
+     * 形はこの 2 つの回転数で指定する。放物線 {@code T = T0·(1 − f·(x−1)²)}（x は最大トルク
+     * 回転数との比）の出力 {@code x·T} が最大になる x を解くと {@code f = 1/((x−1)(3x−1))}。</p>
+     *
+     * <p>以前の範囲（0.1〜0.9）で頭打ちにする。尖らせすぎると<b>アイドルでトルクが 0 になって
+     * 発進できない</b>（最大トルク 8000rpm・落ち方 2.7 ならアイドル 800rpm で 0）。</p>
+     */
+    public double torqueFalloff() {
+        double ratio = peakPowerRpm / peakTorqueRpm;
+        if (ratio <= 1.0) {
+            return MAX_TORQUE_FALLOFF;
+        }
+        double falloff = 1.0 / ((ratio - 1.0) * (3.0 * ratio - 1.0));
+        return Math.max(MIN_TORQUE_FALLOFF, Math.min(MAX_TORQUE_FALLOFF, falloff));
+    }
+
+    /**
+     * 落ち方から最高出力回転数を求める（{@link #torqueFalloff()} の逆）。
+     *
+     * <p>形を落ち方で持っていた頃のデータを読むためにある。{@code torque_falloff} しか
+     * 書かれていないプリセットやカーパック、何も書かれていないものは
+     * {@link #LEGACY_TORQUE_FALLOFF} で、ここを通して読み替える。</p>
+     */
+    public static double peakPowerRpmFor(double peakTorqueRpm, double torqueFalloff) {
+        double falloff = Math.max(1e-6, torqueFalloff);
+        return peakTorqueRpm * (2.0 + Math.sqrt(1.0 + 3.0 / falloff)) / 3.0;
+    }
+
+    /**
+     * 実際に最高出力が出る回転数 [rpm] と、その出力 [W]。
+     *
+     * <p>{@link #peakPowerRpm} と違って、落ち方の頭打ちとレブリミットを反映した値。
+     * レブより上に置いた最高出力は回しきれないので出ない。</p>
+     */
+    public double[] actualPeakPower() {
+        double bestRpm = idleRpm;
+        double best = 0.0;
+        for (double rpm = idleRpm; rpm <= redlineRpm; rpm += 10.0) {
+            double power = engineTorque(rpm) * rpm * 2.0 * Math.PI / 60.0;
+            if (power > best) {
+                best = power;
+                bestRpm = rpm;
+            }
+        }
+        return new double[]{bestRpm, best};
     }
 
     /**
@@ -686,9 +740,43 @@ public record CarSpec(
         return Math.pow(topGearRatio / firstGearRatio, 1.0 / (gears - 1));
     }
 
-    /** 自動でシフトアップする回転数 [rpm]。レブリミットの手前に置く。 */
+    /**
+     * 自動でシフトアップする回転数 [rpm]。<b>次の段へ上げたほうが駆動力が大きくなる回転数</b>。
+     *
+     * <p>車輪の回転が同じなら、段 n の駆動力は {@code T(r)·R}、次の段は
+     * {@code T(r·s)·R·s}（s は段の比）。前者が後者を下回った瞬間が上げどき
+     * （Balkwill『Performance Vehicle Dynamics』の駆動力の包絡線）。
+     * 最大トルク回転数より下では必ず今の段のほうが強いので、そこから探す。</p>
+     *
+     * <p>以前は一律にレブの 88.6% だったが、既定の曲線では<b>レブまで回しても今の段のほうが
+     * 強い</b>（7000rpm で 280 対 233N·m 相当）ので、上げるたびに駆動力を捨てていた。
+     * 見つからなければレブの手前（{@link #UPSHIFT_CEILING}）で上げる。</p>
+     */
     public double upshiftRpm() {
-        return redlineRpm * UPSHIFT_FRACTION;
+        double ceiling = redlineRpm * UPSHIFT_CEILING;
+        if (forwardGears() <= 1) {
+            return ceiling;
+        }
+        double step = gearStep();
+        double previousRpm = Math.min(peakTorqueRpm, ceiling);
+        double previousMargin = upshiftMargin(previousRpm, step);
+        for (double rpm = previousRpm + UPSHIFT_SEARCH_STEP; rpm <= ceiling; rpm += UPSHIFT_SEARCH_STEP) {
+            double margin = upshiftMargin(rpm, step);
+            if (margin < 0.0) {
+                // 符号が変わった区間の中を直線で補う
+                double t = previousMargin / (previousMargin - margin);
+                return previousRpm + t * (rpm - previousRpm);
+            }
+            previousRpm = rpm;
+            previousMargin = margin;
+        }
+        return ceiling;
+    }
+
+    /** 今の段の駆動力から、次の段へ上げたときの駆動力を引いたもの（トルク換算）。 */
+    private double upshiftMargin(double rpm, double step) {
+        // 上げた先の回転がアイドルを割るなら、アイドルで下支えされる
+        return engineTorque(rpm) - step * engineTorque(Math.max(idleRpm, rpm * step));
     }
 
     /**
@@ -705,9 +793,9 @@ public record CarSpec(
     /**
      * 最高段でレブリミットまで回しきったときの速度 [m/s]。
      *
-     * <p><b>この車が構造上出せる速度</b>。{@code maxSpeed} は暴走を止めるための上限で
-     * 実際には届かず、実際の最高速は抵抗と釣り合う速度で決まるので、
-     * 「どれだけ出しているか」を割合で表したいときの分母にはこちらを使う。</p>
+     * <p><b>この車が構造上出せる速度</b>。駆動輪はレブリミットで回転を抑えているので、
+     * これより速くは走れない（{@code CarPhysics} が前進の上限にも使う）。実際の最高速は
+     * 抵抗と釣り合う速度で決まり、ふつうはこれより下。</p>
      */
     public double topGearSpeed() {
         double ratio = totalRatio(forwardGears());
@@ -715,6 +803,98 @@ public record CarSpec(
             return 0.0;
         }
         return redlineRpm * 2.0 * Math.PI / 60.0 / ratio * wheelRadius;
+    }
+
+    /**
+     * グリップで決まる最大の前後加速度 [m/s^2]。前後の荷重移動を入れた値。
+     *
+     * <p>加速すると荷重が {@code m·a·h/L} だけ後ろへ移る。駆動輪 i が受け持つ駆動力
+     * {@code F·d_i} がその輪のグリップ {@code μ·W_i} に届いたところが上限なので、
+     * 後軸は {@code μg(1−配分)/(d_r − μh/L)}、前軸は {@code μg·配分/(d_f + μh/L)}。
+     * 後輪駆動は移った荷重でむしろ得をし、前輪駆動は損をする。</p>
+     *
+     * <p>荷重感度・ロール・路面は入れていない。舗装路を直進するときの目安。</p>
+     */
+    public double tractionLimitAccel() {
+        double mu = tireFriction;
+        double transfer = mu * cgHeight() / wheelBase;
+        double rearShare = driveBias;
+        double frontShare = 1.0 - driveBias;
+        double limit = mu * CarPhysics.GRAVITY; // 全輪を使いきってもこれ以上は出ない
+        if (rearShare > transfer) {
+            limit = Math.min(limit, mu * CarPhysics.GRAVITY * (1.0 - weightBias) / (rearShare - transfer));
+        }
+        if (frontShare > 0.0) {
+            limit = Math.min(limit, mu * CarPhysics.GRAVITY * weightBias / (frontShare + transfer));
+        }
+        return limit;
+    }
+
+    /**
+     * その速度でエンジンが出せる最大の加速度 [m/s^2]。いちばん速く加速できる段で見た値。グリップは入れない。
+     *
+     * <p><b>回転部分の慣性を見かけの質量として足すこと。</b>エンジンの慣性は総減速比の 2 乗で
+     * 車輪側へ効くので（{@code CarPhysics#effectiveWheelInertia} と同じ換算）、既定の 1 速では
+     * {@code 0.25 × 20.7² / 0.45² ≈ 530kg} も車が重くなったのと同じになる。入れないと、
+     * 200N·m の車で実測 0.42G のところを 0.65G と見積もった。</p>
+     *
+     * <p>転がり抵抗と空気抵抗も引いてある（実際に出る加速度と比べられるように）。
+     * レブを超える段は使えない。回転がアイドルを割る速度ではアイドルで下支えされる。</p>
+     */
+    public double engineLimitAccel(double speed) {
+        double best = 0.0;
+        for (int gear = 1; gear <= forwardGears(); gear++) {
+            double ratio = totalRatio(gear);
+            double rpm = Math.abs(speed) / wheelRadius * ratio * 60.0 / (2.0 * Math.PI);
+            if (rpm >= redlineRpm) {
+                continue;
+            }
+            double force = engineTorque(Math.max(idleRpm, rpm)) * ratio * drivetrainEfficiency / wheelRadius;
+            double rotating = (Wheel.VALUES.length * wheelInertia() + engineInertia * ratio * ratio)
+                    / square(wheelRadius);
+            double accel = (force - mass * resistanceAccel(speed)) / (mass + rotating);
+            best = Math.max(best, accel);
+        }
+        return best;
+    }
+
+    /**
+     * その速度で、エンジンがグリップをどれだけ上回っているか [m/s^2]。正ならグリップ律速。
+     *
+     * <p>エンジン側は抵抗を引いた実際の加速度なので、グリップ側からも同じだけ引いて比べる。</p>
+     */
+    public double tractionMargin(double speed) {
+        return engineLimitAccel(speed) - (tractionLimitAccel() - resistanceAccel(speed));
+    }
+
+    /** 転がり抵抗と空気抵抗による減速度 [m/s^2]（舗装路・直進）。 */
+    private double resistanceAccel(double speed) {
+        return rollingResistance + dragCoefficient * speed * speed;
+    }
+
+    /**
+     * 駆動輪が空転しうる速度の上限 [m/s]。0 なら<b>どの速度でもエンジン律速</b>。
+     *
+     * <p><b>0km/h から続く区間とは限らない。</b>発進の瞬間はアイドルのトルクしか無いうえ
+     * 1 速の慣性が重いので、少し走ってから駆動力のほうが勝つことがある。</p>
+     *
+     * <p>ここより遅い間はエンジンを強くしても TCS が絞るか空転するだけで、
+     * ここより速い間はグリップを上げても速くならない。どちらを触るべきかがこれで分かる。</p>
+     *
+     * <p>四駆は例外がある。駆動の配分が固定なので、先に空転するのは片方の軸だけで、
+     * TCS を切れば<b>もう片方の軸がまだ押せる</b>（実測で既定の四駆 550N·m は 0.99G まで出る）。
+     * ここで言う上限は「どこかの輪が空転しはじめる」ところ。</p>
+     */
+    public double tractionLimitedSpeed() {
+        double grip = tractionLimitAccel();
+        double top = topGearSpeed();
+        double limited = 0.0;
+        for (double speed = 0.0; speed <= top; speed += 0.25) {
+            if (tractionMargin(speed) >= 0.0) {
+                limited = speed;
+            }
+        }
+        return limited;
     }
 
     /**
@@ -781,16 +961,9 @@ public record CarSpec(
         // 縦は横よりグリップの立ち上がりが速いのが実タイヤの性質
         private double longitudinalStiffness = 18.0;
         private double driveBias = 0.5;   // 駆動配分。1.0 で後輪駆動、0 で前輪駆動、0.5 で四輪駆動
-        private double slipReferenceSpeed = 2.0;
-        // 1.0 ＝ 前後とも同じタイヤ。弱アンダーは前 56：後 44 の荷重配分と
-        // 前寄りのスタビ配分が物理的に作るので、タイヤ側でごまかす必要がなくなった。
-        // 実測でタックイン 7.4 度・制動＋舵 18.7 度と、スピン判定の 45 度には遠い。
-        // 落ち着かせたい人は調整画面で上げられる（1.25 が以前の既定）
-        private double rearCorneringBias = 1.0;
         private double tireFriction = REFERENCE_FRICTION;
         private double tireFalloff = 0.0;
         private double tireLoadSensitivity = 0.15; // 0.30 では四駆の制動＋フルロックがスピンする
-        private double lowSpeedBlendSpeed = 3.0;
         // グリップを使いきる定常旋回に必要な切れ角に掛ける倍率。1.0 は「限界ちょうどの
         // 角度までしか切らせない」で、教科書どおりの位置。
         // 30m/s で舵を入れてから横 G が 90% に立つまで、1.0 で 0.70 秒・1.1 で 0.61 秒・
@@ -825,7 +998,8 @@ public record CarSpec(
         // 落ちるので、そのままでは直進でも後輪が空転しきる
         private double peakTorque = 350.0;
         private double peakTorqueRpm = 4200.0;
-        private double torqueFalloff = 0.45;
+        // 最大トルク回転数の 1.59 倍（落ち方 0.45 の放物線）。書かなかったデータもこの比で読む
+        private double peakPowerRpm = peakPowerRpmFor(4200.0, LEGACY_TORQUE_FALLOFF);
         private double idleRpm = 800.0;
         private double redlineRpm = 7000.0;
         private double engineBrakeTorque = 35.0;
@@ -849,20 +1023,13 @@ public record CarSpec(
         private double diffPreload = 0.0;
         private double diffLockRatio = 0.0;
         private double diffCoastRatio = 0.5; // 1.5way
-        private double diffLockingRate = 40.0;
         // 0 でオートマ、1 でマニュアル
         private double manualTransmission = 0.0;
-        // 最高速はトルク曲線と抵抗から自然に決まる。これは暴走を止めるための上限。
-        // 抵抗と釣り合う速度（既定の諸元で 255km/h）より先に効いてしまうと、
-        // トルクや空気抵抗を変えても最高速がここで頭打ちになって動かなくなる。
-        // トルクを 220 から 350N·m へ上げたとき、250km/h のままだと実際に張り付いた
-        private double maxSpeed = 83.3; // 約 300km/h
         // 実車の転がり抵抗はおよそ 0.012G、空気抵抗は 100km/h で 0.03G 程度。
         // 抽象モデル時代の値（1.2 と 0.0035）は 10 倍ほど過大で、
         // 実トルクを入れると最高速に届かなくなる
         private double rollingResistance = 0.15;
         private double dragCoefficient = 0.0004;
-        private double stopThreshold = 0.3;
 
         private Builder() {
         }
@@ -888,12 +1055,9 @@ public record CarSpec(
             corneringStiffness = spec.corneringStiffness;
             longitudinalStiffness = spec.longitudinalStiffness;
             driveBias = spec.driveBias;
-            slipReferenceSpeed = spec.slipReferenceSpeed;
-            rearCorneringBias = spec.rearCorneringBias;
             tireFriction = spec.tireFriction;
             tireFalloff = spec.tireFalloff;
             tireLoadSensitivity = spec.tireLoadSensitivity;
-            lowSpeedBlendSpeed = spec.lowSpeedBlendSpeed;
             steerGripMargin = spec.steerGripMargin;
             visualSlipLimit = spec.visualSlipLimit;
             maxSteerAngle = spec.maxSteerAngle;
@@ -904,7 +1068,7 @@ public record CarSpec(
             pedalReleaseSeconds = spec.pedalReleaseSeconds;
             peakTorque = spec.peakTorque;
             peakTorqueRpm = spec.peakTorqueRpm;
-            torqueFalloff = spec.torqueFalloff;
+            peakPowerRpm = spec.peakPowerRpm;
             idleRpm = spec.idleRpm;
             redlineRpm = spec.redlineRpm;
             engineBrakeTorque = spec.engineBrakeTorque;
@@ -919,12 +1083,9 @@ public record CarSpec(
             diffPreload = spec.diffPreload;
             diffLockRatio = spec.diffLockRatio;
             diffCoastRatio = spec.diffCoastRatio;
-            diffLockingRate = spec.diffLockingRate;
             manualTransmission = spec.manualTransmission;
-            maxSpeed = spec.maxSpeed;
             rollingResistance = spec.rollingResistance;
             dragCoefficient = spec.dragCoefficient;
-            stopThreshold = spec.stopThreshold;
         }
 
         public Builder wheelBase(double value) {
@@ -1027,15 +1188,7 @@ public record CarSpec(
             return this;
         }
 
-        public Builder slipReferenceSpeed(double value) {
-            slipReferenceSpeed = value;
-            return this;
-        }
 
-        public Builder rearCorneringBias(double value) {
-            rearCorneringBias = value;
-            return this;
-        }
 
         public Builder tireFriction(double value) {
             tireFriction = value;
@@ -1052,10 +1205,6 @@ public record CarSpec(
             return this;
         }
 
-        public Builder lowSpeedBlendSpeed(double value) {
-            lowSpeedBlendSpeed = value;
-            return this;
-        }
 
         public Builder visualSlipLimit(double value) {
             visualSlipLimit = value;
@@ -1113,8 +1262,8 @@ public record CarSpec(
             return this;
         }
 
-        public Builder torqueFalloff(double value) {
-            torqueFalloff = value;
+        public Builder peakPowerRpm(double value) {
+            peakPowerRpm = value;
             return this;
         }
 
@@ -1188,20 +1337,12 @@ public record CarSpec(
             return this;
         }
 
-        public Builder diffLockingRate(double value) {
-            diffLockingRate = value;
-            return this;
-        }
 
         public Builder manualTransmission(double value) {
             manualTransmission = value;
             return this;
         }
 
-        public Builder maxSpeed(double value) {
-            maxSpeed = value;
-            return this;
-        }
 
         public Builder rollingResistance(double value) {
             rollingResistance = value;
@@ -1213,10 +1354,6 @@ public record CarSpec(
             return this;
         }
 
-        public Builder stopThreshold(double value) {
-            stopThreshold = value;
-            return this;
-        }
 
         public CarSpec build() {
             return new CarSpec(
@@ -1226,17 +1363,16 @@ public record CarSpec(
                     ackermann, frontToe, rearToe,
                     frontRollSteer, rearRollSteer, frontComplianceSteer, rearComplianceSteer,
                     corneringStiffness, longitudinalStiffness,
-                    driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction, tireFalloff, tireLoadSensitivity,
-                    lowSpeedBlendSpeed, steerGripMargin, visualSlipLimit,
+                    driveBias, tireFriction, tireFalloff, tireLoadSensitivity,
+                    steerGripMargin, visualSlipLimit,
                     maxSteerAngle, steerRateSeconds, steerReturnSeconds, selfAligning,
                     pedalPressSeconds, pedalReleaseSeconds,
-                    peakTorque, peakTorqueRpm, torqueFalloff, idleRpm, redlineRpm,
+                    peakTorque, peakTorqueRpm, peakPowerRpm, idleRpm, redlineRpm,
                     engineBrakeTorque, engineInertia,
                     gearCount, firstGearRatio, topGearRatio, drivetrainEfficiency, shiftSeconds,
                     tractionControl, abs,
-                    diffPreload, diffLockRatio, diffCoastRatio, diffLockingRate,
-                    manualTransmission, maxSpeed, rollingResistance, dragCoefficient,
-                    stopThreshold);
+                    diffPreload, diffLockRatio, diffCoastRatio,
+                    manualTransmission, rollingResistance, dragCoefficient);
         }
     }
 }

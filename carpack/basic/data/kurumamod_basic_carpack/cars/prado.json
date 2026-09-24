@@ -22,10 +22,10 @@
     "rear_anti_roll": 2600.0,
 
     "_comment_engine": "ディーゼル寄り。低回転で太く、すぐ頭打ちになる。レブが低いので最高段レブでの速度も 187km/h に留まる（既定は 284km/h）",
+    "peak_power_rpm": 3632.5,
     "peak_torque": 420.0,
     "peak_torque_rpm": 2400.0,
     "redline_rpm": 4600.0,
-    "torque_falloff": 0.55,
 
     "_comment_resistance": "箱形なので空気抵抗が大きく、重い足まわりで転がり抵抗も高い",
     "drag": 0.0008,
