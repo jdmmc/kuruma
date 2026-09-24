@@ -5,6 +5,7 @@ import com.jdmmc.kurumamod.physics.Wheel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * 調整画面に並べる項目の一覧。
@@ -14,7 +15,7 @@ import java.util.List;
  * サーバーで解釈がずれる点にだけ注意する（バージョンをまたぐ互換性はまだ考えていない）。</p>
  *
  * <p>載せていないのは、車の性格ではなく数値計算の都合で決まっている値
- * （{@code lowSpeedBlendSpeed}、{@code stopThreshold}）と、<b>他の諸元が決まれば
+ * （{@code CarPhysics} の定数にしてある）と、<b>他の諸元が決まれば
  * 決まってしまう値</b>。後者は {@link CarSpec} 側のメソッドとして導出してある:</p>
  *
  * <table border="1">
@@ -145,8 +146,6 @@ public final class Tunables {
                             .unit(0.01),
                     TunableParameter.linear("cornering_stiffness", 4, 25, "%.1f",
                             CarSpec::corneringStiffness, CarSpec.Builder::corneringStiffness),
-                    TunableParameter.linear("rear_cornering_bias", 0.7, 1.8, "%.2f",
-                            CarSpec::rearCorneringBias, CarSpec.Builder::rearCorneringBias),
                     TunableParameter.linear("longitudinal_stiffness", 5, 40, "%.1f",
                             CarSpec::longitudinalStiffness, CarSpec.Builder::longitudinalStiffness),
                     // 見た目も追従する（CarObjRenderer がこの値でタイヤを拡大する）。
@@ -184,12 +183,14 @@ public final class Tunables {
                             .detail(Tunables::peakPower),
                     TunableParameter.linear("peak_torque_rpm", 1500, 8000, "%.0f",
                             CarSpec::peakTorqueRpm, CarSpec.Builder::peakTorqueRpm),
-                    TunableParameter.linear("torque_falloff", 0.1, 0.9, "%.2f",
-                            CarSpec::torqueFalloff, CarSpec.Builder::torqueFalloff),
+                    // 形は 2 つの回転数で決める（諸元表と同じ書き方）。落ち方はその比から決まる
+                    TunableParameter.linear("peak_power_rpm", 2500, 12000, "%.0f",
+                                    CarSpec::peakPowerRpm, CarSpec.Builder::peakPowerRpm)
+                            .detail(Tunables::actualPeakPower),
                     TunableParameter.linear("idle_rpm", 500, 2000, "%.0f",
                             CarSpec::idleRpm, CarSpec.Builder::idleRpm),
-                    // 変速点もここから決まる（シフトアップはレブの手前、シフトダウンは
-                    // 上げた直後に落ちる回転数より下）
+                    // 変速点もここから決まる（シフトアップは次の段に駆動力で抜かれる回転数か
+                    // レブの手前、シフトダウンは上げた直後に落ちる回転数より下）
                     TunableParameter.linear("redline_rpm", 4000, 12000, "%.0f",
                                     CarSpec::redlineRpm, CarSpec.Builder::redlineRpm)
                             .detail(Tunables::shiftPoints),
@@ -205,7 +206,8 @@ public final class Tunables {
                                     CarSpec::gearCount, CarSpec.Builder::gearCount)
                             .detail(Tunables::shiftPoints),
                     TunableParameter.linear("first_gear", 1.5, 5.0, "%.2f",
-                            CarSpec::firstGearRatio, CarSpec.Builder::firstGearRatio),
+                                    CarSpec::firstGearRatio, CarSpec.Builder::firstGearRatio)
+                            .detail(Tunables::tractionLimit),
                     TunableParameter.linear("top_gear", 0.4, 1.5, "%.2f",
                                     CarSpec::topGearRatio, CarSpec.Builder::topGearRatio)
                             .detail(Tunables::topGearSpeed),
@@ -228,9 +230,7 @@ public final class Tunables {
                             .detail(Tunables::differentialType),
                     TunableParameter.linear("diff_coast_ratio", 0.0, 1.0, "%.2f",
                                     CarSpec::diffCoastRatio, CarSpec.Builder::diffCoastRatio)
-                            .detail(Tunables::differentialWay),
-                    TunableParameter.linear("diff_locking_rate", 0, 200, "%.0f",
-                            CarSpec::diffLockingRate, CarSpec.Builder::diffLockingRate))),
+                            .detail(Tunables::differentialWay))),
 
             new Group("brakes", List.of(
                     // ブレーキの効き・制動配分・サイドブレーキ・バックの最高速は、
@@ -238,9 +238,6 @@ public final class Tunables {
                     TunableParameter.linear("abs", 0.0, 1.0, "%.2f",
                                     CarSpec::abs, CarSpec.Builder::abs)
                             .detail(spec -> spec.abs() <= 0.0 ? "OFF" : "ON"),
-                    TunableParameter.linear("max_speed", 20, 350, "%.0f",
-                                    CarSpec::maxSpeed, CarSpec.Builder::maxSpeed)
-                            .unit(1.0 / 3.6),
                     TunableParameter.linear("rolling_resistance", 0.0, 1.0, "%.2f",
                             CarSpec::rollingResistance, CarSpec.Builder::rollingResistance),
                     TunableParameter.log("drag", 0.0001, 0.005, "%.5f",
@@ -292,11 +289,71 @@ public final class Tunables {
 
     /** 最高出力。トルクの数字だけでは速さが読めないので併記する。 */
     private static String peakPower(CarSpec spec) {
-        double best = 0.0;
-        for (double rpm = spec.idleRpm(); rpm <= spec.redlineRpm(); rpm += 50.0) {
-            best = Math.max(best, spec.engineTorque(rpm) * rpm * 2.0 * Math.PI / 60.0);
+        return String.format("%.0f", spec.actualPeakPower()[1] / 735.5); // 馬力
+    }
+
+    /**
+     * 項目の形を変える前に保存されたデータの読み替え。NBT とプリセット（カーパックを含む）の両方から呼ぶ。
+     *
+     * <p>トルク曲線の形はかつて {@code torque_falloff}（落ち方）で持っていた。いまは
+     * {@code peak_power_rpm} で持つので、<b>書かれていなければ落ち方と最大トルク回転数から換算する</b>。
+     * 落ち方も書かれていなければ当時の既定（0.45）で換算する——{@code peak_torque_rpm} だけ書いた
+     * カーパックが、既定の最高出力回転数（6676rpm）を押し付けられて別の曲線にならないため。</p>
+     *
+     * @param stored 項目名から保存されていた値を引く。無ければ null
+     */
+    static CarSpec migrateLegacy(CarSpec spec, Function<String, Double> stored) {
+        if (stored.apply("peak_power_rpm") != null) {
+            return spec;
         }
-        return String.format("%.0f", best / 735.5); // 馬力
+        Double falloff = stored.apply("torque_falloff");
+        double shape = falloff != null ? falloff : CarSpec.LEGACY_TORQUE_FALLOFF;
+        return spec.toBuilder()
+                .peakPowerRpm(CarSpec.peakPowerRpmFor(spec.peakTorqueRpm(), shape))
+                .build();
+    }
+
+    /**
+     * 実際に最高出力が出る回転数と、そのときの馬力。
+     *
+     * <p>落ち方の頭打ちとレブリミットがあるので、スライダーの値どおりに出るとは限らない。
+     * レブより上に置けば、レブで頭打ちになったことがここで分かる。</p>
+     */
+    private static Object actualPeakPower(CarSpec spec) {
+        double[] peak = spec.actualPeakPower();
+        return detail("peak_power",
+                String.format("%.0f", peak[1] / 735.5),
+                String.format("%.0f", peak[0]),
+                String.format("%.2f", spec.torqueFalloff()));
+    }
+
+    /**
+     * 加速がグリップで頭打ちになるか、エンジンで決まるか。
+     *
+     * <p>グリップ律速の速度域では、トルクを上げても速くならない。エンジン律速なら、
+     * μ を上げても加速は変わらない（曲がって止まるほうが強くなるだけ）。
+     * ギアリングで行き来するので 1 速の行に出す。</p>
+     */
+    private static Object tractionLimit(CarSpec spec) {
+        double grip = spec.tractionLimitAccel() / 9.81;
+        double speed = spec.tractionLimitedSpeed();
+        if (speed >= 0.5) {
+            return detail("traction_limited", String.format("%.0f", speed * 3.6), String.format("%.2f", grip));
+        }
+        // いちばん際どい速度（エンジンがグリップに最も迫るところ）で、同じ速度どうしを比べる
+        double closest = 0.0;
+        double closestMargin = Double.NEGATIVE_INFINITY;
+        for (double v = 0.0; v <= spec.topGearSpeed(); v += 0.5) {
+            double margin = spec.tractionMargin(v);
+            if (margin > closestMargin) {
+                closestMargin = margin;
+                closest = v;
+            }
+        }
+        double engine = spec.engineLimitAccel(closest);
+        return detail("power_limited",
+                String.format("%.2f", engine / 9.81),
+                String.format("%.2f", (engine - closestMargin) / 9.81));
     }
 
     /** 最高段でレブリミットまで回したときの速度。ギアの高さの目安。 */

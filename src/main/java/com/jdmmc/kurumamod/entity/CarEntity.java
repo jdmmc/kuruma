@@ -1257,7 +1257,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             return state.wheelSlipRatio[wheel.ordinal()];
         }
         double rolling = entityData.get(DATA_SPEED);
-        double reference = Math.max(Math.abs(rolling), spec.slipReferenceSpeed());
+        double reference = Math.max(Math.abs(rolling), CarPhysics.SLIP_REFERENCE_SPEED);
         double surfaceSpeed = entityData.get(DATA_WHEEL_SPEED.get(wheel.ordinal())) * spec.wheelRadius();
         return (surfaceSpeed - rolling) / reference;
     }

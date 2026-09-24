@@ -270,7 +270,6 @@ a shorter stroke means stiffer springs and dampers.
 |---|---|---|---|---|
 | `friction` | Grip | — | 1.0 | 0.3 – 1.5 |
 | `cornering_stiffness` | Cornering power | — | 12.0 | 4 – 25 |
-| `rear_cornering_bias` | Rear grip bias (higher = more understeer) | — | 1.0 | 0.7 – 1.8 |
 | `longitudinal_stiffness` | Longitudinal slip stiffness | — | 18.0 | 5 – 40 |
 | `wheel_radius` | Tyre radius | m | 0.45 | 0.25 – 1.10 |
 
@@ -293,7 +292,7 @@ now, so the number on the screen is the mu, but the two part ways if it ever cha
 |---|---|---|---|---|
 | `peak_torque` | Peak torque | N·m | 220 | 60 – 700 |
 | `peak_torque_rpm` | Peak torque rpm | rpm | 4200 | 1500 – 8000 |
-| `torque_falloff` | Torque falloff (higher = peakier) | — | 0.45 | 0.1 – 0.9 |
+| `peak_power_rpm` | Peak power rpm (its ratio to peak torque rpm sets the curve shape) | rpm | 1.59 × peak torque rpm (6676) | 2500 – 12000 |
 | `idle_rpm` | Idle rpm | rpm | 800 | 500 – 2000 |
 | `redline_rpm` | Redline | rpm | 7000 | 4000 – 12000 |
 | `engine_brake` | Engine braking | N·m | 35 | 0 – 120 |
@@ -318,7 +317,6 @@ now, so the number on the screen is the mu, but the two part ways if it ever cha
 | `diff_preload` | Diff preload | N·m | 0 | 0 – 300 |
 | `diff_lock_ratio` | Diff locking ratio | — | 0.0 | 0 – 1 |
 | `diff_coast_ratio` | Diff coast side | — | 0.5 | 0 – 1 |
-| `diff_locking_rate` | Diff sensitivity to speed difference | — | 40 | 0 – 200 |
 
 With `diff_lock_ratio` and `diff_preload` both at 0 it is an open diff. `diff_coast_ratio` is
 1-way at 0, 1.5-way at 0.5, 2-way at 1.
@@ -328,13 +326,11 @@ With `diff_lock_ratio` and `diff_preload` both at 0 it is an open diff. `diff_co
 | Name | Name on the tuning screen | Unit | Default | Range |
 |---|---|---|---|---|
 | `abs` | ABS (0 disables it) | strength | 0.7 | 0 – 1 |
-| `max_speed` | Top speed | **m/s** | 69.4 (= 250 km/h) | 5.56 – 97.2 |
 | `rolling_resistance` | Rolling resistance | — | 0.15 | 0 – 1 |
 | `drag` | Drag coefficient | — | 0.0004 | 0.0001 – 0.005 |
 
-`max_speed` is a runaway guard; **the real top speed comes out of torque versus resistance.**
-Always keep it above the speed where resistance balances thrust — set it lower and the car pins
-to it, and changing torque stops changing the top speed.
+There is no top-speed field. **The real top speed comes out of torque versus resistance**,
+and the car can never go faster than the top gear at the redline.
 
 #### Controls
 

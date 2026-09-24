@@ -83,7 +83,8 @@ public final class CarSpecCodec {
                 parameter.applyInternal(builder, tag.getDouble(parameter.name()));
             }
         }
-        return builder.build();
+        return Tunables.migrateLegacy(builder.build(),
+                name -> tag.contains(name) ? tag.getDouble(name) : null);
     }
 
     // ------------------------------------------------------------------
@@ -119,6 +120,6 @@ public final class CarSpecCodec {
                 parameter.applyInternal(builder, value);
             }
         }
-        return builder.build();
+        return Tunables.migrateLegacy(builder.build(), values::get);
     }
 }
