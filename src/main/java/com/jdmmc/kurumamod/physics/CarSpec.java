@@ -680,9 +680,10 @@ public record CarSpec(
         // 前を強くするとアンダー、後ろを強くするとオーバーになる
         private double frontAntiRollStiffness = 2500.0;
         private double rearAntiRollStiffness = 1500.0;
-        // ロールセンター。既定は地面（0）＝入れる前と同じ。重心高に対する割合で持つ
-        private double frontRollCenter = 0.0;
-        private double rearRollCenter = 0.0;
+        // ロールセンター。重心高に対する割合で持つ。前後同じ 40% なので配分はほぼ動かさず
+        // （LLTD 56.9→56.5%）、ロールだけを 3.68→2.21°/G へ減らす。0 にすると入れる前と同じ
+        private double frontRollCenter = 0.4;
+        private double rearRollCenter = 0.4;
         // 荷重 1N あたり 12N/rad。乗用車のタイヤとして標準的な範囲
         private double corneringStiffness = 12.0;
         // 縦は横よりグリップの立ち上がりが速いのが実タイヤの性質
