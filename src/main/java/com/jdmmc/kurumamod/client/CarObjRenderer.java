@@ -241,11 +241,14 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                 pose.mulPose(Axis.ZP.rotationDegrees(wheel.isLeft() ? camber : -camber));
             }
 
-            // 舵は前輪だけ。切れ角は正で右だが、Y 軸まわりの正回転は左へ向くので反転する。
+            // 切れ角は正で右だが、Y 軸まわりの正回転は左へ向くので反転する。
             // 切れ角はラジアン（最大でも 0.61）なので、度へ直さずに渡すと 0.6 度しか切れず
             // 「ハンドルを切ってもタイヤの向きが変わらない」ように見える
-            if (wheel.isFront()) {
-                pose.mulPose(Axis.YP.rotationDegrees(-steer * Mth.RAD_TO_DEG));
+            // 輪ごとの角度はアッカーマンとトーのぶんだけずれる（後輪もトーのぶん向く）。
+            // ロールや横力で変わるぶんは同期していないので描かない（1 度前後で見て分からない）
+            float wheelSteer = (float) spec.staticSteer(wheel, wheel.isFront() ? steer : 0.0);
+            if (wheelSteer != 0.0f) {
+                pose.mulPose(Axis.YP.rotationDegrees(-wheelSteer * Mth.RAD_TO_DEG));
             }
 
             // タイヤの回転。輪ごとに持っているので、空転もロックも見える。

@@ -138,6 +138,14 @@ public final class CarState {
      * 空転している浮いた輪（荷重 0）も、荷重は掛かるが滑っていない転がっている輪も 0 になる。</p>
      */
     public final double[] wheelFrictionPower = new double[Wheel.COUNT];
+    /**
+     * 各輪の実際の切れ角 [rad]。正で右。
+     *
+     * <p>{@link #steerAngle} はハンドルの角度で、タイヤはそこからアッカーマン・トー・
+     * ロールステア・コンプライアンスステアのぶんずれる（後輪も 0 とは限らない）。
+     * タイヤの力はこちらで解く。</p>
+     */
+    public final double[] wheelSteerAngle = new double[Wheel.COUNT];
 
     /** 1 輪でも接地していれば true。空中では駆動も旋回もできない。 */
     public boolean isGrounded() {

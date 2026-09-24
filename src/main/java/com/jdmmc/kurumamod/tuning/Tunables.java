@@ -96,6 +96,37 @@ public final class Tunables {
                             .unit(0.01)
                             .detail(Tunables::rollCenter))),
 
+            // ステアリングのジオメトリ（Balkwill）。ハンドルの角度とタイヤの角度を別物にする。
+            // ロールステアとコンプライアンスステアは、どちらも正でアンダー。補足は
+            // この 4 つが作るアンダーステア勾配の合計（タイヤと荷重配分のぶんは含まない）
+            new Group("geometry", List.of(
+                    TunableParameter.linear("ackermann", -50, 120, "%.0f",
+                                    CarSpec::ackermann, CarSpec.Builder::ackermann)
+                            .unit(0.01)
+                            .detail(Tunables::ackermann),
+                    TunableParameter.linear("front_toe", -0.5, 0.5, "%.2f",
+                                    CarSpec::frontToe, CarSpec.Builder::frontToe)
+                            .unit(Math.PI / 180.0)
+                            .detail(spec -> toe(spec.frontToe())),
+                    TunableParameter.linear("rear_toe", -0.5, 0.5, "%.2f",
+                                    CarSpec::rearToe, CarSpec.Builder::rearToe)
+                            .unit(Math.PI / 180.0)
+                            .detail(spec -> toe(spec.rearToe())),
+                    TunableParameter.linear("front_roll_steer", -0.2, 0.3, "%.2f",
+                                    CarSpec::frontRollSteer, CarSpec.Builder::frontRollSteer)
+                            .detail(Tunables::steerUndersteer),
+                    TunableParameter.linear("rear_roll_steer", -0.2, 0.3, "%.2f",
+                                    CarSpec::rearRollSteer, CarSpec.Builder::rearRollSteer)
+                            .detail(Tunables::steerUndersteer),
+                    TunableParameter.linear("front_compliance_steer", -0.5, 1.5, "%.2f",
+                                    CarSpec::frontComplianceSteer, CarSpec.Builder::frontComplianceSteer)
+                            .unit(Math.PI / 180.0)
+                            .detail(Tunables::steerUndersteer),
+                    TunableParameter.linear("rear_compliance_steer", -0.5, 1.5, "%.2f",
+                                    CarSpec::rearComplianceSteer, CarSpec.Builder::rearComplianceSteer)
+                            .unit(Math.PI / 180.0)
+                            .detail(Tunables::steerUndersteer))),
+
             new Group("tire", List.of(
                     // 目盛りは既定を 1.00 とした相対値（実際のμは CarSpec.REFERENCE_FRICTION 倍）。
                     // ブレーキとサイドブレーキの効きもここから決まる（μg を少し超える踏力を用意する）
@@ -374,6 +405,32 @@ public final class Tunables {
      */
     private static String frontRollShare(CarSpec spec) {
         return String.format("%.0f", spec.frontLoadTransferShare() * 100.0);
+    }
+
+    /**
+     * アッカーマンの補足。フルロックでの内輪と外輪の切れ角。
+     * 幾何の左右差は高速の小さな舵ではほとんど付かないので、効きが見えるフルロックで出す。
+     */
+    private static Object ackermann(CarSpec spec) {
+        double lock = spec.maxSteerAngle();
+        return detail("ackermann",
+                String.format("%.1f", Math.toDegrees(spec.staticSteer(Wheel.FRONT_RIGHT, lock))),
+                String.format("%.1f", Math.toDegrees(spec.staticSteer(Wheel.FRONT_LEFT, lock))));
+    }
+
+    /** トーの向き。符号だけだとどちらがインか分からないため。 */
+    private static Object toe(double radians) {
+        if (Math.abs(radians) < 1e-6) return "0";
+        return detail(radians > 0.0 ? "toe_in" : "toe_out");
+    }
+
+    /**
+     * ロールステアとコンプライアンスステアが作るアンダーステア勾配の合計 [°/G]。
+     * 4 つの項目のどれを動かしても同じ合計が動くので、同じ補足を出す。
+     */
+    private static Object steerUndersteer(CarSpec spec) {
+        return detail("steer_understeer",
+                String.format("%+.2f", Math.toDegrees(spec.steerUndersteerGradient())));
     }
 
     /** ロールセンターの補足。荷重移動の前配分と、1G あたりのロール角。 */

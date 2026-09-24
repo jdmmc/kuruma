@@ -283,6 +283,66 @@ public final class CarPhysics {
 
         // 速度が上がって上限が下がったときは、そちらには即座に従う
         state.steerAngle = Math.max(-limit, Math.min(limit, state.steerAngle));
+
+        updateWheelSteer(spec, state);
+    }
+
+    /**
+     * ハンドルの角度から、各輪の実際の切れ角を決める（{@link CarState#wheelSteerAngle}）。
+     *
+     * <p>幾何で決まるぶん（アッカーマンとトー、{@link CarSpec#staticSteer}）に、
+     * 走っている状態で決まるぶんを足す:</p>
+     * <ul>
+     *   <li><b>ロールステア</b> … 車体が傾くとリンクの形が変わってタイヤの向きが変わる。
+     *       ロール角に比例</li>
+     *   <li><b>コンプライアンスステア</b> … 横力でブッシュがたわんでタイヤの向きが変わる。
+     *       軸の横力に比例</li>
+     * </ul>
+     * <p>どちらも係数が正ならアンダー側で、前輪は旋回の外へ、後輪は旋回の内へ（前輪と
+     * 同じ向きへ）切れる。後輪が前輪と同じ向きに切れると、車はそのぶん曲がらなくなる。</p>
+     *
+     * <p><b>軸の横力はタイヤの力ではなく実際の運動から解く</b>（{@link #axleLateralForce}）。
+     * 1 ステップ前の値になるが、ブッシュがたわむ速さを思えば遅れとして妥当で、
+     * 切れ角 → 横力 → 切れ角の輪が同じステップの中で閉じないぶん安定する
+     * （既定の諸元でループゲインは 0.1 程度）。</p>
+     */
+    private static void updateWheelSteer(CarSpec spec, CarState state) {
+        double frontDynamic = 0.0;
+        double rearDynamic = 0.0;
+        if (spec.frontRollSteer() != 0.0 || spec.rearRollSteer() != 0.0
+                || spec.frontComplianceSteer() != 0.0 || spec.rearComplianceSteer() != 0.0) {
+            // 軸の横力を停車時の軸荷重で割った「その軸の横 G」。定常旋回ではどちらの軸も
+            // 車の横 G と一致するので、係数の単位 [rad/G] がそのまま勾配になる
+            double frontG = axleLateralForce(spec, state, true)
+                    / (2.0 * spec.staticWheelLoad(Wheel.FRONT_LEFT));
+            double rearG = axleLateralForce(spec, state, false)
+                    / (2.0 * spec.staticWheelLoad(Wheel.REAR_LEFT));
+            // 右旋回で横力は正（右向き）、ロールは負（外＝左が沈む）。
+            // 前輪は左へ（負）、後輪は右へ（正）切れるのがアンダーの向き
+            frontDynamic = -spec.frontComplianceSteer() * frontG + spec.frontRollSteer() * state.roll;
+            rearDynamic = spec.rearComplianceSteer() * rearG - spec.rearRollSteer() * state.roll;
+        }
+        for (Wheel wheel : Wheel.VALUES) {
+            state.wheelSteerAngle[wheel.ordinal()] = wheel.isFront()
+                    ? spec.staticSteer(wheel, state.steerAngle) + frontDynamic
+                    : spec.staticSteer(wheel, 0.0) + rearDynamic;
+        }
+    }
+
+    /**
+     * その軸が受け持っている横力 [N]。右向きが正。
+     *
+     * <p>タイヤの力ではなく<b>実際に生じた運動</b>から解く（{@code Ff + Fr = m·ay}、
+     * {@code Ff·a − Fr·b = Iz·dr/dt}）。低速補正で打ち消した力が漏れないため。</p>
+     */
+    private static double axleLateralForce(CarSpec spec, CarState state, boolean front) {
+        double toFront = spec.wheelForwardOffset(Wheel.FRONT_LEFT);  // 重心から前軸 a
+        double toRear = -spec.wheelForwardOffset(Wheel.REAR_LEFT);   // 重心から後軸 b
+        double inertial = spec.mass() * state.lateralAcceleration;
+        double yaw = spec.yawInertia() * state.yawAcceleration;
+        return front
+                ? (inertial * toRear + yaw) / spec.wheelBase()
+                : (inertial * toFront - yaw) / spec.wheelBase();
     }
 
     /**
@@ -337,9 +397,12 @@ public final class CarPhysics {
         double widened = steady
                 * (1.0 + TURN_IN_BONUS * headroom * Math.max(0.0, 1.0 - state.brake));
 
-        // 上乗せで前輪をピークより深く切らせない
+        // 上乗せで前輪をピークより深く切らせない。蓋をするのは<b>タイヤの</b>角度なので、
+        // ロールや横力で前輪がハンドルより浅くなっているぶんはハンドル側へ足す
         double peak = Math.abs(selfAligningAngle(spec, state))
-                + peakFrontSlipAngle(spec, state, contact);
+                + peakFrontSlipAngle(spec, state, contact)
+                + Math.max(0.0, spec.frontSteerUndersteerGradient()
+                        * Math.abs(state.lateralAcceleration) / GRAVITY);
         return Math.max(steady, Math.min(widened, peak));
     }
 
@@ -451,8 +514,17 @@ public final class CarPhysics {
         double geometric = spec.wheelBase() * targetAccel / (speed * speed);
         // タイヤが力を出すのに要るスリップ角ぶんの上乗せ。制動中は後軸の荷重が抜けて
         // オーバーステア傾向になり、この差が負になる。そのまま足すと上限が負に転じ、
-        // 押した向きと逆にタイヤが向いてしまう（ブレーキ中に舵が効かない症状）
-        return geometric + Math.max(0.0, frontSlip - rearSlip);
+        // 押した向きと逆にタイヤが向いてしまう（ブレーキ中に舵が効かない症状）。
+        //
+        // ロールステアとコンプライアンスステアでタイヤがハンドルより浅くなるぶんも、
+        // ハンドル側で余計に切っておく必要がある。入れないと上限がそのぶん足りず、
+        // <b>グリップを使いきる手前でハンドルが止まる</b>（前 0.5・後 0.2°/G ほかの組み合わせで、
+        // 150km/h の定常横 G が 0.97→0.76G に落ちた）。
+        // <b>上の max の中へ入れてはいけない。</b>軸力を前後等分にしているぶん、前 56% の車では
+        // frontSlip − rearSlip が常に 1 度ほど負に出ていて（荷重配分を入れる前の名残）、
+        // 中へ入れると上乗せがまるごとそこへ食われる。外に置いて、負にはしない
+        double understeer = Math.max(0.0, spec.steerUndersteerGradient()) * targetAccel / GRAVITY;
+        return geometric + Math.max(0.0, frontSlip - rearSlip) + understeer;
     }
 
     // ------------------------------------------------------------------
@@ -1031,7 +1103,7 @@ public final class CarPhysics {
 
             // 速度をタイヤ自身の向きへ回してから測る。こうしておくと、
             // 後退時にタイヤが「前進している」と誤認して力の向きが反転するのを避けられる
-            double steer = wheel.isFront() ? state.steerAngle : 0.0;
+            double steer = state.wheelSteerAngle[index];
             double cos = Math.cos(steer);
             double sin = Math.sin(steer);
             double rollingSpeed = wheelForward * cos + wheelRight * sin;
@@ -1492,12 +1564,8 @@ public final class CarPhysics {
         if (frontHeight == 0.0 && rearHeight == 0.0) {
             return;
         }
-        double toFront = spec.wheelForwardOffset(Wheel.FRONT_LEFT);  // 重心から前軸 a
-        double toRear = -spec.wheelForwardOffset(Wheel.REAR_LEFT);   // 重心から後軸 b
-        double inertial = spec.mass() * state.lateralAcceleration;
-        double yaw = spec.yawInertia() * state.yawAcceleration;
-        double frontForce = (inertial * toRear + yaw) / spec.wheelBase();
-        double rearForce = (inertial * toFront - yaw) / spec.wheelBase();
+        double frontForce = axleLateralForce(spec, state, true);
+        double rearForce = axleLateralForce(spec, state, false);
 
         for (int axle = 0; axle < 2; axle++) {
             Wheel left = axle == 0 ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
