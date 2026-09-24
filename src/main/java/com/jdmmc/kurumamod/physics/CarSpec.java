@@ -37,6 +37,13 @@ package com.jdmmc.kurumamod.physics;
  * @param frontRollCenter      前軸のロールセンター高。<b>重心高に対する割合</b>。0 で地面（すべての荷重移動がバネを通る）。
  *                             {@link #rollCenterHeight} を参照
  * @param rearRollCenter       後軸のロールセンター高。同上
+ * @param ackermann            アッカーマン率。1 で内輪が幾何どおり深く切れる、0 で平行、負でアンチ。{@link #staticSteer} を参照
+ * @param frontToe             前輪の静的トー [rad]（片輪あたり）。正でトーイン
+ * @param rearToe              後輪の静的トー [rad]（片輪あたり）。正でトーイン
+ * @param frontRollSteer       前軸のロールステア [rad/rad]。ロール 1 あたりに前輪が切れる量。正でアンダー（旋回の外へ切れる）
+ * @param rearRollSteer        後軸のロールステア [rad/rad]。正でアンダー（前輪と同じ向き＝旋回の内へ切れる）
+ * @param frontComplianceSteer 前軸の横力コンプライアンスステア [rad/G]。軸の横力を停車時の軸荷重で割ったもの 1 あたり。正でアンダー
+ * @param rearComplianceSteer  後軸の横力コンプライアンスステア [rad/G]。同上
  * @param corneringStiffness   コーナリングパワー係数 [1/rad]。接地荷重に掛けて N/rad になる
  * @param longitudinalStiffness 縦方向のすべり剛性 [1/-]。接地荷重に掛けて滑り率 1 あたりの N になる
  * @param driveBias            駆動力の後輪配分。0 で前輪駆動、1 で後輪駆動
@@ -91,6 +98,13 @@ public record CarSpec(
         double rearAntiRollStiffness,
         double frontRollCenter,
         double rearRollCenter,
+        double ackermann,
+        double frontToe,
+        double rearToe,
+        double frontRollSteer,
+        double rearRollSteer,
+        double frontComplianceSteer,
+        double rearComplianceSteer,
         double corneringStiffness,
         double longitudinalStiffness,
         double driveBias,
@@ -422,6 +436,72 @@ public record CarSpec(
         return mass * CarPhysics.GRAVITY * (cgHeight() - rollAxisHeight()) / total;
     }
 
+    // ------------------------------------------------------------------
+    // ステアリングのジオメトリ（Balkwill『Performance Vehicle Dynamics』）
+    // ------------------------------------------------------------------
+
+    /**
+     * その輪の、ハンドルの角度から<b>幾何だけで</b>決まる切れ角 [rad]。正で右。
+     * アッカーマンとトー。ロールや横力で変わるぶんは {@link CarPhysics} が足す。
+     *
+     * <p><b>アッカーマン。</b>後軸の延長線上に旋回中心を置いたとき、内輪はそこへ向くのに
+     * 外輪より深く切れていなければならない（{@code tan δ = L / (R ∓ t/2)}）。
+     * 1 でこの幾何どおり、0 で左右平行、負で内輪のほうが浅い（アンチ）。
+     * 幾何どおりが正しいのはタイヤが滑らない低速だけで、<b>横 G が掛かると内輪は荷重が
+     * 抜け、荷重感度のぶん小さいスリップ角でピークを迎える</b>。そこで内輪を浅く切るほうが
+     * 両輪をそろってピーク付近で使える、というのが Balkwill の議論。
+     * 高速の小さな切れ角では左右差が {@code δ²·t/L} 程度しか付かないので、
+     * 効くのはヘアピン・駐車・フルカウンターのドリフトのような大舵角の場面。</p>
+     *
+     * <p><b>トー。</b>片輪あたりの角度で、正でトーイン（左輪は右へ、右輪は左へ向く）。
+     * 左右で打ち消し合うので直進では横力の合計は 0 だが、荷重移動で外輪が重くなると
+     * 釣り合いが崩れる。後ろのトーインは、重くなった外後輪が旋回の内へ向くので安定側。
+     * タイヤが互いに押し合うぶん、転がり抵抗も増える（力の向きから自然に出る）。</p>
+     *
+     * @param steer ハンドルの角度（前輪の平均的な切れ角）[rad]。後輪には 0 を渡す
+     */
+    public double staticSteer(Wheel wheel, double steer) {
+        double toe = wheel.isFront() ? frontToe : rearToe;
+        double angle = wheel.isLeft() ? toe : -toe;
+        if (!wheel.isFront()) {
+            return angle;
+        }
+        if (ackermann != 0.0 && steer != 0.0) {
+            // 旋回中心は後軸の延長線上、車体中心から R = L / tan δ。
+            // その輪の左右位置 y から見た向きが幾何どおりの切れ角
+            double tan = Math.tan(steer);
+            double denominator = wheelBase - wheelRightOffset(wheel) * tan;
+            if (denominator > 1e-6) {
+                double ideal = Math.atan(wheelBase * tan / denominator);
+                steer += ackermann * (ideal - steer);
+            }
+        }
+        return steer + angle;
+    }
+
+    /**
+     * ロールステアと横力コンプライアンスステアが作る、定常旋回での<b>アンダーステア勾配の上乗せ</b> [rad/G]。
+     *
+     * <p>定常旋回で必要なハンドル角は {@code L/R + (前スリップ角 − 後スリップ角)} に加えて、
+     * 前輪が旋回の外へ逃げたぶんと、後輪が旋回の内へ向いたぶん（後輪が前輪と同じ向きに切れると
+     * 車はそれだけ曲がらなくなる）を足したものになる。どちらも横 G に比例するので、
+     * 係数の合計がそのまま勾配に乗る。ロールステアはロール角 × 係数なので、
+     * 1G あたりのロール角（{@link #rollGradient}）を掛けて同じ単位にそろえる。</p>
+     *
+     * <p>Balkwill の言う「アンダーステア勾配はタイヤだけで決まるのではない」の中身。
+     * タイヤの横剛性が荷重に比例しているこのモデルでは、タイヤと荷重配分だけだと
+     * 勾配がほぼ 0 になる（ニュートラル）ので、実車らしい弱アンダーはここで作れる。</p>
+     */
+    public double steerUndersteerGradient() {
+        return frontSteerUndersteerGradient()
+                + rearComplianceSteer + rearRollSteer * rollGradient();
+    }
+
+    /** 上のうち前軸のぶん [rad/G]。前輪がハンドル角より浅くなる量。 */
+    public double frontSteerUndersteerGradient() {
+        return frontComplianceSteer + frontRollSteer * rollGradient();
+    }
+
     /**
      * その輪のバネ定数 [N/m]。
      *
@@ -684,6 +764,18 @@ public record CarSpec(
         // （LLTD 56.9→56.5%）、ロールだけを 3.68→2.21°/G へ減らす。0 にすると入れる前と同じ
         private double frontRollCenter = 0.4;
         private double rearRollCenter = 0.4;
+        // ステアリングのジオメトリ（Balkwill）。ロールステアとコンプライアンスステアで
+        // アンダーステア勾配を 0 前後から 1°/G ほどへ上げる（実車は 1〜4°/G）。タイヤと荷重配分
+        // だけだとこの車はほぼニュートラルで、限界で尻が出る向きに崩れていた。
+        // 100km/h で舵を入れたときの横 G の t90 が 2.14→0.65 秒、30m/s でヨーの外乱が
+        // 収まるまで 1.05→0.55 秒。全部 0 にすると入れる前と同じ
+        private double ackermann = 0.5;   // 50%。低速の小回り（半径 5.05→4.69m）と制動＋舵の落ち着きの両立
+        private double frontToe = 0.0;
+        private double rearToe = 0.0;
+        private double frontRollSteer = 0.05;
+        private double rearRollSteer = 0.08;
+        private double frontComplianceSteer = Math.toRadians(0.5);
+        private double rearComplianceSteer = Math.toRadians(0.2);
         // 荷重 1N あたり 12N/rad。乗用車のタイヤとして標準的な範囲
         private double corneringStiffness = 12.0;
         // 縦は横よりグリップの立ち上がりが速いのが実タイヤの性質
@@ -786,6 +878,13 @@ public record CarSpec(
             rearAntiRollStiffness = spec.rearAntiRollStiffness;
             frontRollCenter = spec.frontRollCenter;
             rearRollCenter = spec.rearRollCenter;
+            ackermann = spec.ackermann;
+            frontToe = spec.frontToe;
+            rearToe = spec.rearToe;
+            frontRollSteer = spec.frontRollSteer;
+            rearRollSteer = spec.rearRollSteer;
+            frontComplianceSteer = spec.frontComplianceSteer;
+            rearComplianceSteer = spec.rearComplianceSteer;
             corneringStiffness = spec.corneringStiffness;
             longitudinalStiffness = spec.longitudinalStiffness;
             driveBias = spec.driveBias;
@@ -875,6 +974,41 @@ public record CarSpec(
 
         public Builder rearRollCenter(double value) {
             rearRollCenter = value;
+            return this;
+        }
+
+        public Builder ackermann(double value) {
+            ackermann = value;
+            return this;
+        }
+
+        public Builder frontToe(double value) {
+            frontToe = value;
+            return this;
+        }
+
+        public Builder rearToe(double value) {
+            rearToe = value;
+            return this;
+        }
+
+        public Builder frontRollSteer(double value) {
+            frontRollSteer = value;
+            return this;
+        }
+
+        public Builder rearRollSteer(double value) {
+            rearRollSteer = value;
+            return this;
+        }
+
+        public Builder frontComplianceSteer(double value) {
+            frontComplianceSteer = value;
+            return this;
+        }
+
+        public Builder rearComplianceSteer(double value) {
+            rearComplianceSteer = value;
             return this;
         }
 
@@ -1089,6 +1223,8 @@ public record CarSpec(
                     wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     frontRollCenter, rearRollCenter,
+                    ackermann, frontToe, rearToe,
+                    frontRollSteer, rearRollSteer, frontComplianceSteer, rearComplianceSteer,
                     corneringStiffness, longitudinalStiffness,
                     driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction, tireFalloff, tireLoadSensitivity,
                     lowSpeedBlendSpeed, steerGripMargin, visualSlipLimit,
