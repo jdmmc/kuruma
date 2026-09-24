@@ -34,6 +34,9 @@ package com.jdmmc.kurumamod.physics;
  * @param suspensionMaxLength  サスペンションの伸びきり長（ハードポイントから車軸まで） [m]
  * @param frontAntiRollStiffness 前輪のスタビライザー [N/m]。左右のサス変位の差に掛ける
  * @param rearAntiRollStiffness  後輪のスタビライザー [N/m]。同上
+ * @param frontRollCenter      前軸のロールセンター高。<b>重心高に対する割合</b>。0 で地面（すべての荷重移動がバネを通る）。
+ *                             {@link #rollCenterHeight} を参照
+ * @param rearRollCenter       後軸のロールセンター高。同上
  * @param corneringStiffness   コーナリングパワー係数 [1/rad]。接地荷重に掛けて N/rad になる
  * @param longitudinalStiffness 縦方向のすべり剛性 [1/-]。接地荷重に掛けて滑り率 1 あたりの N になる
  * @param driveBias            駆動力の後輪配分。0 で前輪駆動、1 で後輪駆動
@@ -86,6 +89,8 @@ public record CarSpec(
         double suspensionMaxLength,
         double frontAntiRollStiffness,
         double rearAntiRollStiffness,
+        double frontRollCenter,
+        double rearRollCenter,
         double corneringStiffness,
         double longitudinalStiffness,
         double driveBias,
@@ -335,6 +340,86 @@ public record CarSpec(
     /** その輪が付いている軸のスタビライザーの強さ [N/m]。 */
     public double antiRollStiffness(Wheel wheel) {
         return wheel.isFront() ? frontAntiRollStiffness : rearAntiRollStiffness;
+    }
+
+    /**
+     * その輪が付いている軸のロールセンター高 [m]（接地面から）。
+     *
+     * <p><b>横力のうちロールセンターの高さぶんは、バネを通らずリンクを通って直接タイヤへ届く</b>
+     * （幾何学的な荷重移動、Balkwill『Performance Vehicle Dynamics』）。軸の横力を {@code Fy}、
+     * ロールセンター高を {@code h_rc} とすると {@code Fy · h_rc / トレッド} が外輪へ即座に移り、
+     * 残りの腕（重心高 − ロール軸の高さ）ぶんだけが車体を傾けてバネ・スタビ経由で移る。</p>
+     *
+     * <ul>
+     *   <li><b>荷重移動の合計は変わらない</b>（{@code m·ay·h/t} で決まっている）。変わるのは
+     *       前後の配分と、ロールを待たずに移るぶんの割合</li>
+     *   <li>前を高くすると前へ多く移ってアンダー、後ろを高くするとオーバー。
+     *       スタビと同じ向きに効くが、<b>ロールを増やさずに</b>配分を動かせる</li>
+     *   <li>ロールを待たないので、舵を入れた瞬間の配分が定常と違う（過渡の性格が変わる）</li>
+     * </ul>
+     *
+     * <p><b>重心高に対する割合で持つ。</b>重心高は車高から決まる値なので、メートルで持つと
+     * タイヤ半径やストロークを動かしたときに取り残され、<b>ロールセンターが重心より上</b>
+     * （旋回で内側へ傾く車）が黙って作れてしまう。</p>
+     */
+    public double rollCenterHeight(Wheel wheel) {
+        return (wheel.isFront() ? frontRollCenter : rearRollCenter) * cgHeight();
+    }
+
+    /**
+     * 重心の位置でのロール軸の高さ [m]。前後のロールセンターを結んだ線を重心で読む。
+     * 車体を傾ける腕は {@code cgHeight() − これ}。
+     */
+    public double rollAxisHeight() {
+        double front = rollCenterHeight(Wheel.FRONT_LEFT);
+        double rear = rollCenterHeight(Wheel.REAR_LEFT);
+        // 重心から前軸までの距離の割合だけ、前から後ろへ寄る
+        return front + (rear - front) * wheelForwardOffset(Wheel.FRONT_LEFT) / wheelBase;
+    }
+
+    /**
+     * 軸ごとのロール剛性 [N*m/rad]。バネは {@code k·t²/2}、スタビは {@code k·t²}
+     * （左右で逆向きに効くぶん腕が 2 倍）。
+     */
+    public double rollStiffness(Wheel wheel) {
+        double track2 = trackWidth * trackWidth;
+        return suspensionStiffness(wheel) * track2 / 2.0 + antiRollStiffness(wheel) * track2;
+    }
+
+    /**
+     * 定常旋回での<b>横方向の荷重移動のうち前軸が受け持つ割合</b>（LLTD）。
+     *
+     * <p>アンダーかオーバーかを決める数字。ロールセンターが地面にあるときは
+     * ロール剛性の前後配分そのものになる。</p>
+     *
+     * <pre>
+     *   前 = (前軸の横力の割合 × 前の RC 高 + ロール剛性の前配分 × (重心高 − ロール軸)) / 重心高
+     * </pre>
+     */
+    public double frontLoadTransferShare() {
+        double h = cgHeight();
+        double front = rollStiffness(Wheel.FRONT_LEFT);
+        double total = front + rollStiffness(Wheel.REAR_LEFT);
+        double elasticShare = total > 0.0 ? front / total : 0.5;
+        if (h <= 0.0) {
+            return elasticShare;
+        }
+        // 定常では前軸の横力は重心の前後位置で割り付く（静的な荷重配分と同じ比）
+        double geometric = weightBias * rollCenterHeight(Wheel.FRONT_LEFT);
+        double elastic = elasticShare * (h - rollAxisHeight());
+        return (geometric + elastic) / h;
+    }
+
+    /**
+     * 定常旋回での 1G あたりのロール角 [rad/G]（ロールグラディエント）。
+     * 車体を傾けるのは {@code 重心高 − ロール軸} の腕だけ。
+     */
+    public double rollGradient() {
+        double total = rollStiffness(Wheel.FRONT_LEFT) + rollStiffness(Wheel.REAR_LEFT);
+        if (total <= 0.0) {
+            return 0.0;
+        }
+        return mass * CarPhysics.GRAVITY * (cgHeight() - rollAxisHeight()) / total;
     }
 
     /**
@@ -595,6 +680,9 @@ public record CarSpec(
         // 前を強くするとアンダー、後ろを強くするとオーバーになる
         private double frontAntiRollStiffness = 2500.0;
         private double rearAntiRollStiffness = 1500.0;
+        // ロールセンター。既定は地面（0）＝入れる前と同じ。重心高に対する割合で持つ
+        private double frontRollCenter = 0.0;
+        private double rearRollCenter = 0.0;
         // 荷重 1N あたり 12N/rad。乗用車のタイヤとして標準的な範囲
         private double corneringStiffness = 12.0;
         // 縦は横よりグリップの立ち上がりが速いのが実タイヤの性質
@@ -695,6 +783,8 @@ public record CarSpec(
             suspensionMaxLength = spec.suspensionMaxLength;
             frontAntiRollStiffness = spec.frontAntiRollStiffness;
             rearAntiRollStiffness = spec.rearAntiRollStiffness;
+            frontRollCenter = spec.frontRollCenter;
+            rearRollCenter = spec.rearRollCenter;
             corneringStiffness = spec.corneringStiffness;
             longitudinalStiffness = spec.longitudinalStiffness;
             driveBias = spec.driveBias;
@@ -774,6 +864,16 @@ public record CarSpec(
 
         public Builder rearAntiRollStiffness(double value) {
             rearAntiRollStiffness = value;
+            return this;
+        }
+
+        public Builder frontRollCenter(double value) {
+            frontRollCenter = value;
+            return this;
+        }
+
+        public Builder rearRollCenter(double value) {
+            rearRollCenter = value;
             return this;
         }
 
@@ -987,6 +1087,7 @@ public record CarSpec(
             return new CarSpec(
                     wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength,
                     frontAntiRollStiffness, rearAntiRollStiffness,
+                    frontRollCenter, rearRollCenter,
                     corneringStiffness, longitudinalStiffness,
                     driveBias, slipReferenceSpeed, rearCorneringBias, tireFriction, tireFalloff, tireLoadSensitivity,
                     lowSpeedBlendSpeed, steerGripMargin, visualSlipLimit,

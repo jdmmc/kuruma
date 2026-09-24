@@ -207,6 +207,7 @@ public final class CarPhysics {
 
         double lateralSpeedBefore = state.lateralSpeed;
         double forwardSpeedBefore = state.forwardSpeed;
+        double yawRateBefore = state.yawRate;
         updateVelocities(spec, state, contact, forces, dt, input);
         // 向きを進めるのはヨー角速度が確定した後。低速補正の前に積分すると、
         // 停止中にハンドルを切っただけで車が回ってしまう
@@ -221,6 +222,11 @@ public final class CarPhysics {
         double longitudinalAcceleration = (state.forwardSpeed - forwardSpeedBefore) / dt;
         state.longitudinalAcceleration =
                 Math.max(-limit, Math.min(limit, longitudinalAcceleration));
+        // ヨー角加速度も同じく低速補正の後で取る。上限は「重心から軸までの距離で
+        // 横加速度の上限を出せる」ところに置く（衝突で角速度が飛んだときの安全弁）
+        double yawLimit = limit / Math.max(spec.wheelBase() * 0.5, 0.1);
+        state.yawAcceleration = Math.max(-yawLimit,
+                Math.min(yawLimit, (state.yawRate - yawRateBefore) / dt));
 
         state.yaw = wrapAngle(state.yaw + state.yawRate * dt);
     }
@@ -1334,6 +1340,7 @@ public final class CarPhysics {
         }
 
         applyAntiRollBars(spec, state);
+        applyRollCenterTransfer(spec, state);
 
         for (Wheel wheel : Wheel.VALUES) {
             int index = wheel.ordinal();
@@ -1344,7 +1351,10 @@ public final class CarPhysics {
             rollMoment -= load * spec.wheelRightOffset(wheel);
         }
 
-        // 荷重移動。前向きの力は鼻上げ（スクワット）、右向きの加速度は左下がり（外へ傾く）
+        // 荷重移動。前向きの力は鼻上げ（スクワット）、右向きの加速度は左下がり（外へ傾く）。
+        // ロールの腕は重心高まるごとでよい——ロールセンターぶんは applyRollCenterTransfer が
+        // 荷重の対として上で足してあり、それが逆向きのモーメントになって
+        // 腕を（重心高 − ロール軸の高さ）へ縮める
         pitchMoment += forces.longitudinal() * spec.cgHeight();
         rollMoment -= state.lateralAcceleration * spec.mass() * spec.cgHeight();
 
@@ -1453,6 +1463,51 @@ public final class CarPhysics {
             double transfer = stiffness * (travelLeft - travelRight);
             transfer = Math.max(-state.wheelLoad[l], Math.min(state.wheelLoad[r], transfer));
 
+            state.wheelLoad[l] += transfer;
+            state.wheelLoad[r] -= transfer;
+        }
+    }
+
+    /**
+     * ロールセンターを通る荷重移動（幾何学的な荷重移動）。
+     *
+     * <p>軸の横力 {@code Fy} のうちロールセンター高 {@code h_rc} ぶんは、バネもスタビも通らず
+     * リンクを通ってそのままタイヤへ届く。<b>車体が傾くのを待たない</b>ので、舵を入れた瞬間から
+     * 効く（バネ経由のぶんはロールが進むのに合わせて遅れて効く）。</p>
+     *
+     * <p><b>車体のロールモーメントは別に減らさなくてよい。</b>ここで足した荷重の対は
+     * 下の合計で {@code Fy · h_rc} のモーメントとして車体へ返り、重心高で掛けている
+     * 慣性のモーメントを打ち消す。差し引いた腕がちょうど（重心高 − ロール軸）になる。
+     * 荷重の対なので合計荷重も変わらない。</p>
+     *
+     * <p>軸の横力はタイヤの力ではなく<b>実際に生じた運動</b>から解く
+     * （{@code Ff + Fr = m·ay}、{@code Ff·a − Fr·b = Iz·dr/dt}）。ロールと同じく、
+     * 低速補正で打ち消した力が荷重へ漏れないため。</p>
+     *
+     * <p>移す量は軽い側が手放せるぶんで頭打ちにする（スタビと同じ理由）。</p>
+     */
+    private static void applyRollCenterTransfer(CarSpec spec, CarState state) {
+        double frontHeight = spec.rollCenterHeight(Wheel.FRONT_LEFT);
+        double rearHeight = spec.rollCenterHeight(Wheel.REAR_LEFT);
+        if (frontHeight == 0.0 && rearHeight == 0.0) {
+            return;
+        }
+        double toFront = spec.wheelForwardOffset(Wheel.FRONT_LEFT);  // 重心から前軸 a
+        double toRear = -spec.wheelForwardOffset(Wheel.REAR_LEFT);   // 重心から後軸 b
+        double inertial = spec.mass() * state.lateralAcceleration;
+        double yaw = spec.yawInertia() * state.yawAcceleration;
+        double frontForce = (inertial * toRear + yaw) / spec.wheelBase();
+        double rearForce = (inertial * toFront - yaw) / spec.wheelBase();
+
+        for (int axle = 0; axle < 2; axle++) {
+            Wheel left = axle == 0 ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
+            Wheel right = axle == 0 ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
+            double axleForce = axle == 0 ? frontForce : rearForce;
+            int l = left.ordinal();
+            int r = right.ordinal();
+            // 右向きの横力（右旋回）は外側＝左へ荷重を寄せる
+            double transfer = axleForce * spec.rollCenterHeight(left) / spec.trackWidth();
+            transfer = Math.max(-state.wheelLoad[l], Math.min(state.wheelLoad[r], transfer));
             state.wheelLoad[l] += transfer;
             state.wheelLoad[r] -= transfer;
         }
