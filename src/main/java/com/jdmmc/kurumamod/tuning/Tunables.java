@@ -82,7 +82,19 @@ public final class Tunables {
                             .detail(Tunables::frontRollShare),
                     TunableParameter.linear("rear_anti_roll", 0, 20000, "%.0f",
                                     CarSpec::rearAntiRollStiffness, CarSpec.Builder::rearAntiRollStiffness)
-                            .detail(Tunables::frontRollShare))),
+                            .detail(Tunables::frontRollShare),
+                    // ロールセンター。重心高に対する %。横力のこの高さぶんはバネを通らず
+                    // 直接タイヤへ移る（ロールを待たない）。スタビと同じく前を高くするとアンダーだが、
+                    // こちらは<b>ロールを減らしながら</b>配分を動かす。補足はそのときの
+                    // 荷重移動の前配分とロール量
+                    TunableParameter.linear("front_roll_center", 0, 80, "%.0f",
+                                    CarSpec::frontRollCenter, CarSpec.Builder::frontRollCenter)
+                            .unit(0.01)
+                            .detail(Tunables::rollCenter),
+                    TunableParameter.linear("rear_roll_center", 0, 80, "%.0f",
+                                    CarSpec::rearRollCenter, CarSpec.Builder::rearRollCenter)
+                            .unit(0.01)
+                            .detail(Tunables::rollCenter))),
 
             new Group("tire", List.of(
                     // 目盛りは既定を 1.00 とした相対値（実際のμは CarSpec.REFERENCE_FRICTION 倍）。
@@ -356,11 +368,19 @@ public final class Tunables {
      * <p>スタビは左右で逆向きに効くぶん、同じ数字ならバネの 2 倍のロール剛性を生む
      * （バネは軸あたり k・t²/2、スタビは k・t²）。</p>
      */
+    /**
+     * 横方向の荷重移動のうち前軸が受け持つ割合（LLTD）。ロールセンターが地面なら
+     * ロール剛性の前後配分そのもので、ロールセンターを上げるとそちらの分も入る。
+     */
     private static String frontRollShare(CarSpec spec) {
-        double front = spec.frontSuspensionStiffness() / 2.0 + spec.frontAntiRollStiffness();
-        double rear = spec.rearSuspensionStiffness() / 2.0 + spec.rearAntiRollStiffness();
-        double total = front + rear;
-        return String.format("%.0f", total > 0.0 ? front / total * 100.0 : 50.0);
+        return String.format("%.0f", spec.frontLoadTransferShare() * 100.0);
+    }
+
+    /** ロールセンターの補足。荷重移動の前配分と、1G あたりのロール角。 */
+    private static Object rollCenter(CarSpec spec) {
+        return detail("roll_center",
+                frontRollShare(spec),
+                String.format("%.1f", Math.toDegrees(spec.rollGradient())));
     }
 
 }

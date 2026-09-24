@@ -61,6 +61,11 @@ public final class CarState {
     public double lateralAcceleration;
     /** 実際に生じている車体前方向の加速度 [m/s^2]。負なら減速。切れ角の上限を決めるのに使う。 */
     public double longitudinalAcceleration;
+    /**
+     * 実際に生じているヨー角加速度 [rad/s^2]。横加速度と合わせて、前後の軸がそれぞれ
+     * どれだけ横力を受け持っているかを解くのに使う（ロールセンターの荷重移動）。
+     */
+    public double yawAcceleration;
 
     // ---- 駆動系 ----
 
