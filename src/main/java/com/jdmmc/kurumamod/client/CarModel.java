@@ -151,7 +151,7 @@ public record CarModel(
     public static CarModel defaults() {
         return new CarModel(
                 new ResourceLocation(Kurumamod.MODID, "models/entity/s15.obj"),
-                new ResourceLocation(Kurumamod.MODID, "textures/entity/car.png"),
+                new ResourceLocation(Kurumamod.MODID, "textures/entity/s15.png"),
                 new ResourceLocation(Kurumamod.MODID, "models/entity/wheel.obj"),
                 new ResourceLocation(Kurumamod.MODID, "textures/entity/wheel.png"),
                 CarSpec.DEFAULT.wheelBase(),

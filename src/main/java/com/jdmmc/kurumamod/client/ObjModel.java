@@ -749,6 +749,10 @@ public final class ObjModel {
                     }
                     groupName = token.length > 1 ? token[1] : "";
                     groupStart = out.size();
+                    // マテリアルは前のオブジェクトから引き継がない。Blender はマテリアルを持つ
+                    // オブジェクトには必ず usemtl を書くので、書かれていないのは「無し」の意味。
+                    // 引き継ぐと、マテリアルの無いガラスが直前のバネの赤に染まる
+                    color = new float[]{1.0F, 1.0F, 1.0F, 1.0F};
                     skipping = groupName.startsWith(GAUGE_PREFIX);
                 }
                 case "f" -> {
