@@ -1,7 +1,7 @@
-# Blender 5.2.0 LTS MTL File: 's15.blend'
+# Blender 5.2.0 LTS MTL File: 're-s15.blend'
 # www.blender.org
 
-newmtl body_texture
+newmtl car_texture
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
