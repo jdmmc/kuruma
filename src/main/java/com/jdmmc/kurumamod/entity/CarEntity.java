@@ -1488,23 +1488,24 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     }
 
     /**
-     * <b>シフト＋殴りで回収する。</b>アイテムには諸元も装着した部品も入るので、
-     * 置き直せば同じ車が同じセッティングで出てくる（{@link CarSpawnItem#stackFor(CarEntity)}）。
+     * <b>殴ると消え、シフト＋殴りで回収する。</b>回収したアイテムには諸元も装着した部品も
+     * 入るので、置き直せば同じ車が同じセッティングで出てくる（{@link CarSpawnItem#stackFor(CarEntity)}）。
      *
-     * <p><b>素の殴りでは壊れない。</b>調整画面で作り込んだ車が、振り向きざまの 1 発で
-     * 消えるのは取り返しがつかない。壊す意思を示すのがシフトで、それは<b>回収</b>でもある
-     * ——「壊す」しか用意しないと、直前の設定を残す手立てが無くなる。</p>
+     * <p>素の殴りは何も残さずに消す。設定を残したいときはシフトを押しながら殴る。</p>
      *
-     * <p>乗っている人がいる車は回収させない。座っている人ごと消えることになるため。</p>
+     * <p>乗っている人がいる車はどちらもさせない。座っている人ごと消えることになるため。</p>
      */
     @Override
     public boolean hurt(DamageSource source, float amount) {
         if (level().isClientSide || isRemoved()) {
             return true;
         }
-        if (!(source.getEntity() instanceof Player player) || !player.isShiftKeyDown()
-                || !getPassengers().isEmpty()) {
+        if (!(source.getEntity() instanceof Player player) || !getPassengers().isEmpty()) {
             return false;
+        }
+        if (!player.isShiftKeyDown()) {
+            discard();
+            return true;
         }
         ItemStack stack = CarSpawnItem.stackFor(this);
         // 手が塞がっていたら足元へ落とす。回収できずに車だけ消えるのが最悪なので
