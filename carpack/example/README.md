@@ -269,7 +269,7 @@ a shorter stroke means stiffer springs and dampers.
 | Name | Name on the tuning screen | Unit | Default | Range |
 |---|---|---|---|---|
 | `friction` | Grip | — | 1.0 | 0.3 – 1.5 |
-| `cornering_stiffness` | Cornering power | — | 12.0 | 4 – 25 |
+| `cornering_stiffness` | Lateral slip stiffness | — | 12.0 | 4 – 25 |
 | `longitudinal_stiffness` | Longitudinal slip stiffness | — | 18.0 | 5 – 40 |
 | `wheel_radius` | Tyre radius | m | 0.45 | 0.25 – 1.10 |
 

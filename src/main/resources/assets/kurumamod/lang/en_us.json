@@ -50,7 +50,7 @@
   "tuning.kurumamod.tire_falloff.value": "-%s%%",
   "tuning.kurumamod.tire_load_sensitivity": "Tyre load sensitivity",
   "tuning.kurumamod.tire_load_sensitivity.value": "%s%%",
-  "tuning.kurumamod.cornering_stiffness": "Cornering power",
+  "tuning.kurumamod.cornering_stiffness": "Lateral slip stiffness",
   "tuning.kurumamod.cornering_stiffness.value": "%s /rad",
   "tuning.kurumamod.wheel_radius": "Tyre radius",
   "tuning.kurumamod.wheel_radius.value": "%s cm  %s",
