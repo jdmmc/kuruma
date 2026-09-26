@@ -29,7 +29,7 @@
   "screen.kurumamod.part.hint": "クリックで装着  ドラッグで回す  ホイールで寄り引き  Esc で戻る",
   "screen.kurumamod.part.need_driving": "車を運転しているときだけ換装できます",
   "part_slot.kurumamod.wheel": "ホイール",
-  "preset.kurumamod.easy_drift": "イージードリフト",
+  "preset.kurumamod.easy_drift": "ドリフト",
   "preset.kurumamod.offroad": "オフロード",
   "tuning.kurumamod.group.suspension": "サスペンション",
   "tuning.kurumamod.group.tire": "タイヤ",
