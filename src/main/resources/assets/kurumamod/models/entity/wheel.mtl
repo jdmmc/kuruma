@@ -1,2 +1,22 @@
-# Blender 5.2.0 LTS MTL File: 'wheel.blend'
+# Blender 5.2.0 LTS MTL File: 'wheel-te37.blend'
 # www.blender.org
+
+newmtl Tire_Rubber
+Ns 22.499992
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/wheel-te37.png
+
+newmtl Wheel_Metal
+Ns 422.499969
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd textures/wheel-te37.png
