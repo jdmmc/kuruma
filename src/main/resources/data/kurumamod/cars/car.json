@@ -1,0 +1,10 @@
+{
+  "_comment": "既定の車（S15）の諸元。書いていない項目は CarSpec の既定値になる",
+  "order": 0,
+  "values": {
+    "_comment_track": "S15 の車体（全幅 2.23m）に合わせてタイヤを内へ寄せる。既定は 2.00m",
+    "track_width": 1.80,
+    "wheel_radius": 0.40,
+    "stroke": 0.28
+  }
+}
