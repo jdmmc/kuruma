@@ -244,7 +244,9 @@ public final class Tunables {
                             CarSpec::dragCoefficient, CarSpec.Builder::dragCoefficient))),
 
             new Group("controls", List.of(
-                    TunableParameter.linear("max_steer", 10, 50, "%.0f",
+                    // 上限はドリフト車の切れ角キット（55〜65 度）まで。深い角度を保ったまま
+                    // 前輪を進行方向へ向けきるのに要る
+                    TunableParameter.linear("max_steer", 10, 65, "%.0f",
                                     CarSpec::maxSteerAngle, CarSpec.Builder::maxSteerAngle)
                             .unit(Math.PI / 180.0),
                     // 2 倍が意味を持つ量なので対数割り当て。線形だと 1.0〜2.0 の
