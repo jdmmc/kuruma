@@ -29,7 +29,7 @@
   "screen.kurumamod.part.hint": "Click to fit  Drag to orbit  Wheel to zoom  Esc to go back",
   "screen.kurumamod.part.need_driving": "You can only swap parts while driving",
   "part_slot.kurumamod.wheel": "Wheels",
-  "preset.kurumamod.easy_drift": "Drift",
+  "preset.kurumamod.drift": "Drift",
   "preset.kurumamod.offroad": "Off-road",
   "tuning.kurumamod.group.suspension": "Suspension",
   "tuning.kurumamod.group.tire": "Tires",
