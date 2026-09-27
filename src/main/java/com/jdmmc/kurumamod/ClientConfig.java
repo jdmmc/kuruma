@@ -90,6 +90,19 @@ public final class ClientConfig {
                     "どちらが効いているのか分からなくなる")
             .defineInRange("dustDensity", 1.0, 0.25, 2.0);
 
+    public static final ForgeConfigSpec.BooleanValue SHOW_OWN_SKID_MARKS = BUILDER
+            .comment("自分が運転している車が舗装路で滑ったときに、タイヤ痕を残すかどうか")
+            .define("showOwnSkidMarks", true);
+
+    public static final ForgeConfigSpec.BooleanValue SHOW_OTHER_SKID_MARKS = BUILDER
+            .comment("他の人の車（無人の車や、自分が助手席に乗っている車を含む）のタイヤ痕を描くかどうか")
+            .define("showOtherSkidMarks", true);
+
+    public static final ForgeConfigSpec.DoubleValue SKID_MARK_SECONDS = BUILDER
+            .comment("タイヤ痕が消えるまでの秒数。最後の 4 割で薄れていく。",
+                    "長くするほど同時に残る跡が増えて重くなる")
+            .defineInRange("skidMarkSeconds", 5.0, 1.0, 15.0);
+
     public static final ForgeConfigSpec.EnumValue<GateDisplay> GATE_DISPLAY = BUILDER
             .comment("コースのゲートの見せ方。FULL=面と柱、POSTS=左右のポールのみ、HIDDEN=描かない")
             .defineEnum("gateDisplay", GateDisplay.FULL);
@@ -135,6 +148,15 @@ public final class ClientConfig {
     /** 土煙の量の倍率。消すのは {@link #showDust} の役目なので 0 にはならない。 */
     public static double dustDensity = 1.0;
 
+    /** 自分が運転している車のタイヤ痕を残すか。 */
+    public static boolean showOwnSkidMarks = true;
+
+    /** 他の人の車のタイヤ痕を描くか。 */
+    public static boolean showOtherSkidMarks = true;
+
+    /** タイヤ痕が消えるまでの秒数。 */
+    public static double skidMarkSeconds = 5.0;
+
     /** コースのゲートの見せ方。 */
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
@@ -169,6 +191,9 @@ public final class ClientConfig {
         liveMirrors = LIVE_MIRRORS.get();
         showDust = SHOW_DUST.get();
         dustDensity = DUST_DENSITY.get();
+        showOwnSkidMarks = SHOW_OWN_SKID_MARKS.get();
+        showOtherSkidMarks = SHOW_OTHER_SKID_MARKS.get();
+        skidMarkSeconds = SKID_MARK_SECONDS.get();
         gateDisplay = GATE_DISPLAY.get();
     }
 
