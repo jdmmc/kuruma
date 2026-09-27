@@ -38,8 +38,10 @@ public class CarSound extends AbstractTickableSoundInstance {
         ROAD,
         /** 風切り音。車速の 2 乗。 */
         WIND,
-        /** タイヤの悲鳴。滑り率とスリップ角。<b>舗装路の音。</b> */
+        /** タイヤの悲鳴の伸ばし（キィー）。滑り率とスリップ角。<b>舗装路の音。</b> */
         SLIP,
+        /** タイヤの悲鳴の刻み（キキキキ）。{@link #SLIP} と同じ量で鳴り、<b>滑り始めだけ</b>こちらが受け持つ。 */
+        SLIP_CHATTER,
         /** 砂利を弾く音。砂利と土の上で、スキール音の代わりに鳴る。 */
         GRAVEL,
         /** 砂を掻く音。砂と雪の上で、スキール音の代わりに鳴る。 */
@@ -90,39 +92,37 @@ public class CarSound extends AbstractTickableSoundInstance {
     private static final float SMOOTHING = 0.35F;
 
     /**
-     * スキール音の揺らぎの周期 [s]。<b>互いに割り切れない 3 本</b>にしてあるので、
-     * 重ね合わせた形は事実上二度と戻ってこない（3 本の最小公倍数は 100 秒を超える）。
+     * 滑り始めてから刻み（キキキキ）が伸ばし（キィー）へ移りきるまで [tick]。0.6 秒。
      *
-     * <p>音源側も 3.15 秒の中で揺らしてあるが、それだけでは 3.15 秒ごとに同じ表情が戻る。
-     * 鳴らす側でも揺らすと、そこがさらにばらける。</p>
+     * <p><b>「キキキキキィー！」は 1 本のループに焼き込めない。</b>ループなので、焼き込むと
+     * 刻みが繰り返す。刻みと伸ばしを別の音源にして、ここで受け渡す。</p>
      */
-    private static final double[] SLIP_AMP_PERIODS = {0.83, 1.93, 4.27};
-    private static final double[] SLIP_PITCH_PERIODS = {1.37, 2.11, 3.71};
-    /** 揺らぎの深さ。<b>下へだけ振る</b>ので、いちばん強く鳴る瞬間の音量は変わらない。 */
-    private static final float SLIP_AMP_DEPTH = 0.38F;
-    private static final float SLIP_PITCH_DEPTH = 0.08F;
+    private static final int CHATTER_TICKS = 12;
+    /** これを超えたら「滑っている」と数える（悲鳴の音量、0〜1）。 */
+    private static final double SLIP_ONSET_LEVEL = 0.05;
+    /**
+     * 滑りが収まってからこれだけ続いたら、次の滑り始めでまた刻みを鳴らす [tick]。
+     *
+     * <p>すぐ数え直すと、しきい値のまわりで音量が細かく揺れるたびに刻みが出直して
+     * キキキが止まらなくなる。</p>
+     */
+    private static final int SLIP_REARM_TICKS = 4;
 
     private final CarEntity car;
     private final Role role;
 
-    /**
-     * 揺らぎの位相のずれ [s]。車ごとに変えて、複数台が同時に波打たないようにする。
-     *
-     * <p>黄金比の小数部を掛けているのは、id が連番でも位相が均等にばらけるため。</p>
-     */
-    private final double phaseOffset;
-
-    /**
-     * 平滑化した音量とピッチ。<b>揺らぎを掛ける前の値</b>。
-     *
-     * <p>{@code volume} / {@code pitch} へ直に積むと、揺らした結果が次のティックの
-     * 出発点になって揺らぎが自分自身に掛かっていく。平滑化の状態は別に持つこと。</p>
-     */
+    /** 平滑化した音量とピッチ。 */
     private float smoothVolume;
     private float smoothPitch = 1.0F;
 
-    /** 経過ティック。揺らぎの時間軸。 */
-    private int age;
+    /**
+     * 滑り続けているティック数と、滑りが収まっているティック数（悲鳴の 2 本だけが使う）。
+     *
+     * <p>伸ばしと刻みは別の {@code CarSound} だが、同じ車の同じ値から同じ手順で数えるので、
+     * 状態を共有しなくても受け渡しの位置は揃う。</p>
+     */
+    private int slipTicks;
+    private int quietTicks;
 
     /** 前ティックの段。変わった瞬間に変速音を鳴らす。 */
     private int lastGear;
@@ -135,22 +135,8 @@ public class CarSound extends AbstractTickableSoundInstance {
         this.delay = 0;
         this.volume = 0.0F;
         this.pitch = 1.0F;
-        this.phaseOffset = (car.getId() * 0.6180339887) % 1.0 * 10.0;
         this.lastGear = car.getRenderGear();
         updatePosition();
-    }
-
-    /**
-     * 揺らぎ 1 本ぶん。周期の違う 3 本のサインを重ねて -1〜1 あたりの値を返す。
-     *
-     * <p>実際のタイヤの鳴きは一定の高さでも一定の大きさでも鳴らない。20Hz の物理から
-     * この速さの表情は取り出せないので、ここで作っている。</p>
-     */
-    private double wobble(double[] periods) {
-        double t = age * 0.05 + phaseOffset;
-        return 0.55 * Math.sin(2.0 * Math.PI * t / periods[0])
-                + 0.30 * Math.sin(2.0 * Math.PI * t / periods[1] + 1.7)
-                + 0.15 * Math.sin(2.0 * Math.PI * t / periods[2] + 4.2);
     }
 
     /** その路面で鳴る未舗装の音と、その大きさ。 */
@@ -193,6 +179,7 @@ public class CarSound extends AbstractTickableSoundInstance {
             case ROAD -> KurumaSounds.CAR_ROAD.get();
             case WIND -> KurumaSounds.CAR_WIND.get();
             case SLIP -> KurumaSounds.CAR_SLIP.get();
+            case SLIP_CHATTER -> KurumaSounds.CAR_SLIP_CHATTER.get();
             case GRAVEL -> KurumaSounds.CAR_GRAVEL.get();
             case SAND -> KurumaSounds.CAR_SAND.get();
         };
@@ -254,7 +241,7 @@ public class CarSound extends AbstractTickableSoundInstance {
                 targetVolume = 0.6F * t * t;
                 targetPitch = 0.9F + 0.5F * t;
             }
-            case SLIP -> {
+            case SLIP, SLIP_CHATTER -> {
                 double worst = 0.0;
                 for (Wheel wheel : Wheel.VALUES) {
                     worst = Math.max(worst, Math.abs(car.getRenderSlipRatio(wheel)));
@@ -268,8 +255,19 @@ public class CarSound extends AbstractTickableSoundInstance {
                 // ゴムが鳴くのは路面を掴んだまま滑るとき。掴む相手のほうが持っていかれる
                 // 未舗装では鳴らず、代わりに GRAVEL / SAND が出る。氷も掴めないので鳴らない
                 float bite = (float) car.getRenderSurface().gripScale();
-                targetVolume = (float) Mth.clamp((longitudinal + lateral) * 0.7, 0.0, 1.0)
+                float squeal = (float) Mth.clamp((longitudinal + lateral) * 0.7, 0.0, 1.0)
                         * gate * bite;
+                // 滑り始めは刻み（キキキキ）、続けば伸ばし（キィー）。等パワーで受け渡すので
+                // 移っている途中でも大きさは変わらない
+                if (squeal > SLIP_ONSET_LEVEL) {
+                    slipTicks++;
+                    quietTicks = 0;
+                } else if (++quietTicks >= SLIP_REARM_TICKS) {
+                    slipTicks = 0;
+                }
+                double chatter = Mth.clamp(1.0 - slipTicks / (double) CHATTER_TICKS, 0.0, 1.0);
+                double share = role == Role.SLIP_CHATTER ? chatter : 1.0 - chatter;
+                targetVolume = squeal * (float) Math.sqrt(share);
                 targetPitch = 1.0F + 0.3F * (float) Math.min(1.0, longitudinal);
             }
             case GRAVEL, SAND -> {
@@ -292,19 +290,16 @@ public class CarSound extends AbstractTickableSoundInstance {
             }
         }
 
-        age++;
         smoothVolume += (targetVolume - smoothVolume) * SMOOTHING;
         smoothPitch += (targetPitch - smoothPitch) * SMOOTHING;
 
-        if (role == Role.SLIP) {
-            // 下へだけ振る。上へも振ると音量が 1 を超えるうえ、鳴きの山が動いてしまう
-            volume = smoothVolume
-                    * (1.0F - SLIP_AMP_DEPTH * (float) (1.0 - wobble(SLIP_AMP_PERIODS)) * 0.5F);
-            pitch = smoothPitch * (1.0F + SLIP_PITCH_DEPTH * (float) wobble(SLIP_PITCH_PERIODS));
-        } else {
-            volume = smoothVolume;
-            pitch = smoothPitch;
-        }
+        // スキール音にも揺らぎは掛けない。以前は音量を最大 38%・音程を 8% 揺らして
+        // 繰り返しを隠そうとしていたが、音源（slip.ogg）の波打ちと重なって
+        // 「ワンワン」と耳障りになっていた。繰り返しは音源の側で均して消してある
+        // （tools/make_sounds.py の slip()）。しかも 20Hz の階段で振っていたので、
+        // 揺らぎそのものも滑らかではなかった
+        volume = smoothVolume;
+        pitch = smoothPitch;
 
         // 変速音はどれか 1 本が受け持てばよい。毎ティック回っている排気音に任せる
         if (role == Role.EXHAUST) {

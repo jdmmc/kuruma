@@ -51,6 +51,11 @@ public final class KurumaSounds {
     /** タイヤの悲鳴。滑っているときだけ鳴る。<b>舗装路の音</b>で、グリップに比例して鳴る。 */
     public static final RegistryObject<SoundEvent> CAR_SLIP = register("car_slip");
     /**
+     * タイヤの悲鳴の刻み（キキキキ）。<b>滑り始めだけ</b>鳴らし、すぐ {@link #CAR_SLIP} の
+     * 伸ばし（キィー）へ移す。ループなので 1 本に焼き込むと刻みが繰り返してしまう。
+     */
+    public static final RegistryObject<SoundEvent> CAR_SLIP_CHATTER = register("car_slip_chatter");
+    /**
      * 砂利道の音。未舗装を走っている間ずっと鳴る。
      *
      * <p><b>スキール音の代わり</b>。ゴムが鳴くのは路面を掴んだまま滑るときなので、

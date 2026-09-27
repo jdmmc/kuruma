@@ -3,7 +3,8 @@
 
 - crash.ogg       … 金属がひしゃげる一撃。広帯域のノイズ＋減衰する金属の倍音
 - exhaust_high.ogg … exhaust.ogg を 1 オクターブ上へ縮めたもの（レブ側を伸ばすため）
-- slip.ogg        … sample/slip.mp3 の芯 0.45 秒を、揺らしながら 3.15 秒へ伸ばしたもの
+- slip.ogg        … 合成したスキール音の伸ばし（キィー）。狭い帯域の雑音 2 本がさまよう音
+- slip_chatter.ogg … 同じ音の刻み（キキキキ）。滑り始めだけ鳴らす
 - race_light.ogg  … スタート信号が 1 つ点く音。低い短音
 - race_start.ogg  … 消灯＝号砲。1 オクターブ上を長めに
 - race_split.ogg  … チェックポイント通過。ごく短い高音
@@ -116,45 +117,143 @@ def read_loop(src, pitch):
     return src[i0] * (1 - frac) + src[(i0 + 1) % len(src)] * frac
 
 
-def slip(core_seconds=0.45, laps=7):
-    """スキール音。短い芯を、ゆっくり揺らしながら繰り返しの見えない長さへ伸ばす。
+#: スキール音の耳で感じる大きさ（loudness()）。素材から作っていた頃の slip.ogg の平均に揃えてある。
+SLIP_LOUDNESS = 0.1968
 
-    元の素材（sample/slip.mp3）は 1 秒しかなく、後半は減衰しているので使えるのは
-    頭の 0.45 秒だけ。これをそのままループにすると **1 秒に 2.2 回**の周期になり、
-    人の耳が振幅変調にいちばん敏感な 2〜8Hz のど真ん中に入る。限界旋回では 8.7 秒
-    鳴りっぱなしになるので、同じ 0.45 秒が 21 周して「ワンワンワン」と聞こえる。
 
-    <b>ただ長いファイルにしても効かない。</b>同じ 0.45 秒を並べただけでは、耳が拾う
-    周期は 0.45 秒のままで、8 秒のファイルにしても「聴いたことのある音」の割合は
-    1% も動かなかった。**中でゆっくり揺らして同じ場所が二度と来ないようにして初めて
-    長さが効く**（測定は scratchpad の novelty.py / pulse.py）。
+def periodic_noise(n, lo, hi, rng):
+    """長さ n でちょうど周期的な帯域雑音。標準偏差 1 に揃えて返す。
 
-    長さは芯のちょうど {laps} 倍にしてある。こうすると読み進めた総量が芯の長さの
-    整数倍にぴったり収まるので、**クロスフェードで誤魔化さずに継ぎ目が消える**。
+    FFT で帯域を切って戻すので、<b>先頭と末尾が必ず繋がる</b>（クロスフェード要らず）。
+    ループ素材の揺らぎや雑音はこれで作ると、継ぎ目が原理的に出ない。
     """
-    data, sr = sf.read(SAMPLE + "slip.mp3", dtype="float64", always_2d=True)
-    assert sr == SR, sr
-    core = data.mean(axis=1)[:int(SR * core_seconds)]        # モノラルに落として芯だけ
-    core = crossfade_loop(core, 0.05)
+    spec = np.fft.rfft(rng.standard_normal(n))
+    f = np.fft.rfftfreq(n, 1 / SR)
+    spec[(f < lo) | (f > hi)] = 0
+    x = np.fft.irfft(spec, n)
+    return x / np.std(x)
 
-    n = len(core) * laps
-    t = np.arange(n) / SR
-    seconds = n / SR
 
-    def lfo(cycles, weights, phases):
-        """ループ長のちょうど整数分の 1 の周期で揺らす。揺らぎ自体が継ぎ目を作らない。"""
-        return sum(w * np.sin(2 * np.pi * c * t / seconds + p)
-                   for c, w, p in zip(cycles, weights, phases))
+def resonator(x, freq, q):
+    """中心周波数が時間で動く 2 次の共振。白色雑音を通すと、さまよう「鳴き」になる。
 
-    # 音程の揺らぎ。実際のタイヤの鳴きも一定の高さでは鳴らない
-    pitch = 1.0 + 0.10 * lfo([1, 2, 3], [0.55, 0.30, 0.15], [0.0, 2.1, 4.7])
-    # 読み進めた総量を芯の長さの整数倍へ合わせる。ここが合えば末尾と先頭が繋がる
-    pitch *= n / pitch.sum()
-    amp = 1.0 + 0.40 * lfo([1, 3, 5], [0.55, 0.30, 0.15], [1.3, 5.2, 0.4])
+    係数がサンプルごとに変わるので 1 サンプルずつ回す（3 秒で 1 秒ほど）。標準偏差 1 に揃えて返す。
+    """
+    y = np.zeros_like(x)
+    y1 = y2 = 0.0
+    for i in range(len(x)):
+        w = 2 * np.pi * freq[i] / SR
+        r = 1 - w / (2 * q)
+        y0 = (1 - r) * x[i] + 2 * r * np.cos(w) * y1 - r * r * y2
+        y[i] = y0
+        y2 = y1
+        y1 = y0
+    return y / np.std(y)
 
-    out = read_loop(core, pitch) * amp
-    out /= np.max(np.abs(out)) / 0.81
-    write_ogg("slip.ogg", out)
+
+def looped(process, n, *signals):
+    """周期的な入力を 2 周ぶん通して、2 周目だけを返す。
+
+    共振フィルタは直前の状態を持つので、1 周だけ通すと<b>頭だけ立ち上がりの過渡が入り</b>、
+    末尾と先頭が繋がらない。2 周目は 1 周目の末尾から続いているので、そこだけ取れば
+    ループの継ぎ目がちょうど繋がる（この共振の減衰は 10ms ほどなので 1 周で十分落ち着く）。
+    """
+    return process(*(np.tile(sig, 2) for sig in signals))[n:]
+
+
+def flatten_loop(data, window):
+    """ループ素材を `flatten()` する。3 周並べて真ん中を取る。
+
+    そのまま均すと、端では窓がはみ出して（反射で埋める）補正が狂い、継ぎ目で音量が段になる。
+    """
+    n = len(data)
+    return flatten(np.tile(data, 3), window)[n:2 * n]
+
+
+def squeal(name, seconds=3.0, center=1380.0, chatter_hz=0.0, seed=3, target=SLIP_LOUDNESS, peak=0.90,
+           gain=1.0, rough=0.0, rough_hz=7.0, upper=0.65, third=0.30, hiss=0.0, lowpass=0.0):
+    """スキール音を合成する。{chatter_hz} が 0 なら伸ばした「キィー」、正なら「キキキキ」の刻み。
+
+    <b>狭い帯域の雑音 2 本（{center}Hz とその倍）が、ゆっくり・細かくさまよう音</b>で作る。
+    発振器は使わない。聞き比べで決めたときは 1150Hz で、「もう少し高く」で 2 割上げた。
+
+    <b>籠らせないこと。</b>最初は 2 本の帯だけで 6kHz より上を削っていたので、4kHz より上が
+    全体の -31dB しかなく籠って聞こえた。削るのをやめ、上の帯を 0.45 → {upper}、3 倍の帯
+    （{third}）を足して -13dB まで持ち上げてある（音色の重心 1973 → 2783Hz）。ゴムの擦れ
+    （{hiss}、4〜10kHz の雑音）まで足すと鋭すぎた（聞き比べで不採用）。
+
+    - <b>素材（sample/slip.mp3）はやめた。</b>エネルギーのほとんどが 1.2〜1.5kHz の帯に
+      広く散っていて（スペクトルの平坦さ 0.36）芯が無く、「シュイン」に聞こえた
+    - <b>きれいな倍音を重ねるのも駄目だった。</b>基音 1250Hz ＋整数倍の倍音 6 本で作ったら、
+      電子音の「ピー」（高周波音）になった。本物の鳴きは音程の芯があっても細かく暴れている
+    - 3 案を聞き比べて、この「共鳴する雑音」がいちばん近いと決まった（他はザラついた
+      発振器、素材を均して芯を立てたもの）。帯の鋭さ Q=30 と、中心の揺れ（ゆっくり ±4%・
+      細かく ±1.5%）がこの音の性格
+
+    <b>「キキキキキィー！」は 1 本のループに焼き込めない。</b>ループなので、焼き込むと
+    「キキキキキィーキキキキキィー」と繰り返す。刻みと伸ばしを別の音源にして、
+    `CarSound` が<b>滑り始めだけ刻みを鳴らし、0.6 秒ほどで伸ばしへ移す</b>。
+
+    ループの継ぎ目は作り方で消している:
+
+    - 揺れと入力の雑音は `periodic_noise()`（ループ長で周期的）
+    - 共振は `looped()` で 2 周通して 2 周目を取る
+    - 刻みの数はループ内の整数に合わせる（1 回ごとの間隔は ±15% ばらつかせる）
+    - 伸ばしは `flatten_loop()` で強弱を均す（波打たせない。素材を使っていた頃に
+      「ワンワン」と波打った反省）。刻みは強弱そのものが中身なので均さない
+    """
+    rng = np.random.default_rng(seed)
+    n = int(SR * seconds)
+    # 中心周波数のさまよい。ゆっくり（±4% 程度）と細かく（±1.5% 程度）
+    wander = 1 + 0.04 * periodic_noise(n, 0.3, 3, rng) / 2.5         + 0.015 * periodic_noise(n, 15, 60, rng) / 2.5
+    env = np.ones(n)
+    if chatter_hz:
+        # 刻みの位相。間隔をばらつかせたうえで、総数をループ内の整数に合わせる
+        rate = chatter_hz * (1 + 0.15 * periodic_noise(n, 2, 12, rng) / 2.5)
+        rate *= round(rate.sum() / SR) / (rate.sum() / SR)
+        frac = (np.cumsum(rate) / SR) % 1.0
+        # 「キ」1 回＝鋭く立ち上がって減衰。谷でも少し残す（完全に切ると電子音の「ピピピ」になる）
+        pulse = np.minimum(frac / 0.05, 1.0) * np.exp(-frac / 0.28)
+        env = 0.15 + 0.85 * pulse
+        # 1 回ごとに少しだけ下がる音程。「キ」の子音らしさはここから出る
+        wander = wander * (1 + 0.05 * (np.exp(-frac / 0.22) - 0.5))
+
+    low = looped(lambda x, f: resonator(x, f, 30), n,
+                 periodic_noise(n, 20, 20000, rng), center * wander)
+    high = looped(lambda x, f: resonator(x, f, 30), n,
+                  periodic_noise(n, 20, 20000, rng), 2 * center * wander)
+    out = low + upper * high
+    if third:
+        out = out + third * looped(lambda x, f: resonator(x, f, 30), n,
+                                   periodic_noise(n, 20, 20000, rng), 3 * center * wander)
+    if hiss:
+        # ゴムが路面を擦るシャーという成分（4〜10kHz）。鳴きの帯だけだと籠って聞こえる
+        out = out + hiss * periodic_noise(n, 4000, 10000, rng)
+    out = out * env
+    if lowpass:
+        # 高いところを落とす。周波数領域で掛けるのでループのまま
+        spec = np.fft.rfft(out)
+        spec *= 1 / np.sqrt(1 + (np.fft.rfftfreq(n, 1 / SR) / lowpass) ** 4)
+        out = np.fft.irfft(spec, n)
+    if not chatter_hz:
+        out = flatten_loop(out, 0.05)
+        if rough:
+            # 鳴き続けている間も、不規則に引っかかる（スティックスリップ）。1 回ごとの深さも
+            # 間隔もばらつかせる。<b>均した後に掛ける</b>——先に掛けると flatten が消してしまう
+            rate = rough_hz * (1 + 0.30 * periodic_noise(n, 1, 8, rng) / 2.5)
+            rate *= round(rate.sum() / SR) / (rate.sum() / SR)
+            frac = (np.cumsum(rate) / SR) % 1.0
+            depth = rough * np.clip(0.6 + 0.4 * periodic_noise(n, 0.5, 4, rng) / 2.5, 0, 1)
+            out = out * (1 - depth * (1 - np.exp(-frac / 0.35)))
+    out *= target / loudness(out)
+    if gain != 1.0:
+        # 大きくするぶんは、なだらかに頭を抑えて稼ぐ（割らずに平均を上げる）。
+        # 雑音の音なので、抑えたときの歪みはゴムのザラつきとして聞こえる
+        out = peak * np.tanh(out * gain / peak)
+    ceiling = np.max(np.abs(out))
+    if ceiling > peak:
+        out *= peak / ceiling                  # 割れないための保険（刻みは山が高いので通る）
+    write_ogg(name, out)
     return seconds
 
 
@@ -298,10 +397,10 @@ def expand_loop(src, name, laps=7, trim=0.12, window=0.25, depth=0.18,
     素材（ElevenLabs 生成）は <b>1.50 秒</b>しかない。そのままループにすると
     <b>0.67Hz の周期</b>ができ、砂利区間を走っている間ずっと「ウォンウォン」と
     同じ 1.5 秒が戻ってくる。7 倍へ伸ばして中でゆっくり音程を揺らし、
-    同じ場所が二度と来ないようにする（`slip()` と同じ手）。
+    同じ場所が二度と来ないようにする。
 
-    <b>ただし `slip()` と違って振幅は揺らさない。</b>あちらは音量の LFO も掛けて
-    繰り返しを隠しているが、この音は<b>音量をコード側が動かす</b>ので、素材の中で
+    <b>振幅は揺らさない。</b>スキール音を素材から作っていた頃は音量の LFO も掛けて
+    繰り返しを隠していたが、それが「ワンワン」と波打つ原因だった。音量はコード側が動かすので、素材の中で
     強弱が動くと二重に掛かって「鳴っているのに揺れる」音になる。周期を崩すのは
     音程の揺らぎだけに任せ、最後に `flatten()` で振幅を平らに均す。
 
@@ -418,7 +517,8 @@ if __name__ == "__main__":
 
     print("crash.ogg        %.2fs" % crash())
     print("exhaust_high.ogg %.2fs" % exhaust_high())
-    print("slip.ogg         %.2fs" % slip())
+    print("slip.ogg         %.2fs" % squeal("slip.ogg"))
+    print("slip_chatter.ogg %.2fs" % squeal("slip_chatter.ogg", chatter_hz=14.0, seed=11))
     # スタート信号。点灯は低く短く、号砲はその 1 オクターブ上を長く。
     # <b>同じ高さにしてはいけない</b>——「あと 1 つ」と「消えた」が耳で区別できなくなる
     print("race_light.ogg   %.2fs" % tone("race_light.ogg", 440.0, 0.22, decay=0.09))
