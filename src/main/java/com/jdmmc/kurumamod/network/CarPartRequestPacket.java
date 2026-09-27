@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  * <p><b>要求であって結果ではない。</b>諸元（{@link CarTuningPacket}）はクライアントが解いた
  * 結果をサーバーが受け取るだけだが、装着状態は<b>サーバーが決める</b>——手元にあるだけの
  * 部品を勝手に履けてしまうと、他の人には見えない部品を履いた車が走ることになる。
- * サーバーが知らない部品と、場所の合わない部品はここで弾く。</p>
+ * サーバーが知らない部品、場所の合わない部品、その車種に付かない部品はここで弾く。</p>
  *
  * <p>受け付けるのは<b>運転している本人</b>から届いたものだけ。同乗者や、外から見ている人が
  * 他人の車を換装できてはいけない。</p>
@@ -52,22 +52,26 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
                 return; // slot が null なのは、送り手だけが知っている場所を指しているとき
             }
 
+            Entity entity = sender.level().getEntity(entityId);
+            if (!(entity instanceof CarEntity car) || car.getControllingPassenger() != sender) {
+                return;
+            }
+
             ResourceLocation partId = setting.partId();
-            if (partId != null) {
+            // いま履いている部品のまま角度だけ変える要求は、車種の制限で弾かない。
+            // カーパックの更新で付かなくなった部品を履いたままの車でも、調整はできるべきなので
+            if (partId != null && !partId.equals(car.getFitment().getPart(slot))) {
                 CarPart part = CarParts.get(partId);
-                // 知らない部品と、場所の合わない部品は履かせない
-                if (part == null || part.slot() != slot) {
+                // 知らない部品、場所の合わない部品、その車種に付かない部品は履かせない
+                if (part == null || part.slot() != slot || !part.fits(car.getCarId())) {
                     return;
                 }
             }
             // 角度は弾かずに押し込む（範囲は PartFitment.readSetting が既に掛けている）。
             // 部品と違って「無い値」というものが無いので、弾くのではなく丸めるのが正しい
 
-            Entity entity = sender.level().getEntity(entityId);
-            if (entity instanceof CarEntity car && car.getControllingPassenger() == sender) {
-                // setFitment がそのまま周囲のクライアントへ配る
-                car.setFitment(car.getFitment().with(slot, setting));
-            }
+            // setFitment がそのまま周囲のクライアントへ配る
+            car.setFitment(car.getFitment().with(slot, setting));
         });
         context.setPacketHandled(true);
     }

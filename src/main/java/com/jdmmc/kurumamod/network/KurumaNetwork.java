@@ -14,7 +14,11 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public final class KurumaNetwork {
 
-    private static final String PROTOCOL_VERSION = "1";
+    /**
+     * パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれるので、
+     * 読み違えたまま遊べてしまうことがない。
+     */
+    private static final String PROTOCOL_VERSION = "2";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Kurumamod.MODID, "main"),
