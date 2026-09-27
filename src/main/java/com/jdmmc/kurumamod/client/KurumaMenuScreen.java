@@ -84,6 +84,9 @@ public class KurumaMenuScreen extends Screen {
         toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);
         toggle("show_dust", ClientConfig.SHOW_DUST);
         slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
+        toggle("show_own_skid_marks", ClientConfig.SHOW_OWN_SKID_MARKS);
+        toggle("show_other_skid_marks", ClientConfig.SHOW_OTHER_SKID_MARKS);
+        slider("skid_mark_seconds", 1.0, 15.0, ClientConfig.SKID_MARK_SECONDS);
 
         header("screen.kurumamod.menu.section.camera");
         slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);
