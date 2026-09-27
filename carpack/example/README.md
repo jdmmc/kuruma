@@ -5,11 +5,12 @@
 **You don't need Java to add a car to Kuruma.** Build a single mod jar that contains nothing
 but JSON and models, drop it in `mods/`, and the new cars show up.
 
-This `carpack/example/` folder is a **working example** that adds one car and one wheel part.
+This `carpack/example/` folder is a **working example** that adds one car and two wheel parts.
 
 | Id | What it demonstrates |
 |---|---|
 | `kurumamod_example_carpack:sample` | The full set — its own body mesh, texture and lights |
+| `kurumamod_example_carpack:sample_wheel` | A wheel part with its own mesh. **Copy this one when you build a wheel** |
 | `kurumamod_example_carpack:deep_dish` | A wheel part: the defaults it can hand the fitment sliders |
 
 (`carpack/basic/` next door is the official pack that ships to players. It is the same
@@ -53,11 +54,14 @@ carpack/example/
 ├─ pack.mcmeta
 ├─ kurumamod_example_carpack.png                   ← image in the mod list (logoFile in mods.toml)
 ├─ data/kurumamod_example_carpack/cars/sample.json ← spec (how it drives)
+├─ data/kurumamod_example_carpack/car_parts/       ← part definitions (section 6)
 └─ assets/kurumamod_example_carpack/
    ├─ vehicles/sample.json                         ← looks
+   ├─ car_parts/{sample_wheel,deep_dish}.json      ← part looks (section 6)
    ├─ lang/{ja_jp,en_us}.json                      ← display name
    ├─ models/entity/sample.obj + .mtl              ← body mesh
-   └─ textures/entity/sample.png
+   ├─ models/entity/wheel-sample.obj + .mtl        ← wheel mesh (section 6)
+   └─ textures/entity/{sample,wheel-sample}.png
 ```
 
 (`README.md`, `README-ja.md` and `CURSEFORGE.md` document this example — keep them or delete
@@ -149,7 +153,7 @@ What follows is only the summary:
 - Units are **metres**. There is no rule about overall length, width or height
 - **The body origin is: ground level, midpoint between the axles, centred left to right**
 - **Build one left-hand wheel only** (the right side is drawn mirrored)
-- Triangulate before exporting. Blender's default export settings are fine
+- **Do not triangulate.** Quads are lighter to draw, and the mod splits concave n-gons correctly on its own. Blender's default export settings are fine
 
 A gauge for matching dimensions is in `tools/blender_gauge.py`. Build against it and you never
 need to fiddle with scale factors in JSON (`sample.obj` was made this way).
@@ -184,7 +188,78 @@ coordinates are needed in the JSON.
 The colour is never applied twice (unwrapped lenses get white). **On/off brightness is owned by
 Kuruma either way**, so there is no need to bake a dark state into the texture.
 
-## 6. When it does not work
+## 6. Add wheels (parts)
+
+**Wheels are added the same way as cars.** They show up in the parts screen in game —
+**G → "Parts"**. There are two examples. `sample_wheel` has its own mesh — **copy that one when you build a
+wheel**. `deep_dish` has no mesh; it only widens and tilts the default wheel (an example of
+handing defaults to the sliders).
+
+As with cars, every file name follows from the id. For `mypack:te37`:
+
+| | Name |
+|---|---|
+| Definition (where it fits) | `data/mypack/car_parts/te37.json` |
+| Looks | `assets/mypack/car_parts/te37.json` |
+| Mesh and texture | Pointed to from the looks JSON (`models/entity/te37.obj` or wherever you like) |
+| Display-name translation key | `part.mypack.te37` (in lang) |
+
+**Definition** — read by the server. Only `slot` is required:
+
+```json
+{
+  "slot": "wheel",
+  "order": 10,
+  "cars": ["mypack:kei", "mypack:kei_van"]
+}
+```
+
+- `slot` … where it fits. Only `"wheel"` exists for now. **Leave it out and the part is dropped**
+- `order` … position in the parts screen (smaller is further left). 100 if omitted
+- `cars` … **restricts which cars can fit it.** Leave it out and the part is offered on every
+  car. List cars and it only appears in their parts screen, and the server refuses to fit it to
+  anything else. **Cars from other packs are fine** (`kurumamod:car` is the built-in default car)
+
+**Looks** — read by the client only. Written the same way as `wheel` in `vehicles/<car>.json`:
+
+```json
+{
+  "wheel": {
+    "model": "mypack:models/entity/te37.obj",
+    "texture": "mypack:textures/entity/te37.png",
+    "designRadius": 0.45,
+    "offset": [0.0, 0.0, 0.0],
+    "scale": [1.0, 1.0, 1.0],
+    "camber": 0.0
+  }
+}
+```
+
+- **Anything you leave out falls back to that car's own wheel** (not Kuruma's default). A part
+  can change only the camber and have no mesh at all
+- `designRadius` is **the radius the mesh was built at**. Write it and the wheel fits any car at
+  any tyre radius automatically
+- The X of `offset`, the X of `scale` and `camber` become the **defaults** of the sliders in the
+  parts screen. Players can move them, and "R" returns to your values
+- **Looks only — driving does not change** (grip and cornering stay the same)
+
+### The wheel mesh
+
+Build it as an OBJ separate from the body. The gauge is `tools/blender_wheel_gauge.py`.
+
+- **The origin is the centre of the axle** (not the bottom of the tyre). The spin axis runs left to right (X)
+- **Build one left-hand wheel only**, with the face (the design side) pointing to **+X**. The right side is drawn mirrored
+- Any size is fine; write the radius you built it at into `designRadius`
+- **Do not touch Y/Z of `scale` (the diameter).** Where the tyre touches the ground comes from the
+  spec's tyre radius, so scaling only the looks makes it float or sink
+- Tyre and rim can be one mesh (swapping the part swaps the tyre too)
+
+Current limits:
+
+- **Front and rear cannot wear different wheels** (all four share one part)
+- Wheels are the only slot
+
+## 7. When it does not work
 
 **A car pack fails quietly** — broken JSON or a mismatched name only drops that one entry and
 carries on. Work backwards from the symptom:
@@ -197,6 +272,9 @@ carries on. Work backwards from the symptom:
 | Drives, but wears the default body | Does the filename under `assets/<pack>/vehicles/` match the spec? |
 | Display name shows as `ae86` | Is the translation key `car.<pack>.<car>`? |
 | Body and wheels do not line up | Are `designWheelBase` / `designWheelRadius` the mesh's real dimensions? |
+| A wheel is missing from the parts screen | Is it under `data/<pack>/car_parts/`? Did you write `slot`? Is this car in its `cars`? |
+| Picking a wheel changes nothing | Does the filename under `assets/<pack>/car_parts/` match the definition? |
+| Wheel too big / too small | Is the part's `designRadius` the mesh's real size? |
 | Steering is wild, or does nothing | Did you write an angle in degrees? (**radians**) |
 
 While you are dialling things in, **`/reload` reloads the spec and F3+T reloads the looks** —
@@ -210,7 +288,7 @@ remembered, so putting the pack back restores them.
 ## Appendix: every key you can write
 
 **Anything you leave out falls back to the default**, so you never have to write all of it.
-This is a reference for *what exists*; how to dial it in is in sections 3 and 4.
+This is a reference for *what exists*; how to dial it in is in sections 3, 4 and 6.
 
 ### A. Looks — `assets/<pack>/vehicles/<car>.json`
 
@@ -363,3 +441,24 @@ and the car can never go faster than the top gear at the redline.
 So there is no cross-checking to do — no "I changed the tyre radius, now fix the final drive",
 no "I changed the dimensions, now fix the inertia". Change the radius and the gearing, ride
 height and climbing ability all move with it.
+
+### D. Parts — `data/<pack>/car_parts/<part>.json` and `assets/<pack>/car_parts/<part>.json`
+
+Definition (`data/`):
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `slot` | string | **required** | Where it fits. Only `"wheel"` for now |
+| `order` | integer | `100` | Position in the parts screen |
+| `cars` | array of car ids | (every car) | Which cars can fit it. If none of the values can be read, the part is dropped |
+
+Looks (`assets/`; write inside `"wheel": { ... }`, or at the top level without the nesting):
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `model` | id | the car's `wheel.model` | Wheel OBJ |
+| `texture` | id | the car's `wheel.texture` | Wheel texture |
+| `designRadius` | number | the car's `designWheelRadius` | **The radius the mesh was built at, in m** |
+| `offset` | `[x,y,z]` | the car's `wheel.offset` | Translation [m]. X points outward; it is the offset slider's default |
+| `scale` | one number or `[x,y,z]` | the car's `wheel.scale` | X is width (the slider's default). Leave Y/Z alone |
+| `camber` | number | the car's `wheel.camber` | Camber [degrees]. The slider's default |
