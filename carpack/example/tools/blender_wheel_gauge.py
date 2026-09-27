@@ -25,7 +25,8 @@
     - ゲージは "kuruma_wheel_gauge" コレクションに入るので、<b>「Selection Only」で
       タイヤだけを書き出す</b>こと（ObjModel は gauge_ で始まる名前を捨てるので、
       混ざっても描かれはしないが、要らないデータが jar に入る）
-    - <b>「Triangulated Mesh」にチェックを入れる。</b>凹んだ n-gon は扇状分割で破綻する
+    - <b>「Triangulated Mesh」は入れない。</b>四角形のままのほうが軽く（頂点が 4 割ほど減る）、
+      凹んだ n-gon も ObjModel が耳切り法で正しく割る
     - 向きとエクスポート設定は標準のまま（前方 -Y・上 +Z、-Z Forward / Y Up）
 
 寸法は CarSpec の既定値と揃えてある。変えたいときは下の定数を直す。

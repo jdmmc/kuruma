@@ -825,14 +825,14 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <table class="ja">
 <tr><th>項目</th><th>どうする</th><th>なぜ</th></tr>
 <tr><td>Selected Only<br><span class="sub">（古い版では Selection Only）</span></td><td><b>入れる</b></td><td>ゲージを書き出さないため</td></tr>
-<tr><td>Triangulated Mesh<br><span class="sub">（古い版では Triangulate Faces）</span></td><td><b>入れる</b></td><td>5 角形以上の凹んだ面は形が破綻します</td></tr>
+<tr><td>Triangulated Mesh<br><span class="sub">（古い版では Triangulate Faces）</span></td><td><b>入れない</b></td><td>四角形のままのほうが軽く描けます。凹んだ 5 角形以上の面も MOD 側が正しく割ります（入れても描けますが、重くなるだけです）</td></tr>
 <tr><td>Forward Axis / Up Axis</td><td><b>触らない</b>（−Z / Y のまま）</td><td>下記</td></tr>
 <tr><td>Apply Modifiers</td><td><b>触らない</b>（入ったまま）</td><td>ミラーモディファイアがこれで適用されます</td></tr>
 </table>
 <table class="en">
 <tr><th>Setting</th><th>Do this</th><th>Why</th></tr>
 <tr><td>Selected Only<br><span class="sub">(older versions: Selection Only)</span></td><td><b>Tick it</b></td><td>Keeps the gauge out of the file</td></tr>
-<tr><td>Triangulated Mesh<br><span class="sub">(older versions: Triangulate Faces)</span></td><td><b>Tick it</b></td><td>Concave n-gons fall apart otherwise</td></tr>
+<tr><td>Triangulated Mesh<br><span class="sub">(older versions: Triangulate Faces)</span></td><td><b>Leave it off</b></td><td>Quads draw faster, and the mod splits concave n-gons correctly itself (ticking it still works — it just makes the model heavier)</td></tr>
 <tr><td>Forward Axis / Up Axis</td><td><b>Leave alone</b> (−Z / Y)</td><td>See below</td></tr>
 <tr><td>Apply Modifiers</td><td><b>Leave alone</b> (on)</td><td>This is what applies the mirror modifier</td></tr>
 </table>
@@ -1071,7 +1071,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td>タイヤが横倒し／転がりかたが変</td><td>回転軸が X になっていない。原点が車軸の中心か</td></tr>
 <tr><td>右側のタイヤだけ内側を向く</td><td>左側用として作っていない。表を +X へ</td></tr>
 <tr><td>前後が逆／左右が鏡像</td><td>エクスポートの <code>Forward Axis</code> を触った。既定へ戻す</td></tr>
-<tr><td>面がめちゃくちゃ／抜ける</td><td>三角形化せずに書き出した。<code>Triangulated Mesh</code> を入れる</td></tr>
+<tr><td>面がねじれる／抜ける</td><td>平面から大きく曲がった面か、辺が交差した面がある。Blender でその面を割る（全体を三角形化する必要はありません）</td></tr>
 <tr><td>テクスチャが暗い</td><td>マテリアルの Base Color が 0.8 グレーのまま。白にする</td></tr>
 <tr><td>全体が真っ白</td><td><code>.mtl</code> を置いていないか、マテリアルが無い。<b>形が正しければ問題ありません</b></td></tr>
 <tr><td>窓が透けない</td><td>オブジェクト名が <code>glass</code> で始まっているか。<code>.mtl</code> を一緒に置いたか</td></tr>
@@ -1093,7 +1093,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td>Wheels lie on their side / roll oddly</td><td>The spin axis is not X. Is the origin at the axle centre?</td></tr>
 <tr><td>Only the right wheels face inward</td><td>You did not build it as the left-hand wheel. Point the face towards +X</td></tr>
 <tr><td>Front and back swapped / mirrored</td><td>You changed <code>Forward Axis</code> on export. Put it back</td></tr>
-<tr><td>Faces are a mess or missing</td><td>Exported without triangulating. Tick <code>Triangulated Mesh</code></td></tr>
+<tr><td>Faces look twisted or missing</td><td>A face is badly non-planar or its edges cross. Split that face in Blender (no need to triangulate the whole mesh)</td></tr>
 <tr><td>Texture looks dark</td><td>Material Base Color is still 0.8 grey. Make it white</td></tr>
 <tr><td>Everything is white</td><td>No <code>.mtl</code>, or no material at all. <b>Harmless if the shape is right</b></td></tr>
 <tr><td>Windows are not transparent</td><td>Does the object name start with <code>glass</code>? Did you keep the <code>.mtl</code> alongside?</td></tr>
@@ -1139,14 +1139,14 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <h3 class="en">In the export dialog</h3>
 <ul class="chk ja">
 <li><code>Selected Only</code> を入れた（ゲージが混ざらない）</li>
-<li><code>Triangulated Mesh</code> を入れた</li>
+<li><code>Triangulated Mesh</code> を入れていない</li>
 <li><code>Forward Axis</code> / <code>Up Axis</code> を触っていない</li>
 <li>車体とタイヤを別ファイルに書き出した</li>
 <li><code>.mtl</code> も一緒に置いた</li>
 </ul>
 <ul class="chk en">
 <li><code>Selected Only</code> ticked, so the gauge stays out</li>
-<li><code>Triangulated Mesh</code> ticked</li>
+<li><code>Triangulated Mesh</code> left off</li>
 <li><code>Forward Axis</code> / <code>Up Axis</code> untouched</li>
 <li>Body and wheel exported to separate files</li>
 <li>The <code>.mtl</code> kept alongside</li>
@@ -1203,7 +1203,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><th>シャシー基準面</th><td>ゲーム内で車の「位置」として扱われる高さ。既定は地面から 0.602m。車体はここから <code>designRideHeight</code> だけ下げて描かれます</td></tr>
 <tr><th>フェンダー／タイヤハウス</th><td>タイヤの上を覆っている部分。ここをゲージのタイヤに合わせます</td></tr>
 <tr><th>キャンバー角</th><td>タイヤの傾き。負で「上が内側」。この MOD では<b>見た目だけ</b>で、グリップには効きません</td></tr>
-<tr><th>n-gon</th><td>5 角形以上の面。凹んでいると分割で破綻するので、書き出し時に三角形化します</td></tr>
+<tr><th>n-gon</th><td>5 角形以上の面。凹んでいても MOD が読み込み時に正しく割るので、そのまま書き出してよい</td></tr>
 <tr><th>UV 展開</th><td>3D のメッシュに 2D の絵をどう貼るかの対応付け。しなくても走ります</td></tr>
 <tr><th>マテリアル</th><td>Blender 上の材質設定。この MOD が読むのは<b>色（Base Color）と透明度（Alpha）だけ</b>です</td></tr>
 <tr><th>MTL</th><td>OBJ と一緒に出るマテリアルのファイル。色とガラスの濃さを運びます</td></tr>
@@ -1215,7 +1215,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><th>Chassis plane</th><td>The height the game treats as the car's position — 0.602 m above the ground by default. The body is drawn <code>designRideHeight</code> below it</td></tr>
 <tr><th>Wheel arch</th><td>The bodywork over the tyre. Line it up with the gauge wheels</td></tr>
 <tr><th>Camber</th><td>How far the wheel leans. Negative tips the top inward. <b>Cosmetic only</b> in this mod; it does not affect grip</td></tr>
-<tr><th>n-gon</th><td>A face with five or more vertices. Concave ones fall apart when split, which is why you triangulate on export</td></tr>
+<tr><th>n-gon</th><td>A face with five or more vertices. The mod splits them correctly on load, concave or not, so export them as they are</td></tr>
 <tr><th>UV unwrap</th><td>The mapping that decides how a 2D image sits on a 3D mesh. Optional — the car drives without it</td></tr>
 <tr><th>Material</th><td>Blender's surface settings. This mod reads <b>only the Base Color and the Alpha</b></td></tr>
 <tr><th>MTL</th><td>The material file written next to the OBJ. It carries the colours and the glass opacity</td></tr>
