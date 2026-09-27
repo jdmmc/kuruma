@@ -43,6 +43,17 @@
       }
     ]
   },
+  "car_slip_chatter": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_slip",
+    "sounds": [
+      {
+        "name": "kurumamod:slip_chatter",
+        "stream": false,
+        "attenuation_distance": 48
+      }
+    ]
+  },
   "car_gravel": {
     "category": "neutral",
     "subtitle": "subtitles.kurumamod.car_gravel",
