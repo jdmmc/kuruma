@@ -4,7 +4,7 @@
   "_comment_model": "自前のホイールを使うなら model と texture を書く。作った半径を designRadius に書けば、調整画面でタイヤ半径を変えても追従する",
 
   "wheel": {
-    "offset": [0.07, 0.0, 0.0],
+    "offset": [0.0, 0.0, 0.0],
     "scale": [1.6, 1.0, 1.0],
     "camber": -12.0
   }
