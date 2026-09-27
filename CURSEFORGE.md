@@ -5,36 +5,52 @@
 Forget boats on wheels. **KurumaMod puts a real car in your world** — one that dives when you brake, squats when you floor it, leans into a corner, and slides sideways in a cloud of tyre smoke when you get greedy with the throttle.
 Turn the key. Listen to it idle. Find a mountain road and go.
 
-🚗 **Car packs(Add-on):**
+![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
-- [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)
-- [Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack) (Template for making your own)
+**Forge 1.20.1 · No dependencies · Multiplayer · Wheel & gamepad**
 
-Join Discord to get the latest updates! Make sure to follow us on X, too.
-
-Discord: [https://discord.gg/8QBtfEyXb](https://discord.gg/8QBtfEyXb)  
-X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
-
-
-![kuruma mod main image](https://media.forgecdn.net/attachments/1946/668/2026-09-14_21-18-02-png.png)
+🚗 [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/SByTzMXmM) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
 ***
 
-## 🏎️ It drives like a car
+## Why Kuruma
 
-Every corner has real weight to it. Grip runs out gradually, not all at once — you'll feel the front push wide before it lets go, and catch the rear with a flick of countersteer. Get it right and a long sweeper becomes the best thing in the game.
+Other vehicle mods give you more things to ride. **KurumaMod makes driving itself the game.**
 
-Automatic if you just want to drive. **Manual if you want to be the one shifting.**
+- **Real tyre physics** — weight transfer, slip angles, a friction circle. You feel the grip going before it's gone
+- **Tune it mid-drive** — press **G**, move a slider, and the next corner is a different car
+- **Race your friends** — lap timing, split deltas and leaderboards, in multiplayer
+- **Just drop it in** — no other mods required. New cars are a single jar
 
-## 🔧 Tune it exactly how you like
+***
 
-Hit **G** and the setup screen opens — right there, mid-drive. Springs, dampers, anti-roll bars, tyres, gear ratios, diff, brake balance, weight distribution. Move a slider and the very next corner feels different.
+## 🏎️ Drives like the real thing
 
-Build a track-day monster. Build a drift car. **Save it as a preset and hand it to your friends.**
+![kuruma mod drift image](https://media.forgecdn.net/attachments/1981/5/drift-jpg.jpg)
 
-![kuruma mod image](https://media.forgecdn.net/attachments/1946/670/2026-09-14_21-19-34-png.png)
+Every corner has real weight to it. Grip runs out gradually, not all at once — you'll feel the front push wide before it lets go, and catch the rear with a flick of countersteer. Yank the handbrake and the clutch drops out for you, so the rear locks and the car swings round. Get it right and a long sweeper becomes the best thing in the game.
+
+You start in a **Nissan S15 Silvia** on TE37s. Automatic if you just want to drive. **Manual if you want to be the one shifting** — blip it in neutral, dump the clutch, and it launches.
+
+## 🔧 Tune it while you drive
+
+![kuruma mod customize image](https://media.forgecdn.net/attachments/1980/928/custom-jpg.jpg)
+
+Hit **G** and the setup screen opens — right there, mid-drive, without pausing. Springs, anti-roll bars, roll centres, tyres, torque curve, gear ratios, limited-slip diff, brakes, weight distribution. Move a slider and the very next corner feels different.
+
+Start from the built-in **Drift** or **Off-road** preset, or build a track-day monster from scratch. **Save it as a preset and hand it to your friends.**
+
+## ✨ Make it look the way you want
+
+![kuruma mod parts image](https://media.forgecdn.net/attachments/1980/972/camber-jpg.jpg)
+
+Dial in **camber, offset and wheel width** until it sits exactly how you like — flush, poke, or full oni-kyan. Swap to wheels from car packs and watch it happen on your own car: drag to orbit, scroll to zoom. Pick the gauge style too — **90s JDM factory cluster** or modern.
+
+Pick it up with Shift + attack and the item keeps the whole setup and every part. Place it again and it's the same car.
 
 ## 🌧️ The road matters
+
+![kuruma mod gravel image](https://media.forgecdn.net/attachments/1981/33/gravel-jpg.jpg)
 
 Tarmac, dirt, gravel, sand, snow, ice — each one changes the car completely. Drop two wheels onto gravel mid-corner and you'll know about it. When it rains the road goes slick, and tunnels and bridges stay dry, so there's always somewhere to brake.
 
@@ -42,29 +58,47 @@ Roads from other mods work straight away.
 
 ## 🏁 Race your friends
 
-Set up a start line and checkpoints anywhere in the world, then race it properly — live standings, lap times, personal bests. Build a mountain touge, a city circuit, an airport runway sprint. **Multiplayer, timed to the millisecond.**
+![kuruma mod race image](https://media.forgecdn.net/attachments/1980/926/race-jpg.jpg)
 
-![kuruma mod race image](https://media.forgecdn.net/attachments/1858/618/race-png.png)
+Set up a start line and checkpoints anywhere in the world, then race it properly — start lights, live standings, lap times. Every checkpoint shows your gap to your best lap, and your theoretical best is built from your best sectors. Build a mountain touge, a city circuit, an airport runway sprint. **Multiplayer, timed to the millisecond.**
+
+Rub doors and it hurts — cars hit each other for real, and a hit off-centre sends the other car rotating. (Server owners can turn car-to-car contact off.)
+
+## 🏔️ Go off-road
+
+![kuruma mod off-road image](https://media.forgecdn.net/attachments/1980/925/offroad-jpg.jpg)
+
+Leave the tarmac behind. Load the built-in **Off-road** preset — four-wheel drive, a locking diff, 75 cm of suspension travel and big tyres that lift the whole car — and head for the hills.
+
+Every wheel works on its own. Crawl up one-block ledges, cross a ditch with a wheel hanging in the air and let the diff drag you out, feel the body pitch and roll over every rock. Dust hangs in the air behind you on dirt and sand, and the gravel crunches under the tyres. Roll it, and once it stops tumbling it will usually find its feet again.
+
+Want a proper 4x4? The **[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** adds a Land Cruiser Prado.
 
 ## 🎮 Wheel and gamepad ready
 
 Full analog throttle, brake and steering. Plug it in, press **J**, wiggle the stick you want to bind. That's it.
 
-## 🎧 Sound and spectacle
+***
 
-A proper exhaust note that climbs all the way to the redline. Road noise, wind, screeching tyres, the thud of a shift. Headlights carving through the night, brake lights flaring, dust kicking up off a gravel shoulder — and a camera that swings around to show the car sideways when you're really on it.
+## 🚗 Add more cars
 
-## 🚗 Add your own cars
+**A car pack is a single jar — drop it in `mods/` and the cars are there.** No coding, no scripts.
 
-**A car pack is a single jar — drop it in `mods/` and the cars are there.** No coding, no scripts. Model it in Blender, tune it in-game, ship it.
+**Just want to drive?** Get the **[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — a Toyota Land Cruiser Prado, a heavy off-road 4x4.
 
-Want cars without making them? Grab
+**Want to build your own?** Model it in Blender, tune it in-game, ship it.
 
-**Never opened Blender?** The **[Vehicle Modeling Manual](https://static.jdm-mc.com/manual/MODELING.html)** takes you through one whole car — where the origin goes, the object names that become lights, glass and working mirrors, the two export settings people always get wrong, and what to check when the car comes out the wrong size.
+- **[Vehicle Modeling Manual](https://static.jdm-mc.com/manual/MODELING.html)** — never opened Blender? It takes you through one whole car: where the origin goes, the object names that become lights, glass and working mirrors, the two export settings people always get wrong, and what to check when the car comes out the wrong size
+- **[Sample Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** — the jar is the template. Rename it to `.zip` and open it: a sample car, two sample wheels, the how-to (English and Japanese), Blender sizing gauges for the car and the wheel, and a CurseForge/Modrinth page template. Copy it, swap in your car, ship it — no credit needed
 
-**[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (Land Cruiser Prado, a heavy off-road 4x4)** — Ready-to-drive cars, straight away.
+***
 
-**And that same jar is the manual.** Rename it to `.zip` and open it: the full how-to (English and Japanese), the JSON for both cars, the Blender sizing gauges, and a CurseForge/Modrinth page template are all in there. Copy it, swap the cars for yours, ship it — the sample pack is yours to use, no credit needed.
+## Getting started
+
+1. Install Forge 1.20.1 and drop KurumaMod into `mods/`
+2. Open the **KurumaMod** creative tab and take the car
+3. Right-click the ground to place it, right-click the car to get in
+4. Run!
 
 ***
 
@@ -87,7 +121,7 @@ Want cars without making them? Grab
 | <strong>L</strong>            |Headlights                           |
 | <strong>J</strong>            |Controller setup                     |
 
-All rebindable in Options → Controls. A plain hit won't break a car — you need Shift, so one stray punch can't throw away a setup.
+All rebindable in Options → Controls. A plain hit removes the car and its setup with it — to keep a setup, pick the car up with Shift.
 
 ## Settings
 
@@ -148,9 +182,12 @@ Getting out of your car doesn't retire you — flip it back over and carry on. T
 | `/kuruma best clear <course>` / `/kuruma best clear all` | Delete your own records |
 | `/kuruma best clearall <course>` | Delete everyone's records for a course (OP) |
 
+***
+
 ## Requirements
 
 *   Minecraft **1.20.1** / Forge **47.4.22+**
+*   No other mods required
 
 ## Videos and streams
 
@@ -166,7 +203,10 @@ KurumaMod is free software under the **GNU General Public License v3.0 only** (`
 
 ## Community
 
-[Discord Server](https://discord.gg/8QBtfEyXb)
+Join the Discord for the latest updates, and follow us on X.
+
+- [Discord Server](https://discord.gg/SByTzMXmM)
+- [X (@kurumamod)](https://x.com/kurumamod)
 
 ***
 
@@ -174,70 +214,103 @@ KurumaMod is free software under the **GNU General Public License v3.0 only** (`
 
 ### Minecraft で、グランツーリスモ。
 
-ボートに車の皮をかぶせたものではありません。**ブレーキで鼻が沈み、アクセルで尻が沈み、 コーナーでぐっと外へ傾き、踏みすぎればタイヤを鳴らして横を向く**——本物の車が、あなたの ワールドを走ります。 エンジンをかけて、アイドリングを聞いて、山道へ。
+ボートに車の皮をかぶせたものではありません。**ブレーキで鼻が沈み、アクセルで尻が沈み、コーナーでぐっと外へ傾き、踏みすぎればタイヤを鳴らして横を向く**——本物の車が、あなたのワールドを走ります。
+エンジンをかけて、アイドリングを聞いて、山道へ。
 
-🚗 **カーパック(アドオン):**
+![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
-- [ベーシックカーパック（Basic Car Pack）](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) (ランドクルーザープラド, 重いオフロード4x4)
-- [サンプルカーパック（Sample Car Pack）](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack) (カーパック制作者向けテンプレート)
+**Forge 1.20.1 · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
 
-最新のアップデートを受け取るには、Discordに参加しましょう！Xもあるよ。
-
-Discord: [https://discord.gg/8QBtfEyXb](https://discord.gg/8QBtfEyXb)  
-X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
-
-![kuruma mod main image](https://media.forgecdn.net/attachments/1946/668/2026-09-14_21-18-02-png.png)
+🚗 [ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/SByTzMXmM) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
 ***
 
-## 🏎️ ちゃんと「運転」になる
+## Kurumaが選ばれる理由
 
-コーナーひとつひとつに重さがあります。グリップは突然ゼロになるのではなく、じわりと失われて いく——フロントが外へ逃げていくのが分かるし、リアが出ればカウンターで抑えられる。 うまく決まったときの長い高速コーナーは、たぶんこの MOD でいちばん気持ちいい瞬間です。
+ほかの乗り物 MOD は、乗れるものを増やします。**KurumaMod は、運転そのものをリアルにします。**
 
-**ただ流したい日は AT。自分で操りたい日は MT。**
+- **本物さながらの物理演算** — 荷重移動、スリップ角、摩擦円。グリップが抜ける前に、抜けそうなのが分かる
+- **走りながら詰められる** — **G** を押してスライダーを動かせば、次のコーナーからもう別の車
+- **友達と競える** — マルチプレイでラップ計測、区間タイムの差、ランキング
+- **入れるだけで動く** — 前提 MOD は不要。車は jar ひとつで増やせる
 
-## 🔧 好きなだけいじれる
+***
 
-**G** を押すと、走りながらセッティング画面が開きます。バネ、ダンパー、スタビ、タイヤ、ギア比、 デフ、ブレーキバランス、重量配分。スライダーを動かせば、**次のコーナーからもう別の車**です。
+## 🏎️ 実車のような走り
 
-サーキット用に詰めるもよし、ドリフト仕様に振るもよし。**プリセットとして保存して、友達に 渡せます。**
+![kuruma mod drift image](https://media.forgecdn.net/attachments/1981/5/drift-jpg.jpg)
 
-![kuruma mod image](https://media.forgecdn.net/attachments/1946/670/2026-09-14_21-19-34-png.png)
+コーナーひとつひとつに重さがあります。グリップは突然ゼロになるのではなく、じわりと失われていく——フロントが外へ逃げていくのが分かるし、リアが出ればカウンターで抑えられる。サイドブレーキを引けばクラッチは自動で切れるので、リアがロックして車がくるりと向きを変えます。うまく決まったときの長い高速コーナーは、たぶんこの MOD でいちばん気持ちいい瞬間です。
 
-## 🌧️ 路面で世界が変わる
+最初の 1 台は **日産 シルビア S15**、足元は TE37。**ただ流したい日は AT。自分で操りたい日は MT。** ニュートラルで空ぶかしして、クラッチをつなげば蹴り出します。
 
-舗装・土・砂利・砂・雪・氷。路面が変われば車はまったく別物になります。コーナーの途中で片側だけ 砂利に落としたら、その瞬間に分かります。雨が降れば路面は滑るようになり、トンネルや橋の下は 濡れないので、そこがブレーキングポイントになります。
+## 🔧 走りながらセッティング
+
+![kuruma mod customize image](https://media.forgecdn.net/attachments/1980/928/custom-jpg.jpg)
+
+**G** を押すと、走りながら、ゲームを止めずにセッティング画面が開きます。バネ、スタビ、ロールセンター、タイヤ、トルクカーブ、ギア比、LSD、ブレーキ、重量配分。スライダーを動かせば、**次のコーナーからもう別の車**です。
+
+組み込みの **ドリフト** / **オフロード** プリセットから始めるもよし、ゼロからサーキット仕様に詰めるもよし。**プリセットとして保存して、友達に渡せます。**
+
+## ✨ 見た目を自分好みに
+
+![kuruma mod parts image](https://media.forgecdn.net/attachments/1980/972/camber-jpg.jpg)
+
+**キャンバー・オフセット・ホイールの太さ**を、思いどおりの姿になるまで追い込めます——ツライチも、ハミタイも、鬼キャンも。カーパックのホイールに履き替えれば、その場で自分の車に反映されます。ドラッグで回して、スクロールで寄って確かめられます。メーターも **90 年代の国産純正風**とモダンから選べます。
+
+Shift ＋ 殴るで回収すれば、セッティングもパーツも丸ごとアイテムに残ります。置き直せば同じ車です。
+
+## 🌧️ 路面と天候
+
+![kuruma mod gravel image](https://media.forgecdn.net/attachments/1981/33/gravel-jpg.jpg)
+
+舗装・土・砂利・砂・雪・氷。路面が変われば車はまったく別物になります。コーナーの途中で片側だけ砂利に落としたら、その瞬間に分かります。雨が降れば路面は滑るようになり、トンネルや橋の下は濡れないので、そこがブレーキングポイントになります。
 
 **他の道路 MOD の上でも、そのまま走れます。**
 
-## 🏁 友達とレースする
+## 🏁 レース
 
-ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的にレースできます。 リアルタイム順位表示、ラップタイム、自己ベスト。峠を作るのも、街中サーキットを作るのも、 滑走路で最高速を競うのも自由。**マルチプレイ対応、計測はミリ秒単位。**
+![kuruma mod race image](https://media.forgecdn.net/attachments/1980/926/race-jpg.jpg)
 
-![kuruma mod race image](https://media.forgecdn.net/attachments/1858/618/race-png.png)
+ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的にレースできます。スタートシグナル、リアルタイムの順位、ラップタイム。チェックポイントごとにベストラップとの差が出て、区間ベストをつないだ理論ベストも分かります。峠を作るのも、街中サーキットを作るのも、滑走路で最高速を競うのも自由。**マルチプレイ対応、計測はミリ秒単位。**
+
+車同士はちゃんとぶつかります。重心を外して当てれば、相手の車は向きを変えます。（サーバー側で当たりを切ることもできます）
+
+## 🏔️ オフロードを走る
+
+![kuruma mod off-road image](https://media.forgecdn.net/attachments/1980/925/offroad-jpg.jpg)
+
+舗装路を降りて、山へ。組み込みの **オフロード** プリセットを読み込めば、四駆・ロックするデフ・75cm のサスストローク、車体ごと持ち上げる大径タイヤの仕様になります。
+
+4 輪はそれぞれ独立して動きます。1 ブロックの段差をよじ登り、片輪が宙に浮いた溝もデフの力で抜け出し、岩を越えるたびに車体が前後左右に揺れる。土や砂の上では背後に土煙が漂い、砂利はタイヤの下で音を立てて砕けます。横転しても、転がりが止まれば多くの場合は自分で起き上がります。
+
+本格的な四駆がほしければ、**[ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** でランドクルーザー プラドが加わります。
 
 ## 🎮 ハンコン・パッド対応
 
-アクセル・ブレーキ・ステアリングをフルアナログで。つないで **J** を押して、割り当てたい軸を 動かすだけ。設定完了です。
+アクセル・ブレーキ・ステアリングをフルアナログで。つないで **J** を押して、割り当てたい軸を動かすだけ。設定完了です。
 
-## 🎧 音と、絵
+***
 
-レッドラインまで気持ちよく吹け上がる排気音。ロードノイズ、風切り音、悲鳴を上げるタイヤ、 シフトの衝撃。夜を切り裂くヘッドライト、光るブレーキランプ、砂利を巻き上げる土煙。 そして本気で攻めているときは、**カメラが回り込んで横を向いた車体を見せてくれます。**
+## 🚗 車を追加する
 
-## 🚗 車は自分で足せる
+**カーパックは jar ひとつ。`mods/` に入れるだけで車が増えます。** コードもスクリプトも不要です。
 
-**カーパックは jar ひとつ。`mods/` に入れるだけで車が増えます。** コードもスクリプトも不要。 Blender でモデルを作り、ゲーム内で味付けして、そのまま配布できます。
+**まずは乗りたい方へ。** **[ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** を入れれば、トヨタ ランドクルーザー プラド（重量級のオフロード 4x4）が加わります。
 
-**Blender を触ったことがなくても大丈夫。** **[車両モデル作成マニュアル](https://static.jdm-mc.com/manual/MODELING.html)** が、 原点の合わせかたから、灯火・ガラス・実際に映るミラーになるオブジェクト名、 みんなが間違える書き出し設定、大きさがおかしいときの直しかたまで、1 台ぶんを通しで案内します。
+**自分で作りたい方へ。** Blender でモデルを作り、ゲーム内で味付けして、そのまま配布できます。
 
-作るのはあとで、まずは乗りたい方へ。
+- **[車両モデル作成マニュアル](https://static.jdm-mc.com/manual/MODELING.html)** — Blender を触ったことがなくても大丈夫。原点の合わせかたから、灯火・ガラス・実際に映るミラーになるオブジェクト名、みんなが間違える書き出し設定、大きさがおかしいときの直しかたまで、1 台ぶんを通しで案内します
+- **[サンプルカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** — この jar そのものがひな型です。拡張子を `.zip` に変えて開けば、サンプルの車 1 台とホイール 2 種、作り方の解説（日英）、車とホイールの Blender 用寸法ゲージ、CurseForge/Modrinth ページのひな型まで入っています。丸ごとコピーして車を差し替えれば、それがあなたのカーパックです——**表示も許諾も不要です**
 
-**[ベーシックカーパック（Basic Car Pack）](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)**
+***
 
-を入れれば、それだけで車が 1 台増えます。
+## はじめかた
 
-**そしてこの jar そのものが、カーパックの作り方の手引です。** 拡張子を `.zip` に変えて開けば、 作り方の解説（日英）・2 台分の JSON・Blender 用の寸法ゲージ・CurseForge/Modrinth ページのひな型まで 入っています。丸ごとコピーして車を差し替えれば、それがあなたのカーパックです——**見本は自由に使ってかまいません。 表示も許諾も不要です。**
-
+1. Forge 1.20.1 を入れて、KurumaMod を `mods/` に置く
+2. クリエイティブの **KurumaMod** タブから車を取り出す
+3. 地面を右クリックして置き、車を右クリックして乗る
+4. 走る！
 ***
 
 ## 操作
@@ -252,6 +325,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 | <strong>R / F</strong> |シフトアップ / ダウン（MT）    |
 | <strong>Shift</strong> |降りる                 |
 | <strong>Shift</strong> ＋ 車を殴る |回収する（セッティングとパーツはアイテムに残る） |
+| 車を殴る |消す（何も落とさない） |
 | <strong>G</strong> |セッティング画面（プリセット・パーツもここから） |
 | <strong>H</strong> |MOD メニュー（表示とカメラの設定） |
 | <strong>V</strong> |カメラ追従               |
@@ -259,7 +333,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 | <strong>L</strong> |ヘッドライト              |
 | <strong>J</strong> |コントローラ設定            |
 
-キーはすべて「設定 → 操作設定」で変更できます。素手で殴っただけでは車は壊れません。Shift を押しながらでないと回収できないので、うっかりの 1 発で作り込んだセッティングが消えることはありません。
+キーはすべて「設定 → 操作設定」で変更できます。素手で殴ると車はセッティングごと消えます。残したいときは Shift を押しながら殴って回収してください。
 
 ## 設定
 
@@ -286,7 +360,7 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 | `abandonedCarLifetimeSeconds` | 600 | 誰も乗っていない車をこの秒数で消す。0 で消さない |
 | `carCollision` | true | 車同士が当たるか。OP はゲーム内で `/kuruma-admin collide true\|false` でも切り替えられる |
 
-## レース
+## レースのしかた
 
 ### 1. コースを作る（OP）
 
@@ -320,22 +394,28 @@ X.com: [https://x.com/kurumamod](https://x.com/kurumamod)
 | `/kuruma best clear <コース>` / `/kuruma best clear all` | 自分の記録を消す |
 | `/kuruma best clearall <コース>` | そのコースの全員の記録を消す（OP） |
 
+***
+
 ## 動作環境
 
 *   Minecraft **1.20.1** / Forge **47.4.22+**
+*   前提 MOD は不要
 
 ## 動画・配信での利用について
 
-動画や配信に使って問題ありません。 どんな走りをしてくれるのか楽しみにしています。 YouTube・配信：動画・LINE配信の概要欄に、この CurseForge/Modrinth ページのリンクを記載してください。 リンクを記載いただければ、許可は不要です。
+動画や配信に使って問題ありません。どんな走りをしてくれるのか楽しみにしています。動画・配信の概要欄に、この CurseForge/Modrinth ページのリンクを記載してください。リンクを記載いただければ、許可は不要です。
 
 ## モッドパックでの利用について
 
-モッドパックへ含めることは歓迎です。**jar 本体を同梱せず、CurseForge/Modrinth の参照（依存）として 追加**していただけると、プレイヤーに常に最新版が届くので助かります。ライセンス上の条件では なく、お願いです。
+モッドパックへ含めることは歓迎です。**jar 本体を同梱せず、CurseForge/Modrinth の参照（依存）として追加**していただけると、プレイヤーに常に最新版が届くので助かります。ライセンス上の条件ではなく、お願いです。
 
 ## ライセンス
 
-KurumaMod は **GNU General Public License v3.0 only**（`GPL-3.0-only`）で公開している フリーソフトウェアです。全文は `LICENSE`（英語の原文が正本）。
+KurumaMod は **GNU General Public License v3.0 only**（`GPL-3.0-only`）で公開しているフリーソフトウェアです。全文は `LICENSE`（英語の原文が正本）。
 
 ## コミュニティ
 
-[Discord サーバー](https://discord.gg/8QBtfEyXb)
+最新のアップデートは Discord で。X もフォローしてください。
+
+- [Discord サーバー](https://discord.gg/SByTzMXmM)
+- [X（@kurumamod）](https://x.com/kurumamod)
