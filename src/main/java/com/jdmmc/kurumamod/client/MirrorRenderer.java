@@ -328,7 +328,7 @@ public final class MirrorRenderer {
      * 鏡面を描く。映せるものは映し、そうでなければ暗いガラスにする。
      *
      * <p><b>鏡面は車体のパスから外してあるので、ここが必ず描くこと</b>——描かないと
-     * その部分に穴が開く（{@code ObjModel#accepts}）。</p>
+     * その部分に穴が開く（{@code ObjModel} が読み込み時に車体のパスから外している）。</p>
      */
     public static void renderSurfaces(CarEntity car, ObjModel body, PoseStack pose,
                                       MultiBufferSource buffer, int packedLight,

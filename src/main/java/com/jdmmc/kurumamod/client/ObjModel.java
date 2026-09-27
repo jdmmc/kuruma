@@ -155,17 +155,36 @@ public final class ObjModel {
      */
     public static final String MIRROR_PREFIX = "mirror_";
 
-    /** 三角形の頂点が {@link #STRIDE} 個ずつ並んだもの。 */
+    /**
+     * 面 1 つあたりの float 数。<b>どの面も 4 頂点で持つ</b>——四角形はそのまま、
+     * 三角形は 3 番目の頂点を 2 回（縮退四角形）。描くときに形で分岐しなくて済む。
+     */
+    private static final int FACE_FLOATS = STRIDE * 4;
+
+    private static final int[] NO_FACES = new int[0];
+
+    /** 面の頂点が 4 つずつ（{@link #FACE_FLOATS}）並んだもの。 */
     private final float[] vertices;
-    private final int triangleCount;
-    /** オブジェクトごとの範囲（float の添字）。名前で選んで描くために持つ。 */
+    private final int faceCount;
+    /** オブジェクトごとの範囲（面の番号）。 */
     private final List<Group> groups;
-    /** 透ける面を 1 つでも持っているか。無ければ 2 パス目を丸ごと省ける。 */
-    private final boolean translucent;
+    /**
+     * どのパスでどの面を描くか。<b>読み込みのときに振り分けておく</b>。
+     *
+     * <p>以前は描くたびに全面を回り、面ごとにオブジェクト一覧を線形に探して名前を
+     * 照合していた（灯火 1 つ描くのにも車体を丸ごと 1 周）。答えは走行中に変わらないので、
+     * 毎フレーム計算し直す理由がない。</p>
+     */
+    private final int[] opaqueFaces;
+    private final int[] translucentFaces;
+    /** オブジェクト名 → その面。灯火のレンズのように名指しで描くときに使う。 */
+    private final Map<String, int[]> facesByName;
     /** 鏡面。読み込みのときに 1 度だけ measure しておく。 */
     private final List<MirrorFace> mirrors;
-    /** その三角形が鏡の<b>反射面</b>か。ガワ（筐体）は車体として描くので、ここには入らない。 */
-    private final boolean[] mirrorSurface;
+    /** {@link #groupSideCenters} の答え。メッシュから決まるので 1 度だけ測る。 */
+    private final Map<String, List<Vec3>> sideCenters = new HashMap<>();
+    /** {@link #isUvMapped} の答え。同上。 */
+    private final Map<String, Boolean> uvMapped = new HashMap<>();
 
     /** OBJ の {@code o} / {@code g} ひと区切り。 */
     private record Group(String name, int from, int to) {
@@ -173,12 +192,22 @@ public final class ObjModel {
 
     private ObjModel(float[] vertices, List<Group> groups) {
         this.vertices = vertices;
-        this.triangleCount = vertices.length / (STRIDE * 3);
+        this.faceCount = vertices.length / FACE_FLOATS;
         this.groups = groups;
 
-        // 鏡を先に測る。accepts が「反射面かどうか」を見るので、パスを数えるより前に要る
-        this.mirrorSurface = new boolean[triangleCount];
-        List<MirrorFace> faces = new ArrayList<>();
+        Map<String, List<Integer>> byName = new HashMap<>();
+        for (Group group : groups) {
+            List<Integer> list = byName.computeIfAbsent(group.name(), name -> new ArrayList<>());
+            for (int face = group.from(); face < group.to(); face++) {
+                list.add(face);
+            }
+        }
+        this.facesByName = new HashMap<>();
+        byName.forEach((name, list) -> facesByName.put(name, toArray(list)));
+
+        // 鏡を先に測る。反射面はどちらのパスからも外すので、振り分けより前に要る
+        boolean[] excluded = new boolean[faceCount];
+        List<MirrorFace> found = new ArrayList<>();
         for (Group group : groups) {
             if (!group.name().startsWith(MIRROR_PREFIX)) {
                 continue;
@@ -191,21 +220,39 @@ public final class ObjModel {
                         group.name());
                 continue;
             }
-            faces.add(face);
-            for (int triangle : face.triangles()) {
-                mirrorSurface[triangle] = true;
+            found.add(face);
+            // 鏡の<b>反射面だけ</b>を外す。筐体（ガワ）は車体として描かれる
+            for (int index : face.faces()) {
+                excluded[index] = true;
             }
         }
-        this.mirrors = List.copyOf(faces);
+        this.mirrors = List.copyOf(found);
 
-        // 2 パス目が要るかは読み込みのときに数えておく。毎フレーム走査する値ではない。
-        // 判定はそのまま accepts に聞く——ここだけ別の式で数えると、灯火のレンズが
-        // 透けていたときに「何も描かない 2 パス目」が残るような食い違いが出る
-        boolean any = false;
-        for (int triangle = 0; triangle < triangleCount && !any; triangle++) {
-            any = accepts(triangle * 3 * STRIDE, null, Pass.TRANSLUCENT);
+        // 灯火は車体とは別に描く。呼ぶ側（CarLights）が名指しで必ず描くので穴は開かない
+        for (Group group : groups) {
+            if (group.name().startsWith(LIGHT_PREFIX)) {
+                for (int face = group.from(); face < group.to(); face++) {
+                    excluded[face] = true;
+                }
+            }
         }
-        this.translucent = any;
+
+        // 残りは<b>頂点の不透明度</b>で振り分ける。透ける面は車体のパスから外れ、半透明のパスが拾う
+        List<Integer> opaque = new ArrayList<>();
+        List<Integer> translucent = new ArrayList<>();
+        for (int face = 0; face < faceCount; face++) {
+            if (excluded[face]) {
+                continue;
+            }
+            boolean transparent = vertices[face * FACE_FLOATS + ALPHA_OFFSET] < OPAQUE_THRESHOLD;
+            (transparent ? translucent : opaque).add(face);
+        }
+        this.opaqueFaces = toArray(opaque);
+        this.translucentFaces = toArray(translucent);
+    }
+
+    private static int[] toArray(List<Integer> list) {
+        return list.stream().mapToInt(Integer::intValue).toArray();
     }
 
     /**
@@ -218,10 +265,10 @@ public final class ObjModel {
      * @param up     面の中で上へ伸びる軸
      * @param width  {@code right} 方向の幅 [m]
      * @param height {@code up} 方向の高さ [m]
-     * @param triangles 反射面をなす三角形の番号。<b>ガワは含まない</b>
+     * @param faces 反射面をなす面の番号。<b>ガワは含まない</b>
      */
     public record MirrorFace(String name, Vec3 center, Vec3 normal, Vec3 right, Vec3 up,
-                             double width, double height, int[] triangles) {
+                             double width, double height, int[] faces) {
 
         /** 横縦比。描き先の大きさと射影のアスペクトに使う。 */
         public double aspect() {
@@ -252,18 +299,13 @@ public final class ObjModel {
      * 「映像の上」が鏡の上に一致する。</p>
      */
     private MirrorFace measureMirror(String name) {
-        List<Integer> group = new ArrayList<>();
-        for (int triangle = 0; triangle < triangleCount; triangle++) {
-            if (name.equals(groupNameAt(triangle * 3 * STRIDE))) {
-                group.add(triangle);
-            }
-        }
+        int[] group = facesByName.getOrDefault(name, NO_FACES);
 
         int[] best = null;
         Vec3 bestNormal = null;
         double bestArea = 0.0;
         for (int candidate : group) {
-            Vec3 raw = triangleNormal(candidate);
+            Vec3 raw = faceNormal(candidate);
             double area = raw.length();
             if (area < 1.0e-9) {
                 continue;
@@ -273,16 +315,16 @@ public final class ObjModel {
             if (normal.z < 0.0) {
                 normal = normal.scale(-1.0);
             }
-            double offset = normal.dot(triangleCenter(candidate));
+            double offset = normal.dot(faceCenter(candidate));
 
             List<Integer> plane = new ArrayList<>();
             double total = 0.0;
             for (int other : group) {
-                Vec3 otherRaw = triangleNormal(other);
+                Vec3 otherRaw = faceNormal(other);
                 double otherArea = otherRaw.length();
                 if (otherArea < 1.0e-9
                         || Math.abs(otherRaw.scale(1.0 / otherArea).dot(normal)) < COPLANAR_COS
-                        || Math.abs(normal.dot(triangleCenter(other)) - offset) > COPLANAR_GAP) {
+                        || Math.abs(normal.dot(faceCenter(other)) - offset) > COPLANAR_GAP) {
                     continue;
                 }
                 plane.add(other);
@@ -291,7 +333,7 @@ public final class ObjModel {
             if (total > bestArea) {
                 bestArea = total;
                 bestNormal = normal;
-                best = plane.stream().mapToInt(Integer::intValue).toArray();
+                best = toArray(plane);
             }
         }
         if (best == null) {
@@ -311,9 +353,9 @@ public final class ObjModel {
         double maxRight = -Double.MAX_VALUE;
         double minUp = Double.MAX_VALUE;
         double maxUp = -Double.MAX_VALUE;
-        for (int triangle : best) {
-            int base = triangle * 3 * STRIDE;
-            for (int corner = 0; corner < 3; corner++) {
+        for (int face : best) {
+            int base = face * FACE_FLOATS;
+            for (int corner = 0; corner < 4; corner++) {
                 int offset = base + corner * STRIDE;
                 Vec3 v = new Vec3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
                 minRight = Math.min(minRight, v.dot(right));
@@ -329,36 +371,50 @@ public final class ObjModel {
         }
 
         // 中心は広がりの中央。面に載せるため、法線方向だけは実際の平面の位置に合わせる
-        double onPlane = bestNormal.dot(triangleCenter(best[0]));
+        double onPlane = bestNormal.dot(faceCenter(best[0]));
         Vec3 center = right.scale((minRight + maxRight) * 0.5)
                 .add(up.scale((minUp + maxUp) * 0.5))
                 .add(bestNormal.scale(onPlane));
         return new MirrorFace(name, center, bestNormal, right, up, width, height, best);
     }
 
-    /** その三角形の法線。<b>長さが面積の 2 倍</b>になるので、広さの比較にそのまま使える。 */
-    private Vec3 triangleNormal(int triangle) {
-        int base = triangle * 3 * STRIDE;
-        Vec3 a = new Vec3(vertices[base], vertices[base + 1], vertices[base + 2]);
-        Vec3 b = new Vec3(vertices[base + STRIDE], vertices[base + STRIDE + 1], vertices[base + STRIDE + 2]);
-        Vec3 c = new Vec3(vertices[base + 2 * STRIDE], vertices[base + 2 * STRIDE + 1],
-                vertices[base + 2 * STRIDE + 2]);
-        return b.subtract(a).cross(c.subtract(a));
+    /**
+     * その面の法線。<b>長さが面積の 2 倍</b>になるので、広さの比較にそのまま使える。
+     *
+     * <p>2 本の対角線の外積を使う。四角形ならこれがそのまま面積の 2 倍で、
+     * 縮退四角形（a, b, c, c）でも {@code (c−a)×(c−b) = (b−a)×(c−a)} と三角形の式に一致する。</p>
+     */
+    private Vec3 faceNormal(int face) {
+        Vec3 a = corner(face, 0);
+        Vec3 b = corner(face, 1);
+        Vec3 c = corner(face, 2);
+        Vec3 d = corner(face, 3);
+        return c.subtract(a).cross(d.subtract(b));
     }
 
-    /** その三角形の重心。 */
-    private Vec3 triangleCenter(int triangle) {
-        int base = triangle * 3 * STRIDE;
+    /**
+     * その面の中心（4 頂点の平均）。
+     *
+     * <p>三角形は 3 番目の頂点が 2 回数えられて重心からずれるが、使い道は「面が載っている
+     * 平面の位置」だけなので、平面上の点でさえあればよい。</p>
+     */
+    private Vec3 faceCenter(int face) {
+        int base = face * FACE_FLOATS;
         double x = 0.0;
         double y = 0.0;
         double z = 0.0;
-        for (int corner = 0; corner < 3; corner++) {
+        for (int corner = 0; corner < 4; corner++) {
             int offset = base + corner * STRIDE;
             x += vertices[offset];
             y += vertices[offset + 1];
             z += vertices[offset + 2];
         }
-        return new Vec3(x / 3.0, y / 3.0, z / 3.0);
+        return new Vec3(x / 4.0, y / 4.0, z / 4.0);
+    }
+
+    private Vec3 corner(int face, int corner) {
+        int offset = face * FACE_FLOATS + corner * STRIDE;
+        return new Vec3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
     }
 
     /**
@@ -381,10 +437,10 @@ public final class ObjModel {
         double halfWidth = face.width() * 0.5;
         double halfHeight = face.height() * 0.5;
 
-        for (int triangle : face.triangles()) {
-            int base = triangle * 3 * STRIDE;
+        for (int index : face.faces()) {
+            int base = index * FACE_FLOATS;
             for (int corner = 0; corner < 4; corner++) {
-                int offset = base + Math.min(corner, 2) * STRIDE;
+                int offset = base + corner * STRIDE;
                 double dx = vertices[offset] - face.center().x;
                 double dy = vertices[offset + 1] - face.center().y;
                 double dz = vertices[offset + 2] - face.center().z;
@@ -402,12 +458,12 @@ public final class ObjModel {
 
     /** 透ける面を持っているか。false なら半透明のパスは呼ばなくてよい。 */
     public boolean hasTranslucent() {
-        return translucent;
+        return translucentFaces.length > 0;
     }
 
     /** その名前のオブジェクトを持っているか。 */
     public boolean hasGroup(String name) {
-        return groups.stream().anyMatch(group -> group.name().equals(name));
+        return facesByName.containsKey(name);
     }
 
     /**
@@ -415,15 +471,22 @@ public final class ObjModel {
      *
      * <p>左右に分かれていれば 2 つ、中央に 1 つだけなら 1 つ返る。ミラーで作られた
      * 1 オブジェクトからそのまま左右のライトが取れる。</p>
+     *
+     * <p>毎フレーム呼ばれるが、答えはメッシュだけから決まるので最初の 1 回だけ測る。</p>
      */
     public List<Vec3> groupSideCenters(String name) {
+        return sideCenters.computeIfAbsent(name, this::measureSideCenters);
+    }
+
+    private List<Vec3> measureSideCenters(String name) {
         double[] sum = new double[6];
         int[] count = new int[2];
-        forEachVertex(name, (x, y, z) -> {
+        forEachVertex(name, offset -> {
+            float x = vertices[offset];
             int side = x < 0.0 ? 0 : 1;
             sum[side * 3] += x;
-            sum[side * 3 + 1] += y;
-            sum[side * 3 + 2] += z;
+            sum[side * 3 + 1] += vertices[offset + 1];
+            sum[side * 3 + 2] += vertices[offset + 2];
             count[side]++;
         });
         List<Vec3> centers = new ArrayList<>(2);
@@ -433,22 +496,17 @@ public final class ObjModel {
                         sum[side * 3 + 1] / count[side], sum[side * 3 + 2] / count[side]));
             }
         }
-        return centers;
+        return List.copyOf(centers);
     }
 
     /** そのオブジェクトの平均法線。ライトの照射方向に使う。面が無ければ前方（-Z）。 */
     public Vec3 groupNormal(String name) {
         double[] sum = new double[3];
-        for (Group group : groups) {
-            if (!group.name().equals(name)) {
-                continue;
-            }
-            for (int i = group.from(); i < group.to(); i += STRIDE) {
-                sum[0] += vertices[i + 3];
-                sum[1] += vertices[i + 4];
-                sum[2] += vertices[i + 5];
-            }
-        }
+        forEachVertex(name, offset -> {
+            sum[0] += vertices[offset + 3];
+            sum[1] += vertices[offset + 4];
+            sum[2] += vertices[offset + 5];
+        });
         Vec3 normal = new Vec3(sum[0], sum[1], sum[2]);
         return normal.lengthSqr() < 1.0e-6 ? new Vec3(0.0, 0.0, -1.0) : normal.normalize();
     }
@@ -465,35 +523,31 @@ public final class ObjModel {
      * 読み違える。{@value #UV_MAPPED_EPSILON} は 512px のテクスチャで約 1 画素にあたる。</p>
      */
     public boolean isUvMapped(String name) {
-        float minU = Float.MAX_VALUE;
-        float maxU = -Float.MAX_VALUE;
-        float minV = Float.MAX_VALUE;
-        float maxV = -Float.MAX_VALUE;
-        for (Group group : groups) {
-            if (!group.name().equals(name)) {
-                continue;
-            }
-            for (int i = group.from(); i < group.to(); i += STRIDE) {
-                minU = Math.min(minU, vertices[i + 6]);
-                maxU = Math.max(maxU, vertices[i + 6]);
-                minV = Math.min(minV, vertices[i + 7]);
-                maxV = Math.max(maxV, vertices[i + 7]);
-            }
-        }
-        return maxU - minU > UV_MAPPED_EPSILON || maxV - minV > UV_MAPPED_EPSILON;
+        // 灯火を描くたびに呼ばれる。メッシュだけから決まるので最初の 1 回だけ測る
+        return uvMapped.computeIfAbsent(name, this::measureUvMapped);
+    }
+
+    private boolean measureUvMapped(String name) {
+        float[] range = {Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE};
+        forEachVertex(name, offset -> {
+            range[0] = Math.min(range[0], vertices[offset + 6]);
+            range[1] = Math.max(range[1], vertices[offset + 6]);
+            range[2] = Math.min(range[2], vertices[offset + 7]);
+            range[3] = Math.max(range[3], vertices[offset + 7]);
+        });
+        return range[1] - range[0] > UV_MAPPED_EPSILON || range[3] - range[2] > UV_MAPPED_EPSILON;
     }
 
     private interface VertexSink {
-        void accept(double x, double y, double z);
+        /** @param offset その頂点の先頭の添字（{@link #vertices} の中） */
+        void accept(int offset);
     }
 
+    /** その名前のオブジェクトの頂点を 1 つずつ渡す。三角形の 3 番目の頂点は 2 回来る。 */
     private void forEachVertex(String name, VertexSink sink) {
-        for (Group group : groups) {
-            if (!group.name().equals(name)) {
-                continue;
-            }
-            for (int i = group.from(); i < group.to(); i += STRIDE) {
-                sink.accept(vertices[i], vertices[i + 1], vertices[i + 2]);
+        for (int face : facesByName.getOrDefault(name, NO_FACES)) {
+            for (int corner = 0; corner < 4; corner++) {
+                sink.accept(face * FACE_FLOATS + corner * STRIDE);
             }
         }
     }
@@ -514,15 +568,16 @@ public final class ObjModel {
     }
 
     public boolean isEmpty() {
-        return triangleCount == 0;
+        return faceCount == 0;
     }
 
     /**
      * 描く。
      *
      * <p>Minecraft のエンティティ用 {@code RenderType} はどれも QUADS なので、
-     * <b>三角形は最後の頂点を 2 回積んで四角形として流す</b>（縮退四角形）。
-     * 面積 0 の辺ができるだけで見た目には影響しない。</p>
+     * <b>四角形はそのまま、三角形は最後の頂点を 2 回積んで四角形として流す</b>（縮退四角形）。
+     * 面積 0 の辺ができるだけで見た目には影響しない。並べ替えは読み込み時に済んでいる
+     * （{@link #appendFace}）。</p>
      *
      * @param tint 全体に掛ける色。テクスチャをそのまま出すなら白
      */
@@ -573,14 +628,14 @@ public final class ObjModel {
         Matrix3f normal = pose.normal();
         float flip = mirrorX ? -1.0F : 1.0F;
 
-        for (int triangle = 0; triangle < triangleCount; triangle++) {
-            int base = triangle * 3 * STRIDE;
-            if (!accepts(base, only, pass)) {
-                continue;
-            }
+        // 名指し（灯火のレンズ）はパスを問わない。RenderType は呼ぶ側が選んでいる
+        int[] faces = only != null ? facesByName.getOrDefault(only, NO_FACES)
+                : pass == Pass.TRANSLUCENT ? translucentFaces : opaqueFaces;
+
+        for (int face : faces) {
+            int base = face * FACE_FLOATS;
             for (int corner = 0; corner < 4; corner++) {
-                // 3 番目の頂点を 2 回。四角形の 1 辺が潰れた形になる
-                int offset = base + Math.min(corner, 2) * STRIDE;
+                int offset = base + corner * STRIDE;
                 consumer.vertex(matrix, flip * vertices[offset], vertices[offset + 1], vertices[offset + 2])
                         .color(vertices[offset + 8] * tintRed,
                                 vertices[offset + 9] * tintGreen,
@@ -605,10 +660,10 @@ public final class ObjModel {
                                   int packedLight, float red, float green, float blue) {
         Matrix4f matrix = pose.pose();
         Matrix3f normal = pose.normal();
-        for (int triangle : face.triangles()) {
-            int base = triangle * 3 * STRIDE;
+        for (int index : face.faces()) {
+            int base = index * FACE_FLOATS;
             for (int corner = 0; corner < 4; corner++) {
-                int offset = base + Math.min(corner, 2) * STRIDE;
+                int offset = base + corner * STRIDE;
                 consumer.vertex(matrix, vertices[offset], vertices[offset + 1], vertices[offset + 2])
                         .color(red, green, blue, 1.0F)
                         .uv(vertices[offset + 6], vertices[offset + 7])
@@ -618,40 +673,6 @@ public final class ObjModel {
                         .endVertex();
             }
         }
-    }
-
-    /**
-     * その三角形を描くか。
-     *
-     * <p>光る部分は車体の描画から外し、名指しされたときだけ描く。それ以外は<b>頂点の
-     * 不透明度</b>でパスを振り分ける——透ける面は車体のパスから外れ、半透明のパスが拾う。</p>
-     */
-    private boolean accepts(int base, String only, Pass pass) {
-        String name = groupNameAt(base);
-        if (only != null) {
-            // 名指し（灯火のレンズ）はパスを問わない。RenderType は呼ぶ側が選んでいる
-            return name != null && name.equals(only);
-        }
-        if (name != null && name.startsWith(LIGHT_PREFIX)) {
-            // 灯火は車体とは別に描く。呼ぶ側が必ず描くので穴は開かない
-            return false;
-        }
-        if (mirrorSurface[base / (3 * STRIDE)]) {
-            // 鏡の<b>反射面だけ</b>を外す。筐体（ガワ）はここで車体として描かれる
-            return false;
-        }
-        boolean transparent = vertices[base + ALPHA_OFFSET] < OPAQUE_THRESHOLD;
-        return transparent == (pass == Pass.TRANSLUCENT);
-    }
-
-    /** その三角形が属するオブジェクトの名前。{@code o} も {@code g} も無い OBJ では null。 */
-    private String groupNameAt(int base) {
-        for (Group group : groups) {
-            if (base >= group.from() && base < group.to()) {
-                return group.name();
-            }
-        }
-        return null;
     }
 
     /**
@@ -694,7 +715,8 @@ public final class ObjModel {
         }
         try (BufferedReader reader = resource.get().openAsReader()) {
             ObjModel model = parse(reader, location, resources);
-            LOGGER.info("OBJ モデルを読み込みました: {}（{} 三角形）", location, model.triangleCount);
+            LOGGER.info("OBJ モデルを読み込みました: {}（{} 面・{} 頂点）", location, model.faceCount,
+                    model.faceCount * 4);
             return model;
         } catch (IOException | RuntimeException e) {
             LOGGER.error("OBJ モデルの読み込みに失敗しました: {}", location, e);
@@ -745,7 +767,7 @@ public final class ObjModel {
                     // 直前のオブジェクトをここで閉じる。面は名前の後ろに並ぶので、
                     // 区切りが来た時点までが 1 つ
                     if (groupName != null && out.size() > groupStart) {
-                        groups.add(new Group(groupName, groupStart, out.size()));
+                        groups.add(new Group(groupName, groupStart / FACE_FLOATS, out.size() / FACE_FLOATS));
                     }
                     groupName = token.length > 1 ? token[1] : "";
                     groupStart = out.size();
@@ -770,7 +792,7 @@ public final class ObjModel {
         }
 
         if (groupName != null && out.size() > groupStart) {
-            groups.add(new Group(groupName, groupStart, out.size()));
+            groups.add(new Group(groupName, groupStart / FACE_FLOATS, out.size() / FACE_FLOATS));
         }
 
         float[] vertices = new float[out.size()];
@@ -781,13 +803,27 @@ public final class ObjModel {
     }
 
     /**
-     * 面を三角形に割って積む。
+     * 面を積む。<b>四角形は四角形のまま、それ以外は三角形に割って</b>縮退四角形で積む。
      *
      * <p>割り方は {@link PolygonTriangulator}（耳切り法）に任せる。<b>凹んだ n-gon も
-     * 正しく割れる</b>ので、Blender 側で「三角形化」して書き出す必要はない。</p>
+     * 正しく割れる</b>ので、Blender 側で「三角形化」して書き出す必要はない——むしろ
+     * <b>三角形化しないほうが軽い</b>（下記）。</p>
      *
      * <p>以前は最初の頂点からの扇状分割だったが、これは凸多角形でしか正しくない。実際に
      * 書き出された車体は 52 個の n-gon のうち 44 個が凹んでいて、面がはみ出していた。</p>
+     *
+     * <h2>四角形をそのまま積む</h2>
+     *
+     * <p>書き出された車体はほとんどが四角形（s15 で 2772 面中 2502）で、以前はこれを 2 つの
+     * 三角形に割り、それぞれ縮退四角形で流していた——<b>四角形 1 枚に 8 頂点、半分は潰れた頂点</b>。
+     * QUADS は GPU 側で 2 つの三角形に割られるので、そのまま 4 頂点で渡せば同じものが描ける
+     * （頂点が約 44% 減る。影 MOD の影パスがあればそちらでも減る）。</p>
+     *
+     * <p><b>ただし割る対角線を揃えること。</b>QUADS は頂点 0-2 の対角線で割られる
+     * （添字 0,1,2 / 2,3,0）。一方耳切り法は巻き方向しだいで 1-3 を選ぶことがあり、
+     * ねじれた四角形ではどちらで割るかで形も陰影も変わる。そこで耳切り法の選んだ対角線の
+     * 端から積み始め、<b>今まで描いていたのとまったく同じ 2 つの三角形</b>にする。
+     * 凹んだ四角形も、耳切り法は必ず内側を通る対角線を選ぶので同じ扱いで正しく描ける。</p>
      */
     private static void appendFace(List<Float> out, String[] token, List<float[]> positions,
                                    List<float[]> normals, List<float[]> uvs, float[] color,
@@ -801,12 +837,64 @@ public final class ObjModel {
         for (int i = 0; i < corners; i++) {
             polygon.add(pick(positions, token[i + 1].split("/", -1)[0]));
         }
+        List<int[]> triangles = PolygonTriangulator.triangulate(polygon);
 
-        for (int[] triangle : PolygonTriangulator.triangulate(polygon)) {
+        if (corners == 4 && triangles.size() == 2) {
+            int start = diagonalStart(triangles.get(0), triangles.get(1));
+            if (start >= 0) {
+                // 元の巻き方向のまま、対角線の端から回す。GPU の割る対角線 0-2 が
+                // 耳切り法の選んだ対角線（start と start+2）に一致する
+                for (int i = 0; i < 4; i++) {
+                    appendVertex(out, token[(start + i) % 4 + 1], positions, normals, uvs, color, alpha);
+                }
+                return;
+            }
+        }
+
+        for (int[] triangle : triangles) {
             appendVertex(out, token[triangle[0] + 1], positions, normals, uvs, color, alpha);
             appendVertex(out, token[triangle[1] + 1], positions, normals, uvs, color, alpha);
             appendVertex(out, token[triangle[2] + 1], positions, normals, uvs, color, alpha);
+            // 3 番目の頂点を 2 回。四角形の 1 辺が潰れた形になる
+            appendVertex(out, token[triangle[2] + 1], positions, normals, uvs, color, alpha);
         }
+    }
+
+    /**
+     * 四角形を割った 2 つの三角形が共有する対角線の、片方の端（0..3）。
+     *
+     * <p>2 つが「向かい合う 2 頂点を共有し、合わせて 4 頂点を覆う」形になっていなければ -1
+     * （割り方が崩れた四角形。呼ぶ側は三角形のまま積む）。</p>
+     */
+    private static int diagonalStart(int[] first, int[] second) {
+        int shared = 0;
+        int mask = 0;
+        int end = -1;
+        for (int a : first) {
+            mask |= 1 << a;
+            for (int b : second) {
+                if (a == b) {
+                    shared++;
+                    end = a;
+                }
+            }
+        }
+        for (int b : second) {
+            mask |= 1 << b;
+        }
+        if (shared != 2 || mask != 0b1111) {
+            return -1;
+        }
+        // 共有する 2 頂点が隣り合っていれば対角線ではない（辺を共有しているだけ）
+        int other = -1;
+        for (int a : first) {
+            for (int b : second) {
+                if (a == b && a != end) {
+                    other = a;
+                }
+            }
+        }
+        return (end + 2) % 4 == other ? end : -1;
     }
 
     /** {@code 位置/UV/法線} の組を 1 頂点ぶん積む。UV も法線も省略されうる。 */
