@@ -12,8 +12,10 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * データパックから部品を読む。<b>サーバー側だけで動く。</b>
@@ -25,9 +27,14 @@ import java.util.Map;
  * <pre>
  * {
  *   "slot": "wheel",
- *   "order": 10
+ *   "order": 10,
+ *   "cars": ["mypack:kei", "mypack:kei_van"]
  * }
  * </pre>
+ *
+ * <p><b>{@code cars} は省略できる。</b>書かなければどの車種にも付く。書けば、その車種の
+ * 換装画面にだけ並び、サーバーも他の車種には履かせない。車種は存在を確かめない
+ * （車種の読み込みと順序が決まっていないうえ、別のカーパックの車種を書いてもよいため）。</p>
  *
  * <p><b>{@code slot} は必須。</b>どこに付くか分からない部品は換装画面に並べようがないので、
  * 書かれていなければその部品だけ捨てる。将来この MOD が知らない場所（エアロなど）を
@@ -82,6 +89,24 @@ public final class CarPartLoader extends SimpleJsonResourceReloadListener {
             return null;
         }
         int order = root.has("order") ? root.get("order").getAsInt() : CarPart.DEFAULT_ORDER;
-        return new CarPart(id, slot, order);
+
+        Set<ResourceLocation> cars = new HashSet<>();
+        if (root.has("cars")) {
+            for (JsonElement element : GsonHelper.getAsJsonArray(root, "cars")) {
+                ResourceLocation car = ResourceLocation.tryParse(element.getAsString());
+                if (car == null) {
+                    LOGGER.error("cars に車種として読めない値があります（その値だけ無視します）: {} の \"{}\"",
+                            id, element.getAsString());
+                    continue;
+                }
+                cars.add(car);
+            }
+            // 1 つも読めなかったのを「どの車種にも付く」と取り違えてはいけない。絞りたかったはずなので捨てる
+            if (cars.isEmpty()) {
+                LOGGER.error("cars に車種が 1 つもありません（この部品だけ捨てます）: {}", id);
+                return null;
+            }
+        }
+        return new CarPart(id, slot, order, cars);
     }
 }

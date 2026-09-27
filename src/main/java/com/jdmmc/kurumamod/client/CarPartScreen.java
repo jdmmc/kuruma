@@ -181,7 +181,9 @@ public class CarPartScreen extends Screen {
     private List<Entry> entries() {
         List<Entry> entries = new ArrayList<>();
         entries.add(new Entry(null, Component.translatable("screen.kurumamod.part.stock"), null));
-        for (CarPart part : CarParts.forSlot(slot)) {
+        // その車種に付かない部品は並べない。乗っていなければ絞らない（どうせ選べない）
+        CarEntity car = CarClientDriver.driving();
+        for (CarPart part : CarParts.forSlot(slot, car == null ? null : car.getCarId())) {
             // どのカーパックのものかを小さく出す。同梱のぶんは名前空間を出さない
             String namespace = part.id().getNamespace();
             entries.add(new Entry(part.id(), part.displayName(),

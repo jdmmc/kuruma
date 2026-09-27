@@ -58,11 +58,15 @@ public final class CarParts {
         return sorted;
     }
 
-    /** その場所に付けられる部品。換装画面が並べる一覧。 */
-    public static List<CarPart> forSlot(PartSlot slot) {
+    /**
+     * その車種のその場所に付けられる部品。換装画面が並べる一覧。
+     *
+     * @param carId 車種。null なら車種で絞らない
+     */
+    public static List<CarPart> forSlot(PartSlot slot, @Nullable ResourceLocation carId) {
         List<CarPart> list = new ArrayList<>();
         for (CarPart part : sorted) {
-            if (part.slot() == slot) {
+            if (part.slot() == slot && part.fits(carId)) {
                 list.add(part);
             }
         }
