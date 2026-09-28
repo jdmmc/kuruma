@@ -101,7 +101,7 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.DoubleValue SKID_MARK_SECONDS = BUILDER
             .comment("タイヤ痕が消えるまでの秒数。最後の 4 割で薄れていく。",
                     "長くするほど同時に残る跡が増えて重くなる")
-            .defineInRange("skidMarkSeconds", 5.0, 1.0, 15.0);
+            .defineInRange("skidMarkSeconds", 5.0, 1.0, 300.0);
 
     public static final ForgeConfigSpec.EnumValue<GateDisplay> GATE_DISPLAY = BUILDER
             .comment("コースのゲートの見せ方。FULL=面と柱、POSTS=左右のポールのみ、HIDDEN=描かない")
