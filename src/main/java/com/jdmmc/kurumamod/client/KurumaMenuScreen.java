@@ -86,7 +86,8 @@ public class KurumaMenuScreen extends Screen {
         slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
         toggle("show_own_skid_marks", ClientConfig.SHOW_OWN_SKID_MARKS);
         toggle("show_other_skid_marks", ClientConfig.SHOW_OTHER_SKID_MARKS);
-        slider("skid_mark_seconds", 1.0, 15.0, ClientConfig.SKID_MARK_SECONDS);
+        // 1 秒から 5 分まで。線形だと既定の 5 秒が左端 1% に潰れるので対数で割り当てる
+        slider("skid_mark_seconds", 1.0, 300.0, true, ClientConfig.SKID_MARK_SECONDS);
 
         header("screen.kurumamod.menu.section.camera");
         slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);
@@ -141,8 +142,15 @@ public class KurumaMenuScreen extends Screen {
     }
 
     private void slider(String name, double min, double max, ForgeConfigSpec.DoubleValue value) {
+        slider(name, min, max, false, value);
+    }
+
+    /** @param logarithmic 2 倍が意味を持つ量（秒数など）は対数で割り当てる */
+    private void slider(String name, double min, double max, boolean logarithmic,
+                        ForgeConfigSpec.DoubleValue value) {
         Component label = Component.translatable("config.kurumamod." + name);
-        OptionSlider slider = new OptionSlider(widgetLeft(), widgetWidth(), min, max, value.get(),
+        OptionSlider slider = new OptionSlider(widgetLeft(), widgetWidth(), min, max, logarithmic,
+                value.get(),
                 set -> {
                     value.set(set);
                     ClientConfig.refresh();
@@ -288,30 +296,44 @@ public class KurumaMenuScreen extends Screen {
      * 実数のスライダー。
      *
      * <p>{@link AbstractSliderButton} が持つ {@code value} は 0..1 なので、
-     * 表示と設定への受け渡しで min..max へ直す。</p>
+     * 表示と設定への受け渡しで min..max へ直す。対数のときは min > 0 であること。</p>
      */
     private static final class OptionSlider extends AbstractSliderButton {
 
         private final double min;
         private final double max;
+        private final boolean logarithmic;
         private final DoubleConsumer apply;
 
-        private OptionSlider(int x, int width, double min, double max, double initial,
-                             DoubleConsumer apply) {
-            super(x, 0, width, 18, Component.empty(), (initial - min) / (max - min));
+        private OptionSlider(int x, int width, double min, double max, boolean logarithmic,
+                             double initial, DoubleConsumer apply) {
+            super(x, 0, width, 18, Component.empty(), toPosition(min, max, logarithmic, initial));
             this.min = min;
             this.max = max;
+            this.logarithmic = logarithmic;
             this.apply = apply;
             updateMessage();
         }
 
+        private static double toPosition(double min, double max, boolean logarithmic, double v) {
+            double position = logarithmic
+                    ? Math.log(v / min) / Math.log(max / min)
+                    : (v - min) / (max - min);
+            return Math.max(0.0, Math.min(1.0, position));
+        }
+
         private double actual() {
-            return min + (max - min) * value;
+            return logarithmic
+                    ? min * Math.pow(max / min, value)
+                    : min + (max - min) * value;
         }
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.literal(String.format("%.2f", actual())));
+            double v = actual();
+            // 対数の目盛りは桁が大きく動くので、大きい値で小数を並べない
+            String format = !logarithmic ? "%.2f" : v < 10.0 ? "%.1f" : "%.0f";
+            setMessage(Component.literal(String.format(format, v)));
         }
 
         @Override
