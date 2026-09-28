@@ -17,7 +17,7 @@ import net.minecraft.util.Mth;
  * <p>毎ティック車の状態を読んで音量とピッチを決め直す。<b>音源は 1 秒ぶんしかないので、
  * 音の表情はほぼここで作っている。</b></p>
  *
- * <p><b>ピッチには 0.5〜2.0 の壁がある</b>（{@code Channel#setPitch} が clamp する）。
+ * <p><b>ピッチには 0.5〜2.0 の壁がある</b>（{@code SoundEngine#calculatePitch} が clamp する）。
  * 1 枚では 4 倍ぶんの音程しか作れないが、アイドル 800rpm からレッドライン 7000rpm は
  * 8.75 倍ある。そこで<b>排気音だけは 1 オクターブ違う 2 枚を鳴らしてクロスフェード</b>する。</p>
  *
@@ -110,6 +110,12 @@ public class CarSound extends AbstractTickableSoundInstance {
 
     private final CarEntity car;
     private final Role role;
+    /**
+     * この車種の音の差し替え。<b>鳴らし始めたときのもので固定する。</b>音源は作るときにしか
+     * 選べないので、途中で読み直しても鳴っているループは変わらない（F3+T は音響エンジンごと
+     * 読み直して {@link CarSounds} が鳴らし直すので、そこで新しい定義が効く）。
+     */
+    private final CarSoundSet sounds;
 
     /** 平滑化した音量とピッチ。 */
     private float smoothVolume;
@@ -128,9 +134,14 @@ public class CarSound extends AbstractTickableSoundInstance {
     private int lastGear;
 
     public CarSound(CarEntity car, Role role) {
-        super(soundOf(role), SoundSource.NEUTRAL, car.level().random);
+        this(car, role, CarModel.get(car.getCarId()).sounds());
+    }
+
+    private CarSound(CarEntity car, Role role, CarSoundSet sounds) {
+        super(soundOf(sounds, role), SoundSource.NEUTRAL, car.level().random);
         this.car = car;
         this.role = role;
+        this.sounds = sounds;
         this.looping = true;
         this.delay = 0;
         this.volume = 0.0F;
@@ -172,7 +183,12 @@ public class CarSound extends AbstractTickableSoundInstance {
         };
     }
 
-    private static SoundEvent soundOf(Role role) {
+    /** 差し替えのキーは役割の名前の小文字（{@code EXHAUST_HIGH} → {@code exhaust_high}）。 */
+    private static SoundEvent soundOf(CarSoundSet sounds, Role role) {
+        return sounds.resolve(role.name().toLowerCase(java.util.Locale.ROOT), () -> defaultSoundOf(role));
+    }
+
+    private static SoundEvent defaultSoundOf(Role role) {
         return switch (role) {
             case EXHAUST -> KurumaSounds.CAR_EXHAUST.get();
             case EXHAUST_HIGH -> KurumaSounds.CAR_EXHAUST_HIGH.get();
@@ -219,7 +235,10 @@ public class CarSound extends AbstractTickableSoundInstance {
                 // 元音源に対する音程。高回転側の音源は 1 オクターブ上なのでピッチは半分で済む
                 double wanted = EXHAUST_IDLE_PITCH * ratio;
                 boolean high = role == Role.EXHAUST_HIGH;
-                targetPitch = (float) Mth.clamp(high ? wanted / 2.0 : wanted, 0.5, 2.0);
+                // 高回転側が 1 オクターブ上の音源でなければ（パックが排気音だけ差し替えた）、
+                // 同じ音程で鳴らす。2.0 の壁で頭打ちになるが、別の車の音に化けるよりよい
+                boolean halve = high && sounds.exhaustHighIsOctaveUp();
+                targetPitch = (float) Mth.clamp(halve ? wanted / 2.0 : wanted, 0.5, 2.0);
                 // アイドルでも鳴っているが、踏むと前に出る
                 float loudness = 0.30F + 0.50F * (float) car.getRenderThrottle();
                 double blend = Mth.clamp((ratio - CROSSFADE_FROM) / (CROSSFADE_TO - CROSSFADE_FROM),
@@ -306,7 +325,7 @@ public class CarSound extends AbstractTickableSoundInstance {
             int gear = car.getRenderGear();
             if (gear != lastGear && gear != 0 && lastGear != 0) {
                 car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
-                        KurumaSounds.CAR_SHIFT.get(), SoundSource.NEUTRAL, 0.5F, 1.0F, false);
+                        sounds.shift(), SoundSource.NEUTRAL, 0.5F, 1.0F, false);
             }
             lastGear = gear;
         }

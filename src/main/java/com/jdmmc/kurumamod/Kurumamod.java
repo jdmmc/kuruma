@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
 import com.jdmmc.kurumamod.client.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
+import com.jdmmc.kurumamod.client.CarSoundSet;
 import com.jdmmc.kurumamod.client.DustParticle;
 import com.jdmmc.kurumamod.client.KurumaMenuScreen;
 import com.jdmmc.kurumamod.client.ObjModel;
@@ -224,6 +225,7 @@ public class Kurumamod {
             event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
                 ObjModel.clearCache();
                 CarModel.clearCache();
+                CarSoundSet.clearReports();
                 CarPartModel.clearCache();
                 CarPresets.clearCache();
             });

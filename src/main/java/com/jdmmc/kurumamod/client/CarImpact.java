@@ -2,7 +2,6 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
-import com.jdmmc.kurumamod.sound.KurumaSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -63,7 +62,7 @@ public final class CarImpact {
         // 強く当たるほど低く鳴る。軽い接触は高く短く聞こえる
         float pitch = 1.25F - 0.45F * power;
         car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
-                KurumaSounds.CAR_CRASH.get(), SoundSource.NEUTRAL,
+                CarModel.get(car.getCarId()).sounds().crash(), SoundSource.NEUTRAL,
                 0.35F + 0.65F * power, pitch, false);
 
         if (minecraft.player != null && minecraft.player.getVehicle() == car) {
