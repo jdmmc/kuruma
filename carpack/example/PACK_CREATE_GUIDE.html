@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KurumaMod 車両モデル作成マニュアル</title>
+<title>KurumaMod カーパック作成ガイド</title>
 <style>
 :root{
   --bg:#f7f5f1; --panel:#fff; --ink:#22201d; --dim:#6b655d; --line:#ddd7cd;
@@ -117,10 +117,10 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <header class="hero">
   <div class="wrap">
     <p class="kicker">KURUMAMOD</p>
-    <h1 class="ja">車両モデル作成マニュアル</h1>
-    <h1 class="en">Vehicle Modeling Manual</h1>
-    <p class="lede ja">Blender で作った車を Minecraft の中で走らせるまで。Blender を触ったことがない人が、1 台ぶんの見た目を最後まで作り切れることを目指しています。</p>
-    <p class="lede en">Everything from a mesh in Blender to a car you can drive in Minecraft. Written so that someone who has never opened Blender can finish one complete vehicle.</p>
+    <h1 class="ja">カーパック作成ガイド</h1>
+    <h1 class="en">Car Pack Creation Guide</h1>
+    <p class="lede ja">Blender で作った車を Minecraft の中で走らせるまで。Blender を触ったことがない人が、1 台ぶんの見た目と音を最後まで作り切れることを目指しています。</p>
+    <p class="lede en">Everything from a mesh in Blender to a car you can drive in Minecraft. Written so that someone who has never opened Blender can finish one complete vehicle — looks and sound.</p>
     <div class="langsw">
       <button type="button" data-set="ja">日本語</button>
       <button type="button" data-set="en">English</button>
@@ -143,11 +143,18 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
   <a href="#s7" class="ja">7. 色とテクスチャ</a><a href="#s7" class="en">7. Colour and texture</a>
   <a href="#s8" class="ja">8. 書き出す</a><a href="#s8" class="en">8. Export</a>
   <a href="#s9" class="ja">9. 置き場所と JSON</a><a href="#s9" class="en">9. Where files go, and the JSON</a>
-  <a href="#s10" class="ja">10. 確認する</a><a href="#s10" class="en">10. Check it in game</a>
-  <a href="#s11" class="ja">11. 症状別の直しかた</a><a href="#s11" class="en">11. Troubleshooting</a>
-  <a href="#s12" class="ja">12. チェックリスト</a><a href="#s12" class="en">12. Checklists</a>
+  <a href="#s-sound" class="ja">10. 音を付ける</a><a href="#s-sound" class="en">10. Add sounds</a>
+  <a href="#s-spec" class="ja">11. 諸元（走り）を書く</a><a href="#s-spec" class="en">11. Write the spec</a>
+  <a href="#s-parts" class="ja">12. ホイールを部品にする</a><a href="#s-parts" class="en">12. Make a wheel a part</a>
+  <a href="#s-jar" class="ja">13. jar に固めて配る</a><a href="#s-jar" class="en">13. Pack it and ship it</a>
+  <a href="#s10" class="ja">14. 確認する</a><a href="#s10" class="en">14. Check it in game</a>
+  <a href="#s11" class="ja">15. 症状別の直しかた</a><a href="#s11" class="en">15. Troubleshooting</a>
+  <a href="#s12" class="ja">16. チェックリスト</a><a href="#s12" class="en">16. Checklists</a>
   <a href="#sa" class="ja">付録 A. 座標系</a><a href="#sa" class="en">Appendix A. Axes</a>
   <a href="#sb" class="ja">付録 B. 用語</a><a href="#sb" class="en">Appendix B. Glossary</a>
+  <a href="#sc" class="ja">付録 C. 諸元の全項目</a><a href="#sc" class="en">Appendix C. Spec keys</a>
+  <a href="#sd" class="ja">付録 D. 読まれない値</a><a href="#sd" class="en">Appendix D. Ignored values</a>
+  <a href="#se" class="ja">付録 E. 部品の全項目</a><a href="#se" class="en">Appendix E. Part keys</a>
 </nav>
 
 <main>
@@ -156,23 +163,41 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <h2 class="ja"><span class="num">0</span>このページについて</h2>
 <h2 class="en"><span class="num">0</span>About this page</h2>
 
-<p class="ja">このマニュアルが扱うのは<b>車の「見た目」だけ</b>です。Blender でメッシュを作り、書き出し、ゲームの中で自分の車として表示させるところまでを通しで説明します。</p>
-<p class="en">This manual covers <b>the look of the car and nothing else</b>: building a mesh in Blender, exporting it, and getting it to show up in game as your own vehicle.</p>
+<p class="ja">KurumaMod に車を足すのに <b>Java は要りません</b>。JSON・モデル・テクスチャ・音だけの MOD jar を 1 つ作って <code>mods/</code> に入れれば車種が増えます。このガイドはそのカーパックを 1 台ぶん作り切るまでを通しで説明します。</p>
+<p class="en"><b>You do not need Java to add a car to KurumaMod.</b> Build a single mod jar holding nothing but JSON, models, textures and sounds, drop it in <code>mods/</code>, and the new car shows up. This guide takes you through one complete car pack.</p>
 
-<p class="ja">加速や曲がりかたを決める<b>諸元（走り）は扱いません</b>。そちらは <a href="https://github.com/jdmmc/kuruma/blob/main/carpack/example/README-ja.md" target="_blank" rel="noopener"><code>carpack/example/README-ja.md</code></a>（カーパックの作り方）にあります。見た目と諸元はファイルの置き場所からして別で、混ぜてはいけない決まりになっています（<a href="#s9">9 章</a>）。</p>
-<p class="en">It does <b>not</b> cover the specs that decide how the car accelerates and corners — those live in <a href="https://github.com/jdmmc/kuruma/blob/main/carpack/example/README.md" target="_blank" rel="noopener"><code>carpack/example/README.md</code></a> (how to build a car pack). Looks and specs are kept in separate folders on purpose, and mixing them is not allowed (<a href="#s9">chapter 9</a>).</p>
+<table class="ja">
+<tr><th>作るもの</th><th>章</th></tr>
+<tr><td>車体とホイールのメッシュ（Blender）</td><td>2〜8 章</td></tr>
+<tr><td>見た目の JSON・ファイルの置き場所と名前の決まり</td><td>9 章</td></tr>
+<tr><td>音</td><td>10 章</td></tr>
+<tr><td>諸元（走り）</td><td>11 章・付録 C</td></tr>
+<tr><td>換装できるホイール</td><td>12 章・付録 E</td></tr>
+<tr><td>jar に固めて配る</td><td>13 章</td></tr>
+</table>
+<table class="en">
+<tr><th>What</th><th>Chapter</th></tr>
+<tr><td>Body and wheel meshes (Blender)</td><td>2–8</td></tr>
+<tr><td>The look JSON, where files go and how to name them</td><td>9</td></tr>
+<tr><td>Sounds</td><td>10</td></tr>
+<tr><td>The spec (how it drives)</td><td>11, Appendix C</td></tr>
+<tr><td>Swappable wheels</td><td>12, Appendix E</td></tr>
+<tr><td>Packing and shipping the jar</td><td>13</td></tr>
+</table>
+<p class="ja"><b>まず見本を動かしてみたいなら <a href="#s-jar">13 章</a>へ。</b><code>carpack/example/</code> をそのまま jar に固めれば、サンプルカーが 1 台増えます。</p>
+<p class="en"><b>Want to see the example running first? Go to <a href="#s-jar">chapter 13</a>.</b> Pack <code>carpack/example/</code> into a jar as it is and a sample car appears.</p>
 
 <h3 class="ja">要るもの</h3>
 <h3 class="en">What you need</h3>
 <table class="ja">
 <tr><th>Blender</th><td><b>5.2.0 以降を想定。</b>それより前の版でも通るはずです（書き出し画面の項目名が少し違うことがあります）。無料。<code>blender.org</code></td></tr>
-<tr><th>テキストエディタ</th><td>JSON を 1 つ書きます。メモ帳でも構いません</td></tr>
+<tr><th>テキストエディタ</th><td>JSON を数個書きます。メモ帳でも構いません</td></tr>
 <tr><th>Minecraft</th><td>KurumaMod が入っていること。確認しながら作ります</td></tr>
 <tr><th>絵を描くもの</th><td>テクスチャを貼りたい場合のみ。<b>貼らなくても走ります</b></td></tr>
 </table>
 <table class="en">
 <tr><th>Blender</th><td><b>Written against 5.2.0.</b> Earlier versions should work too — a few labels in the export dialog differ. Free, from <code>blender.org</code></td></tr>
-<tr><th>Text editor</th><td>You will write one JSON file. Notepad is fine</td></tr>
+<tr><th>Text editor</th><td>You will write a few JSON files. Notepad is fine</td></tr>
 <tr><th>Minecraft</th><td>With KurumaMod installed. You will check your work as you go</td></tr>
 <tr><th>Paint program</th><td>Only if you want a texture. <b>The car drives without one</b></td></tr>
 </table>
@@ -184,12 +209,14 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <li>ヘッドライト・テールランプ・バックランプが点く</li>
 <li>窓が透ける</li>
 <li>ミラーに後ろの景色が実際に映る</li>
+<li>自前のエンジン音で走る</li>
 </ul>
 <ul class="en">
 <li>Your own body and wheels, driving</li>
 <li>Headlights, tail lights and reverse lights that come on</li>
 <li>Windows you can see through</li>
 <li>Mirrors that genuinely reflect what is behind you</li>
+<li>Your own engine note</li>
 </ul>
 
 <div class="box tip ja">
@@ -374,13 +401,13 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <ol class="ja">
 <li>Blender 上部の <code>Scripting</code> タブを開く</li>
 <li><code>新規</code>（New）を押す</li>
-<li><code>tools/blender_gauge.py</code> の中身を全部コピーして貼り付ける</li>
+<li><code>modeling_tools/blender_gauge.py</code> の中身を全部コピーして貼り付ける</li>
 <li>▶ 実行（<kbd>Alt</kbd>+<kbd>P</kbd>）</li>
 </ol>
 <ol class="en">
 <li>Open the <code>Scripting</code> tab at the top of Blender</li>
 <li>Press <code>New</code></li>
-<li>Copy the whole of <code>tools/blender_gauge.py</code> and paste it in</li>
+<li>Copy the whole of <code>modeling_tools/blender_gauge.py</code> and paste it in</li>
 <li>Run it (▶ or <kbd>Alt</kbd>+<kbd>P</kbd>)</li>
 </ol>
 
@@ -435,8 +462,8 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <p>Build exactly to the gauge and you can leave <code>designWheelBase</code>, <code>designWheelRadius</code> and <code>designRideHeight</code> at their defaults in <a href="#s9">chapter 9</a>. If you cannot, just write down the sizes you actually used. <b>Either way it works.</b></p>
 </div>
 
-<p class="ja">タイヤは車体とは別ファイルで作るので、専用のゲージ（<code>tools/blender_wheel_gauge.py</code>）が別にあります。<a href="#s6">6 章</a>で使います。</p>
-<p class="en">Wheels are built in a separate file, so they have their own gauge: <code>tools/blender_wheel_gauge.py</code>. You will use it in <a href="#s6">chapter 6</a>.</p>
+<p class="ja">タイヤは車体とは別ファイルで作るので、専用のゲージ（<code>modeling_tools/blender_wheel_gauge.py</code>）が別にあります。<a href="#s6">6 章</a>で使います。</p>
+<p class="en">Wheels are built in a separate file, so they have their own gauge: <code>modeling_tools/blender_wheel_gauge.py</code>. You will use it in <a href="#s6">chapter 6</a>.</p>
 </section>
 
 <section id="s4">
@@ -702,8 +729,8 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <p class="ja">タイヤは<b>車体とは別のファイル</b>（<code>wheel.obj</code>）で作ります。KurumaMod 付属のタイヤを借りることもできる（<a href="#s9">9 章</a>）ので、車体を先に仕上げたい場合はこの章を飛ばしても構いません。</p>
 <p class="en">Wheels live in <b>a separate file</b> (<code>wheel.obj</code>). You can also borrow KurumaMod's own wheel (<a href="#s9">chapter 9</a>), so skip this chapter if you would rather finish the body first.</p>
 
-<p class="ja">専用のゲージがあります。<code>Scripting</code> タブで <code>tools/blender_wheel_gauge.py</code> を実行してください（車体とは別のファイルで作業します）。</p>
-<p class="en">There is a gauge for it: run <code>tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab, in a fresh file.</p>
+<p class="ja">専用のゲージがあります。<code>Scripting</code> タブで <code>modeling_tools/blender_wheel_gauge.py</code> を実行してください（車体とは別のファイルで作業します）。</p>
+<p class="en">There is a gauge for it: run <code>modeling_tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab, in a fresh file.</p>
 
 <figure>
 <svg viewBox="0 0 720 300" role="img" aria-label="Wheel origin and outer face">
@@ -763,6 +790,14 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 
 <p class="ja">作った半径を JSON の <code>designWheelRadius</code> に書きます。こう書いておくと、<b>ゲーム内の調整画面でタイヤ半径を変えたときに見た目もそのまま追従します</b>（車高が上がり、タイヤは接地したままリフトアップします）。</p>
 <p class="en">Write the radius you built at into <code>designWheelRadius</code> in the JSON. Do that and <b>the model follows when you change the tyre radius in the in-game tuning screen</b> — ride height rises and the car lifts while the tyres stay on the ground.</p>
+<div class="box tip ja">
+<span class="lbl">換装できるホイールとして配るなら</span>
+<p>車に最初から履かせるのではなく、ゲーム内の換装画面（<kbd>G</kbd> →「パーツ」）で選べる部品にしたいときは、<code>car_parts/</code> に置きます。書きかたは <a href="#s-parts">12 章</a>。メッシュの作りかたはこの章のままで、作った半径を <code>designRadius</code> に書きます。</p>
+</div>
+<div class="box tip en">
+<span class="lbl">SHIPPING IT AS A SWAPPABLE WHEEL</span>
+<p>To make it a part players pick in the in-game fitment screen (<kbd>G</kbd> → "Parts") rather than the car's own wheel, put it under <code>car_parts/</code>. How to write that is in <a href="#s-parts">chapter 12</a>. Build the mesh exactly as in this chapter and write its radius into <code>designRadius</code>.</p>
+</div>
 </section>
 
 <section id="s7">
@@ -911,7 +946,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 │   ├── vehicles/ae86.json          ← 見た目の定義。この章の話
 │   └── lang/ja_jp.json             ← 表示名 car.mypack.ae86
 └── data/mypack/
-    └── cars/ae86.json              ← 諸元（サーバーが読む。別文書）</code></pre>
+    └── cars/ae86.json              ← 諸元（サーバーが読む。11 章）</code></pre>
 <pre class="en"><code>mypack.jar
 ├── META-INF/mods.toml
 ├── pack.mcmeta
@@ -921,10 +956,59 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 │   ├── vehicles/ae86.json          &lt;- the look definition; this chapter
 │   └── lang/en_us.json             &lt;- display name car.mypack.ae86
 └── data/mypack/
-    └── cars/ae86.json              &lt;- specs (server reads these; separate doc)</code></pre>
+    └── cars/ae86.json              &lt;- specs (server reads these; chapter 11)</code></pre>
 
-<p class="ja">作り方の全体は <a href="https://github.com/jdmmc/kuruma/blob/main/carpack/example/README-ja.md" target="_blank" rel="noopener"><code>carpack/example/README-ja.md</code></a> にあります。見本一式が <code>carpack/example/</code> にそのまま入っているので、コピーして名前を変えるのがいちばん確実です。</p>
-<p class="en">The full procedure is in <a href="https://github.com/jdmmc/kuruma/blob/main/carpack/example/README.md" target="_blank" rel="noopener"><code>carpack/example/README.md</code></a>, and a complete working example sits in <code>carpack/example/</code>. Copying it and renaming things is the surest way.</p>
+<p class="ja"><b>見本一式が <code>carpack/example/</code> にそのまま入っています。</b>コピーして、<code>kurumamod_example_carpack</code> を自分の名前に、<code>sample</code> を自分の車種名に置き換えるのが作業のほぼすべてです。</p>
+<p class="en"><b>A complete working example sits in <code>carpack/example/</code>.</b> Copy it and replace <code>kurumamod_example_carpack</code> with your own name and <code>sample</code> with your own car name — that is very nearly the whole job.</p>
+<table class="ja">
+<tr><th>id</th><th>何の見本か</th></tr>
+<tr><td><code>kurumamod_example_carpack:sample</code></td><td>車体メッシュ・テクスチャ・灯火まで自前で持つ、一通り揃った例</td></tr>
+<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>自前のメッシュを持つホイールの部品（<a href="#s-parts">12 章</a>）</td></tr>
+<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>ホイールの部品。換装画面のスライダーへ既定値を渡す例</td></tr>
+</table>
+<table class="en">
+<tr><th>Id</th><th>What it demonstrates</th></tr>
+<tr><td><code>kurumamod_example_carpack:sample</code></td><td>The full set — its own body mesh, texture and lights</td></tr>
+<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>A wheel part with its own mesh (<a href="#s-parts">chapter 12</a>)</td></tr>
+<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>A wheel part that hands defaults to the fitment sliders</td></tr>
+</table>
+<p class="ja">隣の <code>carpack/basic/</code> はプレイヤーへ配っている公式パックで、作りは同じです。<b>出来上がったパックに何が入るか</b>はそちらを見るとよいでしょう。</p>
+<p class="en"><code>carpack/basic/</code> next door is the official pack that ships to players, built the same way — a good look at what a finished pack contains.</p>
+
+<h4 class="ja">名前の決まり</h4>
+<h4 class="en">Naming</h4>
+<p class="ja"><b>車種 id を決めると、他の名前は全部そこから決まります。</b><code>mypack:ae86</code> にするなら:</p>
+<p class="en"><b>Once you pick the car id, every other name follows from it.</b> For <code>mypack:ae86</code>:</p>
+<table class="ja">
+<tr><th></th><th>名前</th></tr>
+<tr><td>諸元</td><td><code>data/mypack/cars/ae86.json</code></td></tr>
+<tr><td>見た目</td><td><code>assets/mypack/vehicles/ae86.json</code></td></tr>
+<tr><td>表示名の翻訳キー</td><td><code>car.mypack.ae86</code>（lang に書く）</td></tr>
+</table>
+<table class="en">
+<tr><th></th><th>Name</th></tr>
+<tr><td>Spec</td><td><code>data/mypack/cars/ae86.json</code></td></tr>
+<tr><td>Looks</td><td><code>assets/mypack/vehicles/ae86.json</code></td></tr>
+<tr><td>Display-name translation key</td><td><code>car.mypack.ae86</code> (write it in lang)</td></tr>
+</table>
+<p class="ja"><b>名前がずれてもエラーは出ず、黙って既定値に落ちます。</b>諸元だけあって見た目の名前が違えば、走るのに姿だけ既定の車になります。ここを揃えるのがいちばん大事です。</p>
+<p class="en"><b>A mismatch produces no error; it silently falls back to the default.</b> If the spec is there but the looks file is named differently, the car drives but wears the default body. Lining these up matters more than anything else.</p>
+<ul class="ja">
+<li><b>大文字と空白は使えません。</b>名前空間は <code>a-z 0-9 _ . -</code>、車種名はこれに <code>/</code> を加えたもの</li>
+<li><b>名前空間（<code>mypack</code>）は <code>META-INF/mods.toml</code> の <code>modId</code> と同じにします。</b>違えても動きますが、他のパックと衝突したときにどちらが読まれるか分からなくなります</li>
+<li><b>ただし <code>modId</code> は名前空間より狭く、<code>-</code> も <code>.</code> も使えません</b>（<code>^[a-z][a-z0-9_]{1,63}$</code>）。外れると読み込みが <code>Invalid modId</code> で落ちるので、<b>揃えるなら区切りは <code>_</code> だけ</b>で書きます（見本の <code>kurumamod_example_carpack</code> がそれ）</li>
+<li><b>サブフォルダは使いません。</b><code>cars/toyota/ae86.json</code> は id が <code>mypack:toyota/ae86</code> になり、翻訳キーが <code>car.mypack.toyota/ae86</code> という不格好なものになります</li>
+<li>lang を書かなければ、表示名は <code>ae86</code> とそのまま出ます</li>
+<li>MOD 一覧に出る画像は <code>mods.toml</code> の <code>logoFile</code> で指します</li>
+</ul>
+<ul class="en">
+<li><b>No uppercase, no spaces.</b> Namespaces allow <code>a-z 0-9 _ . -</code>; car names allow those plus <code>/</code></li>
+<li><b>Make the namespace (<code>mypack</code>) the same as <code>modId</code> in <code>META-INF/mods.toml</code>.</b> It works either way, but if two packs collide you will not be able to tell which one won</li>
+<li><b><code>modId</code> is stricter than a namespace: no <code>-</code>, no <code>.</code></b> (<code>^[a-z][a-z0-9_]{1,63}$</code>). Breaking that fails the load with <code>Invalid modId</code>, so <b>use <code>_</code> as the only separator</b> if you want the two to match (as the example's <code>kurumamod_example_carpack</code> does)</li>
+<li><b>Do not use subfolders.</b> <code>cars/toyota/ae86.json</code> becomes the id <code>mypack:toyota/ae86</code>, and the translation key turns into the ugly <code>car.mypack.toyota/ae86</code></li>
+<li>Without a lang entry, the display name is simply <code>ae86</code></li>
+<li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code></li>
+</ul>
 
 <div class="box warn ja">
 <span class="lbl"><code>assets/</code> に諸元を書いてはいけない</span>
@@ -963,14 +1047,15 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>車体の大きさの<b>微調整</b>。数字 1 つでも <code>[x,y,z]</code> でも書けます。原点が地面なので<b>上へ伸びます</b></td></tr>
 <tr><td><code>wheel.model</code></td><td>既定のタイヤ</td><td>タイヤの OBJ</td></tr>
 <tr><td><code>wheel.texture</code></td><td>既定のタイヤ</td><td>タイヤのテクスチャ</td></tr>
-<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>タイヤをずらす [m]。<b>X は「外向き」</b>（左右で符号が反転します）</td></tr>
-<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td><b>X は太さ、Y・Z は直径。</b>Y・Z を触ると接地が崩れます（直径を変えたいときはゲーム内の調整画面のタイヤ半径で）</td></tr>
-<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>キャンバー角 [<b>度</b>]。負で「上が内側」。見た目だけでグリップには効きません</td></tr>
+<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>タイヤをずらす [m]。<b>X は「外向き」</b>（左右で符号が反転します）。X は −0.05 〜 0.10 に丸めます</td></tr>
+<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td><b>X は太さ、Y・Z は直径。</b>X は 0.5 〜 2.5 に丸めます。Y・Z を触ると接地が崩れます（直径を変えたいときはゲーム内の調整画面のタイヤ半径で）</td></tr>
+<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>キャンバー角 [<b>度</b>]。負で「上が内側」。−30 〜 10 に丸めます。見た目だけでグリップには効きません</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td><b>メッシュのホイールアーチが何 m 離れているか</b></td></tr>
 <tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td><b>メッシュが何 m の半径で作られているか</b></td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。<b>右ハンドル。</b>助手席は左右反転で自動的に置かれます</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">10 章</a>）</td></tr>
 </table>
 <table class="en">
 <tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
@@ -980,14 +1065,15 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td><b>Fine adjustment</b> of body size. A single number or <code>[x,y,z]</code>. The origin is on the ground, so it <b>grows upward</b></td></tr>
 <tr><td><code>wheel.model</code></td><td>built-in wheel</td><td>Wheel OBJ</td></tr>
 <tr><td><code>wheel.texture</code></td><td>built-in wheel</td><td>Wheel texture</td></tr>
-<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the wheels [m]. <b>X is "outward"</b>, so the sign flips between sides</td></tr>
-<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td><b>X is width; Y and Z are diameter.</b> Touching Y/Z breaks ground contact — change diameter with the tyre radius in the tuning screen instead</td></tr>
-<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>Camber in <b>degrees</b>. Negative leans the top inward. Cosmetic only; it does not affect grip</td></tr>
+<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the wheels [m]. <b>X is "outward"</b>, so the sign flips between sides. X is clamped to −0.05–0.10</td></tr>
+<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td><b>X is width (clamped to 0.5–2.5); Y and Z are diameter.</b> Touching Y/Z breaks ground contact — change diameter with the tyre radius in the tuning screen instead</td></tr>
+<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>Camber in <b>degrees</b>. Negative leans the top inward; clamped to −30–10. Cosmetic only; it does not affect grip</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td><b>How far apart the arches are in your mesh</b></td></tr>
 <tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td><b>What radius your mesh was built at</b></td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. <b>Right-hand drive.</b> The passenger seat is mirrored automatically</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 10</a>)</td></tr>
 </table>
 
 <div class="box note ja">
@@ -1013,9 +1099,314 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </ul>
 </section>
 
+<section id="s-sound">
+<h2 class="ja"><span class="num">10</span>音を付ける</h2>
+<h2 class="en"><span class="num">10</span>Add sounds</h2>
+<p class="lead-in ja">音を用意しなければ KurumaMod の音で走ります。この章は飛ばしても構いません。</p>
+<p class="lead-in en">If you supply no sounds, the car uses KurumaMod's. You can skip this chapter.</p>
+
+<p class="ja">エンジン音などを車ごとに差し替えられます。<b>書かなかった音は KurumaMod の音のまま</b>なので、エンジン音だけ変えたいならエンジン音だけ用意すれば済みます。</p>
+<p class="en">You can give each car its own engine note and more. <b>Anything you leave out stays KurumaMod's</b>, so if you only want a new engine, supply only the engine.</p>
+
+<h3 class="ja">差し替えられる音</h3>
+<h3 class="en">What you can replace</h3>
+<table class="ja">
+<tr><th>名前</th><th>音</th><th>鳴り方</th></tr>
+<tr><td><code>exhaust</code></td><td>エンジン音（低〜中回転）</td><td>ループ。回転数で音程、アクセルで音量が変わる</td></tr>
+<tr><td><code>exhaust_high</code></td><td>エンジン音（高回転）</td><td>ループ。<b><code>exhaust</code> を 1 オクターブ上げたもの</b>（下記の道具で作る）</td></tr>
+<tr><td><code>road</code></td><td>ロードノイズ</td><td>ループ。車速</td></tr>
+<tr><td><code>wind</code></td><td>風切り音</td><td>ループ。車速</td></tr>
+<tr><td><code>slip</code> / <code>slip_chatter</code></td><td>タイヤの悲鳴（伸ばし／刻み）</td><td>ループ。舗装路で滑ったとき。滑り始めの 0.6 秒だけ刻みが鳴る</td></tr>
+<tr><td><code>gravel</code> / <code>sand</code></td><td>砂利・土／砂・雪の路面音</td><td>ループ。未舗装を走っているとき</td></tr>
+<tr><td><code>shift</code></td><td>変速音</td><td>1 回</td></tr>
+<tr><td><code>crash</code></td><td>衝突音</td><td>1 回</td></tr>
+</table>
+<table class="en">
+<tr><th>Name</th><th>Sound</th><th>How it plays</th></tr>
+<tr><td><code>exhaust</code></td><td>Engine (low to mid rpm)</td><td>Loop. Pitch follows rpm, volume follows throttle</td></tr>
+<tr><td><code>exhaust_high</code></td><td>Engine (high rpm)</td><td>Loop. <b><code>exhaust</code> shifted up one octave</b> (make it with the tool below)</td></tr>
+<tr><td><code>road</code></td><td>Road noise</td><td>Loop. Speed</td></tr>
+<tr><td><code>wind</code></td><td>Wind</td><td>Loop. Speed</td></tr>
+<tr><td><code>slip</code> / <code>slip_chatter</code></td><td>Tyre squeal (sustained / chatter)</td><td>Loop. Sliding on tarmac; the chatter plays for the first 0.6 s of a slide</td></tr>
+<tr><td><code>gravel</code> / <code>sand</code></td><td>Gravel &amp; dirt / sand &amp; snow</td><td>Loop. Driving on loose ground</td></tr>
+<tr><td><code>shift</code></td><td>Gear change</td><td>One-shot</td></tr>
+<tr><td><code>crash</code></td><td>Impact</td><td>One-shot</td></tr>
+</table>
+
+<h3 class="ja">手順</h3>
+<h3 class="en">Steps</h3>
+
+<h4 class="ja">1. 音源を用意する</h4>
+<h4 class="en">1. Prepare the audio</h4>
+<ul class="ja">
+<li><b>OGG Vorbis のモノラル。</b>mp3 や wav は鳴りません。ステレオは距離で小さくならず、どこにいても同じ大きさで聞こえます。Audacity なら「トラック → ミックス → ステレオをモノラルにミックスダウン」してから OGG で書き出します</li>
+<li><b>ループ音は継ぎ目が無いように。</b>末尾を先頭へクロスフェードしておきます。1 秒ほどあれば十分です（短すぎると繰り返しが耳につきます）</li>
+<li><b>音量は一定に。</b>音量はゲームがアクセルや車速で動かすので、素材の中で強弱が揺れていると二重に掛かって「うねる」音になります</li>
+</ul>
+<ul class="en">
+<li><b>Ogg Vorbis, mono.</b> MP3 and WAV do not play. Stereo is not attenuated by distance — it sounds equally loud everywhere. In Audacity: Tracks → Mix → Mix Stereo Down to Mono, then export as OGG</li>
+<li><b>Loops must be seamless.</b> Cross-fade the tail into the head. About a second is plenty (much shorter and the repetition becomes audible)</li>
+<li><b>Keep the level steady.</b> The game drives volume from throttle and speed, so any swell inside the file gets applied twice and the sound "wobbles"</li>
+</ul>
+
+<h4 class="ja">2. 高回転側を作る（<code>sound_tools/make_octave_up.py</code>）</h4>
+<h4 class="en">2. Make the high-rpm side (<code>sound_tools/make_octave_up.py</code>)</h4>
+<p class="ja">Minecraft は音程を 0.5〜2.0 倍までしか変えられないので、1 ファイルではレブまで音程が上がりきりません。そこで同じ音を 1 オクターブ上げたものを <code>exhaust_high</code> として並べ、回転に合わせてクロスフェードします。作るのは同梱の道具に任せてください（Python が要ります）。</p>
+<p class="en">Minecraft can only shift pitch between 0.5× and 2.0×, so a single file cannot climb all the way to the redline. The game plays the same sound one octave up as <code>exhaust_high</code> and cross-fades between the two. Let the bundled tool make it (it needs Python).</p>
+<pre><code>pip install numpy soundfile
+python sound_tools/make_octave_up.py kei_exhaust.ogg
+# → kei_exhaust_high.ogg</code></pre>
+<p class="ja">ループはループのまま出てきます（継ぎ目は増えません）。ステレオを渡してもモノラルに落として書きます。</p>
+<p class="en">A seamless loop comes out seamless. Stereo input is folded down to mono.</p>
+
+<div class="box note ja">
+<span class="lbl">音程の目安</span>
+<p>エンジン音はアイドルで<b>元の 0.65 倍</b>、レブで<b>約 3.9 倍</b>の音程で鳴ります。実車のアイドリングを録ったものをそのまま使うと低くなりすぎるので、少し高めに作っておくのがコツです。</p>
+</div>
+<div class="box note en">
+<span class="lbl">PITCH RANGE</span>
+<p>The engine plays at <b>0.65× its original pitch at idle</b> and <b>about 3.9× at the redline</b>. A straight recording of a real idle ends up too low, so build it a little high.</p>
+</div>
+
+<h4 class="ja">3. ファイルを置く</h4>
+<h4 class="en">3. Put the files in place</h4>
+<pre><code>assets/mypack/sounds/kei_exhaust.ogg
+assets/mypack/sounds/kei_exhaust_high.ogg
+assets/mypack/sounds.json</code></pre>
+
+<h4 class="ja">4. <code>sounds.json</code> に名前を付ける</h4>
+<h4 class="en">4. Name them in <code>sounds.json</code></h4>
+<p class="ja"><code>assets/&lt;pack&gt;/sounds.json</code> は Minecraft 標準の書式です。ここで付けた名前（キー）を次の手順で使います。</p>
+<p class="en"><code>assets/&lt;pack&gt;/sounds.json</code> is Minecraft's standard format. The names (keys) you give here are what the next step refers to.</p>
+<pre><code>{
+  "kei_exhaust": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [{ "name": "mypack:kei_exhaust", "attenuation_distance": 64 }]
+  },
+  "kei_exhaust_high": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [{ "name": "mypack:kei_exhaust_high", "attenuation_distance": 64 }]
+  }
+}</code></pre>
+<ul class="ja">
+<li><code>"name"</code> は <code>sounds/</code> からのパスで、<b>拡張子を付けません</b></li>
+<li><code>attenuation_distance</code> が音の届く距離 [ブロック] です（省略すると 16）。KurumaMod はエンジン音 64・スキール 48・ロードノイズ 32</li>
+<li><code>subtitle</code> は KurumaMod の字幕をそのまま借りられます</li>
+</ul>
+<ul class="en">
+<li><code>"name"</code> is the path under <code>sounds/</code>, <b>without the extension</b></li>
+<li><code>attenuation_distance</code> is how far the sound carries, in blocks (16 if left out). KurumaMod uses 64 for the engine, 48 for squeal, 32 for road noise</li>
+<li>You can borrow KurumaMod's subtitle keys as they are</li>
+</ul>
+
+<h4 class="ja">5. 車の JSON から指す</h4>
+<h4 class="en">5. Point the car at them</h4>
+<p class="ja"><code>vehicles/&lt;car&gt;.json</code>（<a href="#s9">9 章</a>）に <code>sounds</code> を足します。値は ogg のパスではなく、<b>手順 4 で付けた名前</b>です。</p>
+<p class="en">Add <code>sounds</code> to <code>vehicles/&lt;car&gt;.json</code> (<a href="#s9">chapter 9</a>). The values are <b>the names from step 4</b>, not ogg paths.</p>
+<pre><code>"sounds": {
+  "exhaust": "mypack:kei_exhaust",
+  "exhaust_high": "mypack:kei_exhaust_high"
+}</code></pre>
+<p class="ja">ゲーム内で <kbd>F3</kbd>+<kbd>T</kbd> を押せば、乗っている車の音がその場で入れ替わります。</p>
+<p class="en">Press <kbd>F3</kbd>+<kbd>T</kbd> in game and the car you are in switches sounds on the spot.</p>
+
+<div class="box warn ja">
+<span class="lbl"><code>exhaust_high</code> を省くと</span>
+<p><code>exhaust</code> だけ書いて <code>exhaust_high</code> を省くと、高回転側にも同じ音源を使います（KurumaMod のエンジン音に化けることはありません）。ただし<b>音程が 2 倍で頭打ちになり、レブ付近で上がりきりません。</b>手順 2 で作って並べてください。</p>
+</div>
+<div class="box warn en">
+<span class="lbl">LEAVING OUT <code>exhaust_high</code></span>
+<p>If you write <code>exhaust</code> but leave out <code>exhaust_high</code>, the same file plays on the high side too (it will not turn into KurumaMod's engine). But <b>the pitch caps at 2× and stops rising near the redline.</b> Make it with step 2.</p>
+</div>
+</section>
+
+<section id="s-spec">
+<h2 class="ja"><span class="num">11</span>諸元（走り）を書く</h2>
+<h2 class="en"><span class="num">11</span>Write the spec (how it drives)</h2>
+<p class="ja">加速・ブレーキ・曲がりかたを決める値は <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> に書きます。<b>見た目の JSON（<a href="#s9">9 章</a>）とは置き場所が別</b>で、こちらはサーバーが読みます。</p>
+<p class="en">The values that decide acceleration, braking and cornering go in <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>. <b>They live apart from the look JSON (<a href="#s9">chapter 9</a>)</b>, and the server is what reads them.</p>
+
+<h3 class="ja">ゲーム内で作って書き出す</h3>
+<h3 class="en">Build it in game, then export</h3>
+<p class="ja"><b>手で数字を書くより、ゲーム内で作って書き出したものを持ってくるのが確実です。</b></p>
+<p class="en"><b>Better than typing numbers by hand: build the car in game and bring the result over.</b></p>
+<ol class="ja">
+<li>ゲーム内で車に乗り、<kbd>G</kbd> で調整画面を開いて詰める</li>
+<li>「プリセット」から名前を付けて保存する</li>
+<li><code>config/kurumamod-setups.json</code> から該当の 1 件をコピーして、<code>cars/&lt;car&gt;.json</code> の <code>values</code> に貼る</li>
+</ol>
+<ol class="en">
+<li>Get in a car, press <kbd>G</kbd> to open the tuning screen, and dial it in</li>
+<li>Save it under a name from "Preset"</li>
+<li>Copy that one entry out of <code>config/kurumamod-setups.json</code> into the <code>values</code> of <code>cars/&lt;car&gt;.json</code></li>
+</ol>
+<pre><code>{
+  "order": 10,
+  "values": {
+    "mass": 1500.0,
+    "peak_torque": 200.0
+  }
+}</code></pre>
+<ul class="ja">
+<li><code>order</code> … クリエイティブタブでの並び順（既定 <code>100</code>）</li>
+<li><code>values</code> … 諸元。<b>省略して根に直接書いてもよい</b></li>
+<li><b>書かなかった項目は既定値</b>。既定の車から変えたいところだけ書けばよく、KurumaMod の項目が増えても古いパックはそのまま読めます</li>
+<li><b><code>_</code> で始まるキーは読み飛ばされる</b>ので、<code>"_comment": "..."</code> で理由を残せます（JSON にはコメントが書けないため）</li>
+<li>書ける項目の全リストは<a href="#sc">付録 C</a>。書いても読まれない値は<a href="#sd">付録 D</a></li>
+</ul>
+<ul class="en">
+<li><code>order</code> — sort order in the creative tab (default <code>100</code>)</li>
+<li><code>values</code> — the spec. <b>You may drop it and write the values at the root instead</b></li>
+<li><b>Anything you leave out falls back to the default.</b> Write only what differs from the default car — and old packs keep loading when KurumaMod adds parameters</li>
+<li><b>Keys starting with <code>_</code> are skipped</b>, so <code>"_comment": "..."</code> is how you leave a note (JSON has no comments)</li>
+<li>Every key is listed in <a href="#sc">Appendix C</a>; values that are ignored even if written are in <a href="#sd">Appendix D</a></li>
+</ul>
+
+<div class="box warn ja">
+<span class="lbl">単位は内部単位。角度はラジアン</span>
+<p>調整画面が度で見せている項目でも、ファイルにはラジアンで書きます。<code>max_steer</code> を「32 度のつもりで <code>32.0</code>」と書くと <b>32 ラジアン</b>と読まれ、範囲の上限（65 度）に丸められてフルロックの車になります（既定は 35 度 ＝ <code>0.6109</code>）。ログに警告は出ますが、<b>ゲーム内で書き出すのが間違いありません。</b></p>
+</div>
+<div class="box warn en">
+<span class="lbl">INTERNAL UNITS. ANGLES ARE RADIANS</span>
+<p>Even for parameters the tuning screen shows in degrees, the file wants radians. Writing <code>32.0</code> into <code>max_steer</code> "meaning 32 degrees" is read as <b>32 radians</b> and clamped to the top of the range (65°), giving you a car stuck at full lock (the default is 35° = <code>0.6109</code>). The log warns you, but <b>exporting from in game is the safe path.</b></p>
+</div>
+<table class="ja">
+<tr><th>種類</th><th>単位</th></tr>
+<tr><td>長さ</td><td>m（cm ではない）</td></tr>
+<tr><td>質量</td><td>kg</td></tr>
+<tr><td>角度</td><td><b>rad</b>（度ではない）</td></tr>
+<tr><td>バネ定数</td><td>N/m</td></tr>
+<tr><td>トルク</td><td>N·m</td></tr>
+<tr><td>回転数</td><td>rpm</td></tr>
+</table>
+<table class="en">
+<tr><th>Quantity</th><th>Unit</th></tr>
+<tr><td>Length</td><td>m (not cm)</td></tr>
+<tr><td>Mass</td><td>kg</td></tr>
+<tr><td>Angle</td><td><b>rad</b> (not degrees)</td></tr>
+<tr><td>Spring rate</td><td>N/m</td></tr>
+<tr><td>Torque</td><td>N·m</td></tr>
+<tr><td>Engine speed</td><td>rpm</td></tr>
+</table>
+<p class="ja">直したら <code>/reload</code> で入れ直せます（<kbd>F3</kbd>+<kbd>T</kbd> ではありません）。</p>
+<p class="en">After an edit, <code>/reload</code> picks it up (not <kbd>F3</kbd>+<kbd>T</kbd>).</p>
+</section>
+
+<section id="s-parts">
+<h2 class="ja"><span class="num">12</span>ホイールを部品にする</h2>
+<h2 class="en"><span class="num">12</span>Make a wheel a part</h2>
+<p class="ja"><b>車種と同じ形で、ホイールも足せます。</b>足したホイールは、ゲーム内で <kbd>G</kbd> →「パーツ」の換装画面に並びます。メッシュの作りかたは <a href="#s6">6 章</a>のままです。</p>
+<p class="en"><b>Wheels are added the same way as cars.</b> They show up in the in-game parts screen — <kbd>G</kbd> → "Parts". Build the mesh exactly as in <a href="#s6">chapter 6</a>.</p>
+<p class="ja">見本は 2 つあります。<code>sample_wheel</code> は自前のメッシュを持つホイールで、<b>作るならこちらを写します</b>。<code>deep_dish</code> はメッシュを持たず、既定のホイールを太く・斜めにしているだけです（スライダーの既定値を渡す例）。</p>
+<p class="en">There are two examples. <code>sample_wheel</code> has its own mesh — <b>copy that one when you build a wheel</b>. <code>deep_dish</code> has no mesh; it only widens and tilts the default wheel (an example of handing defaults to the sliders).</p>
+
+<p class="ja">ファイルは車種と同じく id から決まります。<code>mypack:te37</code> にするなら:</p>
+<p class="en">As with cars, every file name follows from the id. For <code>mypack:te37</code>:</p>
+<table class="ja">
+<tr><th></th><th>名前</th></tr>
+<tr><td>素性（どこに付くか）</td><td><code>data/mypack/car_parts/te37.json</code></td></tr>
+<tr><td>見た目</td><td><code>assets/mypack/car_parts/te37.json</code></td></tr>
+<tr><td>メッシュとテクスチャ</td><td>見た目の JSON から指す（<code>models/entity/te37.obj</code> など、置き場所は自由）</td></tr>
+<tr><td>表示名の翻訳キー</td><td><code>part.mypack.te37</code>（lang に書く）</td></tr>
+</table>
+<table class="en">
+<tr><th></th><th>Name</th></tr>
+<tr><td>Definition (where it fits)</td><td><code>data/mypack/car_parts/te37.json</code></td></tr>
+<tr><td>Looks</td><td><code>assets/mypack/car_parts/te37.json</code></td></tr>
+<tr><td>Mesh and texture</td><td>Pointed to from the looks JSON (<code>models/entity/te37.obj</code> or wherever you like)</td></tr>
+<tr><td>Display-name translation key</td><td><code>part.mypack.te37</code> (in lang)</td></tr>
+</table>
+
+<h3 class="ja">素性（<code>data/</code>。サーバーが読む）</h3>
+<h3 class="en">Definition (<code>data/</code>, read by the server)</h3>
+<pre><code>{
+  "slot": "wheel",
+  "order": 10,
+  "cars": ["mypack:kei", "mypack:kei_van"]
+}</code></pre>
+<ul class="ja">
+<li><code>slot</code> … 付ける場所。いまは <code>"wheel"</code> だけ。<b>書かないとその部品は捨てられます</b></li>
+<li><code>order</code> … 換装画面に並ぶ順（小さいほど左）。省略時 100</li>
+<li><code>cars</code> … <b>付けられる車種を絞る。</b>省略すればどの車種にも並びます。書けばその車種の換装画面にだけ並び、サーバーも他の車種には履かせません。<b>別のパックの車種を書いてもよい</b>（<code>kurumamod:car</code> は同梱の既定車）</li>
+</ul>
+<ul class="en">
+<li><code>slot</code> — where it fits. Only <code>"wheel"</code> exists for now. <b>Leave it out and the part is dropped</b></li>
+<li><code>order</code> — position in the parts screen (smaller is further left). 100 if omitted</li>
+<li><code>cars</code> — <b>restricts which cars can fit it.</b> Leave it out and the part is offered on every car. List cars and it only appears in their parts screen, and the server refuses to fit it to anything else. <b>Cars from other packs are fine</b> (<code>kurumamod:car</code> is the built-in default car)</li>
+</ul>
+
+<h3 class="ja">見た目（<code>assets/</code>。クライアントだけが読む）</h3>
+<h3 class="en">Looks (<code>assets/</code>, read by the client only)</h3>
+<p class="ja">書き方は <code>vehicles/&lt;car&gt;.json</code> の <code>wheel</code> と同じです。</p>
+<p class="en">Written the same way as <code>wheel</code> in <code>vehicles/&lt;car&gt;.json</code>.</p>
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/te37.obj",
+    "texture": "mypack:textures/entity/te37.png",
+    "designRadius": 0.45,
+    "offset": [0.0, 0.0, 0.0],
+    "scale": [1.0, 1.0, 1.0],
+    "camber": 0.0
+  }
+}</code></pre>
+<ul class="ja">
+<li><b>書かなかった項目は、その車種のホイールの値になります</b>（KurumaMod の既定ではない）。メッシュを持たずにキャンバーだけ変える部品も作れます</li>
+<li><code>designRadius</code> は<b>メッシュが何 m の半径で作られているか</b>。書いておけば、どの車種のどのタイヤ半径にも自動で合います</li>
+<li><code>offset</code> の X・<code>scale</code> の X・<code>camber</code> は、換装画面のスライダーの<b>既定値</b>になります。プレイヤーが動かせて、「R」でここへ戻ります</li>
+<li><b>見た目だけで、走りは変わりません</b>（グリップも旋回もそのまま）</li>
+</ul>
+<ul class="en">
+<li><b>Anything you leave out falls back to that car's own wheel</b> (not KurumaMod's default). A part can change only the camber and have no mesh at all</li>
+<li><code>designRadius</code> is <b>the radius the mesh was built at</b>. Write it and the wheel fits any car at any tyre radius automatically</li>
+<li>The X of <code>offset</code>, the X of <code>scale</code> and <code>camber</code> become the <b>defaults</b> of the sliders in the parts screen. Players can move them, and "R" returns to your values</li>
+<li><b>Looks only — driving does not change</b> (grip and cornering stay the same)</li>
+</ul>
+<p class="ja">全項目は<a href="#se">付録 E</a>。いまの割り切り: <b>前後で別のホイールは履けません</b>（4 輪とも同じ部品）。付ける場所はホイールだけです。</p>
+<p class="en">Every key is in <a href="#se">Appendix E</a>. Current limits: <b>front and rear cannot wear different wheels</b> (all four share one part), and wheels are the only slot.</p>
+</section>
+
+<section id="s-jar">
+<h2 class="ja"><span class="num">13</span>jar に固めて配る</h2>
+<h2 class="en"><span class="num">13</span>Pack it into a jar and ship it</h2>
+<p class="ja"><b>カーパックはコードを持たない MOD jar です。</b>フォルダの中身を zip で固めて <code>.jar</code> に改名し、<code>mods/</code> に入れるだけ。<b>まず見本（<code>carpack/example/</code>）をそのまま固めて動かしてみる</b>と、手順が 1 度で分かります。</p>
+<p class="en"><b>A car pack is a mod jar with no code in it.</b> Zip the contents of the folder, rename it to <code>.jar</code> and put it in <code>mods/</code>. <b>Try it first on the example (<code>carpack/example/</code>) as it is</b> — you will learn the whole routine in one go.</p>
+<pre><code>cd carpack/example
+jar --create --file ../mypack.jar .     # JDK があれば / if you have a JDK
+zip -r ../mypack.jar .                  # 無ければ zip でも同じ / zip works just as well</code></pre>
+<pre><code># Windows（JDK が無いとき / without a JDK）
+Compress-Archive -Path * -DestinationPath ..\mypack.zip
+Rename-Item ..\mypack.zip mypack.jar</code></pre>
+
+<div class="box warn ja">
+<span class="lbl"><code>META-INF/</code> と <code>pack.mcmeta</code> が jar の直下に来ること</span>
+<p>フォルダごと固めると一段深くなり、<code>mods/</code> に入れても何も起きません。上のコマンドがフォルダの<b>中</b>で実行されているのはこのためです。</p>
+</div>
+<div class="box warn en">
+<span class="lbl"><code>META-INF/</code> AND <code>pack.mcmeta</code> MUST SIT AT THE TOP OF THE JAR</span>
+<p>Zipping the folder itself buries them one level deeper, and nothing happens when you load it. That is why the commands above run from <b>inside</b> the folder.</p>
+</div>
+
+<ul class="ja">
+<li><b>jar 1 つで諸元（<code>data/</code>）と見た目（<code>assets/</code>）の両方が読まれます。</b>リソースパックとデータパックに分けて配ると、片方だけ入れた人が「見えるのに走らない」状態になります</li>
+<li><b>マルチプレイではサーバーと全員のクライアントの両方に入れます。</b>どの車があるかはサーバーが決め、姿を描くのは各クライアントです</li>
+<li><code>PACK_CREATE_GUIDE.html</code>・<code>CURSEFORGE.md</code>・<code>MODRINTH.md</code>・<code>modeling_tools/</code>・<code>sound_tools/</code> は作るための説明書きと道具なので、消しても入れたままでもかまいません。<code>CURSEFORGE.md</code> と <code>MODRINTH.md</code> は配布ページの説明文のひな形に使えます</li>
+<li><b>カーパックを外しても壊れません。</b>知らない車種は既定の車として走り、id は覚えているので入れ直せば元に戻ります</li>
+</ul>
+<ul class="en">
+<li><b>One jar is read both for the spec (<code>data/</code>) and the looks (<code>assets/</code>).</b> Ship them as a separate resource pack and data pack and anyone who installs only one gets a car that "shows up but will not drive"</li>
+<li><b>In multiplayer, install it on the server and on every client.</b> The server decides which cars exist; each client draws them</li>
+<li><code>PACK_CREATE_GUIDE.html</code>, <code>CURSEFORGE.md</code>, <code>MODRINTH.md</code>, <code>modeling_tools/</code> and <code>sound_tools/</code> are documentation and tools for making packs — keep them or delete them. <code>CURSEFORGE.md</code> and <code>MODRINTH.md</code> double as templates for distribution pages</li>
+<li><b>Removing a car pack breaks nothing.</b> Unknown car ids drive as the default car, and the id is remembered, so putting the pack back restores them</li>
+</ul>
+<p class="ja"><b>この見本は自由に使えます。</b>コピーして自分のカーパックの土台にしてよく、表示も許諾も要りません。</p>
+<p class="en"><b>The example is free to use.</b> Copy it as the base of your own pack. No credit, no permission needed.</p>
+</section>
+
 <section id="s10">
-<h2 class="ja"><span class="num">10</span>確認する</h2>
-<h2 class="en"><span class="num">10</span>Check it in game</h2>
+<h2 class="ja"><span class="num">14</span>確認する</h2>
+<h2 class="en"><span class="num">14</span>Check it in game</h2>
 
 <p class="ja">ゲームを起動して車に乗り、<kbd>F3</kbd>+<kbd>T</kbd> を押します。モデル・テクスチャ・<code>vehicles/*.json</code> がその場で読み直されるので、<b>Blender で直して書き出す → F3+T</b> を繰り返して詰めていきます。</p>
 <p class="en">Start the game, get in the car, press <kbd>F3</kbd>+<kbd>T</kbd>. The model, the texture and <code>vehicles/*.json</code> all reload on the spot, so the loop is <b>fix it in Blender → export → F3+T</b>.</p>
@@ -1054,14 +1445,22 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </section>
 
 <section id="s11">
-<h2 class="ja"><span class="num">11</span>症状別の直しかた</h2>
-<h2 class="en"><span class="num">11</span>Troubleshooting</h2>
+<h2 class="ja"><span class="num">15</span>症状別の直しかた</h2>
+<h2 class="en"><span class="num">15</span>Troubleshooting</h2>
 
 <p class="ja"><b>カーパックは失敗しても黙っています。</b>壊れた JSON もずれた名前も、その 1 件を捨てて先へ進むので、症状から当たりを付けます。</p>
 <p class="en"><b>Car packs fail silently.</b> A broken JSON or a mistyped name is dropped and loading carries on, so you diagnose from the symptom.</p>
 
 <table class="ja">
 <tr><th>症状</th><th>見るところ</th></tr>
+<tr><td>MOD 一覧にすら出ない</td><td><code>META-INF/mods.toml</code> が jar の直下にあるか（フォルダごと固めていないか）。<code>modId</code> に <code>-</code> や <code>.</code> を使っていないか</td></tr>
+<tr><td>車種が 1 台も増えない</td><td><code>data/&lt;pack&gt;/cars/*.json</code> があるか。ログの <code>車種を N 件読み込みました</code> を見る</td></tr>
+<tr><td>その 1 台だけ増えない</td><td>その JSON が壊れている。理由がログに残っています</td></tr>
+<tr><td>表示名が <code>ae86</code> のまま出る</td><td>lang の翻訳キーが <code>car.&lt;pack&gt;.&lt;car&gt;</code> になっているか</td></tr>
+<tr><td>舵が異常に切れる／効かない</td><td>諸元の角度を度で書いていないか（<b>ラジアン</b>）</td></tr>
+<tr><td>換装画面にホイールが出ない</td><td><code>data/&lt;pack&gt;/car_parts/</code> に置いたか。<code>slot</code> を書いたか。<code>cars</code> にその車種が入っているか</td></tr>
+<tr><td>ホイールを選んでも見た目が変わらない</td><td><code>assets/&lt;pack&gt;/car_parts/</code> のファイル名が素性と一致しているか</td></tr>
+<tr><td>部品のホイールが大きすぎ／小さすぎ</td><td>部品の <code>designRadius</code> がメッシュの実寸か</td></tr>
 <tr><td>何も変わらない</td><td><kbd>F3</kbd>+<kbd>T</kbd> を押したか。リソースパックを有効にしたか</td></tr>
 <tr><td>既定の車のまま出る</td><td><code>vehicles/</code> の JSON のファイル名とパス。名前空間（<code>mypack:</code>）が合っているか</td></tr>
 <tr><td>車体だけ大きい／小さい</td><td><code>designWheelBase</code> がメッシュの実寸か。微調整は <code>body.scale</code></td></tr>
@@ -1081,9 +1480,22 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td>ミラーが地面ばかり映す</td><td>板の角度は関係ありません（狙いは車体基準）。<b>それでも地面なら鏡の位置</b>——車体中心から 0.35m 以内はルームミラー扱いになります</td></tr>
 <tr><td>車内が暗い</td><td>車体の裏面が見えています。仕様です</td></tr>
 <tr><td>ゲージが車と一緒に出てくる</td><td>描かれはしませんが、書き出しで <code>Selected Only</code> を入れ忘れています</td></tr>
+<tr><td>差し替えた音が鳴らず、KurumaMod の音のまま</td><td><code>sounds</code> の値が <code>sounds.json</code> の名前と一致しているか。ログに <code>指定されたサウンドイベントが sounds.json にありません</code> と出ます</td></tr>
+<tr><td>音がまったく鳴らない</td><td>ogg 以外（mp3・wav）を置いていないか。<code>sounds.json</code> の <code>"name"</code> に拡張子を付けていないか</td></tr>
+<tr><td>どこにいても同じ大きさで聞こえる</td><td>ogg がステレオ。モノラルにする</td></tr>
+<tr><td>エンジン音がレブ付近で上がりきらない</td><td><code>exhaust_high</code> を置いていない（<a href="#s-sound">10 章</a>の手順 2）</td></tr>
+<tr><td>エンジン音が周期的にうねる</td><td>素材の音量が一定でない。均してから書き出す</td></tr>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Where to look</th></tr>
+<tr><td>Does not even appear in the mod list</td><td>Is <code>META-INF/mods.toml</code> at the top level of the jar (did you zip the folder itself)? Does <code>modId</code> contain <code>-</code> or <code>.</code>?</td></tr>
+<tr><td>No cars added at all</td><td>Does <code>data/&lt;pack&gt;/cars/*.json</code> exist? Check the <code>車種を N 件読み込みました</code> line in the log</td></tr>
+<tr><td>Only that one car missing</td><td>That JSON is broken. The reason is in the log</td></tr>
+<tr><td>Display name shows as <code>ae86</code></td><td>Is the translation key <code>car.&lt;pack&gt;.&lt;car&gt;</code>?</td></tr>
+<tr><td>Steering is wild, or does nothing</td><td>Did you write a spec angle in degrees? (<b>radians</b>)</td></tr>
+<tr><td>A wheel is missing from the parts screen</td><td>Is it under <code>data/&lt;pack&gt;/car_parts/</code>? Did you write <code>slot</code>? Is this car in its <code>cars</code>?</td></tr>
+<tr><td>Picking a wheel changes nothing</td><td>Does the filename under <code>assets/&lt;pack&gt;/car_parts/</code> match the definition?</td></tr>
+<tr><td>A part wheel is too big / too small</td><td>Is the part's <code>designRadius</code> the mesh's real size?</td></tr>
 <tr><td>Nothing changed at all</td><td>Did you press <kbd>F3</kbd>+<kbd>T</kbd>? Is the resource pack enabled?</td></tr>
 <tr><td>Still the built-in car</td><td>Filename and path of the JSON in <code>vehicles/</code>. Does the namespace (<code>mypack:</code>) match?</td></tr>
 <tr><td>Body too big / too small</td><td>Is <code>designWheelBase</code> the real size of your mesh? Fine-tune with <code>body.scale</code></td></tr>
@@ -1103,12 +1515,17 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td>A mirror only ever shows the ground</td><td>The angle you modelled is irrelevant — aiming is relative to the car. If it persists, it is the <b>position</b>: anything within 0.35 m of the centreline is treated as the rear-view mirror</td></tr>
 <tr><td>The cabin is dark</td><td>You are seeing the back faces of the body. That is intended</td></tr>
 <tr><td>The gauge is exported with the car</td><td>It is never drawn, but you forgot <code>Selected Only</code> on export</td></tr>
+<tr><td>A replaced sound plays KurumaMod's instead</td><td>Does the value in <code>sounds</code> match a name in <code>sounds.json</code>? The log says <code>指定されたサウンドイベントが sounds.json にありません</code></td></tr>
+<tr><td>No sound at all</td><td>Is the file something other than ogg (mp3, wav)? Did you put an extension on <code>"name"</code> in <code>sounds.json</code>?</td></tr>
+<tr><td>Equally loud everywhere</td><td>The ogg is stereo. Make it mono</td></tr>
+<tr><td>The engine stops rising near the redline</td><td>No <code>exhaust_high</code> (step 2 of <a href="#s-sound">chapter 10</a>)</td></tr>
+<tr><td>The engine swells periodically</td><td>The level inside the file is not steady. Even it out before exporting</td></tr>
 </table>
 </section>
 
 <section id="s12">
-<h2 class="ja"><span class="num">12</span>チェックリスト</h2>
-<h2 class="en"><span class="num">12</span>Checklists</h2>
+<h2 class="ja"><span class="num">16</span>チェックリスト</h2>
+<h2 class="en"><span class="num">16</span>Checklists</h2>
 
 <h3 class="ja">書き出す前（Blender）</h3>
 <h3 class="en">Before exporting (in Blender)</h3>
@@ -1165,6 +1582,38 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <li><code>designWheelBase</code> and <code>designWheelRadius</code> are <b>the real sizes of your mesh</b></li>
 <li>The resource pack / car pack is enabled</li>
 <li>You pressed <kbd>F3</kbd>+<kbd>T</kbd></li>
+</ul>
+
+<h3 class="ja">音を付けたとき</h3>
+<h3 class="en">If you added sounds</h3>
+<ul class="chk ja">
+<li>ogg・モノラル・継ぎ目の無いループ</li>
+<li><code>exhaust_high</code> を <code>sound_tools/make_octave_up.py</code> で作って並べた</li>
+<li><code>sounds.json</code> の <code>"name"</code> に拡張子を付けていない</li>
+<li><code>vehicles/&lt;car&gt;.json</code> の <code>sounds</code> が <code>sounds.json</code> の名前を指している</li>
+</ul>
+<ul class="chk en">
+<li>Ogg, mono, seamless loops</li>
+<li><code>exhaust_high</code> made with <code>sound_tools/make_octave_up.py</code> and put alongside</li>
+<li>No extension on <code>"name"</code> in <code>sounds.json</code></li>
+<li><code>sounds</code> in <code>vehicles/&lt;car&gt;.json</code> points at names from <code>sounds.json</code></li>
+</ul>
+
+<h3 class="ja">配る前</h3>
+<h3 class="en">Before you ship</h3>
+<ul class="chk ja">
+<li><code>modId</code> が <code>a-z 0-9 _</code> だけで、名前空間と同じ</li>
+<li>諸元・見た目・lang のファイル名と翻訳キーが車種 id と揃っている</li>
+<li>諸元の角度をラジアンで書いた（ゲーム内で書き出したなら問題なし）</li>
+<li><code>META-INF/</code> と <code>pack.mcmeta</code> が jar の直下にある</li>
+<li>サーバーにも入れた（マルチプレイのとき）</li>
+</ul>
+<ul class="chk en">
+<li><code>modId</code> uses only <code>a-z 0-9 _</code> and matches the namespace</li>
+<li>Spec, looks and lang file names and translation keys all match the car id</li>
+<li>Spec angles are in radians (fine if you exported from in game)</li>
+<li><code>META-INF/</code> and <code>pack.mcmeta</code> sit at the top of the jar</li>
+<li>Installed on the server too (for multiplayer)</li>
 </ul>
 </section>
 
@@ -1223,9 +1672,266 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </table>
 </section>
 
+<section id="sc">
+<h2 class="ja">付録 C. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
+<h2 class="en">Appendix C. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
+<p class="ja">これで全部（51 項目）。書き方は <a href="#s-spec">11 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="en">That is all of them (51 keys). How to write them is in <a href="#s-spec">chapter 11</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<h4 class="ja">サスペンション</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>stroke</code></td><td>ストローク</td><td>m</td><td>0.3</td><td>0.15 – 0.8</td></tr>
+<tr><td><code>front_anti_roll</code></td><td>フロント スタビライザー</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
+<tr><td><code>rear_anti_roll</code></td><td>リア スタビライザー</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
+<tr><td><code>front_roll_center</code></td><td>フロント ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
+<tr><td><code>rear_roll_center</code></td><td>リア ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
+</table>
+<p class="ja"><b>足を硬くしたいときは <code>stroke</code> を短くします。</b>沈み込みがストロークの 39.2% で固定なので、短いほどバネもダンパーも硬くなります。</p>
+<h4 class="ja">ステアリング ジオメトリ</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>ackermann</code></td><td>アッカーマン率</td><td>割合（1 で幾何どおり）</td><td>0.5</td><td>−0.5 – 1.2</td></tr>
+<tr><td><code>front_toe</code></td><td>フロント トー</td><td><b>rad</b>（正でイン）</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>rear_toe</code></td><td>リア トー</td><td><b>rad</b>（正でイン）</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>front_roll_steer</code></td><td>フロント ロールステア</td><td>rad/rad（正でアンダー）</td><td>0.05</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>rear_roll_steer</code></td><td>リア ロールステア</td><td>rad/rad（正でアンダー）</td><td>0.08</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>front_compliance_steer</code></td><td>フロント コンプライアンスステア</td><td><b>rad</b>/G（正でアンダー）</td><td>0.00873（＝0.5°/G）</td><td>−0.00873 – 0.0262</td></tr>
+<tr><td><code>rear_compliance_steer</code></td><td>リア コンプライアンスステア</td><td><b>rad</b>/G（正でアンダー）</td><td>0.00349（＝0.2°/G）</td><td>−0.00873 – 0.0262</td></tr>
+</table>
+<h4 class="ja">タイヤ</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>friction</code></td><td>グリップ</td><td>μ</td><td>1</td><td>0.3 – 1.5</td></tr>
+<tr><td><code>tire_falloff</code></td><td>滑ったときのグリップ低下</td><td>割合</td><td>0</td><td>0 – 0.5</td></tr>
+<tr><td><code>tire_load_sensitivity</code></td><td>タイヤの荷重感度</td><td>—</td><td>0.15</td><td>0 – 0.4</td></tr>
+<tr><td><code>cornering_stiffness</code></td><td>横すべり剛性</td><td>—</td><td>12</td><td>4 – 25</td></tr>
+<tr><td><code>longitudinal_stiffness</code></td><td>縦すべり剛性</td><td>—</td><td>18</td><td>5 – 40</td></tr>
+<tr><td><code>wheel_radius</code></td><td>タイヤ半径</td><td>m</td><td>0.45</td><td>0.25 – 1.1</td></tr>
+</table>
+<p class="ja"><b><code>friction</code> に書くのは実際の摩擦係数（μ）です。</b>調整画面は既定を 1.00 とした相対値で出しています（いまは基準が 1.0 なので同じ数字）。</p>
+<h4 class="ja">車体</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>mass</code></td><td>車重</td><td>kg</td><td>1200</td><td>500 – 2500</td></tr>
+<tr><td><code>weight_distribution</code></td><td>前後の荷重配分</td><td>前軸の割合</td><td>0.56</td><td>0.35 – 0.7</td></tr>
+<tr><td><code>wheel_base</code></td><td>ホイールベース</td><td>m</td><td>3.12</td><td>2 – 7</td></tr>
+<tr><td><code>track_width</code></td><td>トレッド</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+</table>
+<h4 class="ja">エンジン</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>peak_torque</code></td><td>最大トルク</td><td>N·m</td><td>350</td><td>60 – 700</td></tr>
+<tr><td><code>peak_torque_rpm</code></td><td>最大トルク回転数</td><td>rpm</td><td>4200</td><td>1500 – 8000</td></tr>
+<tr><td><code>peak_power_rpm</code></td><td>最高出力回転数</td><td>rpm</td><td>最大トルク回転数の 1.59 倍（6676.4）</td><td>2500 – 12000</td></tr>
+<tr><td><code>idle_rpm</code></td><td>アイドル回転数</td><td>rpm</td><td>800</td><td>500 – 2000</td></tr>
+<tr><td><code>redline_rpm</code></td><td>レブリミット</td><td>rpm</td><td>7000</td><td>4000 – 12000</td></tr>
+<tr><td><code>engine_brake</code></td><td>エンジンブレーキ</td><td>N·m</td><td>35</td><td>0 – 120</td></tr>
+<tr><td><code>engine_inertia</code></td><td>エンジンの慣性</td><td>kg·m²</td><td>0.25</td><td>0.05 – 1</td></tr>
+</table>
+<h4 class="ja">変速機</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>gear_count</code></td><td>前進の段数</td><td>段</td><td>5</td><td>3 – 8</td></tr>
+<tr><td><code>first_gear</code></td><td>1速のギア比</td><td>—</td><td>4.2</td><td>1.5 – 5</td></tr>
+<tr><td><code>top_gear</code></td><td>最高段のギア比</td><td>—</td><td>0.85</td><td>0.4 – 1.5</td></tr>
+<tr><td><code>drivetrain_efficiency</code></td><td>駆動系の伝達効率</td><td>—</td><td>0.9</td><td>0.7 – 1</td></tr>
+<tr><td><code>shift_time</code></td><td>変速にかかる時間</td><td>秒</td><td>0.35</td><td>0 – 1.5</td></tr>
+<tr><td><code>manual_transmission</code></td><td>変速</td><td>0 = AT・1 = MT</td><td>0</td><td>0 – 1</td></tr>
+</table>
+<h4 class="ja">駆動系・デフ</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>drive_bias</code></td><td>駆動配分（0=前 1=後）</td><td>0 = 前・1 = 後</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>diff_preload</code></td><td>デフ イニシャルトルク</td><td>N·m</td><td>0</td><td>0 – 300</td></tr>
+<tr><td><code>diff_lock_ratio</code></td><td>デフ 差動制限率</td><td>—</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>diff_coast_ratio</code></td><td>デフ 戻し側の効き</td><td>—</td><td>0.5</td><td>0 – 1</td></tr>
+</table>
+<p class="ja"><code>diff_lock_ratio</code> と <code>diff_preload</code> がどちらも 0 ならオープンデフ。<code>diff_coast_ratio</code> は 0 で 1way、0.5 で 1.5way、1 で 2way。</p>
+<h4 class="ja">ブレーキ・走行抵抗</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>abs</code></td><td>ABS</td><td>強さ（0 で無効）</td><td>0.7</td><td>0 – 1</td></tr>
+<tr><td><code>rolling_resistance</code></td><td>転がり抵抗</td><td>—</td><td>0.15</td><td>0 – 1</td></tr>
+<tr><td><code>drag</code></td><td>空気抵抗係数</td><td>—</td><td>0.0004</td><td>0.0001 – 0.005</td></tr>
+</table>
+<p class="ja">最高速の項目はありません。<b>実際の最高速はトルクと抵抗から決まり</b>、最高段でレブまで回した速度より速くは走れません。</p>
+<h4 class="ja">操作と補助</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>max_steer</code></td><td>最大切れ角</td><td><b>rad</b></td><td>0.6109（＝35°）</td><td>0.1745 – 1.1345</td></tr>
+<tr><td><code>steer_grip_margin</code></td><td>切れ角の余裕（大で滑らせやすい）</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
+<tr><td><code>visual_slip_limit</code></td><td>見た目のタイヤ角</td><td><b>rad</b>（0 で無効）</td><td>0.7854（＝45°）</td><td>0 – 1.5708</td></tr>
+<tr><td><code>steer_rate</code></td><td>舵が入るまでの時間</td><td>秒</td><td>0.18</td><td>0 – 1</td></tr>
+<tr><td><code>steer_return</code></td><td>舵が中立へ戻る時間</td><td>秒</td><td>0.11</td><td>0 – 1</td></tr>
+<tr><td><code>self_aligning</code></td><td>舵の自己復元</td><td>—（0 で中立へ戻る）</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_press</code></td><td>ペダルを踏みきる時間</td><td>秒</td><td>0.25</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_release</code></td><td>ペダルを戻しきる時間</td><td>秒</td><td>0.12</td><td>0 – 1</td></tr>
+<tr><td><code>traction_control</code></td><td>トラクションコントロール</td><td>強さ（0 で無効）</td><td>1</td><td>0 – 1</td></tr>
+</table>
+<h4 class="en">Suspension</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>stroke</code></td><td>Travel</td><td>m</td><td>0.3</td><td>0.15 – 0.8</td></tr>
+<tr><td><code>front_anti_roll</code></td><td>Front anti-roll bar</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
+<tr><td><code>rear_anti_roll</code></td><td>Rear anti-roll bar</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
+<tr><td><code>front_roll_center</code></td><td>Front roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
+<tr><td><code>rear_roll_center</code></td><td>Rear roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
+</table>
+<p class="en"><b>To stiffen the suspension, shorten <code>stroke</code>.</b> Static sag is fixed at 39.2% of the stroke, so a shorter stroke means stiffer springs and dampers.</p>
+<h4 class="en">Steering geometry</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>ackermann</code></td><td>Ackermann</td><td>fraction (1 = true Ackermann)</td><td>0.5</td><td>−0.5 – 1.2</td></tr>
+<tr><td><code>front_toe</code></td><td>Front toe</td><td><b>rad</b> (positive = toe-in)</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>rear_toe</code></td><td>Rear toe</td><td><b>rad</b> (positive = toe-in)</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>front_roll_steer</code></td><td>Front roll steer</td><td>rad/rad (positive = understeer)</td><td>0.05</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>rear_roll_steer</code></td><td>Rear roll steer</td><td>rad/rad (positive = understeer)</td><td>0.08</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>front_compliance_steer</code></td><td>Front compliance steer</td><td><b>rad</b>/G (positive = understeer)</td><td>0.00873 (= 0.5°/G)</td><td>−0.00873 – 0.0262</td></tr>
+<tr><td><code>rear_compliance_steer</code></td><td>Rear compliance steer</td><td><b>rad</b>/G (positive = understeer)</td><td>0.00349 (= 0.2°/G)</td><td>−0.00873 – 0.0262</td></tr>
+</table>
+<h4 class="en">Tires</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>friction</code></td><td>Grip</td><td>μ</td><td>1</td><td>0.3 – 1.5</td></tr>
+<tr><td><code>tire_falloff</code></td><td>Grip loss when sliding</td><td>fraction</td><td>0</td><td>0 – 0.5</td></tr>
+<tr><td><code>tire_load_sensitivity</code></td><td>Tyre load sensitivity</td><td>—</td><td>0.15</td><td>0 – 0.4</td></tr>
+<tr><td><code>cornering_stiffness</code></td><td>Lateral slip stiffness</td><td>—</td><td>12</td><td>4 – 25</td></tr>
+<tr><td><code>longitudinal_stiffness</code></td><td>Longitudinal slip stiffness</td><td>—</td><td>18</td><td>5 – 40</td></tr>
+<tr><td><code>wheel_radius</code></td><td>Tyre radius</td><td>m</td><td>0.45</td><td>0.25 – 1.1</td></tr>
+</table>
+<p class="en"><b><code>friction</code> is the actual coefficient of friction (μ).</b> The tuning screen shows it relative to the default (the reference is 1.0 for now, so the numbers match).</p>
+<h4 class="en">Chassis</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>mass</code></td><td>Mass</td><td>kg</td><td>1200</td><td>500 – 2500</td></tr>
+<tr><td><code>weight_distribution</code></td><td>Weight distribution</td><td>fraction on the front axle</td><td>0.56</td><td>0.35 – 0.7</td></tr>
+<tr><td><code>wheel_base</code></td><td>Wheelbase</td><td>m</td><td>3.12</td><td>2 – 7</td></tr>
+<tr><td><code>track_width</code></td><td>Track width</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+</table>
+<h4 class="en">Engine</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>peak_torque</code></td><td>Peak torque</td><td>N·m</td><td>350</td><td>60 – 700</td></tr>
+<tr><td><code>peak_torque_rpm</code></td><td>Peak torque rpm</td><td>rpm</td><td>4200</td><td>1500 – 8000</td></tr>
+<tr><td><code>peak_power_rpm</code></td><td>Peak power rpm</td><td>rpm</td><td>1.59 × peak torque rpm (6676.4)</td><td>2500 – 12000</td></tr>
+<tr><td><code>idle_rpm</code></td><td>Idle rpm</td><td>rpm</td><td>800</td><td>500 – 2000</td></tr>
+<tr><td><code>redline_rpm</code></td><td>Redline</td><td>rpm</td><td>7000</td><td>4000 – 12000</td></tr>
+<tr><td><code>engine_brake</code></td><td>Engine braking</td><td>N·m</td><td>35</td><td>0 – 120</td></tr>
+<tr><td><code>engine_inertia</code></td><td>Engine inertia</td><td>kg·m²</td><td>0.25</td><td>0.05 – 1</td></tr>
+</table>
+<h4 class="en">Gearbox</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>gear_count</code></td><td>Forward gears</td><td>gears</td><td>5</td><td>3 – 8</td></tr>
+<tr><td><code>first_gear</code></td><td>1st gear ratio</td><td>—</td><td>4.2</td><td>1.5 – 5</td></tr>
+<tr><td><code>top_gear</code></td><td>Top gear ratio</td><td>—</td><td>0.85</td><td>0.4 – 1.5</td></tr>
+<tr><td><code>drivetrain_efficiency</code></td><td>Drivetrain efficiency</td><td>—</td><td>0.9</td><td>0.7 – 1</td></tr>
+<tr><td><code>shift_time</code></td><td>Shift time</td><td>s</td><td>0.35</td><td>0 – 1.5</td></tr>
+<tr><td><code>manual_transmission</code></td><td>Transmission</td><td>0 = AT, 1 = MT</td><td>0</td><td>0 – 1</td></tr>
+</table>
+<h4 class="en">Driveline & Differential</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>drive_bias</code></td><td>Drive bias (0=front, 1=rear)</td><td>0 = front, 1 = rear</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>diff_preload</code></td><td>Diff preload</td><td>N·m</td><td>0</td><td>0 – 300</td></tr>
+<tr><td><code>diff_lock_ratio</code></td><td>Diff lock ratio</td><td>—</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>diff_coast_ratio</code></td><td>Diff coast ratio</td><td>—</td><td>0.5</td><td>0 – 1</td></tr>
+</table>
+<p class="en">With <code>diff_lock_ratio</code> and <code>diff_preload</code> both at 0 it is an open diff. <code>diff_coast_ratio</code> is 1-way at 0, 1.5-way at 0.5, 2-way at 1.</p>
+<h4 class="en">Brakes & Resistance</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>abs</code></td><td>ABS</td><td>strength (0 = off)</td><td>0.7</td><td>0 – 1</td></tr>
+<tr><td><code>rolling_resistance</code></td><td>Rolling resistance</td><td>—</td><td>0.15</td><td>0 – 1</td></tr>
+<tr><td><code>drag</code></td><td>Drag coefficient</td><td>—</td><td>0.0004</td><td>0.0001 – 0.005</td></tr>
+</table>
+<p class="en">There is no top-speed field. <b>The real top speed comes out of torque versus resistance</b>, and the car can never go faster than top gear at the redline.</p>
+<h4 class="en">Controls & Aids</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>max_steer</code></td><td>Max steering angle</td><td><b>rad</b></td><td>0.6109 (= 35°)</td><td>0.1745 – 1.1345</td></tr>
+<tr><td><code>steer_grip_margin</code></td><td>Steering margin (higher = slides more)</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
+<tr><td><code>visual_slip_limit</code></td><td>Visual wheel angle</td><td><b>rad</b> (0 = off)</td><td>0.7854 (= 45°)</td><td>0 – 1.5708</td></tr>
+<tr><td><code>steer_rate</code></td><td>Steering lock-to-lock time</td><td>s</td><td>0.18</td><td>0 – 1</td></tr>
+<tr><td><code>steer_return</code></td><td>Steering return time</td><td>s</td><td>0.11</td><td>0 – 1</td></tr>
+<tr><td><code>self_aligning</code></td><td>Self-aligning torque</td><td>— (0 = returns to centre)</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_press</code></td><td>Pedal press time</td><td>s</td><td>0.25</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_release</code></td><td>Pedal release time</td><td>s</td><td>0.12</td><td>0 – 1</td></tr>
+<tr><td><code>traction_control</code></td><td>Traction control</td><td>strength (0 = off)</td><td>1</td><td>0 – 1</td></tr>
+</table>
+</section>
+
+<section id="sd">
+<h2 class="ja">付録 D. 書いても読まれない値</h2>
+<h2 class="en">Appendix D. Values ignored even if you write them</h2>
+<p class="ja"><b>他の諸元から決まる値は、書いても黙って捨てられます。</b>KurumaMod が計算します。</p>
+<p class="en"><b>Values that follow from other values are silently dropped.</b> KurumaMod computes them.</p>
+<table class="ja">
+<tr><th>決まるもの</th><th>何から</th></tr>
+<tr><td>バネ・ダンパー・バンプストップ</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>重心高</td><td>停車時の車高</td></tr>
+<tr><td>慣性モーメント 3 つ</td><td><code>mass</code> と <code>wheel_base</code> / <code>track_width</code></td></tr>
+<tr><td>車輪の慣性・登坂できる段差・終減速比</td><td><code>wheel_radius</code></td></tr>
+<tr><td>制動配分</td><td><code>weight_distribution</code> と重心高とホイールベース</td></tr>
+<tr><td>ブレーキとサイドブレーキの効き</td><td><code>friction</code></td></tr>
+<tr><td>変速点・バックの最高速</td><td><code>redline_rpm</code> とギア比</td></tr>
+</table>
+<table class="en">
+<tr><th>Derived</th><th>From</th></tr>
+<tr><td>Springs, dampers, bump stops</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>Centre of gravity height</td><td>Static ride height</td></tr>
+<tr><td>All three moments of inertia</td><td><code>mass</code> with <code>wheel_base</code> / <code>track_width</code></td></tr>
+<tr><td>Wheel inertia, climbable step, final drive</td><td><code>wheel_radius</code></td></tr>
+<tr><td>Brake bias</td><td><code>weight_distribution</code>, CG height and wheelbase</td></tr>
+<tr><td>Brake and handbrake authority</td><td><code>friction</code></td></tr>
+<tr><td>Shift points, reverse top speed</td><td><code>redline_rpm</code> and the gear ratios</td></tr>
+</table>
+<p class="ja">そのため「タイヤ半径を変えたらファイナルも直す」「寸法を変えたら慣性も」といった<b>組み合わせの手直しは要りません</b>。半径を変えればギアリングも車高も登坂力も一緒に動きます。</p>
+<p class="en">So there is no cross-checking to do — no "I changed the tyre radius, now fix the final drive", no "I changed the dimensions, now fix the inertia". Change the radius and the gearing, ride height and climbing ability all move with it.</p>
+</section>
+
+<section id="se">
+<h2 class="ja">付録 E. 部品の全項目</h2>
+<h2 class="en">Appendix E. Every part key</h2>
+<h4 class="ja">素性 — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
+<h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。いまは <code>"wheel"</code> だけ</td></tr>
+<tr><td><code>order</code></td><td>整数</td><td><code>100</code></td><td>換装画面に並ぶ順</td></tr>
+<tr><td><code>cars</code></td><td>車種 id の配列</td><td>（すべての車種）</td><td>付けられる車種。読める値が 1 つも無ければ、その部品は捨てられる</td></tr>
+</table>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits. Only <code>"wheel"</code> for now</td></tr>
+<tr><td><code>order</code></td><td>integer</td><td><code>100</code></td><td>Position in the parts screen</td></tr>
+<tr><td><code>cars</code></td><td>array of car ids</td><td>(every car)</td><td>Which cars can fit it. If none of the values can be read, the part is dropped</td></tr>
+</table>
+<h4 class="ja">見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"wheel": { ... }</code> の中。入れ子を省いて根に書いてもよい）</h4>
+<h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting)</h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>その車種の <code>wheel.model</code></td><td>ホイールの OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>その車種の <code>wheel.texture</code></td><td>ホイールのテクスチャ</td></tr>
+<tr><td><code>designRadius</code></td><td>数字</td><td>その車種の <code>designWheelRadius</code></td><td><b>メッシュが何 m の半径で作られているか</b></td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車種の <code>wheel.offset</code></td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
+<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車種の <code>wheel.scale</code></td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
+<tr><td><code>camber</code></td><td>数字</td><td>その車種の <code>wheel.camber</code></td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
+</table>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>the car's <code>wheel.model</code></td><td>Wheel OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>the car's <code>wheel.texture</code></td><td>Wheel texture</td></tr>
+<tr><td><code>designRadius</code></td><td>number</td><td>the car's <code>designWheelRadius</code></td><td><b>The radius the mesh was built at, in m</b></td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's <code>wheel.offset</code></td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
+<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's <code>wheel.scale</code></td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
+<tr><td><code>camber</code></td><td>number</td><td>the car's <code>wheel.camber</code></td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
+</table>
+</section>
+
 <footer>
-  <p class="ja">KurumaMod — 諸元（走り）の作り方は <a href="https://github.com/jdmmc/kuruma/blob/main/carpack/example/README-ja.md" target="_blank" rel="noopener"><code>carpack/example/README-ja.md</code></a>。ゲージスクリプトは <code>tools/blender_gauge.py</code> と <code>tools/blender_wheel_gauge.py</code>。</p>
-  <p class="en">KurumaMod — for the handling specs see <a href="https://github.com/jdmmc/kuruma/blob/main/carpack/example/README.md" target="_blank" rel="noopener"><code>carpack/example/README.md</code></a>. The gauge scripts are <code>tools/blender_gauge.py</code> and <code>tools/blender_wheel_gauge.py</code>.</p>
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">付録 C</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix C</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
 </footer>
 
 </main>
@@ -1234,7 +1940,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <script>
 (function(){
   var root = document.documentElement;
-  var TITLES = { ja: 'KurumaMod 車両モデル作成マニュアル', en: 'KurumaMod Vehicle Modeling Manual' };
+  var TITLES = { ja: 'KurumaMod カーパック作成ガイド', en: 'KurumaMod Car Pack Creation Guide' };
   function apply(lang){
     root.setAttribute('data-lang', lang);
     root.setAttribute('lang', lang);

@@ -34,6 +34,19 @@ Right-click the ground to place one, right-click the car to get in.
 locked — springs, gears, diff and tyres can all be moved. If you don't like the way it turns in,
 change it.
 
+## 🛠 Make your own car pack
+
+This pack is also the **template for making your own**. Unzip the jar (it is a zip) and everything
+you need is inside:
+
+| | |
+|---|---|
+| `PACK_CREATE_GUIDE.html` | **[Car Pack Creation Guide](https://static.jdm-mc.com/manual/PACK_CREATE_GUIDE.html)** — everything in one page: the mesh in Blender, **its own engine sound**, the handling specs, swappable wheels, and packing the jar, with every key you can write. Written for people who have never opened Blender |
+| `modeling_tools/` | Blender scripts that drop in a size gauge for the body and the wheel |
+| `sound_tools/` | `make_octave_up.py` — makes the high-rpm engine sound from your engine loop |
+
+No coding needed — a car pack is only JSON, models, textures and sounds.
+
 ## ❓ If something isn't working
 
 | What you're seeing | Why |
@@ -85,6 +98,19 @@ All rights reserved. Do not redistribute.
 **G キーでセッティングを変えられます。** 作者が詰めた状態で入っていますが、固定ではありません。
 バネもギアもデフもタイヤも全部動かせるので、曲がり方が気に入らなければ変えてください。
 
+## 🛠 自分でカーパックを作る
+
+このパックは**自作パックのひな型**も兼ねています。jar を展開すると（中身は zip です）、
+必要なものが全部入っています。
+
+| | |
+|---|---|
+| `PACK_CREATE_GUIDE.html` | **[カーパック作成ガイド](https://static.jdm-mc.com/manual/PACK_CREATE_GUIDE.html)** — Blender でのメッシュ作り、**自前のエンジン音**、諸元（走り）、換装できるホイール、jar への固め方と、書ける項目の全一覧まで 1 ページに。Blender を触ったことがない人向け |
+| `modeling_tools/` | 車体とホイールの寸法合わせのゲージを置く Blender 用スクリプト |
+| `sound_tools/` | `make_octave_up.py` — エンジン音のループから高回転側の音を作る |
+
+コードは不要です。カーパックの中身は JSON・モデル・テクスチャ・音だけです。
+
 ## ❓ うまくいかないとき
 
 | 症状 | 原因 |
@@ -97,4 +123,4 @@ All rights reserved. Do not redistribute.
 
 無断転載を禁じます。
 
-[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kurumamod) 本体は別のプロジェクトで、ライセンスも別です（このパックが変えるものではありません）。　　
+[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma) 本体は別のプロジェクトで、ライセンスも別です（このパックが変えるものではありません）。　　
