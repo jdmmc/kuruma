@@ -14,6 +14,12 @@ import java.util.TreeMap;
  * <p>中身は {@link Tunables#ALL} の値だけで、載っていない諸元（{@code wheelRadius} など）は
  * 既定値のままになる。調整画面で変えられない値なので、これで足りる。</p>
  *
+ * <p><b>どの読み込みも範囲の端へ丸める</b>（{@link #applyInRange}）。上に外れたら上限、下に外れたら下限。
+ * アップデートでスライダーの範囲が狭まっても、<b>それ以前にワールドへ置いた車・アイテムにした車・
+ * 保存したプリセット</b>は新しい範囲に収まって読まれる。丸めないと、調整画面を開いたときに
+ * スライダーが端に張り付いたまま、その値へは二度と戻せない車が残る。通信も同じ口を通すので、
+ * 改造クライアントが範囲外の諸元を送ってきても、サーバーと他のプレイヤーには範囲内の値しか届かない。</p>
+ *
  * <p><b>ネットワークは並び順、保存は項目名。</b>通信は送り手と受け手が必ず同じ版なので
  * 並べるだけでよいが、保存したデータは後の版で読むことになるので、項目を増やしても
  * 壊れないよう名前で引く。知らない名前は捨て、無い名前は既定値のままにする。</p>
@@ -58,7 +64,7 @@ public final class CarSpecCodec {
         }
         CarSpec.Builder builder = CarSpec.DEFAULT.toBuilder();
         for (int i = 0; i < values.length; i++) {
-            parameters.get(i).applyInternal(builder, values[i]);
+            applyInRange(parameters.get(i), builder, values[i]);
         }
         return builder.build();
     }
@@ -80,7 +86,7 @@ public final class CarSpecCodec {
         for (TunableParameter parameter : Tunables.ALL) {
             // 無い項目は既定値のまま。項目を増やした後で古いデータを読んでもここで吸収される
             if (tag.contains(parameter.name())) {
-                parameter.applyInternal(builder, tag.getDouble(parameter.name()));
+                applyInRange(parameter, builder, tag.getDouble(parameter.name()));
             }
         }
         return Tunables.migrateLegacy(builder.build(),
@@ -117,9 +123,21 @@ public final class CarSpecCodec {
         for (TunableParameter parameter : Tunables.ALL) {
             Double value = values.get(parameter.name());
             if (value != null) {
-                parameter.applyInternal(builder, value);
+                applyInRange(parameter, builder, value);
             }
         }
         return Tunables.migrateLegacy(builder.build(), values::get);
+    }
+
+    /**
+     * 範囲の端へ丸めてから入れる。数として読めない値（NaN・無限大）は入れず、既定値のままにする。
+     *
+     * <p>黙って丸める。カーパックの読み込み（{@code CarTypeLoader}）だけは、書いた人に
+     * 気づいてもらうため先に丸めてログに残している。</p>
+     */
+    private static void applyInRange(TunableParameter parameter, CarSpec.Builder builder, double value) {
+        if (Double.isFinite(value)) {
+            parameter.applyInternal(builder, parameter.clampInternal(value));
+        }
     }
 }

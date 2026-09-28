@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.tuning;
 
+import org.jetbrains.annotations.Nullable;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Wheel;
 
@@ -277,6 +278,17 @@ public final class Tunables {
 
     /** 全項目を並べたもの。パケットはこの順で送る。 */
     public static final List<TunableParameter> ALL = flatten();
+
+    /** 項目名から引く。知らない名前なら null。 */
+    @Nullable
+    public static TunableParameter byName(String name) {
+        for (TunableParameter parameter : ALL) {
+            if (parameter.name().equals(name)) {
+                return parameter;
+            }
+        }
+        return null;
+    }
 
     private Tunables() {
     }
