@@ -78,6 +78,7 @@ import java.util.Optional;
  * @param wheelScale        タイヤの拡大率。<b>X はタイヤの太さ、Y・Z は直径</b>（直径は接地に効く）
  * @param camber            キャンバー角 [度]。自動車の慣習どおり<b>負で「上が内側」</b>（ネガティブキャンバー）
  * @param shadowRadius      影の大きさ。車の大きさを変えたら一緒に見直す
+ * @param sounds            音の差し替え（{@code sounds}）。書かなかった音は KurumaMod の音のまま
  */
 public record CarModel(
         ResourceLocation bodyModel,
@@ -101,7 +102,8 @@ public record CarModel(
          * （サーバー側は既定値のまま。乗員の位置は各クライアントが自分で計算するので実害はない）。</p>
          */
         Vec3 seatOffset,
-        float shadowRadius) {
+        float shadowRadius,
+        CarSoundSet sounds) {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -163,7 +165,8 @@ public record CarModel(
                 Vec3.ONE,
                 0.0,
                 new Vec3(0.5, -0.55, 0.2),
-                1.4F);
+                1.4F,
+                CarSoundSet.NONE);
     }
 
     // ------------------------------------------------------------------
@@ -207,7 +210,8 @@ public record CarModel(
                 vector(wheel, "scale", Vec3.ONE),
                 number(wheel, "camber", base.camber()),
                 vector(root, "seat", base.seatOffset()),
-                (float) number(root, "shadowRadius", base.shadowRadius()));
+                (float) number(root, "shadowRadius", base.shadowRadius()),
+                CarSoundSet.parse(child(root, "sounds")));
     }
 
     /*
