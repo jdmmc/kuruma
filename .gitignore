@@ -34,5 +34,5 @@ eclipse/
 # Forge MDK
 forge*changelog.txt
 
-# カーパックを固めた jar（carpack/example/README.md の手順の出力先）
+# カーパックを固めた jar（carpack/example/PACK_CREATE_GUIDE.html 13 章の手順の出力先）
 carpack/*.jar
