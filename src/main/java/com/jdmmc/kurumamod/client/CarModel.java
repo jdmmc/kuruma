@@ -3,6 +3,7 @@ package com.jdmmc.kurumamod.client;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.jdmmc.kurumamod.Kurumamod;
+import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -181,7 +182,7 @@ public record CarModel(
             return defaults();
         }
         try (BufferedReader reader = resource.get().openAsReader()) {
-            CarModel model = parse(GsonHelper.parse(reader));
+            CarModel model = parse(GsonHelper.parse(reader), location);
             LOGGER.info("車の見た目の定義を読み込みました: {}", location);
             return model;
         } catch (IOException | RuntimeException e) {
@@ -191,7 +192,7 @@ public record CarModel(
     }
 
     /** 書かれていない項目は既定値のまま。全部書かなくてよい。 */
-    private static CarModel parse(JsonObject root) {
+    private static CarModel parse(JsonObject root, ResourceLocation location) {
         CarModel base = defaults();
         JsonObject body = child(root, "body");
         JsonObject wheel = child(root, "wheel");
@@ -206,9 +207,9 @@ public record CarModel(
                 number(root, "designRideHeight", base.designRideHeight()),
                 vector(body, "offset", Vec3.ZERO),
                 vector(body, "scale", Vec3.ONE),
-                vector(wheel, "offset", Vec3.ZERO),
-                vector(wheel, "scale", Vec3.ONE),
-                number(wheel, "camber", base.camber()),
+                wheelOffsetInRange(location, vector(wheel, "offset", Vec3.ZERO)),
+                wheelScaleInRange(location, vector(wheel, "scale", Vec3.ONE)),
+                wheelCamberInRange(location, number(wheel, "camber", base.camber())),
                 vector(root, "seat", base.seatOffset()),
                 (float) number(root, "shadowRadius", base.shadowRadius()),
                 CarSoundSet.parse(child(root, "sounds")));
@@ -219,6 +220,43 @@ public record CarModel(
      * 読むので、そちらと共有する。書き方が 2 つに割れると、車の JSON では書ける形が
      * 部品の JSON では書けない、ということが起きる。
      */
+
+    /*
+     * ホイールの見た目のうち、プレイヤーが換装画面で動かせる 3 つ（キャンバー・オフセット・太さ）は、
+     * パックが書いた値も<b>その範囲（PartFitment）へ丸める</b>。上に外れたら上限、下に外れたら下限。
+     * パックの値は換装画面の「R」の戻り先になるので、範囲の外にあるとスライダーでは二度と
+     * 戻れない値になる。車の JSON と部品の JSON が同じものを使う。
+     */
+
+    /** キャンバー角 [度]。 */
+    static double wheelCamberInRange(ResourceLocation location, double camber) {
+        return clampLogged(location, "camber", camber, PartFitment.CAMBER_MIN, PartFitment.CAMBER_MAX);
+    }
+
+    /**
+     * 取り付け位置。<b>X（外向き [m]）だけが範囲を持つ。</b>範囲は実車と同じ向きの mm
+     * （小さいほど外）で決めてあるので、外向きの m へ裏返して比べる。
+     */
+    static Vec3 wheelOffsetInRange(ResourceLocation location, Vec3 offset) {
+        double x = clampLogged(location, "offset[0]", offset.x(),
+                -PartFitment.OFFSET_MAX / 1000.0, -PartFitment.OFFSET_MIN / 1000.0);
+        return x == offset.x() ? offset : new Vec3(x, offset.y(), offset.z());
+    }
+
+    /** 拡大率。<b>X（太さ）だけが範囲を持つ。</b>Y・Z（直径）には触らない。 */
+    static Vec3 wheelScaleInRange(ResourceLocation location, Vec3 scale) {
+        double x = clampLogged(location, "scale[0]", scale.x(), PartFitment.WIDTH_MIN, PartFitment.WIDTH_MAX);
+        return x == scale.x() ? scale : new Vec3(x, scale.y(), scale.z());
+    }
+
+    private static double clampLogged(ResourceLocation location, String key, double value, double min, double max) {
+        double clamped = Math.max(min, Math.min(max, value));
+        if (clamped != value) {
+            LOGGER.warn("{} の {} = {} は範囲（{} 〜 {}）の外なので {} に丸めました",
+                    location, key, value, min, max, clamped);
+        }
+        return clamped;
+    }
 
     static JsonObject child(JsonObject parent, String key) {
         return parent.has(key) && parent.get(key).isJsonObject()

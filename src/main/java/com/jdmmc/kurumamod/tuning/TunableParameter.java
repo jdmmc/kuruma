@@ -104,6 +104,26 @@ public record TunableParameter(
         return getter.get(spec);
     }
 
+    /** 範囲の下限（内部単位）。スライダーの左端。 */
+    public double minInternal() {
+        return min * unitScale;
+    }
+
+    /** 範囲の上限（内部単位）。スライダーの右端。 */
+    public double maxInternal() {
+        return max * unitScale;
+    }
+
+    /**
+     * 内部単位の値を範囲へ丸める。上に外れたら上限、下に外れたら下限。
+     *
+     * <p>カーパックの諸元に使う（{@code CarTypeLoader}）。手で書かれる値なので、
+     * 度で書いた角度（32 度のつもりの 32 ラジアン）のような桁違いが混ざる。</p>
+     */
+    public double clampInternal(double internalValue) {
+        return Math.max(minInternal(), Math.min(maxInternal(), internalValue));
+    }
+
     public void applyInternal(CarSpec.Builder builder, double internalValue) {
         setter.set(builder, internalValue);
     }

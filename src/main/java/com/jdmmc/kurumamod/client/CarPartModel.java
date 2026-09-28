@@ -210,7 +210,7 @@ public record CarPartModel(
             return EMPTY;
         }
         try (BufferedReader reader = resource.get().openAsReader()) {
-            CarPartModel part = parse(GsonHelper.parse(reader));
+            CarPartModel part = parse(GsonHelper.parse(reader), location);
             LOGGER.info("部品の見た目の定義を読み込みました: {}", location);
             return part;
         } catch (IOException | RuntimeException e) {
@@ -227,16 +227,23 @@ public record CarPartModel(
      * <p>ブロック名は付ける場所と同じ（{@code "wheel"}）。<b>無ければ根をそのまま読む</b>ので、
      * 1 か所にしか付かない部品は入れ子を省ける（{@code CarTypeLoader} の {@code values} と同じ扱い）。</p>
      */
-    private static CarPartModel parse(JsonObject root) {
+    private static CarPartModel parse(JsonObject root, ResourceLocation location) {
         JsonObject wheel = CarModel.child(root, PartSlot.WHEEL.getSerializedName());
         JsonObject block = wheel.size() > 0 ? wheel : root;
 
         return new CarPartModel(
                 CarModel.location(block, "model", null),
                 CarModel.location(block, "texture", null),
-                block.has("offset") ? CarModel.vector(block, "offset", CarModel.Vec3.ZERO) : null,
-                block.has("scale") ? CarModel.vector(block, "scale", CarModel.Vec3.ONE) : null,
-                block.has("camber") ? CarModel.number(block, "camber", 0.0) : null,
+                // 換装画面で動かせる 3 つは、その範囲へ丸める（CarModel と同じ）
+                block.has("offset")
+                        ? CarModel.wheelOffsetInRange(location, CarModel.vector(block, "offset", CarModel.Vec3.ZERO))
+                        : null,
+                block.has("scale")
+                        ? CarModel.wheelScaleInRange(location, CarModel.vector(block, "scale", CarModel.Vec3.ONE))
+                        : null,
+                block.has("camber")
+                        ? CarModel.wheelCamberInRange(location, CarModel.number(block, "camber", 0.0))
+                        : null,
                 block.has("designRadius") ? CarModel.number(block, "designRadius", 0.0) : null);
     }
 }

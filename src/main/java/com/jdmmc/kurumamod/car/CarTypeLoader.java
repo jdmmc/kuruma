@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
+import com.jdmmc.kurumamod.tuning.TunableParameter;
+import com.jdmmc.kurumamod.tuning.Tunables;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -45,6 +47,14 @@ import java.util.TreeMap;
  * 既定の車から変えたいところだけ書けばよい。項目が増えても古いカーパックは読める。</p>
  *
  * <p>1 つ壊れていても他の車種は使えるべきなので、<b>失敗したファイルだけを捨てて続ける</b>。</p>
+ *
+ * <h2>範囲を外れた値は範囲の端へ丸める</h2>
+ *
+ * <p>範囲は調整画面のスライダーと同じ（{@link TunableParameter#clampInternal}）。上に外れたら上限、
+ * 下に外れたら下限にして、ログに残す。<b>手で書かれる値なので桁違いが混ざる</b>——角度を度で
+ * 書くと 32 ラジアンのような値がそのまま通り、スライダーでは作れない車ができていた。
+ * 丸めておけば、カーパックの車に乗って調整画面を開いたときにスライダーが端に張り付いたまま
+ * 動かない、ということも起きない。数として読めない値（NaN・無限大）は既定値のままにする。</p>
  */
 public final class CarTypeLoader extends SimpleJsonResourceReloadListener {
 
@@ -96,9 +106,35 @@ public final class CarTypeLoader extends SimpleJsonResourceReloadListener {
             if (values == root && key.equals("order")) {
                 continue;
             }
-            parsed.put(key, values.get(key).getAsDouble());
+            Double value = inRange(id, key, values.get(key).getAsDouble());
+            if (value != null) {
+                parsed.put(key, value);
+            }
         }
         CarSpec spec = CarSpecCodec.fromMap(parsed);
         return new CarType(id, spec, order);
+    }
+
+    /**
+     * 範囲の端へ丸める。<b>知らない名前はそのまま返す</b>（{@code torque_falloff} のような
+     * 昔の項目は {@code Tunables#migrateLegacy} が読むので、ここで捨ててはいけない）。
+     *
+     * @return 丸めた値。数として読めなければ null（＝書かなかったのと同じ）
+     */
+    private static Double inRange(ResourceLocation id, String key, double value) {
+        if (!Double.isFinite(value)) {
+            LOGGER.warn("車種 {} の {} は数として読めないので既定値を使います: {}", id, key, value);
+            return null;
+        }
+        TunableParameter parameter = Tunables.byName(key);
+        if (parameter == null) {
+            return value;
+        }
+        double clamped = parameter.clampInternal(value);
+        if (clamped != value) {
+            LOGGER.warn("車種 {} の {} = {} は範囲（{} 〜 {}）の外なので {} に丸めました",
+                    id, key, value, parameter.minInternal(), parameter.maxInternal(), clamped);
+        }
+        return clamped;
     }
 }
