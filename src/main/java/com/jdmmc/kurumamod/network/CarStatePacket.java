@@ -37,19 +37,20 @@ import java.util.function.Supplier;
  * @param slipAngle  車体スリップ角 [度]。タイヤの悲鳴に使う
  * @param surface    各輪の路面（{@code RoadSurface} の並び順を 1 輪 4 ビットで詰めたもの）。煙・土煙・ロードノイズに使う
  * @param lights     灯火の状態のビット（ヘッドライト・ブレーキ）。バックは段から分かるので入れない
+ * @param boost      ターボのブースト 0..1。過給音とメーターに使う（1 バイトに詰める）
  */
 public record CarStatePacket(int entityId, float steerAngle, float speed, float yaw,
                              float pitch, float roll,
                              float[] suspension, float[] wheelSpeed, float[] friction,
                              float rpm, int gear, float throttle, float slipAngle, int surface,
-                             byte lights) {
+                             byte lights, float boost) {
 
     public CarStatePacket(FriendlyByteBuf buf) {
         this(buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(),
                 readWheels(buf), readWheels(buf), readWheels(buf),
                 buf.readFloat(), buf.readByte(), buf.readFloat(), buf.readFloat(),
-                buf.readUnsignedShort(), buf.readByte());
+                buf.readUnsignedShort(), buf.readByte(), buf.readUnsignedByte() / 255.0F);
     }
 
     private static float[] readWheels(FriendlyByteBuf buf) {
@@ -82,6 +83,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         buf.writeFloat(slipAngle);
         buf.writeShort(surface);
         buf.writeByte(lights);
+        buf.writeByte(Math.round(Math.max(0.0F, Math.min(1.0F, boost)) * 255.0F));
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
@@ -94,7 +96,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
             // 運転している本人からのパケットだけ受け付ける
             if (entity instanceof CarEntity car && car.getControllingPassenger() == sender) {
                 car.applyDriverState(steerAngle, speed, yaw, pitch, roll, suspension, wheelSpeed, friction,
-                        rpm, gear, throttle, slipAngle, surface, lights);
+                        rpm, gear, throttle, slipAngle, surface, lights, boost);
             }
         });
         context.setPacketHandled(true);

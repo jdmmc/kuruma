@@ -132,7 +132,10 @@ public record CarSpec(
         double diffCoastRatio,
         double manualTransmission,
         double rollingResistance,
-        double dragCoefficient) {
+        double dragCoefficient,
+        // ターボ。<b>調整画面の項目ではなく部品から来る</b>（Tunables には無いので保存も同期もされず、
+        // CarEntity が装着している部品から毎回載せ直す）。既定は無し
+        Turbo turbo) {
 
     /**
      * 基準の摩擦係数。<b>調整画面の「グリップ」1.00 がこの値</b>で、既定の車もここに置いてある。
@@ -921,6 +924,8 @@ public record CarSpec(
      */
     public static final class Builder {
 
+        private Turbo turbo = Turbo.NONE;
+
         // 実車の 1.2 倍。Minecraft のプレイヤーはずんぐりしているので、実寸どおり
         // （ホイールベース 2.6m）だと車が小さく見える。tools/blender_gauge.py の
         // SCALE と揃えること
@@ -1035,6 +1040,7 @@ public record CarSpec(
         }
 
         private Builder(CarSpec spec) {
+            turbo = spec.turbo;
             wheelBase = spec.wheelBase;
             trackWidth = spec.trackWidth;
             mass = spec.mass;
@@ -1354,6 +1360,11 @@ public record CarSpec(
             return this;
         }
 
+        public Builder turbo(Turbo value) {
+            turbo = value == null ? Turbo.NONE : value;
+            return this;
+        }
+
 
         public CarSpec build() {
             return new CarSpec(
@@ -1372,7 +1383,7 @@ public record CarSpec(
                     gearCount, firstGearRatio, topGearRatio, drivetrainEfficiency, shiftSeconds,
                     tractionControl, abs,
                     diffPreload, diffLockRatio, diffCoastRatio,
-                    manualTransmission, rollingResistance, dragCoefficient);
+                    manualTransmission, rollingResistance, dragCoefficient, turbo);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
@@ -43,9 +44,12 @@ public record CarPartTypesPacket(List<CarPart> parts) {
             String name = buf.readUtf();
             int order = buf.readVarInt();
             Set<ResourceLocation> cars = buf.readCollection(HashSet::new, FriendlyByteBuf::readResourceLocation);
+            Turbo turbo = buf.readBoolean()
+                    ? new Turbo(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
+                    : null;
             PartSlot slot = PartSlot.byName(name);
             if (slot != null) {
-                parts.add(new CarPart(id, slot, order, cars));
+                parts.add(new CarPart(id, slot, order, cars, turbo));
             }
             // 知らない場所の部品は落とす。並べようがないので、黙って無視してよい
         }
@@ -59,6 +63,16 @@ public record CarPartTypesPacket(List<CarPart> parts) {
             buf.writeUtf(part.slot().getSerializedName());
             buf.writeVarInt(part.order());
             buf.writeCollection(part.cars(), FriendlyByteBuf::writeResourceLocation);
+            // ターボの性能。物理が使うので、クライアントも同じ値を持っていなければならない
+            // （運転しているのはクライアント）
+            Turbo turbo = part.turbo();
+            buf.writeBoolean(turbo != null);
+            if (turbo != null) {
+                buf.writeDouble(turbo.boostGain());
+                buf.writeDouble(turbo.spoolFrom());
+                buf.writeDouble(turbo.spoolFull());
+                buf.writeDouble(turbo.spoolRate());
+            }
         }
     }
 

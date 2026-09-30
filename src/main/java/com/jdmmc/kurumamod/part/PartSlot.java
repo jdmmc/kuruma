@@ -15,14 +15,44 @@ import org.jetbrains.annotations.Nullable;
 public enum PartSlot {
 
     /** ホイール。タイヤの見た目そのもの。 */
-    WHEEL("wheel");
+    WHEEL("wheel", null),
+    /**
+     * ターボ。<b>走りが変わる</b>（部品の {@code turbo} がトルクと立ち上がりを決める）。
+     * 何も付けていなければ自然吸気。
+     */
+    TURBO("turbo", null),
+    /**
+     * ブローオフバルブ。<b>音だけ</b>（アクセルを抜いたときの「プシュッ」）。
+     * ターボが付いているときだけ意味があるので、換装画面もそのときだけ出す。
+     */
+    BLOWOFF("blowoff", TURBO);
 
     public static final PartSlot[] VALUES = values();
 
     private final String name;
+    /** この場所が意味を持つのに要る場所。ブローオフはターボが付いていないと鳴らない。 */
+    @Nullable
+    private final PartSlot requires;
 
-    PartSlot(String name) {
+    PartSlot(String name, @Nullable PartSlot requires) {
         this.name = name;
+        this.requires = requires;
+    }
+
+    /** この場所が意味を持つのに付いていなければならない場所。無ければ null。 */
+    @Nullable
+    public PartSlot requires() {
+        return requires;
+    }
+
+    /**
+     * 何も付けていないときの呼び名の翻訳キー。
+     *
+     * <p>ホイールは「純正」（車種の既定の見た目）だが、ターボとブローオフは「なし」——
+     * 付いていないのが素の状態だから。</p>
+     */
+    public String emptyKey() {
+        return this == WHEEL ? "screen.kurumamod.part.stock" : "screen.kurumamod.part.none";
     }
 
     public String getSerializedName() {

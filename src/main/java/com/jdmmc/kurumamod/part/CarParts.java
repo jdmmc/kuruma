@@ -45,6 +45,17 @@ public final class CarParts {
 
         parts = Map.copyOf(next);
         sorted = List.copyOf(list);
+        generation++;
+    }
+
+    /**
+     * 一覧が入れ替わった回数。部品の性能（ターボ）を諸元へ載せている側が、
+     * データパックの再読み込みで値が変わったことに気づくのに使う。
+     */
+    private static int generation;
+
+    public static int generation() {
+        return generation;
     }
 
     /** その id の部品。<b>知らない id なら null。</b> */

@@ -553,6 +553,43 @@ public final class CarPhysics {
      * 車輪側へ換算する。<b>低いギアほど回転部分が重く感じられる</b>のはこの項の効果で、
      * ギアごとに効き方が変わるため車輪の慣性に定数として混ぜてはいけない。</p>
      */
+    /** アクセルを抜いたときにブーストが抜ける速さ [1/s]。ブローオフが開くので一気に落ちる。 */
+    private static final double BOOST_VENT_RATE = 7.0;
+    /** 踏んだまま目標が下がったとき（回転が落ちたなど）にブーストが落ちる速さ [1/s]。 */
+    private static final double BOOST_DECAY_RATE = 2.4;
+
+    /**
+     * ターボのブーストを進める。
+     *
+     * <p>目標は「踏み込み量 × 回転の割合で立ち上がる smoothstep」。上がるのは
+     * {@link Turbo#spoolRate()} の速さで（回すほど速い＝排気が多い）、下がるのは速い。
+     * これが<b>ターボラグ</b>——踏んでから力が出るまでに間があり、回転が低いほど長い。</p>
+     *
+     * <p>{@code load} は駆動に使っている踏み込み量（トラクションコントロールで絞ったあと）。
+     * 駆動していなければ 0。</p>
+     */
+    private static void updateBoost(CarSpec spec, CarState state, double dt, double load) {
+        Turbo turbo = spec.turbo();
+        if (!turbo.present()) {
+            state.boost = 0.0;
+            return;
+        }
+        double span = Math.max(1.0, spec.redlineRpm() - spec.idleRpm());
+        double rev = Math.max(0.0, Math.min(1.0, (state.engineRpm - spec.idleRpm()) / span));
+        double spool = Math.max(0.0, Math.min(1.0,
+                (rev - turbo.spoolFrom()) / (turbo.spoolFull() - turbo.spoolFrom())));
+        spool = spool * spool * (3.0 - 2.0 * spool);
+        double target = load * spool;
+        double rate;
+        if (target > state.boost) {
+            rate = turbo.spoolRate() * (0.4 + rev);
+        } else {
+            rate = load < 0.25 ? BOOST_VENT_RATE : BOOST_DECAY_RATE;
+        }
+        // 刻み幅に依らないよう指数で寄せる
+        state.boost += (target - state.boost) * (1.0 - Math.exp(-rate * dt));
+    }
+
     private static void updateDrivetrain(CarSpec spec, CarState state, GroundContact contact, double dt,
                                          CarInput input) {
         state.gear = selectGear(spec, state, dt, input);
@@ -594,6 +631,10 @@ public final class CarPhysics {
                 : (input.throttle() && !input.brake() && state.gear >= 1)
                         || (input.brake() && state.gear == -1);
 
+        // 後退中は S が「アクセル」なので、そちらの踏み込み量を使う
+        double pedal = !spec.isManual() && state.gear == -1 ? state.brake : state.throttle;
+        updateBoost(spec, state, dt, accelerating ? pedal * state.tractionControlThrottle : 0.0);
+
         double torque;
         if (accelerating) {
             torque = state.engineRpm >= spec.redlineRpm() ? 0.0 : spec.engineTorque(state.engineRpm);
@@ -604,8 +645,9 @@ public final class CarPhysics {
         // 駆動している間だけ絞る。エンジンブレーキまで弱めては意味が変わってしまう。
         // 後退中は S が「アクセル」なので、そちらの踏み込み量を使う
         if (torque > 0.0) {
-            double pedal = !spec.isManual() && state.gear == -1 ? state.brake : state.throttle;
             torque *= state.tractionControlThrottle * pedal;
+            // ターボ。過給したぶんだけトルクが増える（ブーストは上で進めた）
+            torque *= 1.0 + spec.turbo().boostGain() * state.boost;
         }
         // 直結しているなら、エンジンが出したトルクがそのまま駆動系へ行く（今までどおり。
         // エンジンの慣性は effectiveWheelInertia が車輪側へ換算して受け持つ）。

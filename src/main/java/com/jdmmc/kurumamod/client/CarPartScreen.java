@@ -96,6 +96,11 @@ public class CarPartScreen extends Screen {
     protected void init() {
         tiles.clear();
         sliders.clear();
+        lastShown = shownSlots();
+        // 見ていた場所が意味を失った（ターボを外してブローオフのタブが消えた）ら、先頭へ戻す
+        if (!lastShown.contains(slot)) {
+            slot = lastShown.get(0);
+        }
 
         List<Entry> entries = entries();
         visibleTiles = Math.max(1, (width - SIDE_MARGIN * 2 + TILE_GAP) / (TILE_WIDTH + TILE_GAP));
@@ -153,15 +158,16 @@ public class CarPartScreen extends Screen {
      * <p>いまはホイールしかないので何も置かれない。エアロが増えた時点で自動的に現れる。</p>
      */
     private void addSlotTabs() {
-        if (PartSlot.VALUES.length < 2) {
+        List<PartSlot> shown = shownSlots();
+        if (shown.size() < 2) {
             return;
         }
         int tabWidth = 68;
         int y = rowTop - ROW_STEP * (Adjustment.VALUES.length + 1);
-        int totalWidth = PartSlot.VALUES.length * (tabWidth + TILE_GAP) - TILE_GAP;
+        int totalWidth = shown.size() * (tabWidth + TILE_GAP) - TILE_GAP;
         int left = (width - totalWidth) / 2;
-        for (int i = 0; i < PartSlot.VALUES.length; i++) {
-            PartSlot value = PartSlot.VALUES[i];
+        for (int i = 0; i < shown.size(); i++) {
+            PartSlot value = shown.get(i);
             Button tab = addRenderableWidget(Button.builder(value.displayName(), button -> {
                         slot = value;
                         scroll = 0;
@@ -174,13 +180,33 @@ public class CarPartScreen extends Screen {
     }
 
     /**
+     * タブに並べる場所。<b>意味を持たない場所は出さない</b>——ブローオフはターボが付いていないと
+     * 鳴らないので、ターボを付けてはじめてタブが現れる。
+     */
+    private List<PartSlot> shownSlots() {
+        CarEntity car = CarClientDriver.driving();
+        List<PartSlot> shown = new ArrayList<>();
+        for (PartSlot value : PartSlot.VALUES) {
+            PartSlot required = value.requires();
+            if (required == null || (car != null && car.getFitment().getPart(required) != null)) {
+                shown.add(value);
+            }
+        }
+        return shown;
+    }
+
+    /** タブの並びが変わったか（ターボを付けた・外した）を見るための、前のフレームの並び。 */
+    private List<PartSlot> lastShown = List.of();
+
+    /**
      * 並べるもの。<b>先頭は必ず「純正」（＝何も履いていない状態）。</b>
      *
      * <p>外す手段が列の中に無いと、一度履いたら戻せなくなる。</p>
      */
     private List<Entry> entries() {
         List<Entry> entries = new ArrayList<>();
-        entries.add(new Entry(null, Component.translatable("screen.kurumamod.part.stock"), null));
+        // ホイールは「純正」、ターボとブローオフは「なし」（付いていないのが素の状態）
+        entries.add(new Entry(null, Component.translatable(slot.emptyKey()), null));
         // その車種に付かない部品は並べない。乗っていなければ絞らない（どうせ選べない）
         CarEntity car = CarClientDriver.driving();
         for (CarPart part : CarParts.forSlot(slot, car == null ? null : car.getCarId())) {
@@ -243,6 +269,12 @@ public class CarPartScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         // renderBackground は呼ばない。ここでは後ろの車を見せることが目的なので、
         // 画面を暗くしてしまうと肝心のものが見えなくなる
+
+        // タブの並びが変わったら作り直す。<b>クリックの伝播中ではなく描画の頭で</b>
+        // （ウィジェット一覧を入れ替えるので）。ターボを付けた返事が届くとブローオフのタブが現れる
+        if (!shownSlots().equals(lastShown)) {
+            rebuildWidgets();
+        }
 
         // 装着中かどうかは車から読む。押した結果が返ってきて初めてここが変わる
         CarEntity car = CarClientDriver.driving();
@@ -589,7 +621,13 @@ public class CarPartScreen extends Screen {
             ScreenStyle.tileBox(graphics, left, top, TILE_WIDTH, bottom - top,
                     fitted, hovered, LABEL_HEIGHT);
 
-            renderWheelIcon(graphics, (left + right) / 2.0F, (top + labelTop) / 2.0F);
+            float iconX = (left + right) / 2.0F;
+            float iconY = (top + labelTop) / 2.0F;
+            switch (slot) {
+                case TURBO -> renderTurboIcon(graphics, iconX, iconY);
+                case BLOWOFF -> renderBlowoffIcon(graphics, iconX, iconY);
+                default -> renderWheelIcon(graphics, iconX, iconY);
+            }
 
             // 図形を積んだら、文字を描く前に必ず流すこと。溜めたままだと文字を覆う
             GaugePainter.flush(graphics);
@@ -623,6 +661,55 @@ public class CarPartScreen extends Screen {
                         radius * 0.18F, radius * 0.66F, i * 72.0F, 2.6F, rim);
             }
             GaugePainter.arc(graphics, centerX, centerY, 0.0F, radius * 0.22F, 0.0F, 360.0F, rim);
+        }
+
+        /**
+         * ターボの絵。渦巻きの外殻と、中の羽根。「なし」のタイルは外殻だけにして、
+         * 付いていないことが絵でも分かるようにする。
+         */
+        private void renderTurboIcon(GuiGraphics graphics, float centerX, float centerY) {
+            float radius = 13.0F;
+            int accent = fitted ? COLOR_RIM_FITTED : COLOR_RIM;
+            // 外殻（少しずつ太くなる渦巻き）と出口
+            GaugePainter.arc(graphics, centerX, centerY, radius * 0.78F, radius, 0.0F, 300.0F, COLOR_TIRE);
+            GaugePainter.arc(graphics, centerX, centerY, radius * 0.70F, radius * 0.86F, 300.0F, 360.0F, COLOR_TIRE);
+            GaugePainter.rect(graphics, centerX + radius * 0.2F, centerY - radius * 1.05F,
+                    centerX + radius * 1.1F, centerY - radius * 0.55F, COLOR_TIRE);
+            if (entry.id() == null) {
+                return;
+            }
+            // 羽根 7 枚とハブ
+            GaugePainter.arc(graphics, centerX, centerY, 0.0F, radius * 0.66F, 0.0F, 360.0F, 0xFF3C3C3C);
+            for (int i = 0; i < 7; i++) {
+                GaugePainter.radialBar(graphics, centerX, centerY,
+                        radius * 0.14F, radius * 0.62F, i * (360.0F / 7.0F) + 12.0F, 2.2F, accent);
+            }
+            GaugePainter.arc(graphics, centerX, centerY, 0.0F, radius * 0.18F, 0.0F, 360.0F, accent);
+        }
+
+        /**
+         * ブローオフバルブの絵。弁の胴体と、横へ吹き出す空気。「なし」のタイルは胴体だけ。
+         */
+        private void renderBlowoffIcon(GuiGraphics graphics, float centerX, float centerY) {
+            float size = 12.0F;
+            int accent = fitted ? COLOR_RIM_FITTED : COLOR_RIM;
+            // 胴体（上の太い筒と、下の細い入口）
+            GaugePainter.rect(graphics, centerX - size * 0.55F, centerY - size * 0.9F,
+                    centerX + size * 0.55F, centerY + size * 0.1F, COLOR_TIRE);
+            GaugePainter.rect(graphics, centerX - size * 0.3F, centerY + size * 0.1F,
+                    centerX + size * 0.3F, centerY + size * 0.9F, COLOR_TIRE);
+            if (entry.id() == null) {
+                return;
+            }
+            GaugePainter.rect(graphics, centerX - size * 0.55F, centerY - size * 0.9F,
+                    centerX + size * 0.55F, centerY - size * 0.7F, accent);
+            // 吹き出す空気（左右へ 3 本ずつ）
+            for (int i = 0; i < 3; i++) {
+                float y = centerY - size * 0.55F + i * size * 0.28F;
+                float reach = size * (0.9F + 0.25F * (i % 2));
+                GaugePainter.rect(graphics, centerX + size * 0.7F, y, centerX + size * 0.7F + reach, y + 1.6F, accent);
+                GaugePainter.rect(graphics, centerX - size * 0.7F - reach, y, centerX - size * 0.7F, y + 1.6F, accent);
+            }
         }
 
         @Override
