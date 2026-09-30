@@ -58,6 +58,61 @@ public final class KurumaRenderTypes extends RenderType {
                     .createCompositeState(false));
 
     /**
+     * 光を<b>足す</b>もの（加算合成）。ヘッドライトの光の筋・レンズの光芒・路面の照り返しが使う。
+     *
+     * <p>{@link #TRANSLUCENT_OVERLAY}（混ぜる）で光を描くと、後ろの景色を<b>白い色で塗る</b>
+     * ことになり、霧か板のように見える。光は後ろを明るくするものなので足すのが正しい。
+     * 足し算は順序に依らないので並べ替えも要らない。深度は書かない（理由は同上）。</p>
+     */
+    public static final RenderType LIGHT_ADDITIVE = create(
+            "kurumamod_light_additive",
+            DefaultVertexFormat.POSITION_COLOR,
+            VertexFormat.Mode.QUADS,
+            8192,
+            false,
+            false,
+            CompositeState.builder()
+                    .setShaderState(POSITION_COLOR_SHADER)
+                    .setTransparencyState(LIGHTNING_TRANSPARENCY)
+                    .setCullState(NO_CULL)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .setLayeringState(VIEW_OFFSET_Z_LAYERING)
+                    .createCompositeState(false));
+
+    /**
+     * ヘッドライトに照らされたブロックの面を、<b>そのブロックのテクスチャで明るさ最大に描き直して</b>
+     * 重ねるためのもの。濃さ（α）が「どれだけ光が届いているか」になる。
+     *
+     * <p><b>後ろの色に掛け算しても夜の路面は明るくならない。</b>夜の地面は昼の 3% ほどしかなく、
+     * 掛け算の合成は 2 倍が上限なので 6% にしかならない（実際にそうして「うっすらしか見えない」になった）。
+     * 加算だけだと模様の上に一様な色が乗って光った膜に見える。照らされた面は
+     * <b>その面の昼の姿に近づく</b>ものなので、昼の姿そのものを描いて混ぜるのが正しい。</p>
+     *
+     * <p>深度は書かない（{@link #TRANSLUCENT_OVERLAY} と同じ理由）。z ファイティングは
+     * 視点方向へのずらし（{@code VIEW_OFFSET_Z_LAYERING}）で避ける。</p>
+     */
+    public static final RenderType LIT_SURFACE = create(
+            "kurumamod_lit_surface",
+            DefaultVertexFormat.NEW_ENTITY,
+            VertexFormat.Mode.QUADS,
+            8192,
+            false,
+            false,
+            CompositeState.builder()
+                    .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                    .setTextureState(new TextureStateShard(
+                            net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS, false, true))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setCullState(NO_CULL)
+                    .setLightmapState(LIGHTMAP)
+                    .setOverlayState(OVERLAY)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .setLayeringState(VIEW_OFFSET_Z_LAYERING)
+                    .createCompositeState(false));
+
+    /**
      * HUD のメーターを描くためのもの。<b>バニラの {@code RenderType.gui()} との違いはカリングだけ。</b>
      *
      * <p>gui はカリング有りなので、四角形を積む向きを間違えると<b>何も描かれない</b>。
