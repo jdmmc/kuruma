@@ -9,9 +9,17 @@
 //    ところで「霧がカメラへどれだけ光を散らすか」を足していく。前方散乱なので
 //    ランプの方を向くほど明るい。霧は光を吸うので、奥ほど・ランプから遠いほど薄れる
 //
+// 3. 煙・土煙 … 粒は深度を書くので、描き終えた画面の深度で解くと煙が壁になって光線が
+//    そこで止まる。光線と路面は<b>粒を描く前</b>の深度（DepthSampler）で解き、粒は
+//    「描いた後 − 描く前」の色＝その粒が画素に足した色を、そこに届いている光のぶん明るくする
+//
 // 配光の定数は CarLights と同じ値。片方だけ変えないこと。
 
+// 描き終えた画面（粒を含む）
 uniform sampler2D SceneSampler;
+uniform sampler2D FinalDepthSampler;
+// 粒を描く前の画面
+uniform sampler2D SolidSampler;
 uniform sampler2D DepthSampler;
 
 uniform mat4 InvViewProj;
@@ -51,7 +59,8 @@ const float EXPOSURE_GAMMA = 0.6;
 
 // ---- 路面 ----
 // 照らされた画素を何倍まで明るくするか。夜の地面は昼の数 % しかないので大きく要る
-const float SURFACE_GAIN = 5.0;
+// 調整画面（Ctrl+D、デバッグ用）から渡す。既定 5.0
+uniform float SurfaceGain;
 // 真っ黒な面にも少しだけ光を乗せる
 const float SURFACE_FLOOR = 0.03;
 
@@ -60,13 +69,24 @@ const int VOLUME_STEPS = 20;
 const float VOLUME_LENGTH = 40.0;
 // 前方散乱の強さ（Henyey-Greenstein の g）。0 で全方向に均等、1 に近いほど前へ集まる
 const float PHASE_G = 0.6;
-const float VOLUME_GAIN = 120.0;
+// 調整画面から渡す。既定 120
+uniform float VolumeGain;
 // 光線に入れるカットオフのぼかし。空気中の光は面の上ほど縁がはっきりしない
 const float VOLUME_SOFTEN = 3.0;
 // ランプのすぐ近くで距離² が 0 へ落ちて発散しないように
 const float MIN_DIST2 = 0.6;
 // 空（深度 1）の方向へ進む距離
 const float SKY_DISTANCE = 96.0;
+
+// ---- 煙 ----
+// 粒に届いた光をどれだけの明るさに見せるか。粒は薄いので路面より強く掛ける
+const float SMOKE_EXPOSURE = 100.0;
+// 調整画面から渡す。既定 4.0
+uniform float SmokeGain;
+// 粒が画素をどれだけ覆っているかの見積もり（描く前と後の色の差から）。
+// 奥の路面の照り返しと光線をそのぶん暗くする
+const float SMOKE_COVERAGE_GAIN = 3.0;
+const float SMOKE_COVERAGE_MAX = 0.8;
 
 mat4 lamp(int i) {
     if (i == 0) return Lamp0;
@@ -140,10 +160,30 @@ float interleavedGradientNoise(vec2 pixel) {
     return fract(52.9829189 * fract(dot(pixel, vec2(0.06711056, 0.00583715))));
 }
 
+vec3 reconstructFrom(float depth, vec2 uv) {
+    vec4 clip = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+    vec4 world = InvViewProj * clip;
+    return world.xyz / world.w;
+}
+
+float luma(vec3 c) {
+    return dot(c, vec3(0.299, 0.587, 0.114));
+}
+
 void main() {
     vec3 scene = texture(SceneSampler, texCoord).rgb;
+    vec3 solidColor = texture(SolidSampler, texCoord).rgb;
     float depth = texture(DepthSampler, texCoord).r;
+    float finalDepth = texture(FinalDepthSampler, texCoord).r;
     vec3 color = scene;
+
+    // 粒がこの画素の手前にあるか。あれば、粒が足した色と、粒のある位置
+    bool particle = finalDepth < depth - 1.0e-6;
+    vec3 particleAdded = particle ? max(scene - solidColor, vec3(0.0)) : vec3(0.0);
+    float coverage = particle
+            ? min(SMOKE_COVERAGE_MAX, luma(abs(scene - solidColor)) * SMOKE_COVERAGE_GAIN)
+            : 0.0;
+    float particleDistance = particle ? length(reconstructFrom(finalDepth, texCoord)) : 1.0e9;
 
     vec3 surface = reconstruct(texCoord);
     bool sky = depth >= 1.0;
@@ -169,9 +209,10 @@ void main() {
         }
         if (illuminance > 0.0) {
             float lit = 1.0 - exp(-pow(illuminance * EXPOSURE_GAIN, EXPOSURE_GAMMA));
-            // 元の色のまま明るくする（模様が残る）。明るいところほど伸びしろを小さく
-            vec3 added = scene * SURFACE_GAIN * lit * LIGHT_COLOR + SURFACE_FLOOR * lit * LIGHT_COLOR;
-            color = scene + added * (1.0 - scene);
+            // 元の色のまま明るくする（模様が残る）。明るいところほど伸びしろを小さく。
+            // 明るくするのは<b>粒の奥の面</b>の色で、粒に覆われているぶんは見えない
+            vec3 added = solidColor * SurfaceGain * lit * LIGHT_COLOR + SURFACE_FLOOR * lit * LIGHT_COLOR;
+            color += added * (1.0 - solidColor) * (1.0 - coverage);
         }
     }
 
@@ -214,12 +255,35 @@ void main() {
             float transmittance = exp(-FogDensity * (t + fromLamp));
             // 光の進む向き（ランプ → ここ）とカメラへの向きがそろうほど強く散る
             float cosTheta = dot(v / fromLamp, -rayDir);
-            sum += strength * phase(cosTheta) * transmittance / dist2 * dt;
+            // 煙より奥の光線は、煙に遮られたぶん暗く見える
+            float behind = t > particleDistance ? 1.0 - coverage : 1.0;
+            sum += strength * phase(cosTheta) * transmittance / dist2 * dt * behind;
         }
         scattered += vec3(sum);
     }
-    scattered *= FogDensity * VOLUME_GAIN;
+    scattered *= FogDensity * VolumeGain;
     color += LIGHT_COLOR * (1.0 - exp(-scattered));
+
+    // ---- 煙・土煙 ----
+    // 粒の位置に届いている光を、霧と同じ前方散乱で求める。光線の中の煙は光り、
+    // ランプの方を向くほど強く光る
+    if (particle && luma(particleAdded) > 0.001) {
+        vec3 p = reconstructFrom(finalDepth, texCoord);
+        float received = 0.0;
+        for (int i = 0; i < LampCount; i++) {
+            mat4 L = lamp(i);
+            vec3 v = p - L[0].xyz;
+            float strength = emitted(L, v, VOLUME_SOFTEN);
+            if (strength <= 0.0) {
+                continue;
+            }
+            float dist2 = max(dot(v, v), MIN_DIST2);
+            float cosTheta = dot(v * inversesqrt(dist2), -rayDir);
+            received += strength * phase(cosTheta) / dist2;
+        }
+        float glow = 1.0 - exp(-received * SMOKE_EXPOSURE);
+        color += particleAdded * SmokeGain * glow * LIGHT_COLOR;
+    }
 
     fragColor = vec4(color, 1.0);
 }

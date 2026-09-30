@@ -6,6 +6,8 @@
     ],
     "samplers": [
         { "name": "SceneSampler" },
+        { "name": "FinalDepthSampler" },
+        { "name": "SolidSampler" },
         { "name": "DepthSampler" }
     ],
     "uniforms": [
@@ -20,6 +22,9 @@
         { "name": "Lamp7", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
         { "name": "LampCount", "type": "int", "count": 1, "values": [ 0 ] },
         { "name": "FogDensity", "type": "float", "count": 1, "values": [ 0.03 ] },
-        { "name": "ScreenSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] }
+        { "name": "ScreenSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] },
+        { "name": "SurfaceGain", "type": "float", "count": 1, "values": [ 5.0 ] },
+        { "name": "VolumeGain", "type": "float", "count": 1, "values": [ 120.0 ] },
+        { "name": "SmokeGain", "type": "float", "count": 1, "values": [ 4.0 ] }
     ]
 }
