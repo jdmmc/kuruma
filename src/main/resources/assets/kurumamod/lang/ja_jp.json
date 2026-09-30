@@ -366,6 +366,7 @@
   "hud.kurumamod.lamp_abs": "ABS",
   "hud.kurumamod.lamp_tcs": "TCS",
   "hud.kurumamod.lamp_handbrake": "E-BRAKE",
+  "hud.kurumamod.lamp_turbo": "TURBO",
   "config.kurumamod.show_gauges": "速度計と回転計を表示",
   "config.kurumamod.show_gauges.tooltip": "画面下に円形の速度計・回転計とシフトインジケーターを出します。H で切り替わるテレメトリの数字とは別です",
   "config.kurumamod.show_telemetry": "テレメトリを表示",
@@ -398,5 +399,7 @@
   "screen.kurumamod.headlight.reset_all": "全部戻す",
   "screen.kurumamod.headlight.shader_pack": "シェーダーパックを使っている間は、ライトの光は描かれません",
   "key.kurumamod.headlight_settings": "ヘッドライトの調整",
-  "help.kurumamod.headlight_settings": "ライトの調整"
+  "help.kurumamod.headlight_settings": "ライトの調整",
+  "subtitles.kurumamod.car_turbo": "ターボの過給音",
+  "subtitles.kurumamod.car_blowoff": "ブローオフ"
 }

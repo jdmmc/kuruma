@@ -148,5 +148,27 @@
         "stream": false
       }
     ]
+  },
+  "car_turbo": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_turbo",
+    "sounds": [
+      {
+        "name": "kurumamod:turbo",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "car_blowoff": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_blowoff",
+    "sounds": [
+      {
+        "name": "kurumamod:blowoff",
+        "stream": false,
+        "attenuation_distance": 48
+      }
+    ]
   }
 }

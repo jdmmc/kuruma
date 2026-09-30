@@ -54,7 +54,7 @@ import java.util.function.Supplier;
  *
  * @param overrides 役割の名前（{@link #KEYS}）→ サウンドイベントの名前
  */
-public record CarSoundSet(Map<String, ResourceLocation> overrides) {
+public record CarSoundSet(Map<String, ResourceLocation> overrides, boolean turbo) {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -62,6 +62,13 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
     public static final String EXHAUST_HIGH = "exhaust_high";
     public static final String SHIFT = "shift";
     public static final String CRASH = "crash";
+    /**
+     * ターボ。文字列ならその音で過給音を鳴らし、{@code false} なら<b>ターボの無い車</b>
+     * （過給音もブローオフも鳴らさない）。書かなければターボ付き。
+     */
+    public static final String TURBO = "turbo";
+    /** ブローオフバルブの音（1 回だけ鳴る）。 */
+    public static final String BLOWOFF = "blowoff";
 
     /**
      * 書ける名前の一覧。ループ音は {@link CarSound.Role} の名前の小文字、
@@ -69,10 +76,10 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
      */
     public static final Set<String> KEYS = Set.of(
             EXHAUST, EXHAUST_HIGH, "road", "wind", "slip", "slip_chatter", "gravel", "sand",
-            SHIFT, CRASH);
+            TURBO, SHIFT, CRASH, BLOWOFF);
 
     /** 何も差し替えない。 */
-    public static final CarSoundSet NONE = new CarSoundSet(Map.of());
+    public static final CarSoundSet NONE = new CarSoundSet(Map.of(), true);
 
     /** 見つからなかったと一度報告した名前。毎ティック同じ警告を出さないため。 */
     private static final Set<ResourceLocation> REPORTED_MISSING = new HashSet<>();
@@ -110,6 +117,11 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
         return resolve(CRASH, KurumaSounds.CAR_CRASH);
     }
 
+    /** ブローオフバルブの音。 */
+    public SoundEvent blowoff() {
+        return resolve(BLOWOFF, KurumaSounds.CAR_BLOWOFF);
+    }
+
     /**
      * 高回転側の音源が低回転側の 1 オクターブ上か。
      *
@@ -131,9 +143,16 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
             return NONE;
         }
         Map<String, ResourceLocation> overrides = new TreeMap<>();
+        boolean turbo = true;
         for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith("_")) {
+                continue;
+            }
+            // "turbo": false は音の差し替えではなく「ターボが無い」の意味
+            if (key.equals(TURBO) && entry.getValue().isJsonPrimitive()
+                    && entry.getValue().getAsJsonPrimitive().isBoolean()) {
+                turbo = entry.getValue().getAsBoolean();
                 continue;
             }
             if (!KEYS.contains(key)) {
@@ -143,6 +162,6 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
             }
             overrides.put(key, new ResourceLocation(entry.getValue().getAsString()));
         }
-        return new CarSoundSet(overrides);
+        return new CarSoundSet(overrides, turbo);
     }
 }

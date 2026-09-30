@@ -45,7 +45,12 @@ public class CarSound extends AbstractTickableSoundInstance {
         /** 砂利を弾く音。砂利と土の上で、スキール音の代わりに鳴る。 */
         GRAVEL,
         /** 砂を掻く音。砂と雪の上で、スキール音の代わりに鳴る。 */
-        SAND
+        SAND,
+        /**
+         * ターボの過給音（ヒュイーン）。ブーストで音程と音量が上がる。ブーストそのものと
+         * ブローオフ（プシュッ）は {@link CarTurbo}。ターボの無い車では鳴らない。
+         */
+        TURBO
     }
 
     /**
@@ -217,6 +222,7 @@ public class CarSound extends AbstractTickableSoundInstance {
             case SLIP_CHATTER -> KurumaSounds.CAR_SLIP_CHATTER.get();
             case GRAVEL -> KurumaSounds.CAR_GRAVEL.get();
             case SAND -> KurumaSounds.CAR_SAND.get();
+            case TURBO -> KurumaSounds.CAR_TURBO.get();
         };
     }
 
@@ -338,6 +344,11 @@ public class CarSound extends AbstractTickableSoundInstance {
                 targetVolume = loudest;
                 targetPitch = LOOSE_PITCH_BASE + LOOSE_PITCH_SPAN * scrubbing;
             }
+            case TURBO -> {
+                float[] out = turbo();
+                targetVolume = out[0];
+                targetPitch = out[1];
+            }
             default -> {
                 targetVolume = 0.0F;
                 targetPitch = 1.0F;
@@ -364,6 +375,23 @@ public class CarSound extends AbstractTickableSoundInstance {
             }
             lastGear = gear;
         }
+    }
+
+    /**
+     * 過給音の {音量, 音程}。ブーストは {@link CarTurbo} が持つ（メーターも同じ値を読む）。
+     * 翼の回転＝ブーストで音程が上がり、回転数も少し乗せる（排気が当たっているぶん）。
+     */
+    private float[] turbo() {
+        if (!sounds.turbo()) {
+            return new float[]{0.0F, 1.0F};
+        }
+        CarSpec spec = car.getSpec();
+        double span = Math.max(1.0, spec.redlineRpm() - spec.idleRpm());
+        double rev = Mth.clamp((car.getRenderRpm() - spec.idleRpm()) / span, 0.0, 1.0);
+        double boost = CarTurbo.boost(car);
+        float volume = (float) (0.55 * boost);
+        float tone = (float) Mth.clamp(0.55 + 1.0 * boost + 0.15 * rev, 0.5, 2.0);
+        return new float[]{volume, tone};
     }
 
     private void updatePosition() {

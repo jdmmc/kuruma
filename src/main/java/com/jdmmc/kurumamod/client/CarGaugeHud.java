@@ -6,6 +6,7 @@ import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.Mth;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -495,24 +496,53 @@ public final class CarGaugeHud {
         float offset = pairWidth / 2.0F + LAMP_GAP / 2.0F;
         float secondRow = SUBGAUGE_TOP + LAMP_HEIGHT + LAMP_GAP;
         lamp(graphics, font, theme, abs, -offset, SUBGAUGE_TOP, pairWidth,
-                car.isAbsActive(), theme.aidOn, text);
+                car.isAbsActive() ? 1.0F : 0.0F, theme.aidOn, text);
         lamp(graphics, font, theme, tcs, offset, SUBGAUGE_TOP, pairWidth,
-                car.isTractionControlActive(), theme.aidOn, text);
-        lamp(graphics, font, theme, handbrake, 0.0F, secondRow, lampWidth(font, handbrake),
-                car.isHandbrakeOn(), theme.handbrake, text);
+                car.isTractionControlActive() ? 1.0F : 0.0F, theme.aidOn, text);
+        float brake = car.isHandbrakeOn() ? 1.0F : 0.0F;
+        if (!CarTurbo.hasTurbo(car)) {
+            lamp(graphics, font, theme, handbrake, 0.0F, secondRow, lampWidth(font, handbrake),
+                    brake, theme.handbrake, text);
+            return;
+        }
+        // ターボ車は下の段を E-BRAKE と TURBO の 2 つにする。上の段と同じく幅を揃えて左右対称に。
+        // TURBO は<b>ブーストに合わせてじわっと</b>点く（点く／消えるの 2 値だと、
+        // どれだけ掛かっているのかが分からない）
+        Component turbo = Component.translatable("hud.kurumamod.lamp_turbo");
+        float lowerWidth = Math.max(lampWidth(font, handbrake), lampWidth(font, turbo));
+        float lowerOffset = lowerWidth / 2.0F + LAMP_GAP / 2.0F;
+        float boost = (float) CarTurbo.boost(car, Minecraft.getInstance().getFrameTime());
+        lamp(graphics, font, theme, handbrake, -lowerOffset, secondRow, lowerWidth,
+                brake, theme.handbrake, text);
+        lamp(graphics, font, theme, turbo, lowerOffset, secondRow, lowerWidth,
+                boost, theme.turbo, text);
+    }
+
+    /** ARGB の色を {@code t} で混ぜる（0 で a、1 で b）。 */
+    private static int blend(int a, int b, float t) {
+        int alpha = Math.round(Mth.lerp(t, a >>> 24, b >>> 24));
+        int red = Math.round(Mth.lerp(t, (a >> 16) & 0xFF, (b >> 16) & 0xFF));
+        int green = Math.round(Mth.lerp(t, (a >> 8) & 0xFF, (b >> 8) & 0xFF));
+        int blue = Math.round(Mth.lerp(t, a & 0xFF, b & 0xFF));
+        return alpha << 24 | red << 16 | green << 8 | blue;
     }
 
     private static float lampWidth(Font font, Component label) {
         return font.width(label) * LAMP_TEXT_SCALE + LAMP_PADDING * 2.0F;
     }
 
+    /**
+     * 灯 1 つ。{@code level} は点き具合 0..1（ほとんどは 0 か 1。TURBO だけ途中の値を取る）。
+     * 文字の色は半分を越えたら点いている側に切り替える。
+     */
     private static void lamp(GuiGraphics graphics, Font font, GaugeTheme theme, Component label,
-                             float centerX, float top, float width, boolean on, int onColor,
+                             float centerX, float top, float width, float level, int onColor,
                              boolean text) {
         float left = centerX - width / 2.0F;
+        boolean on = level > 0.5F;
         if (!text) {
             GaugePainter.rect(graphics, left, top, left + width, top + LAMP_HEIGHT,
-                    on ? onColor : theme.aidOff);
+                    blend(theme.aidOff, onColor, Mth.clamp(level, 0.0F, 1.0F)));
             return;
         }
         // 大文字の字面（7px）を灯の高さの真ん中へ

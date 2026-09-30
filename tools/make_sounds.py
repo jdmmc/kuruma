@@ -9,6 +9,9 @@
 - race_start.ogg  … 消灯＝号砲。1 オクターブ上を長めに
 - race_split.ogg  … チェックポイント通過。ごく短い高音
 - race_finish.ogg … ゴール。上がっていく 3 音
+- turbo.ogg       … ターボの過給音（ヒュイーン）。鋭い共鳴の笛の音
+- blowoff.ogg     … ブローオフバルブ（プシュッ）。sample/blowoff.mp3（生成 AI）から取り込む。
+                    合成版（blowoff()）は候補として残してある
 
 Minecraft の制約に合わせて **48kHz モノラルの OGG Vorbis** で書く
 （ステレオだと 3D 定位が掛からない）。
@@ -507,9 +510,128 @@ def fanfare(name="race_finish.ogg", freqs=(587.33, 740.00, 880.00),
     return seconds
 
 
+#: ブローオフの耳で感じる大きさ（loudness()）。衝突音（0.086）と同じくらい——はっきり聞こえる一撃
+BLOWOFF_LOUDNESS = 0.084
+
+
+def import_oneshot(src, name, target=BLOWOFF_LOUDNESS, onset_db=-20.0, pre=0.005, fade_in=0.003,
+                   end_db=-45.0, fade_share=0.35, peak=0.90):
+    """外で作った<b>1 回だけ鳴る音</b>を取り込む。ループ音は `import_loop()`。
+
+    生成 AI の素材は、そのままだと使いにくいことが多い（`sample/blowoff.mp3` で実測）:
+
+    - <b>頭に無音やかすかな雑音が付いている。</b>0.48 秒ぶん -32〜-57dB の前置きがあり、
+      そのまま鳴らすとアクセルを抜いてから半拍遅れて聞こえる。<b>最初に {onset_db}dB
+      （いちばん大きいところ基準）を越えたところ</b>の {pre} 秒前から使う
+    - <b>尻が切れている。</b>ファイルの終わりでもまだ -30dB あり、そのまま鳴らすと
+      最後にプツッと切れる。<b>後ろの {fade_share} ぶんを 0 まで落とす</b>（cos の形で。
+      直線だと落とし始めが折れて聞こえる）。{end_db}dB より小さい末尾は先に捨てる
+    - ステレオでも左右がほぼ同じ。<b>Minecraft はステレオに 3D 定位を掛けない</b>ので
+      モノラルに落とす
+    - 頭は {fade_in} 秒だけ立ち上げる（立ち上がりの鋭さは残しつつ、プチッを消す）
+
+    大きさは A 特性の RMS（`loudness()`）で揃える。ピークで揃えると音色で聞こえ方が変わる。
+    """
+    data, sr = sf.read(src, always_2d=True)
+    mono = data.mean(axis=1)
+    if sr != SR:
+        # 線形補間で揃える（ワンショットの効果音なので十分）
+        t = np.arange(int(len(mono) * SR / sr)) / SR
+        mono = np.interp(t, np.arange(len(mono)) / sr, mono)
+
+    win = int(SR * 0.01)
+    frames = len(mono) // win
+    env = np.array([np.sqrt(np.mean(mono[i * win:(i + 1) * win] ** 2)) for i in range(frames)])
+    env_db = 20 * np.log10(env / (env.max() + 1e-12) + 1e-9)
+    onset = int(np.argmax(env_db > onset_db)) * win
+    start = max(0, onset - int(SR * pre))
+    loud = np.where(env_db > end_db)[0]
+    end = min(len(mono), (int(loud[-1]) + 1) * win)
+    out = mono[start:end].copy()
+
+    n_in = max(1, int(SR * fade_in))
+    out[:n_in] *= np.linspace(0.0, 1.0, n_in)
+    n_out = int(len(out) * fade_share)
+    out[-n_out:] *= 0.5 * (1 + np.cos(np.linspace(0.0, np.pi, n_out)))
+
+    out *= target / loudness(out)
+    ceiling = np.max(np.abs(out))
+    if ceiling > peak:
+        out *= peak / ceiling
+    write_ogg(name, out)
+    return start / SR, end / SR, len(out) / SR
+
+
+#: ターボの過給音の耳で感じる大きさ。走っている間ずっと鳴る音なので、スキール音より控えめに
+TURBO_LOUDNESS = 0.11
+
+
+def turbo(name="turbo.ogg", seconds=2.0, center=2900.0, seed=41):
+    """ターボの過給音（ヒュイーン）のループ。
+
+    <b>コンプレッサーの翼が空気を切る笛の音</b>で、音程の芯がはっきりある。スキール音
+    （`squeal()`）と同じ「共鳴する雑音」で作るが、帯をずっと鋭くし（Q=90）、さまよいも
+    小さくする（±0.6%）。鳴きは暴れるが、回っている翼の音はほとんど揺れない。
+
+    - 基音 {center}Hz と、その 2 倍（翼の枚数ぶんの倍音）を少し
+    - 吸気のシャーという息（3〜10kHz の雑音）をごく薄く。無いと電子音の「ピー」になる
+    - 音程と音量は `CarSound` がブーストで動かす（ピッチ 0.55〜1.7 倍）。素材は平らにしておく
+    """
+    rng = np.random.default_rng(seed)
+    n = int(SR * seconds)
+    wander = 1 + 0.006 * periodic_noise(n, 0.5, 4, rng) / 2.5
+    whistle = looped(lambda x, f: resonator(x, f, 90), n,
+                     periodic_noise(n, 20, 20000, rng), center * wander)
+    second = looped(lambda x, f: resonator(x, f, 90), n,
+                    periodic_noise(n, 20, 20000, rng), 2 * center * wander)
+    breath = periodic_noise(n, 3000, 10000, rng)
+    out = whistle + 0.30 * second + 0.18 * breath
+    out = flatten_loop(out, 0.05)
+    out *= TURBO_LOUDNESS / loudness(out)
+    ceiling = np.max(np.abs(out))
+    if ceiling > 0.85:
+        out *= 0.85 / ceiling
+    write_ogg(name, out)
+    return seconds
+
+
+def blowoff(name="blowoff.ogg", seconds=0.9, seed=43, peak=0.85):
+    """ブローオフバルブ（プシュッ）。アクセルを抜いた瞬間に 1 回。
+
+    溜まった過給圧が一気に抜ける<b>空気の音</b>なので、音程の芯は無い（雑音だけ）。
+    抜け始めがいちばん明るく、圧が下がるにつれて暗く・小さくなる:
+
+    - 立ち上がり 6ms。遅いと「プシュ」ではなく「フゥー」になる
+    - 明るい帯（4〜12kHz）は 0.10 秒で落ち、中の帯（1.2〜5kHz）は 0.30 秒かけて落ちる。
+      明るいほうが先に消えるので、抜けていくにつれて音が暗くなる
+    - 抜け始めだけ、弁が震える細かい揺れ（約 90Hz）をわずかに乗せる
+    """
+    rng = np.random.default_rng(seed)
+    n = int(SR * seconds)
+    t = np.arange(n) / SR
+    attack = np.minimum(t / 0.006, 1.0)
+    bright = periodic_noise(n, 4000, 12000, rng) * np.exp(-t / 0.10)
+    body = periodic_noise(n, 1200, 5000, rng) * np.exp(-t / 0.30)
+    flutter = 1 + 0.25 * np.sin(2 * np.pi * 90 * t) * np.exp(-t / 0.08)
+    out = (0.8 * bright + body) * attack * flutter
+    # 終わりは必ず 0 へ（切れ目でプチッと鳴らさない）
+    tail = int(SR * 0.08)
+    out[-tail:] *= np.linspace(1.0, 0.0, tail)
+    out *= peak / np.max(np.abs(out))
+    write_ogg(name, out)
+    return seconds
+
+
 if __name__ == "__main__":
     # 外で作った素材を取り込むとき:
     #   python tools/make_sounds.py import sample/gravel_scrub.mp3 gravel_scrub.ogg
+    # ターボの音だけ作る（素材の要る他の音を作り直さない）:
+    #   python tools/make_sounds.py turbo
+    if len(sys.argv) > 1 and sys.argv[1] == "turbo":
+        print("turbo.ogg        %.2fs" % turbo())
+        # ブローオフは素材から（生成 AI で作ったもの）。合成版は blowoff() に残してある
+        print("blowoff.ogg      from %.2fs to %.2fs (%.2fs)" % import_oneshot(SAMPLE + "blowoff.mp3", "blowoff.ogg"))
+        sys.exit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "import":
         src, name = sys.argv[2], sys.argv[3]
         print("%-16s %.2fs" % (name, import_loop(src, name)))
