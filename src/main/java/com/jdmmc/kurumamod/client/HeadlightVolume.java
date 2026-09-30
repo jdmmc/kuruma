@@ -85,7 +85,6 @@ public final class HeadlightVolume {
     private static ShaderInstance shader;
     /** ランプから見た距離の地図を描く（{@link HeadlightShadows}）。 */
     private static ShaderInstance shadowShader;
-    private static Boolean shaderPack;
     /** 主画面の色と深度の写し。シェーダーはこれを読み、主画面へ書く。 */
     private static TextureTarget copy;
 
@@ -97,10 +96,83 @@ public final class HeadlightVolume {
 
     /** 画素ごとの光が使えるか。使えないなら {@link CarLights} が形を積んで代用する。 */
     public static boolean isActive() {
-        if (shaderPack == null) {
-            shaderPack = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
+        return shader != null && shadowShader != null && !ShaderPacks.inUse();
+    }
+
+    /**
+     * シェーダーパックが<b>いま実際に使われているか</b>。
+     *
+     * <p>Oculus / Iris / OptiFine のシェーダーは世界の描画そのものを差し替えるので、そこへ
+     * 画面を写し取って重ねると壊れる（Oculus で実際に描画がおかしくなった）。<b>MOD が
+     * 入っているかではなく、パックが有効か</b>で見る——入っているだけで止めると、シェーダーを
+     * 切って遊んでいる人まで光を失う。パックは遊んでいる途中に切り替えられるので毎回聞く。</p>
+     *
+     * <p>どれもコンパイル時には依存しないのでリフレクションで聞く。<b>聞けなかったら
+     * 「使われている」とみなす</b>（壊れた画面より、控えめな代用の方がまし）。</p>
+     */
+    static final class ShaderPacks {
+        private static boolean resolved;
+        private static java.lang.reflect.Method irisInUse;
+        private static Object irisApi;
+        private static java.lang.reflect.Method optifineInUse;
+        /** 聞き方が分からなかった（API が変わった）。安全側に倒す。 */
+        private static boolean unknown;
+
+        private ShaderPacks() {
         }
-        return shader != null && shadowShader != null && !shaderPack;
+
+        static boolean inUse() {
+            if (!resolved) {
+                resolve();
+            }
+            if (unknown) {
+                return true;
+            }
+            boolean inUse;
+            try {
+                inUse = (irisInUse != null && (Boolean) irisInUse.invoke(irisApi))
+                        || (optifineInUse != null && (Boolean) optifineInUse.invoke(null));
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                LOGGER.warn("シェーダーパックが使われているか聞けなかった。以後は使われているものとして扱う", e);
+                unknown = true;
+                return true;
+            }
+            if (last == null || last != inUse) {
+                // 切り替わったときだけ残す。光が出ない・おかしいときに、どちらの描き方かを切り分けるため
+                LOGGER.info(inUse
+                        ? "シェーダーパックが使われている。ヘッドライトの光の効果は描かない"
+                        : "シェーダーパックは使われていない。ヘッドライトを画素ごとに描く");
+                last = inUse;
+            }
+            return inUse;
+        }
+
+        private static Boolean last;
+
+        private static void resolve() {
+            resolved = true;
+            boolean iris = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
+            if (iris) {
+                try {
+                    Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
+                    irisApi = api.getMethod("getInstance").invoke(null);
+                    irisInUse = api.getMethod("isShaderPackInUse");
+                } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+                    LOGGER.warn("Oculus / Iris の API が見つからない。シェーダーパックが使われているものとして扱う", e);
+                    unknown = true;
+                }
+            }
+            try {
+                // OptiFine は Forge の MOD 一覧に載らないので、クラスがあるかで見る
+                Class<?> config = Class.forName("net.optifine.Config");
+                optifineInUse = config.getMethod("isShaders");
+            } catch (ClassNotFoundException e) {
+                // OptiFine は入っていない
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+                LOGGER.warn("OptiFine のシェーダーの状態が聞けない。使われているものとして扱う", e);
+                unknown = true;
+            }
+        }
     }
 
     /** シェーダーの登録。<b>mod のイベントバス</b>に飛んでくる。 */
