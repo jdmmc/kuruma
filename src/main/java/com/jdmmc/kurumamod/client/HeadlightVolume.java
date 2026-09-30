@@ -296,9 +296,9 @@ public final class HeadlightVolume {
         shader.safeGetUniform("LampCount").set(count);
         shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
         shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
-        shader.safeGetUniform("SurfaceGain").set((float) LightDebugScreen.Values.surfaceGain);
-        shader.safeGetUniform("VolumeGain").set((float) LightDebugScreen.Values.volumeGain);
-        shader.safeGetUniform("SmokeGain").set((float) LightDebugScreen.Values.smokeGain);
+        shader.safeGetUniform("SurfaceGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSurface);
+        shader.safeGetUniform("VolumeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightBeam);
+        shader.safeGetUniform("SmokeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke);
 
         // 画面いっぱいに 1 枚。色はシェーダーが全部決めるので混色も深度も要らない
         RenderSystem.disableDepthTest();
@@ -367,8 +367,8 @@ public final class HeadlightVolume {
     }
 
     private static float fogDensity(ClientLevel level, float partialTick) {
-        // 晴れの濃さは調整画面（Ctrl+D、デバッグ用）で動かせる。既定は CLEAR_FOG
-        return (float) LightDebugScreen.Values.fog + RAIN_FOG * level.getRainLevel(partialTick)
+        // 晴れの濃さは調整画面（Ctrl+L、HeadlightScreen）で動かせる。既定は CLEAR_FOG
+        return (float) com.jdmmc.kurumamod.ClientConfig.headlightFog + RAIN_FOG * level.getRainLevel(partialTick)
                 + THUNDER_FOG * level.getThunderLevel(partialTick);
     }
 

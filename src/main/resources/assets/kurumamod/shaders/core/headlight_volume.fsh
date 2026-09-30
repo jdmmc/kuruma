@@ -67,7 +67,7 @@ const float EXPOSURE_GAMMA = 0.6;
 
 // ---- 路面 ----
 // 照らされた画素を何倍まで明るくするか。夜の地面は昼の数 % しかないので大きく要る
-// 調整画面（Ctrl+D、デバッグ用）から渡す。既定 5.0
+// 調整画面（Ctrl+L）から渡す。既定 5.0
 uniform float SurfaceGain;
 // 真っ黒な面にも少しだけ光を乗せる
 const float SURFACE_FLOOR = 0.03;

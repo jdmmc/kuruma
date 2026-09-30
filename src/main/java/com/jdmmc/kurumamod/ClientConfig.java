@@ -107,6 +107,33 @@ public final class ClientConfig {
             .comment("コースのゲートの見せ方。FULL=面と柱、POSTS=左右のポールのみ、HIDDEN=描かない")
             .defineEnum("gateDisplay", GateDisplay.FULL);
 
+    // ---- ヘッドライト（L で点灯、Ctrl+L で調整画面） ----
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_AIM = BUILDER
+            .comment("ヘッドライトの光軸の下向き [度]。大きいほど手前を照らす。実車のロービームは 0.6 度前後")
+            .defineInRange("headlightAim", 0.9, 0.0, 4.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_LEVELING = BUILDER
+            .comment("オートレベライザーの効き。ブレーキや加速でサスが沈んだぶんの傾きを、どれだけ光軸で打ち消すか。",
+                    "0 で打ち消さない（ブレーキで光が下を向く）、1 で全部打ち消す。坂道の傾きは打ち消さない")
+            .defineInRange("headlightLeveling", 0.85, 0.0, 1.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_FOG = BUILDER
+            .comment("晴れているときの霧の濃さ [1/m]。濃いほど光線がはっきり見えるが奥まで届かない。雨と雷ではこれに足される")
+            .defineInRange("headlightFog", 0.025, 0.0, 0.15);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_SURFACE = BUILDER
+            .comment("照らされた路面を何倍まで明るくするか")
+            .defineInRange("headlightSurface", 5.0, 0.0, 12.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_BEAM = BUILDER
+            .comment("霧の中の光線の明るさ")
+            .defineInRange("headlightBeam", 120.0, 0.0, 400.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_SMOKE = BUILDER
+            .comment("光の中のタイヤの煙・土煙の光り方")
+            .defineInRange("headlightSmoke", 4.0, 0.0, 10.0);
+
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     /** 運転中に操作ヘルプを出すか。 */
@@ -160,6 +187,19 @@ public final class ClientConfig {
     /** コースのゲートの見せ方。 */
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
+    /** ヘッドライトの光軸の下向き [度]。 */
+    public static double headlightAim = 0.9;
+    /** オートレベライザーの効き 0..1。 */
+    public static double headlightLeveling = 0.85;
+    /** 晴れのときの霧の濃さ [1/m]。 */
+    public static double headlightFog = 0.025;
+    /** 照らされた路面の明るさ。 */
+    public static double headlightSurface = 5.0;
+    /** 霧の中の光線の明るさ。 */
+    public static double headlightBeam = 120.0;
+    /** 光の中の煙の光り方。 */
+    public static double headlightSmoke = 4.0;
+
     private ClientConfig() {
     }
 
@@ -195,6 +235,12 @@ public final class ClientConfig {
         showOtherSkidMarks = SHOW_OTHER_SKID_MARKS.get();
         skidMarkSeconds = SKID_MARK_SECONDS.get();
         gateDisplay = GATE_DISPLAY.get();
+        headlightAim = HEADLIGHT_AIM.get();
+        headlightLeveling = HEADLIGHT_LEVELING.get();
+        headlightFog = HEADLIGHT_FOG.get();
+        headlightSurface = HEADLIGHT_SURFACE.get();
+        headlightBeam = HEADLIGHT_BEAM.get();
+        headlightSmoke = HEADLIGHT_SMOKE.get();
     }
 
     /**

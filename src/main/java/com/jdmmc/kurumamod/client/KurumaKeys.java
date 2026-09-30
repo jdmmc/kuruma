@@ -6,6 +6,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
+import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
@@ -97,6 +98,21 @@ public final class KurumaKeys {
             GLFW.GLFW_KEY_L,
             "key.categories.kurumamod");
 
+    /**
+     * ヘッドライトの調整画面を開く。既定は Ctrl+L。
+     *
+     * <p>点灯（L）と同じキーに修飾キーを付けてある。Forge は修飾キーが押されていれば
+     * 修飾付きの割り当てを先に探し、見つかればそちらだけを動かすので、Ctrl+L で
+     * ライトが切り替わることはない。</p>
+     */
+    public static final KeyMapping OPEN_HEADLIGHT_SETTINGS = new KeyMapping(
+            "key.kurumamod.headlight_settings",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_L,
+            "key.categories.kurumamod");
+
     /** コントローラの割り当て画面を開く。既定は J。 */
     public static final KeyMapping OPEN_CONTROLLER = new KeyMapping(
             "key.kurumamod.controller",
@@ -116,6 +132,7 @@ public final class KurumaKeys {
         event.register(SHIFT_UP);
         event.register(SHIFT_DOWN);
         event.register(TOGGLE_HEADLIGHTS);
+        event.register(OPEN_HEADLIGHT_SETTINGS);
         event.register(CAMERA_CLOSER);
         event.register(CAMERA_FARTHER);
         event.register(OPEN_CONTROLLER);

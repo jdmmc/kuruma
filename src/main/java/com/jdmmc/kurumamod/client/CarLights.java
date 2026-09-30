@@ -478,9 +478,9 @@ public final class CarLights {
             Vec3 right = forward.cross(bodyUp).normalize();
             Vec3 up = right.cross(forward).normalize();
             // 下げる角度 = 取り付けの下向き + 沈み込みの戻し（鼻下げなら上へ戻す）
-            // 調整画面（Ctrl+D、デバッグ用）で動かせる。既定は AIM_DOWN と LEVELING と同じ値
-            double aim = Math.toRadians(LightDebugScreen.Values.aimDown)
-                    + suspensionPitch * LightDebugScreen.Values.leveling;
+            // 調整画面（Ctrl+L、HeadlightScreen）で動かせる。既定は AIM_DOWN と LEVELING と同じ値
+            double aim = Math.toRadians(com.jdmmc.kurumamod.ClientConfig.headlightAim)
+                    + suspensionPitch * com.jdmmc.kurumamod.ClientConfig.headlightLeveling;
             double cos = Math.cos(aim);
             double sin = Math.sin(aim);
             Vec3 axis = forward.scale(cos).subtract(up.scale(sin)).normalize();
