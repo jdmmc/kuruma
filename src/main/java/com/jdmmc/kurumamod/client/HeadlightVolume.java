@@ -1,0 +1,252 @@
+package com.jdmmc.kurumamod.client;
+
+import com.jdmmc.kurumamod.Kurumamod;
+import com.jdmmc.kurumamod.entity.CarEntity;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterShadersEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod;
+import org.joml.Matrix4f;
+import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+/**
+ * ヘッドライトの光を<b>画面の画素ごとに</b>解く（{@code shaders/core/headlight_volume.fsh}）。
+ *
+ * <h2>何をしているか</h2>
+ *
+ * <p>世界を描き終えたところで画面の色と深度を写し取り、画面いっぱいの四角形を 1 枚描く。
+ * シェーダーは画素ごとに:</p>
+ * <ul>
+ *   <li><b>路面</b> … 深度から位置と面の向きを組み直し、配光から照度を求めてその画素を明るくする。
+ *       見えている面にしか乗らないので、ブロックでも車でも人でも、形どおりに照らされる</li>
+ *   <li><b>霧の中の光線</b> … カメラから見えている面までの視線を刻み、光の円錐の中で
+ *       霧がカメラへ散らす光を足す。前方散乱なのでランプの方を見るほど明るく、
+ *       霧に吸われるので奥ほど薄れる。視線は面で止まるので、光線は地面や壁に当たったところで終わる</li>
+ * </ul>
+ *
+ * <p>形を積んで描く {@link CarLights} の路面と光の筋は、これが使えるときは描かない
+ * （二重に明るくなる）。光芒（レンズの滲み）はどちらの場合も {@link CarLights} が描く。</p>
+ *
+ * <h2>使えないとき</h2>
+ *
+ * <p>シェーダーパック（Iris / Oculus）が入っているとき。あちらは世界の描画そのものを
+ * 差し替えるので、ここで写し取る画面が別物になる。シェーダーの読み込みに失敗したときも
+ * {@link CarLights} の代用に落ちる。</p>
+ *
+ * <h2>描くのは <b>AFTER_LEVEL</b></h2>
+ *
+ * <p>半透明のブロック・天候まで描き終えた後。最高（Fabulous）でも、ここでは合成が済んで
+ * 主画面に戻っている。<b>ミラーの描画中は描かない</b>——{@link MirrorRenderer} も
+ * {@code renderLevel} を呼ぶのでこのイベントが飛んでくるが、写し取る画面が主画面ではない。</p>
+ */
+@Mod.EventBusSubscriber(modid = Kurumamod.MODID, value = Dist.CLIENT)
+public final class HeadlightVolume {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    /** シェーダーへ渡せるランプの数（json の Lamp0..Lamp7）。車 4 台ぶん。 */
+    private static final int MAX_LAMPS = 8;
+    /** これより遠い車の光は計算しない。 */
+    private static final double MAX_DISTANCE = 128.0;
+
+    /**
+     * 霧の濃さ（1m あたりに吸われ・散らされる割合）。
+     *
+     * <p><b>晴れた夜でもうっすら光線が見える</b>程度を基準にして、雨で濃くする。
+     * 濃いほど光線ははっきりするが、そのぶん奥まで届かなくなる。</p>
+     */
+    private static final float CLEAR_FOG = 0.025F;
+    private static final float RAIN_FOG = 0.05F;
+    private static final float THUNDER_FOG = 0.03F;
+
+    private static ShaderInstance shader;
+    private static Boolean shaderPack;
+    /** 主画面の色と深度の写し。シェーダーはこれを読み、主画面へ書く。 */
+    private static TextureTarget copy;
+
+    private static final Matrix4f[] LAMPS = new Matrix4f[MAX_LAMPS];
+    private static final Matrix4f ZERO = new Matrix4f().zero();
+
+    private HeadlightVolume() {
+    }
+
+    /** 画素ごとの光が使えるか。使えないなら {@link CarLights} が形を積んで代用する。 */
+    public static boolean isActive() {
+        if (shaderPack == null) {
+            shaderPack = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
+        }
+        return shader != null && !shaderPack;
+    }
+
+    /** シェーダーの登録。<b>mod のイベントバス</b>に飛んでくる。 */
+    @Mod.EventBusSubscriber(modid = Kurumamod.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static final class Registration {
+        private Registration() {
+        }
+
+        @SubscribeEvent
+        public static void onRegisterShaders(RegisterShadersEvent event) {
+            try {
+                event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                                new ResourceLocation(Kurumamod.MODID, "headlight_volume"),
+                                DefaultVertexFormat.POSITION),
+                        loaded -> shader = loaded);
+            } catch (IOException e) {
+                // 光が描けないだけで遊べなくはない。形を積む代用に落ちる
+                LOGGER.error("ヘッドライトのシェーダーを読めなかった。形を積む描き方で代用する", e);
+                shader = null;
+            }
+        }
+    }
+
+    /**
+     * このフレームのカメラの向き。{@code AFTER_SKY} で覚えておく。
+     *
+     * <p><b>{@code AFTER_LEVEL} の {@code getPoseStack()} にはカメラの向きが入っていない。</b>
+     * あの段は {@code LevelRenderer#renderLevel} の外（{@code GameRenderer}）から投げられ、
+     * 渡ってくるのは世界の描画に使ったものとは別の PoseStack（バイトコードで確認）。
+     * そのまま使うと画面から世界へ戻す行列がカメラの向きを失い、<b>光がどこにも出なかった</b>。
+     * {@code AFTER_SKY} は {@code renderLevel} の中なので、世界の描画と同じ向きが入っている。</p>
+     */
+    private static final Matrix4f VIEW = new Matrix4f();
+    private static boolean viewCaptured;
+    private static boolean announced;
+
+    @SubscribeEvent
+    public static void onRenderLevel(RenderLevelStageEvent event) {
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) {
+            // ミラーの描画中は鏡の視点が入ってくるので覚えない
+            if (!MirrorRenderer.isRendering()) {
+                VIEW.set(event.getPoseStack().last().pose());
+                viewCaptured = true;
+            }
+            return;
+        }
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL
+                || !isActive() || MirrorRenderer.isRendering() || !viewCaptured) {
+            return;
+        }
+        viewCaptured = false;
+        Minecraft mc = Minecraft.getInstance();
+        ClientLevel level = mc.level;
+        if (level == null) {
+            return;
+        }
+        float partialTick = event.getPartialTick();
+        Vec3 camera = event.getCamera().getPosition();
+
+        int count = collect(level, camera, partialTick);
+        if (count == 0) {
+            return;
+        }
+
+        RenderTarget main = mc.getMainRenderTarget();
+        int width = main.width;
+        int height = main.height;
+        if (copy == null) {
+            copy = new TextureTarget(width, height, true, Minecraft.ON_OSX);
+        } else if (copy.width != width || copy.height != height) {
+            copy.resize(width, height, Minecraft.ON_OSX);
+        }
+        // ステンシルの有無が違うと深度を写せない（形式が一致しないと blit が失敗する）
+        if (main.isStencilEnabled() && !copy.isStencilEnabled()) {
+            copy.enableStencil();
+        }
+
+        // 色と深度を写し取る。書いている最中の画面を同時に読むことはできないので
+        GlStateManager._glBindFramebuffer(GL_READ_FRAMEBUFFER, main.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL_DRAW_FRAMEBUFFER, copy.frameBufferId);
+        GlStateManager._glBlitFrameBuffer(0, 0, width, height, 0, 0, width, height,
+                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        main.bindWrite(true);
+
+        // 画面の座標から、カメラを原点にした世界の向きの座標へ戻す行列
+        Matrix4f inverse = new Matrix4f(event.getProjectionMatrix())
+                .mul(VIEW)
+                .invert();
+
+        shader.setSampler("SceneSampler", copy.getColorTextureId());
+        shader.setSampler("DepthSampler", copy.getDepthTextureId());
+        shader.safeGetUniform("InvViewProj").set(inverse);
+        for (int i = 0; i < MAX_LAMPS; i++) {
+            shader.safeGetUniform("Lamp" + i).set(i < count ? LAMPS[i] : ZERO);
+        }
+        shader.safeGetUniform("LampCount").set(count);
+        shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
+        shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
+
+        // 画面いっぱいに 1 枚。色はシェーダーが全部決めるので混色も深度も要らない
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableBlend();
+        RenderSystem.setShader(() -> shader);
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
+        builder.vertex(-1.0, -1.0, 0.0).endVertex();
+        builder.vertex(1.0, -1.0, 0.0).endVertex();
+        builder.vertex(1.0, 1.0, 0.0).endVertex();
+        builder.vertex(-1.0, 1.0, 0.0).endVertex();
+        BufferUploader.drawWithShader(builder.end());
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+        if (!announced) {
+            // 光が見えないときに「描いていない」のか「描いているが外れている」のかを切り分けるため
+            announced = true;
+            LOGGER.info("ヘッドライトを画素ごとに描き始めた（{} 灯、{}x{}）", count, width, height);
+        }
+    }
+
+    /** 近い車から順に、ヘッドライトを点けている車のランプを詰める。 */
+    private static int collect(ClientLevel level, Vec3 camera, float partialTick) {
+        List<CarEntity> cars = new ArrayList<>();
+        for (Entity entity : level.entitiesForRendering()) {
+            if (entity instanceof CarEntity car && car.isHeadlightOn()
+                    && car.position().distanceToSqr(camera) < MAX_DISTANCE * MAX_DISTANCE) {
+                cars.add(car);
+            }
+        }
+        cars.sort(Comparator.comparingDouble(car -> car.position().distanceToSqr(camera)));
+        int count = 0;
+        for (CarEntity car : cars) {
+            if (count >= MAX_LAMPS) {
+                break;
+            }
+            count += CarLights.collectLamps(car, partialTick, camera, LAMPS, count);
+        }
+        return count;
+    }
+
+    private static float fogDensity(ClientLevel level, float partialTick) {
+        return CLEAR_FOG + RAIN_FOG * level.getRainLevel(partialTick)
+                + THUNDER_FOG * level.getThunderLevel(partialTick);
+    }
+
+    private static final int GL_READ_FRAMEBUFFER = 0x8CA8;
+    private static final int GL_DRAW_FRAMEBUFFER = 0x8CA9;
+    private static final int GL_COLOR_BUFFER_BIT = 0x4000;
+    private static final int GL_DEPTH_BUFFER_BIT = 0x0100;
+    private static final int GL_NEAREST = 0x2600;
+}

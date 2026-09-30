@@ -93,6 +93,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         renderGlass(model, spec, pose, buffer, packedLight);
 
         pose.popPose();
+        // 光（路面の照り返し・光の筋・光芒）は<b>車体もタイヤも描き終えてから</b>。
+        // どれも深度を書かないので、先に描くと後から描いた車体に塗りつぶされる。
+        // 姿勢は CarLights が自分で組み直すので、姿勢を掛ける前の pose を渡す
+        CarLights.renderEffects(car, model, partialTick, pose, buffer);
         // 名前タグなどはバニラに任せる
         super.render(car, entityYaw, partialTick, pose, buffer, packedLight);
     }
@@ -137,7 +141,6 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
         ObjModel body = ObjModel.get(model.bodyModel());
         CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
-        CarLights.renderBeams(car, body, pose, buffer);
 
         // 鏡面も同じ変換の中で描く。<b>車体のパスから外してあるので、ここが描かないと穴が開く</b>
         MirrorRenderer.renderSurfaces(car, body, pose, buffer, packedLight, model.bodyTexture());

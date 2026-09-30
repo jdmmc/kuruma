@@ -1,0 +1,25 @@
+{
+    "vertex": "kurumamod:headlight_volume",
+    "fragment": "kurumamod:headlight_volume",
+    "attributes": [
+        "Position"
+    ],
+    "samplers": [
+        { "name": "SceneSampler" },
+        { "name": "DepthSampler" }
+    ],
+    "uniforms": [
+        { "name": "InvViewProj", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "Lamp0", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp1", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp2", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp3", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp4", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp5", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp6", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "Lamp7", "type": "matrix4x4", "count": 16, "values": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "LampCount", "type": "int", "count": 1, "values": [ 0 ] },
+        { "name": "FogDensity", "type": "float", "count": 1, "values": [ 0.03 ] },
+        { "name": "ScreenSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] }
+    ]
+}
