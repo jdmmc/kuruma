@@ -110,6 +110,37 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
   border-radius:4px; padding:.1em .45em; background:var(--panel); white-space:nowrap}
 .lead-in{color:var(--dim); font-size:.92rem; margin-top:-6px}
 .sub{color:var(--dim)}
+/* ページ（車・ホイール・パーツ・共通）。1 枚の HTML の中を JavaScript で切り替える。
+   各章の data-guide に「どのページの章か」を書いてある（付録 E のように 2 つに属するものもある） */
+main > section[data-guide]{display:none}
+nav.toc a[data-guide]{display:none}
+html[data-page="home"] main > section[data-guide~="home"],
+html[data-page="car"] main > section[data-guide~="car"],
+html[data-page="wheel"] main > section[data-guide~="wheel"],
+html[data-page="parts"] main > section[data-guide~="parts"],
+html[data-page="common"] main > section[data-guide~="common"]{display:block}
+html[data-page="car"] nav.toc a[data-guide~="car"],
+html[data-page="wheel"] nav.toc a[data-guide~="wheel"],
+html[data-page="parts"] nav.toc a[data-guide~="parts"],
+html[data-page="common"] nav.toc a[data-guide~="common"]{display:block}
+html[data-page="home"] nav.toc{display:none}
+html[data-page="home"] .layout{grid-template-columns:1fr}
+html[data-lang="ja"] nav.toc a.en, html[data-lang="en"] nav.toc a.ja{display:none !important}
+nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:14px; font-weight:700}
+.switches{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px}
+.switches .langsw{margin-top:0}
+.pagesw{display:inline-flex; flex-wrap:wrap; border:1px solid var(--line); border-radius:6px; overflow:hidden}
+.pagesw button{font-family:inherit; font-size:.82rem; padding:5px 14px; border:0;
+  background:var(--panel); color:var(--dim); cursor:pointer; line-height:1.6}
+.pagesw button + button{border-left:1px solid var(--line)}
+.pagesw button.on{background:var(--accent); color:var(--panel); font-weight:700}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:18px 0 0}
+.card{display:block; text-decoration:none; color:var(--ink); background:var(--panel);
+  border:1px solid var(--line); border-radius:8px; padding:18px 18px 16px; transition:border-color .15s}
+.card:hover{border-color:var(--accent)}
+.card-t{display:block; font-weight:700; font-size:1.1rem; margin-bottom:6px; color:var(--accent)}
+.card-d{display:block; color:var(--dim); font-size:.9rem; line-height:1.6}
+.card-common .card-t{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -121,9 +152,18 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
     <h1 class="en">Car Pack Creation Guide</h1>
     <p class="lede ja">Blender で作った車を Minecraft の中で走らせるまで。Blender を触ったことがない人が、1 台ぶんの見た目と音を最後まで作り切れることを目指しています。</p>
     <p class="lede en">Everything from a mesh in Blender to a car you can drive in Minecraft. Written so that someone who has never opened Blender can finish one complete vehicle — looks and sound.</p>
-    <div class="langsw">
-      <button type="button" data-set="ja">日本語</button>
-      <button type="button" data-set="en">English</button>
+    <div class="switches">
+      <div class="pagesw" role="tablist">
+        <button type="button" data-page="home"><span class="ja">入口</span><span class="en">Home</span></button>
+        <button type="button" data-page="car"><span class="ja">車</span><span class="en">Car</span></button>
+        <button type="button" data-page="wheel"><span class="ja">ホイール</span><span class="en">Wheel</span></button>
+        <button type="button" data-page="parts"><span class="ja">パーツ</span><span class="en">Parts</span></button>
+        <button type="button" data-page="common"><span class="ja">共通</span><span class="en">Common</span></button>
+      </div>
+      <div class="langsw">
+        <button type="button" data-set="ja">日本語</button>
+        <button type="button" data-set="en">English</button>
+      </div>
     </div>
   </div>
 </header>
@@ -131,61 +171,96 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <div class="wrap layout">
 
 <nav class="toc">
+  <a href="#home" class="toc-home ja">← ガイドの入口</a><a href="#home" class="toc-home en">← Guide home</a>
   <div class="tt ja">目次</div>
   <div class="tt en">CONTENTS</div>
-  <a href="#s0" class="ja">0. このページについて</a><a href="#s0" class="en">0. About this page</a>
-  <a href="#s1" class="ja">1. 全体像</a><a href="#s1" class="en">1. The whole picture</a>
-  <a href="#s2" class="ja">2. Blender はこれだけ</a><a href="#s2" class="en">2. Just enough Blender</a>
-  <a href="#s3" class="ja">3. ゲージを置く</a><a href="#s3" class="en">3. Drop in the gauge</a>
-  <a href="#s4" class="ja">4. 車体を作る</a><a href="#s4" class="en">4. Build the body</a>
-  <a href="#s5" class="ja">5. 名前で決まる機能</a><a href="#s5" class="en">5. Names that mean something</a>
-  <a href="#s6" class="ja">6. タイヤを作る</a><a href="#s6" class="en">6. Build the wheel</a>
-  <a href="#s7" class="ja">7. 色とテクスチャ</a><a href="#s7" class="en">7. Colour and texture</a>
-  <a href="#s8" class="ja">8. 書き出す</a><a href="#s8" class="en">8. Export</a>
-  <a href="#s9" class="ja">9. 置き場所と JSON</a><a href="#s9" class="en">9. Where files go, and the JSON</a>
-  <a href="#s-sound" class="ja">10. 音を付ける</a><a href="#s-sound" class="en">10. Add sounds</a>
-  <a href="#s-spec" class="ja">11. 諸元（走り）を書く</a><a href="#s-spec" class="en">11. Write the spec</a>
-  <a href="#s-parts" class="ja">12. ホイールを部品にする</a><a href="#s-parts" class="en">12. Make a wheel a part</a>
-  <a href="#s-jar" class="ja">13. jar に固めて配る</a><a href="#s-jar" class="en">13. Pack it and ship it</a>
-  <a href="#s10" class="ja">14. 確認する</a><a href="#s10" class="en">14. Check it in game</a>
-  <a href="#s11" class="ja">15. 症状別の直しかた</a><a href="#s11" class="en">15. Troubleshooting</a>
-  <a href="#s12" class="ja">16. チェックリスト</a><a href="#s12" class="en">16. Checklists</a>
-  <a href="#sa" class="ja">付録 A. 座標系</a><a href="#sa" class="en">Appendix A. Axes</a>
-  <a href="#sb" class="ja">付録 B. 用語</a><a href="#sb" class="en">Appendix B. Glossary</a>
-  <a href="#sc" class="ja">付録 C. 諸元の全項目</a><a href="#sc" class="en">Appendix C. Spec keys</a>
-  <a href="#sd" class="ja">付録 D. 読まれない値</a><a href="#sd" class="en">Appendix D. Ignored values</a>
-  <a href="#se" class="ja">付録 E. 部品の全項目</a><a href="#se" class="en">Appendix E. Part keys</a>
+  <a href="#s0" data-guide="common" class="ja">1. このページについて</a><a href="#s0" data-guide="common" class="en">1. About this page</a>
+  <a href="#s1" data-guide="common" class="ja">2. 全体像</a><a href="#s1" data-guide="common" class="en">2. The whole picture</a>
+  <a href="#s2" data-guide="common" class="ja">3. Blender はこれだけ</a><a href="#s2" data-guide="common" class="en">3. Just enough Blender</a>
+  <a href="#s3" data-guide="car" class="ja">1. ゲージを置く</a><a href="#s3" data-guide="car" class="en">1. Drop in the gauge</a>
+  <a href="#s4" data-guide="car" class="ja">2. 車体を作る</a><a href="#s4" data-guide="car" class="en">2. Build the body</a>
+  <a href="#s5" data-guide="car" class="ja">3. 名前で決まる機能</a><a href="#s5" data-guide="car" class="en">3. Names that mean something</a>
+  <a href="#s6" data-guide="wheel" class="ja">1. タイヤを作る</a><a href="#s6" data-guide="wheel" class="en">1. Build the wheel</a>
+  <a href="#s7" data-guide="car" class="ja">4. 色とテクスチャ</a><a href="#s7" data-guide="car" class="en">4. Colour and texture</a>
+  <a href="#s8" data-guide="car" class="ja">5. 書き出す</a><a href="#s8" data-guide="car" class="en">5. Export</a>
+  <a href="#s9" data-guide="car" class="ja">6. 置き場所と JSON</a><a href="#s9" data-guide="car" class="en">6. Where files go, and the JSON</a>
+  <a href="#s-sound" data-guide="car" class="ja">7. 音を付ける</a><a href="#s-sound" data-guide="car" class="en">7. Add sounds</a>
+  <a href="#s-spec" data-guide="car" class="ja">8. 諸元（走り）を書く</a><a href="#s-spec" data-guide="car" class="en">8. Write the spec</a>
+  <a href="#s-parts" data-guide="wheel" class="ja">2. ホイールを部品にする</a><a href="#s-parts" data-guide="wheel" class="en">2. Make a wheel a part</a>
+  <a href="#s-jar" data-guide="common" class="ja">4. jar に固めて配る</a><a href="#s-jar" data-guide="common" class="en">4. Pack it and ship it</a>
+  <a href="#s10" data-guide="common" class="ja">5. 確認する</a><a href="#s10" data-guide="common" class="en">5. Check it in game</a>
+  <a href="#s11" data-guide="common" class="ja">6. 症状別の直しかた</a><a href="#s11" data-guide="common" class="en">6. Troubleshooting</a>
+  <a href="#s12" data-guide="common" class="ja">7. チェックリスト</a><a href="#s12" data-guide="common" class="en">7. Checklists</a>
+  <a href="#s-turbo" data-guide="parts" class="ja">1. ターボとブローオフ</a><a href="#s-turbo" data-guide="parts" class="en">1. Turbos and blow-off valves</a>
+  <a href="#sa" data-guide="common" class="ja">付録 A. 座標系</a><a href="#sa" data-guide="common" class="en">Appendix A. Axes</a>
+  <a href="#sb" data-guide="common" class="ja">付録 B. 用語</a><a href="#sb" data-guide="common" class="en">Appendix B. Glossary</a>
+  <a href="#sc" data-guide="car" class="ja">付録 A. 諸元の全項目</a><a href="#sc" data-guide="car" class="en">Appendix A. Spec keys</a>
+  <a href="#sd" data-guide="car" class="ja">付録 B. 読まれない値</a><a href="#sd" data-guide="car" class="en">Appendix B. Ignored values</a>
+  <a href="#se" data-guide="wheel parts" class="ja">付録 A. 部品の全項目</a><a href="#se" data-guide="wheel parts" class="en">Appendix A. Part keys</a>
 </nav>
 
 <main>
+<section id="home" data-guide="home">
+<h2 class="ja">何を作りますか？</h2>
+<h2 class="en">What are you making?</h2>
+<p class="ja">作りたいものを選んでください。どのページにも出てくる手順（Blender の基本、jar に固めて配る、確かめかた）は「共通」にまとめてあります。</p>
+<p class="en">Pick what you want to make. Steps that every page needs (Blender basics, packing a jar, checking it in game) live under "Common".</p>
+<div class="cards">
+  <a class="card" href="#car">
+    <span class="card-t ja">車を作る</span><span class="card-t en">Make a car</span>
+    <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
+    <span class="card-d en">Body model, lights, glass and mirrors, file layout and JSON, sounds, the spec (how it drives)</span>
+  </a>
+  <a class="card" href="#wheel">
+    <span class="card-t ja">ホイールを作る</span><span class="card-t en">Make a wheel</span>
+    <span class="card-d ja">タイヤのモデルと、換装画面で選べるホイール部品にする方法</span>
+    <span class="card-d en">The wheel model, and turning it into a wheel part players can pick in the parts screen</span>
+  </a>
+  <a class="card" href="#parts">
+    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
+    <span class="card-d ja">ターボ（走りが変わる）とブローオフバルブ（音だけ）。モデルは要りません</span>
+    <span class="card-d en">Turbos (they change how the car drives) and blow-off valves (sound only). No model needed</span>
+  </a>
+  <a class="card card-common" href="#common">
+    <span class="card-t ja">共通</span><span class="card-t en">Common</span>
+    <span class="card-d ja">このガイドについて、全体像、Blender の基本、jar に固めて配る、確認、症状別の直しかた、チェックリスト、座標系と用語</span>
+    <span class="card-d en">About this guide, the whole picture, Blender basics, packing and shipping a jar, checking, troubleshooting, checklists, axes and glossary</span>
+  </a>
+</div>
+</section>
 
-<section id="s0">
-<h2 class="ja"><span class="num">0</span>このページについて</h2>
-<h2 class="en"><span class="num">0</span>About this page</h2>
+
+<section id="s0" data-guide="common">
+<h2 class="ja"><span class="num">1</span>このページについて</h2>
+<h2 class="en"><span class="num">1</span>About this page</h2>
 
 <p class="ja">KurumaMod に車を足すのに <b>Java は要りません</b>。JSON・モデル・テクスチャ・音だけの MOD jar を 1 つ作って <code>mods/</code> に入れれば車種が増えます。このガイドはそのカーパックを 1 台ぶん作り切るまでを通しで説明します。</p>
 <p class="en"><b>You do not need Java to add a car to KurumaMod.</b> Build a single mod jar holding nothing but JSON, models, textures and sounds, drop it in <code>mods/</code>, and the new car shows up. This guide takes you through one complete car pack.</p>
 
 <table class="ja">
-<tr><th>作るもの</th><th>章</th></tr>
-<tr><td>車体とホイールのメッシュ（Blender）</td><td>2〜8 章</td></tr>
-<tr><td>見た目の JSON・ファイルの置き場所と名前の決まり</td><td>9 章</td></tr>
-<tr><td>音</td><td>10 章</td></tr>
-<tr><td>諸元（走り）</td><td>11 章・付録 C</td></tr>
-<tr><td>換装できるホイール</td><td>12 章・付録 E</td></tr>
-<tr><td>jar に固めて配る</td><td>13 章</td></tr>
+<tr><th>作るもの</th><th>どこに書いてあるか</th></tr>
+<tr><td>Blender の基本</td><td>このページ（共通）の 3 章</td></tr>
+<tr><td>車体のメッシュ</td><td><a href="#car">車</a>の 1〜5 章</td></tr>
+<tr><td>見た目の JSON・ファイルの置き場所と名前の決まり</td><td>車の 6 章</td></tr>
+<tr><td>音</td><td>車の 7 章</td></tr>
+<tr><td>諸元（走り）</td><td>車の 8 章・付録 A</td></tr>
+<tr><td>ホイールのメッシュと、換装できるホイール</td><td><a href="#wheel">ホイール</a>の 1〜2 章・付録 A</td></tr>
+<tr><td>ターボとブローオフバルブ</td><td><a href="#parts">パーツ</a>の 1 章・付録 A</td></tr>
+<tr><td>jar に固めて配る</td><td>このページ（共通）の 4 章</td></tr>
 </table>
 <table class="en">
-<tr><th>What</th><th>Chapter</th></tr>
-<tr><td>Body and wheel meshes (Blender)</td><td>2–8</td></tr>
-<tr><td>The look JSON, where files go and how to name them</td><td>9</td></tr>
-<tr><td>Sounds</td><td>10</td></tr>
-<tr><td>The spec (how it drives)</td><td>11, Appendix C</td></tr>
-<tr><td>Swappable wheels</td><td>12, Appendix E</td></tr>
-<tr><td>Packing and shipping the jar</td><td>13</td></tr>
+<tr><th>What</th><th>Where</th></tr>
+<tr><td>Blender basics</td><td>Chapter 3 of this page (Common)</td></tr>
+<tr><td>The body mesh</td><td>Chapters 1–5 of the <a href="#car">Car</a> guide</td></tr>
+<tr><td>The look JSON, where files go and how to name them</td><td>Chapter 6 of the Car guide</td></tr>
+<tr><td>Sounds</td><td>Chapter 7 of the Car guide</td></tr>
+<tr><td>The spec (how it drives)</td><td>Chapter 8 and Appendix A of the Car guide</td></tr>
+<tr><td>The wheel mesh, and swappable wheels</td><td>Chapters 1–2 and Appendix A of the <a href="#wheel">Wheel</a> guide</td></tr>
+<tr><td>Turbos and blow-off valves</td><td>Chapter 1 and Appendix A of the <a href="#parts">Parts</a> guide</td></tr>
+<tr><td>Packing and shipping the jar</td><td>Chapter 4 of this page (Common)</td></tr>
 </table>
-<p class="ja"><b>まず見本を動かしてみたいなら <a href="#s-jar">13 章</a>へ。</b><code>carpack/example/</code> をそのまま jar に固めれば、サンプルカーが 1 台増えます。</p>
-<p class="en"><b>Want to see the example running first? Go to <a href="#s-jar">chapter 13</a>.</b> Pack <code>carpack/example/</code> into a jar as it is and a sample car appears.</p>
+<p class="ja"><b>まず見本を動かしてみたいなら <a href="#s-jar">4 章</a>へ。</b><code>carpack/example/</code> をそのまま jar に固めれば、サンプルカーが 1 台増えます。</p>
+<p class="en"><b>Want to see the example running first? Go to <a href="#s-jar">chapter 4</a>.</b> Pack <code>carpack/example/</code> into a jar as it is and a sample car appears.</p>
 
 <h3 class="ja">要るもの</h3>
 <h3 class="en">What you need</h3>
@@ -231,9 +306,9 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </div>
 </section>
 
-<section id="s1">
-<h2 class="ja"><span class="num">1</span>全体像</h2>
-<h2 class="en"><span class="num">1</span>The whole picture</h2>
+<section id="s1" data-guide="common">
+<h2 class="ja"><span class="num">2</span>全体像</h2>
+<h2 class="en"><span class="num">2</span>The whole picture</h2>
 
 <p class="ja">やることは 5 つです。ここから先の章は、この 5 つを順に開いたものです。</p>
 <p class="en">There are five steps. Every chapter from here on is one of them, opened up.</p>
@@ -289,11 +364,11 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <p class="en">Steps 3 to 5 take under a minute. <b>Almost all of the time goes into step 1.</b> Which is exactly why you should push a crude box of a car all the way through 1→5 first. Once the folders and the JSON are working, everything after that is just Blender.</p>
 </section>
 
-<section id="s2">
-<h2 class="ja"><span class="num">2</span>Blender はこれだけ覚える</h2>
-<h2 class="en"><span class="num">2</span>Just enough Blender</h2>
-<p class="lead-in ja">Blender を触ったことがない人向けです。使える人は <a href="#s3">3 章</a>へ。</p>
-<p class="lead-in en">For readers who have never opened Blender. If you know it already, skip to <a href="#s3">chapter 3</a>.</p>
+<section id="s2" data-guide="common">
+<h2 class="ja"><span class="num">3</span>Blender はこれだけ覚える</h2>
+<h2 class="en"><span class="num">3</span>Just enough Blender</h2>
+<p class="lead-in ja">Blender を触ったことがない人向けです。使える人は <a href="#s3">車の 1 章</a>へ。</p>
+<p class="lead-in en">For readers who have never opened Blender. If you know it already, skip to <a href="#s3">chapter 1 of the Car guide</a>.</p>
 
 <h3 class="ja">画面の 3 か所</h3>
 <h3 class="en">Three places on screen</h3>
@@ -315,11 +390,11 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 
 <div class="box warn ja">
 <span class="lbl">この MOD 独自の、いちばん重要な決まり</span>
-<p><b>オブジェクトの名前が、ゲーム内での機能を決めます。</b><code>light_head</code> という名前を付けたオブジェクトはヘッドライトとして点灯し、<code>glass</code> で始まる名前は透けます。名前は飾りではなく設定そのものです（<a href="#s5">5 章</a>）。</p>
+<p><b>オブジェクトの名前が、ゲーム内での機能を決めます。</b><code>light_head</code> という名前を付けたオブジェクトはヘッドライトとして点灯し、<code>glass</code> で始まる名前は透けます。名前は飾りではなく設定そのものです（<a href="#s5">車の 3 章</a>）。</p>
 </div>
 <div class="box warn en">
 <span class="lbl">THE ONE RULE THAT IS SPECIFIC TO THIS MOD</span>
-<p><b>An object's name decides what it does in game.</b> An object called <code>light_head</code> lights up as a headlight; anything starting with <code>glass</code> becomes see-through. Names are not decoration here, they are the configuration (<a href="#s5">chapter 5</a>).</p>
+<p><b>An object's name decides what it does in game.</b> An object called <code>light_head</code> lights up as a headlight; anything starting with <code>glass</code> becomes see-through. Names are not decoration here, they are the configuration (<a href="#s5">chapter 3 of the Car guide</a>).</p>
 </div>
 
 <h3 class="ja">ワールド原点（0, 0, 0）</h3>
@@ -389,9 +464,9 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <p class="en">You need it once, in the next chapter, to place the gauge: <code>Scripting</code> tab at the top → <code>New</code> → paste → <kbd>Alt</kbd>+<kbd>P</kbd> (or the ▶ Run button).</p>
 </section>
 
-<section id="s3">
-<h2 class="ja"><span class="num">3</span>ゲージを置く</h2>
-<h2 class="en"><span class="num">3</span>Drop in the gauge</h2>
+<section id="s3" data-guide="car">
+<h2 class="ja"><span class="num">1</span>ゲージを置く</h2>
+<h2 class="en"><span class="num">1</span>Drop in the gauge</h2>
 
 <p class="ja">いきなり車を作り始める前に、<b>基準となる枠（ゲージ）を置きます。</b>タイヤ 4 つと地面とシャシー基準面がワイヤーフレームで現れるので、これに合わせて車体を作れば、あとで JSON の数字をいじる必要がなくなります。</p>
 <p class="en">Before modelling anything, <b>place the reference frame — the gauge.</b> Four wheels, the ground and the chassis plane appear as wireframes. Build to those and you will not have to touch the numbers in the JSON at all.</p>
@@ -455,20 +530,20 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 
 <div class="box tip ja">
 <span class="lbl">ゲージに合わせるほど、あとが楽</span>
-<p>ゲージにぴったり合わせて作れば、<a href="#s9">9 章</a>の JSON は <code>designWheelBase</code> / <code>designWheelRadius</code> / <code>designRideHeight</code> をすべて既定のままにできます。合わせられなくても、実際に作った寸法をそこに書けば済みます。<b>どちらでも動きます。</b></p>
+<p>ゲージにぴったり合わせて作れば、<a href="#s9">6 章</a>の JSON は <code>designWheelBase</code> / <code>designWheelRadius</code> / <code>designRideHeight</code> をすべて既定のままにできます。合わせられなくても、実際に作った寸法をそこに書けば済みます。<b>どちらでも動きます。</b></p>
 </div>
 <div class="box tip en">
 <span class="lbl">THE CLOSER YOU MATCH IT, THE LESS WORK LATER</span>
-<p>Build exactly to the gauge and you can leave <code>designWheelBase</code>, <code>designWheelRadius</code> and <code>designRideHeight</code> at their defaults in <a href="#s9">chapter 9</a>. If you cannot, just write down the sizes you actually used. <b>Either way it works.</b></p>
+<p>Build exactly to the gauge and you can leave <code>designWheelBase</code>, <code>designWheelRadius</code> and <code>designRideHeight</code> at their defaults in <a href="#s9">chapter 6</a>. If you cannot, just write down the sizes you actually used. <b>Either way it works.</b></p>
 </div>
 
-<p class="ja">タイヤは車体とは別ファイルで作るので、専用のゲージ（<code>modeling_tools/blender_wheel_gauge.py</code>）が別にあります。<a href="#s6">6 章</a>で使います。</p>
-<p class="en">Wheels are built in a separate file, so they have their own gauge: <code>modeling_tools/blender_wheel_gauge.py</code>. You will use it in <a href="#s6">chapter 6</a>.</p>
+<p class="ja">タイヤは車体とは別ファイルで作るので、専用のゲージ（<code>modeling_tools/blender_wheel_gauge.py</code>）が別にあります。<a href="#s6">ホイールの 1 章</a>で使います。</p>
+<p class="en">Wheels are built in a separate file, so they have their own gauge: <code>modeling_tools/blender_wheel_gauge.py</code>. You will use it in <a href="#s6">chapter 1 of the Wheel guide</a>.</p>
 </section>
 
-<section id="s4">
-<h2 class="ja"><span class="num">4</span>車体を作る</h2>
-<h2 class="en"><span class="num">4</span>Build the body</h2>
+<section id="s4" data-guide="car">
+<h2 class="ja"><span class="num">2</span>車体を作る</h2>
+<h2 class="en"><span class="num">2</span>Build the body</h2>
 
 <p class="ja">守るのは<b>原点の位置と向きだけ</b>です。大きさや形に決まりはありません。</p>
 <p class="en">The only rules are <b>where the origin is and which way the car faces</b>. Size and shape are up to you.</p>
@@ -547,9 +622,9 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <p class="en"><b>The names in the next chapter are the exception.</b> Those carry meaning, so each one has to be its own object.</p>
 </section>
 
-<section id="s5">
-<h2 class="ja"><span class="num">5</span>名前で決まる機能</h2>
-<h2 class="en"><span class="num">5</span>Names that mean something</h2>
+<section id="s5" data-guide="car">
+<h2 class="ja"><span class="num">3</span>名前で決まる機能</h2>
+<h2 class="en"><span class="num">3</span>Names that mean something</h2>
 
 <p class="ja">オブジェクト名の頭が次のいずれかなら、車体ではなく特別な部品として扱われます。<b>それ以外の名前は全部まとめて車体です。</b></p>
 <p class="en">If an object's name starts with one of these, it is treated as a special part rather than bodywork. <b>Every other name, whatever it is, is body.</b></p>
@@ -722,12 +797,12 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </div>
 </section>
 
-<section id="s6">
-<h2 class="ja"><span class="num">6</span>タイヤを作る</h2>
-<h2 class="en"><span class="num">6</span>Build the wheel</h2>
+<section id="s6" data-guide="wheel">
+<h2 class="ja"><span class="num">1</span>タイヤを作る</h2>
+<h2 class="en"><span class="num">1</span>Build the wheel</h2>
 
-<p class="ja">タイヤは<b>車体とは別のファイル</b>（<code>wheel.obj</code>）で作ります。KurumaMod 付属のタイヤを借りることもできる（<a href="#s9">9 章</a>）ので、車体を先に仕上げたい場合はこの章を飛ばしても構いません。</p>
-<p class="en">Wheels live in <b>a separate file</b> (<code>wheel.obj</code>). You can also borrow KurumaMod's own wheel (<a href="#s9">chapter 9</a>), so skip this chapter if you would rather finish the body first.</p>
+<p class="ja">タイヤは<b>車体とは別のファイル</b>（<code>wheel.obj</code>）で作ります。KurumaMod 付属のタイヤを借りることもできる（<a href="#s9">車の 6 章</a>）ので、車体を先に仕上げたい場合はこの章を飛ばしても構いません。</p>
+<p class="en">Wheels live in <b>a separate file</b> (<code>wheel.obj</code>). You can also borrow KurumaMod's own wheel (<a href="#s9">chapter 6 of the Car guide</a>), so skip this chapter if you would rather finish the body first.</p>
 
 <p class="ja">専用のゲージがあります。<code>Scripting</code> タブで <code>modeling_tools/blender_wheel_gauge.py</code> を実行してください（車体とは別のファイルで作業します）。</p>
 <p class="en">There is a gauge for it: run <code>modeling_tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab, in a fresh file.</p>
@@ -792,17 +867,17 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <p class="en">Write the radius you built at into <code>designWheelRadius</code> in the JSON. Do that and <b>the model follows when you change the tyre radius in the in-game tuning screen</b> — ride height rises and the car lifts while the tyres stay on the ground.</p>
 <div class="box tip ja">
 <span class="lbl">換装できるホイールとして配るなら</span>
-<p>車に最初から履かせるのではなく、ゲーム内の換装画面（<kbd>G</kbd> →「パーツ」）で選べる部品にしたいときは、<code>car_parts/</code> に置きます。書きかたは <a href="#s-parts">12 章</a>。メッシュの作りかたはこの章のままで、作った半径を <code>designRadius</code> に書きます。</p>
+<p>車に最初から履かせるのではなく、ゲーム内の換装画面（<kbd>G</kbd> →「パーツ」）で選べる部品にしたいときは、<code>car_parts/</code> に置きます。書きかたは <a href="#s-parts">2 章</a>。メッシュの作りかたはこの章のままで、作った半径を <code>designRadius</code> に書きます。</p>
 </div>
 <div class="box tip en">
 <span class="lbl">SHIPPING IT AS A SWAPPABLE WHEEL</span>
-<p>To make it a part players pick in the in-game fitment screen (<kbd>G</kbd> → "Parts") rather than the car's own wheel, put it under <code>car_parts/</code>. How to write that is in <a href="#s-parts">chapter 12</a>. Build the mesh exactly as in this chapter and write its radius into <code>designRadius</code>.</p>
+<p>To make it a part players pick in the in-game fitment screen (<kbd>G</kbd> → "Parts") rather than the car's own wheel, put it under <code>car_parts/</code>. How to write that is in <a href="#s-parts">chapter 2</a>. Build the mesh exactly as in this chapter and write its radius into <code>designRadius</code>.</p>
 </div>
 </section>
 
-<section id="s7">
-<h2 class="ja"><span class="num">7</span>色とテクスチャ</h2>
-<h2 class="en"><span class="num">7</span>Colour and texture</h2>
+<section id="s7" data-guide="car">
+<h2 class="ja"><span class="num">4</span>色とテクスチャ</h2>
+<h2 class="en"><span class="num">4</span>Colour and texture</h2>
 
 <p class="ja">テクスチャ（PNG）を貼らなくても走ります。まずは形だけ作って、あとから貼るのでも構いません。</p>
 <p class="en">The car drives without a texture. Build the shape first and paint it later if you prefer.</p>
@@ -818,26 +893,26 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 
 <h3 class="ja">UV を張らない場合</h3>
 <h3 class="en">Without UVs</h3>
-<p class="ja">UV 展開していないメッシュは、テクスチャの 1 点の色で塗りつぶされます。形を確かめる段階ではこれで十分です。灯火のレンズについては、<b>UV を展開しないほうが都合がよい</b>場合があります（<a href="#s5">5 章</a>）。</p>
-<p class="en">An unwrapped mesh is filled with the colour of a single texel — plenty while you are still checking the shape. For light lenses, <b>leaving them unwrapped is often the better choice</b> (<a href="#s5">chapter 5</a>).</p>
+<p class="ja">UV 展開していないメッシュは、テクスチャの 1 点の色で塗りつぶされます。形を確かめる段階ではこれで十分です。灯火のレンズについては、<b>UV を展開しないほうが都合がよい</b>場合があります（<a href="#s5">3 章</a>）。</p>
+<p class="en">An unwrapped mesh is filled with the colour of a single texel — plenty while you are still checking the shape. For light lenses, <b>leaving them unwrapped is often the better choice</b> (<a href="#s5">chapter 3</a>).</p>
 
 <h3 class="ja">テクスチャのファイル</h3>
 <h3 class="en">The texture file</h3>
 <ul class="ja">
 <li>形式は <b>PNG</b>。大きさに決まりはありません</li>
 <li>車体用とタイヤ用で別々に指定できます</li>
-<li>置き場所とパスの書き方は <a href="#s9">9 章</a></li>
+<li>置き場所とパスの書き方は <a href="#s9">6 章</a></li>
 </ul>
 <ul class="en">
 <li><b>PNG</b>, any resolution</li>
 <li>Body and wheel can point at different files</li>
-<li>Where it goes and how to write the path: <a href="#s9">chapter 9</a></li>
+<li>Where it goes and how to write the path: <a href="#s9">chapter 6</a></li>
 </ul>
 </section>
 
-<section id="s8">
-<h2 class="ja"><span class="num">8</span>書き出す</h2>
-<h2 class="en"><span class="num">8</span>Export</h2>
+<section id="s8" data-guide="car">
+<h2 class="ja"><span class="num">5</span>書き出す</h2>
+<h2 class="en"><span class="num">5</span>Export</h2>
 
 <p class="ja">いちばん間違えやすいところです。<b>チェックを 2 つ入れて、2 つは触らない</b>と覚えてください。</p>
 <p class="en">This is the easiest place to go wrong. Remember it as <b>tick two boxes, leave two alone</b>.</p>
@@ -895,9 +970,9 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </ul>
 </section>
 
-<section id="s9">
-<h2 class="ja"><span class="num">9</span>置き場所と JSON</h2>
-<h2 class="en"><span class="num">9</span>Where files go, and the JSON</h2>
+<section id="s9" data-guide="car">
+<h2 class="ja"><span class="num">6</span>置き場所と JSON</h2>
+<h2 class="en"><span class="num">6</span>Where files go, and the JSON</h2>
 
 <p class="ja">道は 2 つあります。<b>まずは A で確かめて、人に配る段になったら B</b> にするのが楽です。</p>
 <p class="en">There are two routes. <b>Use A while you iterate, and switch to B when you want to hand the car to someone else.</b></p>
@@ -946,7 +1021,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 │   ├── vehicles/ae86.json          ← 見た目の定義。この章の話
 │   └── lang/ja_jp.json             ← 表示名 car.mypack.ae86
 └── data/mypack/
-    └── cars/ae86.json              ← 諸元（サーバーが読む。11 章）</code></pre>
+    └── cars/ae86.json              ← 諸元（サーバーが読む。8 章）</code></pre>
 <pre class="en"><code>mypack.jar
 ├── META-INF/mods.toml
 ├── pack.mcmeta
@@ -956,20 +1031,20 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 │   ├── vehicles/ae86.json          &lt;- the look definition; this chapter
 │   └── lang/en_us.json             &lt;- display name car.mypack.ae86
 └── data/mypack/
-    └── cars/ae86.json              &lt;- specs (server reads these; chapter 11)</code></pre>
+    └── cars/ae86.json              &lt;- specs (server reads these; chapter 8)</code></pre>
 
 <p class="ja"><b>見本一式が <code>carpack/example/</code> にそのまま入っています。</b>コピーして、<code>kurumamod_example_carpack</code> を自分の名前に、<code>sample</code> を自分の車種名に置き換えるのが作業のほぼすべてです。</p>
 <p class="en"><b>A complete working example sits in <code>carpack/example/</code>.</b> Copy it and replace <code>kurumamod_example_carpack</code> with your own name and <code>sample</code> with your own car name — that is very nearly the whole job.</p>
 <table class="ja">
 <tr><th>id</th><th>何の見本か</th></tr>
 <tr><td><code>kurumamod_example_carpack:sample</code></td><td>車体メッシュ・テクスチャ・灯火まで自前で持つ、一通り揃った例</td></tr>
-<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>自前のメッシュを持つホイールの部品（<a href="#s-parts">12 章</a>）</td></tr>
+<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>自前のメッシュを持つホイールの部品（<a href="#s-parts">ホイールの 2 章</a>）</td></tr>
 <tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>ホイールの部品。換装画面のスライダーへ既定値を渡す例</td></tr>
 </table>
 <table class="en">
 <tr><th>Id</th><th>What it demonstrates</th></tr>
 <tr><td><code>kurumamod_example_carpack:sample</code></td><td>The full set — its own body mesh, texture and lights</td></tr>
-<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>A wheel part with its own mesh (<a href="#s-parts">chapter 12</a>)</td></tr>
+<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>A wheel part with its own mesh (<a href="#s-parts">chapter 2 of the Wheel guide</a>)</td></tr>
 <tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>A wheel part that hands defaults to the fitment sliders</td></tr>
 </table>
 <p class="ja">隣の <code>carpack/basic/</code> はプレイヤーへ配っている公式パックで、作りは同じです。<b>出来上がったパックに何が入るか</b>はそちらを見るとよいでしょう。</p>
@@ -1055,7 +1130,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。<b>右ハンドル。</b>助手席は左右反転で自動的に置かれます</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
-<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">10 章</a>）</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">7 章</a>）</td></tr>
 </table>
 <table class="en">
 <tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
@@ -1073,7 +1148,7 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. <b>Right-hand drive.</b> The passenger seat is mirrored automatically</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
-<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 10</a>)</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 7</a>)</td></tr>
 </table>
 
 <div class="box note ja">
@@ -1099,9 +1174,9 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 </ul>
 </section>
 
-<section id="s-sound">
-<h2 class="ja"><span class="num">10</span>音を付ける</h2>
-<h2 class="en"><span class="num">10</span>Add sounds</h2>
+<section id="s-sound" data-guide="car">
+<h2 class="ja"><span class="num">7</span>音を付ける</h2>
+<h2 class="en"><span class="num">7</span>Add sounds</h2>
 <p class="lead-in ja">音を用意しなければ KurumaMod の音で走ります。この章は飛ばしても構いません。</p>
 <p class="lead-in en">If you supply no sounds, the car uses KurumaMod's. You can skip this chapter.</p>
 
@@ -1118,8 +1193,10 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td><code>wind</code></td><td>風切り音</td><td>ループ。車速</td></tr>
 <tr><td><code>slip</code> / <code>slip_chatter</code></td><td>タイヤの悲鳴（伸ばし／刻み）</td><td>ループ。舗装路で滑ったとき。滑り始めの 0.6 秒だけ刻みが鳴る</td></tr>
 <tr><td><code>gravel</code> / <code>sand</code></td><td>砂利・土／砂・雪の路面音</td><td>ループ。未舗装を走っているとき</td></tr>
+<tr><td><code>turbo</code></td><td>ターボの過給音（ヒュイーン）</td><td>ループ。ブーストで音程と音量が上がる。<b>ターボの部品が付いているときだけ</b>鳴る</td></tr>
 <tr><td><code>shift</code></td><td>変速音</td><td>1 回</td></tr>
 <tr><td><code>crash</code></td><td>衝突音</td><td>1 回</td></tr>
+<tr><td><code>blowoff</code></td><td>ブローオフ（プシュッ）</td><td>1 回。ブーストが掛かった状態でアクセルを抜いたときとシフトアップのとき。<b>ブローオフバルブの部品が付いているときだけ</b>鳴る</td></tr>
 </table>
 <table class="en">
 <tr><th>Name</th><th>Sound</th><th>How it plays</th></tr>
@@ -1129,9 +1206,13 @@ kbd{font-size:.82em; border:1px solid var(--line); border-bottom-width:2px;
 <tr><td><code>wind</code></td><td>Wind</td><td>Loop. Speed</td></tr>
 <tr><td><code>slip</code> / <code>slip_chatter</code></td><td>Tyre squeal (sustained / chatter)</td><td>Loop. Sliding on tarmac; the chatter plays for the first 0.6 s of a slide</td></tr>
 <tr><td><code>gravel</code> / <code>sand</code></td><td>Gravel &amp; dirt / sand &amp; snow</td><td>Loop. Driving on loose ground</td></tr>
+<tr><td><code>turbo</code></td><td>Turbo spool whistle</td><td>Loop. Pitch and volume rise with boost. <b>Only plays when a turbo part is fitted</b></td></tr>
 <tr><td><code>shift</code></td><td>Gear change</td><td>One-shot</td></tr>
 <tr><td><code>crash</code></td><td>Impact</td><td>One-shot</td></tr>
+<tr><td><code>blowoff</code></td><td>Blow-off valve</td><td>One-shot. On a throttle lift or upshift under boost. <b>Only plays when a blow-off valve part is fitted</b></td></tr>
 </table>
+<p class="ja"><code>turbo</code> と <code>blowoff</code> は<b>音を差し替えるだけ</b>です。その車にターボが付くかどうかは音ではなく部品で決まります（<a href="#s-turbo">パーツの 1 章</a>）。</p>
+<p class="en"><code>turbo</code> and <code>blowoff</code> <b>only replace the sound</b>. Whether a car has a turbo is decided by parts, not sounds (<a href="#s-turbo">chapter 1 of the Parts guide</a>).</p>
 
 <h3 class="ja">手順</h3>
 <h3 class="en">Steps</h3>
@@ -1203,8 +1284,8 @@ assets/mypack/sounds.json</code></pre>
 
 <h4 class="ja">5. 車の JSON から指す</h4>
 <h4 class="en">5. Point the car at them</h4>
-<p class="ja"><code>vehicles/&lt;car&gt;.json</code>（<a href="#s9">9 章</a>）に <code>sounds</code> を足します。値は ogg のパスではなく、<b>手順 4 で付けた名前</b>です。</p>
-<p class="en">Add <code>sounds</code> to <code>vehicles/&lt;car&gt;.json</code> (<a href="#s9">chapter 9</a>). The values are <b>the names from step 4</b>, not ogg paths.</p>
+<p class="ja"><code>vehicles/&lt;car&gt;.json</code>（<a href="#s9">6 章</a>）に <code>sounds</code> を足します。値は ogg のパスではなく、<b>手順 4 で付けた名前</b>です。</p>
+<p class="en">Add <code>sounds</code> to <code>vehicles/&lt;car&gt;.json</code> (<a href="#s9">chapter 6</a>). The values are <b>the names from step 4</b>, not ogg paths.</p>
 <pre><code>"sounds": {
   "exhaust": "mypack:kei_exhaust",
   "exhaust_high": "mypack:kei_exhaust_high"
@@ -1222,11 +1303,11 @@ assets/mypack/sounds.json</code></pre>
 </div>
 </section>
 
-<section id="s-spec">
-<h2 class="ja"><span class="num">11</span>諸元（走り）を書く</h2>
-<h2 class="en"><span class="num">11</span>Write the spec (how it drives)</h2>
-<p class="ja">加速・ブレーキ・曲がりかたを決める値は <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> に書きます。<b>見た目の JSON（<a href="#s9">9 章</a>）とは置き場所が別</b>で、こちらはサーバーが読みます。</p>
-<p class="en">The values that decide acceleration, braking and cornering go in <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>. <b>They live apart from the look JSON (<a href="#s9">chapter 9</a>)</b>, and the server is what reads them.</p>
+<section id="s-spec" data-guide="car">
+<h2 class="ja"><span class="num">8</span>諸元（走り）を書く</h2>
+<h2 class="en"><span class="num">8</span>Write the spec (how it drives)</h2>
+<p class="ja">加速・ブレーキ・曲がりかたを決める値は <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> に書きます。<b>見た目の JSON（<a href="#s9">6 章</a>）とは置き場所が別</b>で、こちらはサーバーが読みます。</p>
+<p class="en">The values that decide acceleration, braking and cornering go in <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>. <b>They live apart from the look JSON (<a href="#s9">chapter 6</a>)</b>, and the server is what reads them.</p>
 
 <h3 class="ja">ゲーム内で作って書き出す</h3>
 <h3 class="en">Build it in game, then export</h3>
@@ -1254,14 +1335,14 @@ assets/mypack/sounds.json</code></pre>
 <li><code>values</code> … 諸元。<b>省略して根に直接書いてもよい</b></li>
 <li><b>書かなかった項目は既定値</b>。既定の車から変えたいところだけ書けばよく、KurumaMod の項目が増えても古いパックはそのまま読めます</li>
 <li><b><code>_</code> で始まるキーは読み飛ばされる</b>ので、<code>"_comment": "..."</code> で理由を残せます（JSON にはコメントが書けないため）</li>
-<li>書ける項目の全リストは<a href="#sc">付録 C</a>。書いても読まれない値は<a href="#sd">付録 D</a></li>
+<li>書ける項目の全リストは<a href="#sc">付録 A</a>。書いても読まれない値は<a href="#sd">付録 B</a></li>
 </ul>
 <ul class="en">
 <li><code>order</code> — sort order in the creative tab (default <code>100</code>)</li>
 <li><code>values</code> — the spec. <b>You may drop it and write the values at the root instead</b></li>
 <li><b>Anything you leave out falls back to the default.</b> Write only what differs from the default car — and old packs keep loading when KurumaMod adds parameters</li>
 <li><b>Keys starting with <code>_</code> are skipped</b>, so <code>"_comment": "..."</code> is how you leave a note (JSON has no comments)</li>
-<li>Every key is listed in <a href="#sc">Appendix C</a>; values that are ignored even if written are in <a href="#sd">Appendix D</a></li>
+<li>Every key is listed in <a href="#sc">Appendix A</a>; values that are ignored even if written are in <a href="#sd">Appendix B</a></li>
 </ul>
 
 <div class="box warn ja">
@@ -1294,11 +1375,11 @@ assets/mypack/sounds.json</code></pre>
 <p class="en">After an edit, <code>/reload</code> picks it up (not <kbd>F3</kbd>+<kbd>T</kbd>).</p>
 </section>
 
-<section id="s-parts">
-<h2 class="ja"><span class="num">12</span>ホイールを部品にする</h2>
-<h2 class="en"><span class="num">12</span>Make a wheel a part</h2>
-<p class="ja"><b>車種と同じ形で、ホイールも足せます。</b>足したホイールは、ゲーム内で <kbd>G</kbd> →「パーツ」の換装画面に並びます。メッシュの作りかたは <a href="#s6">6 章</a>のままです。</p>
-<p class="en"><b>Wheels are added the same way as cars.</b> They show up in the in-game parts screen — <kbd>G</kbd> → "Parts". Build the mesh exactly as in <a href="#s6">chapter 6</a>.</p>
+<section id="s-parts" data-guide="wheel">
+<h2 class="ja"><span class="num">2</span>ホイールを部品にする</h2>
+<h2 class="en"><span class="num">2</span>Make a wheel a part</h2>
+<p class="ja"><b>車種と同じ形で、ホイールも足せます。</b>足したホイールは、ゲーム内で <kbd>G</kbd> →「パーツ」の換装画面に並びます。メッシュの作りかたは <a href="#s6">1 章</a>のままです。</p>
+<p class="en"><b>Wheels are added the same way as cars.</b> They show up in the in-game parts screen — <kbd>G</kbd> → "Parts". Build the mesh exactly as in <a href="#s6">chapter 1</a>.</p>
 <p class="ja">見本は 2 つあります。<code>sample_wheel</code> は自前のメッシュを持つホイールで、<b>作るならこちらを写します</b>。<code>deep_dish</code> はメッシュを持たず、既定のホイールを太く・斜めにしているだけです（スライダーの既定値を渡す例）。</p>
 <p class="en">There are two examples. <code>sample_wheel</code> has its own mesh — <b>copy that one when you build a wheel</b>. <code>deep_dish</code> has no mesh; it only widens and tilts the default wheel (an example of handing defaults to the sliders).</p>
 
@@ -1327,12 +1408,12 @@ assets/mypack/sounds.json</code></pre>
   "cars": ["mypack:kei", "mypack:kei_van"]
 }</code></pre>
 <ul class="ja">
-<li><code>slot</code> … 付ける場所。いまは <code>"wheel"</code> だけ。<b>書かないとその部品は捨てられます</b></li>
+<li><code>slot</code> … 付ける場所。<code>"wheel"</code>・<code>"turbo"</code>・<code>"blowoff"</code>（ターボとブローオフは<a href="#s-turbo">パーツの 1 章</a>）。<b>書かないとその部品は捨てられます</b></li>
 <li><code>order</code> … 換装画面に並ぶ順（小さいほど左）。省略時 100</li>
 <li><code>cars</code> … <b>付けられる車種を絞る。</b>省略すればどの車種にも並びます。書けばその車種の換装画面にだけ並び、サーバーも他の車種には履かせません。<b>別のパックの車種を書いてもよい</b>（<code>kurumamod:car</code> は同梱の既定車）</li>
 </ul>
 <ul class="en">
-<li><code>slot</code> — where it fits. Only <code>"wheel"</code> exists for now. <b>Leave it out and the part is dropped</b></li>
+<li><code>slot</code> — where it fits: <code>"wheel"</code>, <code>"turbo"</code> or <code>"blowoff"</code> (turbos and blow-off valves are in <a href="#s-turbo">chapter 1 of the Parts guide</a>). <b>Leave it out and the part is dropped</b></li>
 <li><code>order</code> — position in the parts screen (smaller is further left). 100 if omitted</li>
 <li><code>cars</code> — <b>restricts which cars can fit it.</b> Leave it out and the part is offered on every car. List cars and it only appears in their parts screen, and the server refuses to fit it to anything else. <b>Cars from other packs are fine</b> (<code>kurumamod:car</code> is the built-in default car)</li>
 </ul>
@@ -1363,13 +1444,14 @@ assets/mypack/sounds.json</code></pre>
 <li>The X of <code>offset</code>, the X of <code>scale</code> and <code>camber</code> become the <b>defaults</b> of the sliders in the parts screen. Players can move them, and "R" returns to your values</li>
 <li><b>Looks only — driving does not change</b> (grip and cornering stay the same)</li>
 </ul>
-<p class="ja">全項目は<a href="#se">付録 E</a>。いまの割り切り: <b>前後で別のホイールは履けません</b>（4 輪とも同じ部品）。付ける場所はホイールだけです。</p>
-<p class="en">Every key is in <a href="#se">Appendix E</a>. Current limits: <b>front and rear cannot wear different wheels</b> (all four share one part), and wheels are the only slot.</p>
+<p class="ja">全項目は<a href="#se">付録 A</a>。いまの割り切り: <b>前後で別のホイールは履けません</b>（4 輪とも同じ部品）。</p>
+<p class="en">Every key is in <a href="#se">Appendix A</a>. Current limit: <b>front and rear cannot wear different wheels</b> (all four share one part).</p>
+
 </section>
 
-<section id="s-jar">
-<h2 class="ja"><span class="num">13</span>jar に固めて配る</h2>
-<h2 class="en"><span class="num">13</span>Pack it into a jar and ship it</h2>
+<section id="s-jar" data-guide="common">
+<h2 class="ja"><span class="num">4</span>jar に固めて配る</h2>
+<h2 class="en"><span class="num">4</span>Pack it into a jar and ship it</h2>
 <p class="ja"><b>カーパックはコードを持たない MOD jar です。</b>フォルダの中身を zip で固めて <code>.jar</code> に改名し、<code>mods/</code> に入れるだけ。<b>まず見本（<code>carpack/example/</code>）をそのまま固めて動かしてみる</b>と、手順が 1 度で分かります。</p>
 <p class="en"><b>A car pack is a mod jar with no code in it.</b> Zip the contents of the folder, rename it to <code>.jar</code> and put it in <code>mods/</code>. <b>Try it first on the example (<code>carpack/example/</code>) as it is</b> — you will learn the whole routine in one go.</p>
 <pre><code>cd carpack/example
@@ -1404,9 +1486,9 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <p class="en"><b>The example is free to use.</b> Copy it as the base of your own pack. No credit, no permission needed.</p>
 </section>
 
-<section id="s10">
-<h2 class="ja"><span class="num">14</span>確認する</h2>
-<h2 class="en"><span class="num">14</span>Check it in game</h2>
+<section id="s10" data-guide="common">
+<h2 class="ja"><span class="num">5</span>確認する</h2>
+<h2 class="en"><span class="num">5</span>Check it in game</h2>
 
 <p class="ja">ゲームを起動して車に乗り、<kbd>F3</kbd>+<kbd>T</kbd> を押します。モデル・テクスチャ・<code>vehicles/*.json</code> がその場で読み直されるので、<b>Blender で直して書き出す → F3+T</b> を繰り返して詰めていきます。</p>
 <p class="en">Start the game, get in the car, press <kbd>F3</kbd>+<kbd>T</kbd>. The model, the texture and <code>vehicles/*.json</code> all reload on the spot, so the loop is <b>fix it in Blender → export → F3+T</b>.</p>
@@ -1444,9 +1526,9 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </div>
 </section>
 
-<section id="s11">
-<h2 class="ja"><span class="num">15</span>症状別の直しかた</h2>
-<h2 class="en"><span class="num">15</span>Troubleshooting</h2>
+<section id="s11" data-guide="common">
+<h2 class="ja"><span class="num">6</span>症状別の直しかた</h2>
+<h2 class="en"><span class="num">6</span>Troubleshooting</h2>
 
 <p class="ja"><b>カーパックは失敗しても黙っています。</b>壊れた JSON もずれた名前も、その 1 件を捨てて先へ進むので、症状から当たりを付けます。</p>
 <p class="en"><b>Car packs fail silently.</b> A broken JSON or a mistyped name is dropped and loading carries on, so you diagnose from the symptom.</p>
@@ -1483,7 +1565,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><td>差し替えた音が鳴らず、KurumaMod の音のまま</td><td><code>sounds</code> の値が <code>sounds.json</code> の名前と一致しているか。ログに <code>指定されたサウンドイベントが sounds.json にありません</code> と出ます</td></tr>
 <tr><td>音がまったく鳴らない</td><td>ogg 以外（mp3・wav）を置いていないか。<code>sounds.json</code> の <code>"name"</code> に拡張子を付けていないか</td></tr>
 <tr><td>どこにいても同じ大きさで聞こえる</td><td>ogg がステレオ。モノラルにする</td></tr>
-<tr><td>エンジン音がレブ付近で上がりきらない</td><td><code>exhaust_high</code> を置いていない（<a href="#s-sound">10 章</a>の手順 2）</td></tr>
+<tr><td>エンジン音がレブ付近で上がりきらない</td><td><code>exhaust_high</code> を置いていない（<a href="#s-sound">車の 7 章</a>の手順 2）</td></tr>
 <tr><td>エンジン音が周期的にうねる</td><td>素材の音量が一定でない。均してから書き出す</td></tr>
 </table>
 <table class="en">
@@ -1518,14 +1600,14 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><td>A replaced sound plays KurumaMod's instead</td><td>Does the value in <code>sounds</code> match a name in <code>sounds.json</code>? The log says <code>指定されたサウンドイベントが sounds.json にありません</code></td></tr>
 <tr><td>No sound at all</td><td>Is the file something other than ogg (mp3, wav)? Did you put an extension on <code>"name"</code> in <code>sounds.json</code>?</td></tr>
 <tr><td>Equally loud everywhere</td><td>The ogg is stereo. Make it mono</td></tr>
-<tr><td>The engine stops rising near the redline</td><td>No <code>exhaust_high</code> (step 2 of <a href="#s-sound">chapter 10</a>)</td></tr>
+<tr><td>The engine stops rising near the redline</td><td>No <code>exhaust_high</code> (step 2 of <a href="#s-sound">chapter 7 of the Car guide</a>)</td></tr>
 <tr><td>The engine swells periodically</td><td>The level inside the file is not steady. Even it out before exporting</td></tr>
 </table>
 </section>
 
-<section id="s12">
-<h2 class="ja"><span class="num">16</span>チェックリスト</h2>
-<h2 class="en"><span class="num">16</span>Checklists</h2>
+<section id="s12" data-guide="common">
+<h2 class="ja"><span class="num">7</span>チェックリスト</h2>
+<h2 class="en"><span class="num">7</span>Checklists</h2>
 
 <h3 class="ja">書き出す前（Blender）</h3>
 <h3 class="en">Before exporting (in Blender)</h3>
@@ -1617,7 +1699,68 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </ul>
 </section>
 
-<section id="sa">
+<section id="s-turbo" data-guide="parts">
+<h2 class="ja"><span class="num">1</span>ターボとブローオフバルブ</h2>
+<h2 class="en"><span class="num">1</span>Turbos and blow-off valves</h2>
+<p class="ja"><b>ターボは走りが変わる部品です。</b>付けると、過給（ブースト）がかかったぶんだけエンジンのトルクが増えます。ブーストは踏んでから遅れて上がる（ターボラグ）ので、低い回転からいきなり全開にしても、すぐには力が出ません。メーターには TURBO ランプが出て、過給の強さに合わせて光ります。</p>
+<p class="en"><b>A turbo is a part that changes how the car drives.</b> Fitted, it adds engine torque in proportion to boost. Boost builds with a delay after you press the throttle (turbo lag), so flooring it from low revs does not deliver power straight away. A TURBO lamp appears on the gauges and glows with boost.</p>
+<p class="ja"><b>ブローオフバルブは音だけの部品です。</b>付けると、ブーストがかかった状態でアクセルを抜いたときに「プシュッ」と鳴ります。走りは変わりません。<b>ターボが付いているときだけ</b>換装画面に「ブローオフ」のタブが現れます。</p>
+<p class="en"><b>A blow-off valve is a sound-only part.</b> Fitted, it vents with a "pssh" when you lift off under boost. Driving does not change. The "Blow-off" tab only appears in the parts screen <b>once a turbo is fitted</b>.</p>
+<p class="ja">KurumaMod には「純正タービン」「ビッグタービン」「大気開放」が同梱されています。どれも見た目の JSON（<code>assets/</code>）は要りません。<b>いまは車の見た目は変わりません</b>（換装画面のタイルの絵とメーターだけ）。</p>
+<p class="en">KurumaMod ships a "Stock turbo", a "Big turbo" and an "Atmospheric" valve. None of them needs a looks JSON (<code>assets/</code>). <b>They do not change how the car looks yet</b> (only the tile icon in the parts screen and the gauges).</p>
+
+<h4 class="ja">ターボ — <code>data/mypack/car_parts/my_turbo.json</code></h4>
+<h4 class="en">Turbo — <code>data/mypack/car_parts/my_turbo.json</code></h4>
+<pre><code>{
+  "slot": "turbo",
+  "order": 30,
+  "turbo": {
+    "boost": 0.50,
+    "spool_from": 0.30,
+    "spool_full": 0.65,
+    "spool_rate": 2.0
+  }
+}</code></pre>
+<ul class="ja">
+<li><code>boost</code> … <b>ブーストがいっぱいのとき、トルクを何割増やすか。</b>0.5 なら 1.5 倍。0〜1.5</li>
+<li><code>spool_from</code> / <code>spool_full</code> … 過給が<b>立ち上がり始める回転と、いっぱいになる回転</b>。rpm ではなく<b>アイドルを 0、レブリミットを 1 とした割合</b>で書きます。こうしておくと、レブの違う車に付けても同じ性格になります。大きいタービンほど高い回転へ寄せます</li>
+<li><code>spool_rate</code> … <b>ブーストが上がる速さ</b> [1/秒]。小さいほどターボラグが長い。回転が高いほど速く上がります。0.1〜20</li>
+<li>範囲の外の値は端へ丸めます。<code>turbo</code> を書かなかった項目は純正タービンくらいの値になります</li>
+</ul>
+<ul class="en">
+<li><code>boost</code> — <b>how much extra torque at full boost.</b> 0.5 means 1.5×. 0 to 1.5</li>
+<li><code>spool_from</code> / <code>spool_full</code> — <b>where boost starts to build, and where it is full.</b> Written not in rpm but as <b>a fraction from idle (0) to the rev limit (1)</b>, so the turbo behaves the same on a car with a different rev limit. Bigger turbos sit higher</li>
+<li><code>spool_rate</code> — <b>how fast boost builds</b> [1/s]. Smaller means more lag. It builds faster at higher revs. 0.1 to 20</li>
+<li>Out-of-range values are clamped. Anything you leave out of <code>turbo</code> takes roughly stock-turbo values</li>
+</ul>
+<p class="ja">同梱の 2 つの値（比べる目安）:</p>
+<p class="en">The two bundled turbos, for reference:</p>
+<table class="ja">
+<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>既定の車の 0-160km/h</th></tr>
+<tr><td>なし</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 秒</td></tr>
+<tr><td>純正タービン</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 秒</td></tr>
+<tr><td>ビッグタービン</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 秒</td></tr>
+</table>
+<table class="en">
+<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>Default car 0-160 km/h</th></tr>
+<tr><td>None</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 s</td></tr>
+<tr><td>Stock turbo</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 s</td></tr>
+<tr><td>Big turbo</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 s</td></tr>
+</table>
+
+<h4 class="ja">ブローオフバルブ — <code>data/mypack/car_parts/my_bov.json</code></h4>
+<h4 class="en">Blow-off valve — <code>data/mypack/car_parts/my_bov.json</code></h4>
+<pre><code>{
+  "slot": "blowoff",
+  "order": 20
+}</code></pre>
+<p class="ja">性能の項目はありません。音を変えたいときは、その車の <code>vehicles/&lt;car&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="#s-sound">車の 7 章</a>）。</p>
+<p class="en">There are no performance keys. To change the sound, set <code>"blowoff"</code> in the car's <code>sounds</code> in <code>vehicles/&lt;car&gt;.json</code> (<a href="#s-sound">chapter 7 of the Car guide</a>).</p>
+<p class="ja"><code>cars</code> で付けられる車種を絞れるのはホイールと同じです（ディーゼル車専用のタービン、など）。表示名は <code>part.mypack.my_turbo</code> を lang に書きます。</p>
+<p class="en">As with wheels, <code>cars</code> restricts which cars can fit the part (a turbo only for a diesel, say). The display name is <code>part.mypack.my_turbo</code> in lang.</p>
+</section>
+
+<section id="sa" data-guide="common">
 <h2 class="ja">付録 A. 座標系</h2>
 <h2 class="en">Appendix A. Axes</h2>
 
@@ -1643,7 +1786,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <p class="en">UVs are flipped vertically too (0 is the bottom in OBJ, the top in Minecraft), but that is also handled on load, so there is nothing to do in Blender.</p>
 </section>
 
-<section id="sb">
+<section id="sb" data-guide="common">
 <h2 class="ja">付録 B. 用語</h2>
 <h2 class="en">Appendix B. Glossary</h2>
 <table class="ja">
@@ -1672,11 +1815,11 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </table>
 </section>
 
-<section id="sc">
-<h2 class="ja">付録 C. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
-<h2 class="en">Appendix C. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（51 項目）。書き方は <a href="#s-spec">11 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
-<p class="en">That is all of them (51 keys). How to write them is in <a href="#s-spec">chapter 11</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<section id="sc" data-guide="car">
+<h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
+<h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
+<p class="ja">これで全部（51 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="en">That is all of them (51 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -1861,9 +2004,9 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </table>
 </section>
 
-<section id="sd">
-<h2 class="ja">付録 D. 書いても読まれない値</h2>
-<h2 class="en">Appendix D. Values ignored even if you write them</h2>
+<section id="sd" data-guide="car">
+<h2 class="ja">付録 B. 書いても読まれない値</h2>
+<h2 class="en">Appendix B. Values ignored even if you write them</h2>
 <p class="ja"><b>他の諸元から決まる値は、書いても黙って捨てられます。</b>KurumaMod が計算します。</p>
 <p class="en"><b>Values that follow from other values are silently dropped.</b> KurumaMod computes them.</p>
 <table class="ja">
@@ -1890,25 +2033,33 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <p class="en">So there is no cross-checking to do — no "I changed the tyre radius, now fix the final drive", no "I changed the dimensions, now fix the inertia". Change the radius and the gearing, ride height and climbing ability all move with it.</p>
 </section>
 
-<section id="se">
-<h2 class="ja">付録 E. 部品の全項目</h2>
-<h2 class="en">Appendix E. Every part key</h2>
+<section id="se" data-guide="wheel parts">
+<h2 class="ja">付録 A. 部品の全項目</h2>
+<h2 class="en">Appendix A. Every part key</h2>
 <h4 class="ja">素性 — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
-<tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。いまは <code>"wheel"</code> だけ</td></tr>
+<tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。<code>"wheel"</code>・<code>"turbo"</code>・<code>"blowoff"</code></td></tr>
 <tr><td><code>order</code></td><td>整数</td><td><code>100</code></td><td>換装画面に並ぶ順</td></tr>
 <tr><td><code>cars</code></td><td>車種 id の配列</td><td>（すべての車種）</td><td>付けられる車種。読める値が 1 つも無ければ、その部品は捨てられる</td></tr>
+<tr><td><code>turbo.boost</code></td><td>数字</td><td><code>0.35</code></td><td>ターボだけ。ブーストいっぱいでトルクを何割増やすか（0〜1.5）</td></tr>
+<tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1）</td></tr>
+<tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合</td></tr>
+<tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
 </table>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits. Only <code>"wheel"</code> for now</td></tr>
+<tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits: <code>"wheel"</code>, <code>"turbo"</code> or <code>"blowoff"</code></td></tr>
 <tr><td><code>order</code></td><td>integer</td><td><code>100</code></td><td>Position in the parts screen</td></tr>
 <tr><td><code>cars</code></td><td>array of car ids</td><td>(every car)</td><td>Which cars can fit it. If none of the values can be read, the part is dropped</td></tr>
+<tr><td><code>turbo.boost</code></td><td>number</td><td><code>0.35</code></td><td>Turbos only. Extra torque at full boost (0 to 1.5)</td></tr>
+<tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1)</td></tr>
+<tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full</td></tr>
+<tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
 </table>
-<h4 class="ja">見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"wheel": { ... }</code> の中。入れ子を省いて根に書いてもよい）</h4>
-<h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting)</h4>
+<h4 class="ja">見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"wheel": { ... }</code> の中。入れ子を省いて根に書いてもよい。<b>ホイールだけ</b>。ターボとブローオフには要らない）</h4>
+<h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting). <b>Wheels only</b>; turbos and blow-off valves need none</h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
 <tr><td><code>model</code></td><td>id</td><td>その車種の <code>wheel.model</code></td><td>ホイールの OBJ</td></tr>
@@ -1930,8 +2081,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </section>
 
 <footer>
-  <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">付録 C</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
-  <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix C</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
 </footer>
 
 </main>
@@ -1964,6 +2115,70 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
     var button = e.target.closest ? e.target.closest('button') : null;
     if (button) apply(button.getAttribute('data-set'));
   });
+})();
+</script>
+<script>
+(function(){
+  // ページの切り替え。<b>1 枚の HTML のまま</b>配れるように、別ファイルにはせず JavaScript で見せ分ける。
+  // 他のページの章へのリンク（「6 章」など）を押したら、そのページへ移ってからその章へ飛ぶ
+  var root = document.documentElement;
+  var PAGES = ['home', 'car', 'wheel', 'parts', 'common'];
+  function isPage(name){ return PAGES.indexOf(name) >= 0; }
+  function pageOf(el){
+    var section = el.closest ? el.closest('section[data-guide]') : null;
+    return section ? section.getAttribute('data-guide').split(' ')[0] : null;
+  }
+  function show(page){
+    if (!isPage(page)) page = 'home';
+    root.setAttribute('data-page', page);
+    var buttons = document.querySelectorAll('.pagesw button');
+    for (var i = 0; i < buttons.length; i++){
+      var on = buttons[i].getAttribute('data-page') === page;
+      buttons[i].classList.toggle('on', on);
+      buttons[i].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    try { localStorage.setItem('kurumamod-guide-page', page); } catch (e) {}
+  }
+  // 見出しや章の id でも、ページ名（#car など）でも受ける
+  function go(target, push){
+    var el = isPage(target) ? null : document.getElementById(target);
+    var page = isPage(target) ? target : (el ? pageOf(el) : null);
+    if (!page) return false;
+    // 2 つのページに属する章（付録 E）は、いま見ているページのままにする
+    var current = root.getAttribute('data-page');
+    var section = el && el.closest ? el.closest('section[data-guide]') : null;
+    if (section && current && (' ' + section.getAttribute('data-guide') + ' ').indexOf(' ' + current + ' ') >= 0) {
+      page = current;
+    }
+    show(page);
+    if (push && history.pushState) history.pushState(null, '', '#' + target);
+    if (el) {
+      el.scrollIntoView();
+    } else {
+      window.scrollTo(0, 0);
+    }
+    return true;
+  }
+  document.addEventListener('click', function(e){
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) {
+      var target = a.getAttribute('href').slice(1);
+      if (target && go(target, true)) e.preventDefault();
+      return;
+    }
+    var button = e.target.closest ? e.target.closest('.pagesw button') : null;
+    if (button) go(button.getAttribute('data-page'), true);
+  });
+  window.addEventListener('popstate', function(){
+    var hash = location.hash.slice(1);
+    if (!hash || !go(hash, false)) show('home');
+  });
+  var hash = location.hash.slice(1);
+  if (!hash || !go(hash, false)) {
+    var saved = null;
+    try { saved = localStorage.getItem('kurumamod-guide-page'); } catch (e) {}
+    show(isPage(saved) ? saved : 'home');
+  }
 })();
 </script>
 </body>
