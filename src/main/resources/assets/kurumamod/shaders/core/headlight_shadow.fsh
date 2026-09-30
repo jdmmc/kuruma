@@ -53,43 +53,56 @@ int wrap(int v, int n) {
     return m < 0 ? m + n : m;
 }
 
-// そのブロックが光を遮る高さの範囲（0..1）。遮らなければ (0, 0)。
-// local はカメラのいるブロックを原点にしたブロックの座標
-vec2 occluder(ivec3 local) {
+// ブロックが光を遮る箱の、ブロック内での下端（xyz）と上端（xyz）。遮らなければ上端 ≦ 下端。
+// 詰め方は HeadlightShadows#occlusion
+void occluderBox(ivec3 local, out vec3 lo, out vec3 hi) {
+    lo = vec3(0.0);
+    hi = vec3(0.0);
     int n = int(GridSize.x);
     int ny = int(GridSize.y);
     if (local.x < -n / 2 || local.x >= n / 2 || local.z < -n / 2 || local.z >= n / 2
             || local.y < -ny / 2 || local.y >= ny / 2) {
-        return vec2(0.0);
+        return;
     }
     ivec3 world = local + ivec3(CameraBlock);
     ivec2 texel = ivec2(wrap(world.x, n) + wrap(world.y, ny) * n, wrap(world.z, n));
-    return texelFetch(VoxelSampler, texel, 0).rg;
+    vec4 v = texelFetch(VoxelSampler, texel, 0);
+    int bx = int(v.b * 255.0 + 0.5);
+    int bz = int(v.a * 255.0 + 0.5);
+    lo = vec3(float(bx / 16) / 16.0, v.r, float(bz / 16) / 16.0);
+    hi = vec3(float(bx - (bx / 16) * 16 + 1) / 16.0, v.g, float(bz - (bz / 16) * 16 + 1) / 16.0);
 }
 
-// 光線がブロック cell の中を t0..t1 で通るとき、遮る範囲に入る距離。入らなければ -1
-float hit(ivec3 cell, vec3 origin, vec3 dir, float t0, float t1) {
-    vec2 range = occluder(cell);
-    if (range.y <= range.x) {
+// 光線が t0..t1 でブロック cell を通るとき、遮る箱に入る距離。入らなければ -1
+float boxHit(ivec3 cell, vec3 origin, vec3 invDir, float t0, float t1) {
+    vec3 lo;
+    vec3 hi;
+    occluderBox(cell, lo, hi);
+    if (hi.y <= lo.y) {
         return -1.0;
     }
-    float y0 = origin.y + dir.y * t0 - float(cell.y);
-    float y1 = origin.y + dir.y * t1 - float(cell.y);
-    if (max(y0, y1) < range.x || min(y0, y1) > range.y) {
-        return -1.0;
-    }
-    if (y0 >= range.x && y0 <= range.y) {
-        return t0;
-    }
-    // 上か下から範囲へ入る
-    float edge = y0 > range.y ? range.y : range.x;
-    return t0 + (y0 - edge) / (y0 - y1) * (t1 - t0);
+    vec3 a = (vec3(cell) + lo - origin) * invDir;
+    vec3 b = (vec3(cell) + hi - origin) * invDir;
+    vec3 near = min(a, b);
+    vec3 far = max(a, b);
+    float enter = max(max(near.x, near.y), max(near.z, t0));
+    float exit = min(min(far.x, far.y), min(far.z, t1));
+    return enter <= exit ? enter : -1.0;
+}
+
+// 向きの逆数（成分が 0 でも割り算で飛ばさない）
+vec3 inverseDir(vec3 dir) {
+    return vec3(
+            1.0 / (abs(dir.x) > 1.0e-6 ? dir.x : 1.0e-6),
+            1.0 / (abs(dir.y) > 1.0e-6 ? dir.y : 1.0e-6),
+            1.0 / (abs(dir.z) > 1.0e-6 ? dir.z : 1.0e-6));
 }
 
 float march(vec3 origin, vec3 dir) {
     ivec3 cell = ivec3(floor(origin));
     ivec3 stepDir = ivec3(sign(dir));
     vec3 inv = 1.0 / max(abs(dir), vec3(1.0e-6));
+    vec3 invDir = inverseDir(dir);
     vec3 next = vec3(
             (dir.x > 0.0 ? float(cell.x) + 1.0 - origin.x : origin.x - float(cell.x)) * inv.x,
             (dir.y > 0.0 ? float(cell.y) + 1.0 - origin.y : origin.y - float(cell.y)) * inv.y,
@@ -98,7 +111,7 @@ float march(vec3 origin, vec3 dir) {
     for (int i = 0; i < MAX_STEPS; i++) {
         float tExit = min(next.x, min(next.y, next.z));
         if (tExit > START) {
-            float h = hit(cell, origin, dir, max(t, START), tExit);
+            float h = boxHit(cell, origin, invDir, max(t, START), tExit);
             if (h >= 0.0) {
                 return h;
             }
