@@ -95,6 +95,7 @@ public final class CarHelp {
         lines.add(new Line(key(KurumaKeys.OPEN_TUNING), "help.kurumamod.tuning"));
         lines.add(new Line(key(KurumaKeys.OPEN_MENU), "help.kurumamod.menu"));
         lines.add(new Line(key(KurumaKeys.TOGGLE_HEADLIGHTS), "help.kurumamod.headlights"));
+        lines.add(new Line(key(KurumaKeys.OPEN_HEADLIGHT_SETTINGS), "help.kurumamod.headlight_settings"));
         lines.add(new Line(key(KurumaKeys.TOGGLE_CAMERA), "help.kurumamod.camera"));
         lines.add(new Line(key(KurumaKeys.CAMERA_CLOSER) + "/" + key(KurumaKeys.CAMERA_FARTHER),
                 "help.kurumamod.camera_distance"));

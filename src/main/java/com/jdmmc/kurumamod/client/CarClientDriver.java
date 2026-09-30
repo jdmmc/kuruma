@@ -66,6 +66,11 @@ public final class CarClientDriver {
         while (KurumaKeys.OPEN_MENU.consumeClick()) {
             minecraft.setScreen(new KurumaMenuScreen(null));
         }
+        while (KurumaKeys.OPEN_HEADLIGHT_SETTINGS.consumeClick()) {
+            if (minecraft.screen == null) {
+                minecraft.setScreen(new HeadlightScreen());
+            }
+        }
         while (KurumaKeys.TOGGLE_CAMERA.consumeClick()) {
             CarCamera.toggle();
         }
