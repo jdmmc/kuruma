@@ -356,9 +356,9 @@ public final class CarLights {
      * <p>1 灯を行列 1 つで渡す。列 0 = 位置（カメラ基準）と届く距離、列 1 = 光軸と強さ、
      * 列 2 = 右、列 3 = 上。</p>
      *
-     * <p><b>届く距離は光軸に沿って 1 本だけ光線を飛ばして決める。</b>画素ごとの計算は
-     * 深度しか知らないので、そのままでは壁の向こう側の霧まで光る（横から見ると光線が
-     * 壁を突き抜けて見える）。</p>
+     * <p>届く距離（列 0 の w）は今は使っていない（大きな値を入れる）。以前は光軸に沿って
+     * 1 本だけ光線を飛ばして決めていたが、光軸から外れた幹が影を落とさなかった。
+     * 遮るのは {@link HeadlightShadows} の仕事。</p>
      */
     static int collectLamps(CarEntity car, float partialTick, Vec3 camera, Matrix4f[] out, int start) {
         CarModel carModel = CarModel.get(car.getCarId());
@@ -381,10 +381,8 @@ public final class CarLights {
                 break;
             }
             Vec3 from = origin.add(lamp);
-            Vec3 to = from.add(beam.axis.scale(REACH_PROBE));
-            BlockHitResult hit = car.level().clip(new ClipContext(from, to,
-                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, car));
-            double reach = hit.getType() == HitResult.Type.MISS ? 1000.0 : hit.getLocation().distanceTo(from);
+            // 壁で光を止めるのは影（HeadlightShadows）の仕事。ここでは切らない
+            double reach = 1000.0;
             Vec3 at = from.subtract(camera);
             Matrix4f m = new Matrix4f();
             m.setColumn(0, new Vector4f((float) at.x, (float) at.y, (float) at.z, (float) reach));
@@ -396,9 +394,6 @@ public final class CarLights {
         }
         return count;
     }
-
-    /** 届く距離を調べる光線の長さ [m]。光線の描く長さ（シェーダーの VOLUME_LENGTH）より少し長く。 */
-    private static final double REACH_PROBE = 48.0;
 
     /**
      * サスの沈み込みで生じた前後の傾き [rad]。正で鼻上げ（前のサスが長い）。

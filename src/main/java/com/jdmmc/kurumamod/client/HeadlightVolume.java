@@ -83,6 +83,8 @@ public final class HeadlightVolume {
     private static final float THUNDER_FOG = 0.03F;
 
     private static ShaderInstance shader;
+    /** ランプから見た距離の地図を描く（{@link HeadlightShadows}）。 */
+    private static ShaderInstance shadowShader;
     private static Boolean shaderPack;
     /** 主画面の色と深度の写し。シェーダーはこれを読み、主画面へ書く。 */
     private static TextureTarget copy;
@@ -98,7 +100,7 @@ public final class HeadlightVolume {
         if (shaderPack == null) {
             shaderPack = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
         }
-        return shader != null && !shaderPack;
+        return shader != null && shadowShader != null && !shaderPack;
     }
 
     /** シェーダーの登録。<b>mod のイベントバス</b>に飛んでくる。 */
@@ -114,10 +116,15 @@ public final class HeadlightVolume {
                                 new ResourceLocation(Kurumamod.MODID, "headlight_volume"),
                                 DefaultVertexFormat.POSITION),
                         loaded -> shader = loaded);
+                event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                                new ResourceLocation(Kurumamod.MODID, "headlight_shadow"),
+                                DefaultVertexFormat.POSITION),
+                        loaded -> shadowShader = loaded);
             } catch (IOException e) {
                 // 光が描けないだけで遊べなくはない。形を積む代用に落ちる
                 LOGGER.error("ヘッドライトのシェーダーを読めなかった。形を積む描き方で代用する", e);
                 shader = null;
+                shadowShader = null;
             }
         }
     }
@@ -191,6 +198,11 @@ public final class HeadlightVolume {
         int height = main.height;
         copy = snapshot(copy, main);
 
+        // 影。ブロックの格子を少し読み直してから、ランプから見た距離の地図を描く
+        Vec3 camera = event.getCamera().getPosition();
+        HeadlightShadows.update(level, camera);
+        HeadlightShadows.renderMap(shadowShader, LAMPS, count, MAX_LAMPS, camera, main);
+
         // 画面の座標から、カメラを原点にした世界の向きの座標へ戻す行列
         Matrix4f inverse = new Matrix4f(event.getProjectionMatrix())
                 .mul(VIEW)
@@ -200,6 +212,11 @@ public final class HeadlightVolume {
         shader.setSampler("FinalDepthSampler", copy.getDepthTextureId());
         shader.setSampler("SolidSampler", solid.getColorTextureId());
         shader.setSampler("DepthSampler", solid.getDepthTextureId());
+        shader.setSampler("ShadowSampler", HeadlightShadows.mapTexture());
+        shader.setSampler("VoxelSampler", HeadlightShadows.voxelTexture());
+        HeadlightShadows.setGridUniforms(shader, camera);
+        shader.safeGetUniform("ShadowSize").set((float) HeadlightShadows.MAP_WIDTH,
+                (float) HeadlightShadows.mapHeight(MAX_LAMPS));
         shader.safeGetUniform("InvViewProj").set(inverse);
         for (int i = 0; i < MAX_LAMPS; i++) {
             shader.safeGetUniform("Lamp" + i).set(i < count ? LAMPS[i] : ZERO);

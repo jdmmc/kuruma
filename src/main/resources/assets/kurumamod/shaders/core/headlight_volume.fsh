@@ -21,6 +21,14 @@ uniform sampler2D FinalDepthSampler;
 // 粒を描く前の画面
 uniform sampler2D SolidSampler;
 uniform sampler2D DepthSampler;
+// ランプから見た、最初にブロックに当たるまでの距離（headlight_shadow.fsh が描く）
+uniform sampler2D ShadowSampler;
+uniform vec2 ShadowSize;
+// ブロックの格子（HeadlightShadows）。路面は画素ごとにこれを辿って影を決める
+uniform sampler2D VoxelSampler;
+uniform vec3 CameraBlock;
+uniform vec3 CameraFrac;
+uniform vec2 GridSize;
 
 uniform mat4 InvViewProj;
 // ランプ 1 灯ぶん。列 0 = 位置（カメラ基準）と届く距離、列 1 = 光軸と強さ、列 2 = 右、列 3 = 上
@@ -88,6 +96,18 @@ uniform float SmokeGain;
 const float SMOKE_COVERAGE_GAIN = 3.0;
 const float SMOKE_COVERAGE_MAX = 0.8;
 
+// ---- 影（headlight_shadow.fsh と同じ範囲） ----
+const int MAX_LAMPS = 8;
+const float SHADOW_DISTANCE = 48.0;
+const float TX_MIN = -1.3;
+const float TX_MAX = 1.3;
+const float TY_MIN = -0.45;
+const float TY_MAX = 0.15;
+// 地図は方向を刻んでいるので、同じ面でも画素の中で距離がばらつく。遠いほど・面を浅く
+// 見るほどばらつくので、そのぶん手前で当たったことにしない
+const float SHADOW_BIAS = 0.12;
+const float SHADOW_BIAS_PER_METER = 0.02;
+
 mat4 lamp(int i) {
     if (i == 0) return Lamp0;
     if (i == 1) return Lamp1;
@@ -127,6 +147,122 @@ float emitted(mat4 L, vec3 v, float soften) {
     float tx = dot(v, L[2].xyz) / along;
     float ty = dot(v, L[3].xyz) / along;
     return pattern(tx, ty, soften) * blocked * L[1].w;
+}
+
+float shadowDistance(int index, ivec2 texel) {
+    int tile = int(ShadowSize.y) / MAX_LAMPS;
+    texel = clamp(texel, ivec2(0), ivec2(int(ShadowSize.x) - 1, tile - 1));
+    vec2 encoded = texelFetch(ShadowSampler, ivec2(texel.x, texel.y + index * tile), 0).rg;
+    return (encoded.r + encoded.g / 255.0) * SHADOW_DISTANCE;
+}
+
+// ランプ L（番号 index）から v だけ離れた点に光が届くか。0 で影、1 で届く。
+// soft なら隣の 4 画素で縁をなめらかにする（路面用。光線と煙は 1 画素で足りる）
+float shadow(int index, mat4 L, vec3 v, bool soft) {
+    float along = dot(v, L[1].xyz);
+    if (along <= 0.05) {
+        return 1.0;
+    }
+    float tx = dot(v, L[2].xyz) / along;
+    float ty = dot(v, L[3].xyz) / along;
+    if (tx < TX_MIN || tx > TX_MAX || ty < TY_MIN || ty > TY_MAX) {
+        return 1.0;
+    }
+    float distance = length(v);
+    if (distance >= SHADOW_DISTANCE - 0.5) {
+        return 1.0;
+    }
+    float bias = SHADOW_BIAS + SHADOW_BIAS_PER_METER * distance;
+    float tile = ShadowSize.y / float(MAX_LAMPS);
+    vec2 px = vec2((tx - TX_MIN) / (TX_MAX - TX_MIN) * ShadowSize.x,
+                   (ty - TY_MIN) / (TY_MAX - TY_MIN) * tile);
+    if (!soft) {
+        return shadowDistance(index, ivec2(px)) + bias >= distance ? 1.0 : 0.0;
+    }
+    vec2 base = floor(px - 0.5);
+    vec2 f = px - 0.5 - base;
+    ivec2 b = ivec2(base);
+    float s00 = shadowDistance(index, b) + bias >= distance ? 1.0 : 0.0;
+    float s10 = shadowDistance(index, b + ivec2(1, 0)) + bias >= distance ? 1.0 : 0.0;
+    float s01 = shadowDistance(index, b + ivec2(0, 1)) + bias >= distance ? 1.0 : 0.0;
+    float s11 = shadowDistance(index, b + ivec2(1, 1)) + bias >= distance ? 1.0 : 0.0;
+    return mix(mix(s00, s10, f.x), mix(s01, s11, f.x), f.y);
+}
+
+// ---- 路面の影：画素ごとに光線で辿る ----
+//
+// <b>路面に距離の地図を使ってはいけない。</b>遠くの路面はランプからほぼ真横（1〜2 度）で
+// 光を受けるので、地図の 1 画素が奥行き数 m ぶんの路面にまたがる。距離を比べると画素の
+// 行ごとに当たった・当たらないが入れ替わり、<b>路面に横縞が出た</b>（シャドウアクネ）。
+// 点からランプへ直接辿れば、比べる地図が無いので縞は原理的に出ない。
+// 光線と煙は空中の点なのでこの問題は無く、安い地図のままでよい。
+// 以下の格子の読み方は headlight_shadow.fsh と同じ。片方だけ変えないこと
+
+int wrapGrid(int v, int n) {
+    int m = v - (v / n) * n;
+    return m < 0 ? m + n : m;
+}
+
+vec2 occluder(ivec3 local) {
+    int n = int(GridSize.x);
+    int ny = int(GridSize.y);
+    if (local.x < -n / 2 || local.x >= n / 2 || local.z < -n / 2 || local.z >= n / 2
+            || local.y < -ny / 2 || local.y >= ny / 2) {
+        return vec2(0.0);
+    }
+    ivec3 world = local + ivec3(CameraBlock);
+    ivec2 texel = ivec2(wrapGrid(world.x, n) + wrapGrid(world.y, ny) * n, wrapGrid(world.z, n));
+    return texelFetch(VoxelSampler, texel, 0).rg;
+}
+
+bool blocks(ivec3 cell, vec3 origin, vec3 dir, float t0, float t1) {
+    vec2 range = occluder(cell);
+    if (range.y <= range.x) {
+        return false;
+    }
+    float y0 = origin.y + dir.y * t0 - float(cell.y);
+    float y1 = origin.y + dir.y * t1 - float(cell.y);
+    return max(y0, y1) >= range.x && min(y0, y1) <= range.y;
+}
+
+// 面上の点 p（法線 n）からランプまでの間に、光を遮るブロックが無いか
+float pathToLamp(vec3 p, vec3 n, vec3 lampPos) {
+    vec3 toLamp = lampPos - p;
+    float length_ = length(toLamp);
+    vec3 dir = toLamp / length_;
+    // 面から少し浮かせて始める（自分の載っているブロックを遮りと読まない）
+    vec3 origin = CameraFrac + p + n * 0.03;
+    // ランプのすぐ手前は見ない（ランプが車体の近くのブロックに掛かっていても影にしない）
+    float end = length_ - 0.3;
+    ivec3 cell = ivec3(floor(origin));
+    ivec3 stepDir = ivec3(sign(dir));
+    vec3 inv = 1.0 / max(abs(dir), vec3(1.0e-6));
+    vec3 next = vec3(
+            (dir.x > 0.0 ? float(cell.x) + 1.0 - origin.x : origin.x - float(cell.x)) * inv.x,
+            (dir.y > 0.0 ? float(cell.y) + 1.0 - origin.y : origin.y - float(cell.y)) * inv.y,
+            (dir.z > 0.0 ? float(cell.z) + 1.0 - origin.z : origin.z - float(cell.z)) * inv.z);
+    float t = 0.0;
+    for (int i = 0; i < 160; i++) {
+        float tExit = min(min(next.x, min(next.y, next.z)), end);
+        if (blocks(cell, origin, dir, t, tExit)) {
+            return 0.0;
+        }
+        t = tExit;
+        if (t >= end) {
+            return 1.0;
+        }
+        if (next.x <= next.y && next.x <= next.z) {
+            cell.x += stepDir.x;
+            next.x += inv.x;
+        } else if (next.y <= next.z) {
+            cell.y += stepDir.y;
+            next.y += inv.y;
+        } else {
+            cell.z += stepDir.z;
+            next.z += inv.z;
+        }
+    }
+    return 1.0;
 }
 
 vec3 reconstruct(vec2 uv) {
@@ -205,7 +341,11 @@ void main() {
             if (cosIncidence <= 0.0) {
                 continue;
             }
-            illuminance += emitted(L, v, 1.0) * cosIncidence / dist2;
+            float lit = emitted(L, v, 1.0);
+            if (lit <= 0.0) {
+                continue;
+            }
+            illuminance += lit * pathToLamp(surface, n, L[0].xyz) * cosIncidence / dist2;
         }
         if (illuminance > 0.0) {
             float lit = 1.0 - exp(-pow(illuminance * EXPOSURE_GAIN, EXPOSURE_GAMMA));
@@ -249,6 +389,11 @@ void main() {
             if (strength <= 0.0) {
                 continue;
             }
+            // 幹や壁の陰になった霧は光らない（木漏れ日のような光の筋になる）
+            strength *= shadow(i, L, v, false);
+            if (strength <= 0.0) {
+                continue;
+            }
             float dist2 = max(dot(v, v), MIN_DIST2);
             float fromLamp = sqrt(dist2);
             // 光はランプからここまで、散った光はここからカメラまで、どちらも霧に吸われる
@@ -273,7 +418,7 @@ void main() {
         for (int i = 0; i < LampCount; i++) {
             mat4 L = lamp(i);
             vec3 v = p - L[0].xyz;
-            float strength = emitted(L, v, VOLUME_SOFTEN);
+            float strength = emitted(L, v, VOLUME_SOFTEN) * shadow(i, L, v, false);
             if (strength <= 0.0) {
                 continue;
             }
