@@ -72,6 +72,10 @@ public final class KurumaSounds {
     public static final RegistryObject<SoundEvent> CAR_SAND = register("car_sand");
     /** 変速音。段が変わった瞬間に 1 回。 */
     public static final RegistryObject<SoundEvent> CAR_SHIFT = register("car_shift");
+    /** ターボの過給音（ヒュイーン）。ブーストで音程と音量が上がるループ。 */
+    public static final RegistryObject<SoundEvent> CAR_TURBO = register("car_turbo");
+    /** ブローオフバルブ（プシュッ）。過給しているときにアクセルを抜いた瞬間と、シフトアップで 1 回。 */
+    public static final RegistryObject<SoundEvent> CAR_BLOWOFF = register("car_blowoff");
     /** 衝突音。ぶつかった速度差で音量とピッチが変わる。 */
     public static final RegistryObject<SoundEvent> CAR_CRASH = register("car_crash");
 

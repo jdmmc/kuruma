@@ -44,6 +44,7 @@ public enum GaugeTheme {
             0x66FFFFFF, // aidLabel    消えている灯の文字。<b>消えていても読める</b>こと
             0xFF15181C, // aidLabelOn  点いている灯の文字
             0xFFE23A2E, // handbrake   サイドブレーキの灯。実車と同じく赤
+            0xFF4FD8F7, // turbo       過給の灯。ブーストに合わせてじわっと点く
             0xFF4FD8F7, // ledLow      シフトインジケーター
             0xFFFFD24A, // ledMid
             0xFFFF3B30, // ledHigh
@@ -81,6 +82,7 @@ public enum GaugeTheme {
             0x5CFFFFFF, // aidLabel
             0xFF0A0C0F, // aidLabelOn
             0xFFC8241A, // handbrake
+            0xFF38B6FF, // turbo
             0xFF4FD8F7, // ledLow
             0xFFFFD24A, // ledMid
             0xFFFF3B30, // ledHigh
@@ -111,6 +113,7 @@ public enum GaugeTheme {
     public final int aidLabel;
     public final int aidLabelOn;
     public final int handbrake;
+    public final int turbo;
     public final int ledLow;
     public final int ledMid;
     public final int ledHigh;
@@ -122,7 +125,7 @@ public enum GaugeTheme {
                int tickMajor, int tickMinor, int label, int unit, int sub,
                int needle, int hub, int hubRing, int panel, int text,
                int gearBox, int gearText, int aidOn, int aidOff,
-               int aidLabel, int aidLabelOn, int handbrake,
+               int aidLabel, int aidLabelOn, int handbrake, int turbo,
                int ledLow, int ledMid, int ledHigh, int ledOff, int throttle, int brake) {
         this.face = face;
         this.bezel = bezel;
@@ -147,6 +150,7 @@ public enum GaugeTheme {
         this.aidLabel = aidLabel;
         this.aidLabelOn = aidLabelOn;
         this.handbrake = handbrake;
+        this.turbo = turbo;
         this.ledLow = ledLow;
         this.ledMid = ledMid;
         this.ledHigh = ledHigh;
