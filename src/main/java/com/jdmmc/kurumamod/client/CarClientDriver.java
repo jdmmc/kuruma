@@ -42,10 +42,11 @@ public final class CarClientDriver {
     }
 
     /**
-     * ヘッドライトを点けているか。
+     * 運転している車のヘッドライトを点けているか。
      *
-     * <p>車ではなく<b>運転者</b>が持つ。降りて乗り直しても点いたままの方が自然だし、
-     * 車ごとに覚えさせるほどのものでもない。</p>
+     * <p><b>状態そのものは車が持つ</b>（{@link CarEntity#isHeadlightOnSynced}）。乗り込んだときに
+     * 車の状態を引き継ぎ、L キーで切り替えたぶんを毎ティック車へ渡す。点けたまま降りた車は
+     * 点いたまま残り、別の車へ乗り換えるとその車の状態になる。</p>
      */
     private static boolean headlightsOn;
 
@@ -95,6 +96,9 @@ public final class CarClientDriver {
                 // カーパックの車に乗った瞬間、前の車の調整値で上書きされて別物になる。
                 // 「戻す」の戻り先はその車種の素の諸元
                 CarTuning.adopt(car.getSpec(), CarTypes.get(car.getCarId()).spec());
+                // ヘッドライトも車の状態を引き継ぐ。運転者の側の状態を押し込むと、
+                // 点けたまま置いてあった車に乗った瞬間に消える
+                headlightsOn = car.isHeadlightOnSynced();
             }
             // 取り込んだぶんを送り返さない
             appliedTuningRevision = CarTuning.revision();

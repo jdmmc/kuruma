@@ -1047,7 +1047,13 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         this.driverInput = input;
     }
 
-    /** 運転者が入れているヘッドライトの状態。物理を解いている側だけが持つ。 */
+    /**
+     * ヘッドライトの状態。<b>車が持つ。</b>
+     *
+     * <p>運転クライアントが入れ、サーバーは届いた状態を覚えておく（{@link #applyDriverState}）。
+     * 覚えておかないと、降りた瞬間に物理を引き継いだサーバーが「消えている」を配り直して
+     * <b>降りるとライトが消える</b>。保存もするので、点けたまま置いた車はリログしても点いている。</p>
+     */
     private boolean headlightsOn;
 
     /** ヘッドライトの切替。運転クライアントから呼ぶ。 */
@@ -1062,6 +1068,14 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             lights |= LIGHT_BRAKE;
         }
         return (byte) lights;
+    }
+
+    /**
+     * 配られてきたヘッドライトの状態。乗り込んだ運転者がこれを<b>引き継ぐ</b>
+     * （点けたまま降りた車は、乗り直しても点いている）。
+     */
+    public boolean isHeadlightOnSynced() {
+        return (entityData.get(DATA_LIGHTS) & LIGHT_HEAD) != 0;
     }
 
     /** 描画に使う灯火の状態。手元で解いていないときは同期された値。 */
@@ -1105,6 +1119,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         entityData.set(DATA_SLIP_ANGLE, slipAngle);
         entityData.set(DATA_SURFACE, surface);
         entityData.set(DATA_LIGHTS, lights);
+        if (!level().isClientSide) {
+            // 運転者が入れた状態を覚えておく。降りた後もサーバーがこれを配り続ける
+            headlightsOn = (lights & LIGHT_HEAD) != 0;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1599,6 +1617,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         // 単位はラジアン（/summon で横転した車を出すのにも使う）
         entityData.set(DATA_PITCH, tag.getFloat("Pitch"));
         entityData.set(DATA_ROLL, tag.getFloat("Roll"));
+        headlightsOn = tag.getBoolean("Headlights");
+        entityData.set(DATA_LIGHTS, (byte) (headlightsOn ? LIGHT_HEAD : 0));
     }
 
     @Override
@@ -1612,6 +1632,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         }
         tag.putFloat("Pitch", entityData.get(DATA_PITCH));
         tag.putFloat("Roll", entityData.get(DATA_ROLL));
+        tag.putBoolean("Headlights", headlightsOn);
     }
 
     /**
