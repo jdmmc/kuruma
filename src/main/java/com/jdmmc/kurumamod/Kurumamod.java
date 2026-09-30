@@ -188,15 +188,18 @@ public class Kurumamod {
         }
 
         /**
-         * 砂塵の粒を実際に描く係を結びつける。
+         * 砂塵とタイヤの白煙の粒を実際に描く係を結びつける。
          *
          * <p>種類そのものは両側で登録してある（{@link KurumaParticles}）。
          * <b>描く係だけがクライアント側</b>で、絵は
-         * {@code assets/kurumamod/particles/dust.json} が指すスプライトの束。</p>
+         * {@code assets/kurumamod/particles/dust.json} と {@code tire_smoke.json} が指すスプライトの束。</p>
          */
         @SubscribeEvent
         public static void onRegisterParticleProviders(RegisterParticleProvidersEvent event) {
-            event.registerSpriteSet(KurumaParticles.DUST.get(), DustParticle.Provider::new);
+            event.registerSpriteSet(KurumaParticles.DUST.get(),
+                    sprites -> new DustParticle.Provider(sprites, DustParticle.DUST));
+            event.registerSpriteSet(KurumaParticles.TIRE_SMOKE.get(),
+                    sprites -> new DustParticle.Provider(sprites, DustParticle.TIRE_SMOKE));
         }
 
         /**

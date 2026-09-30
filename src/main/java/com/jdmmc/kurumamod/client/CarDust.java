@@ -110,12 +110,6 @@ public final class CarDust {
     }
 
     private static void spawn(CarEntity car, ClientLevel level) {
-        RoadSurface surface = car.getRenderSurface();
-        double dustScale = surface.dustScale();
-        if (dustScale <= 0.0) {
-            // 舗装路と氷。掻き飛ばすものが無い
-            return;
-        }
         if (level.isRainingAt(car.blockPosition())) {
             // 濡れたダートは泥。土煙は立たない
             return;
@@ -136,6 +130,12 @@ public final class CarDust {
         double kick = Math.min(MAX_KICK, speed * KICK_PER_SPEED);
 
         for (Wheel wheel : Wheel.VALUES) {
+            // 路面は輪ごとに見る。前輪だけ土に乗ったなら、舞うのは前輪からだけ
+            double dustScale = car.getRenderSurface(wheel).dustScale();
+            if (dustScale <= 0.0) {
+                // 舗装路と氷。掻き飛ばすものが無い
+                continue;
+            }
             double suspension = car.getRenderSuspensionLength(wheel);
             if (suspension >= spec.suspensionMaxLength() - AIRBORNE_EPSILON) {
                 // 浮いている輪は路面に触れていないので何も掻かない

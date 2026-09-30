@@ -151,7 +151,13 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     /** 車体スリップ角 [度]。タイヤの悲鳴。 */
     private static final EntityDataAccessor<Float> DATA_SLIP_ANGLE =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
-    /** いちばんグリップの低い輪の路面。ロードノイズ。 */
+    /**
+     * 各輪の路面。{@link RoadSurface} の並び順を 1 輪 4 ビットで詰めたもの（{@link #packSurfaces}）。
+     *
+     * <p><b>車 1 台で 1 つにしてはいけない。</b>以前は「いちばん滑りやすい輪」だけを配っていたので、
+     * 前輪が土に乗った瞬間に、まだコンクリートの上で空転している後輪の煙まで土煙になった。
+     * ロードノイズのように車全体で 1 つ要るものは、受け取った側で 4 輪から選ぶ。</p>
+     */
     private static final EntityDataAccessor<Integer> DATA_SURFACE =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.INT);
     /**
@@ -378,7 +384,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         entityData.define(DATA_GEAR, 0);
         entityData.define(DATA_THROTTLE, 0.0F);
         entityData.define(DATA_SLIP_ANGLE, 0.0F);
-        entityData.define(DATA_SURFACE, RoadSurface.PAVED.ordinal());
+        entityData.define(DATA_SURFACE, packSurfaces(RoadSurface.PAVED));
         entityData.define(DATA_LIGHTS, (byte) 0);
         entityData.define(DATA_YAW, 0.0F);
     }
@@ -478,7 +484,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     getYRot(), (float) state.pitch, (float) state.roll,
                     suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
                     (float) state.engineRpm, state.gear, (float) state.throttle,
-                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), worstSurface().ordinal(),
+                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
                     driverLights()));
         }
 
@@ -663,7 +669,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     getYRot(), (float) state.pitch, (float) state.roll,
                     suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
                     (float) state.engineRpm, state.gear, (float) state.throttle,
-                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), worstSurface().ordinal(),
+                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
                     driverLights());
         }
     }
@@ -925,30 +931,56 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         wetness += (target - wetness) * Math.min(1.0, rate);
     }
 
-    /** その輪が今どの路面に乗っているか。手元で解いているときだけ意味がある。 */
-    public RoadSurface getRenderSurface(Wheel wheel) {
-        return surfaces[wheel.ordinal()];
+    /** 1 輪ぶんの路面を詰めるビット数。{@link RoadSurface} が 16 種を超えたら広げること。 */
+    private static final int SURFACE_BITS = 4;
+
+    /** 4 輪の路面を 1 つの整数へ詰める。{@link CarStatePacket} は 2 バイトで運ぶ。 */
+    private int packSurfaces() {
+        int packed = 0;
+        for (int i = 0; i < surfaces.length; i++) {
+            packed |= surfaces[i].ordinal() << (i * SURFACE_BITS);
+        }
+        return packed;
     }
 
-    /** 4 輪のうちいちばんグリップの低い路面。 */
-    private RoadSurface worstSurface() {
-        RoadSurface worst = surfaces[0];
-        for (RoadSurface surface : surfaces) {
+    /** 4 輪とも同じ路面を詰めた値。 */
+    private static int packSurfaces(RoadSurface surface) {
+        int packed = 0;
+        for (int i = 0; i < Wheel.COUNT; i++) {
+            packed |= surface.ordinal() << (i * SURFACE_BITS);
+        }
+        return packed;
+    }
+
+    /**
+     * その輪が今どの路面に乗っているか。
+     *
+     * <p>煙・土煙・タイヤ痕のように<b>輪の足元で起きること</b>はこちらを使う。
+     * 手元で解いていないときは同期された値。</p>
+     */
+    public RoadSurface getRenderSurface(Wheel wheel) {
+        if (hasLocalState()) {
+            return surfaces[wheel.ordinal()];
+        }
+        int packed = entityData.get(DATA_SURFACE);
+        return RoadSurface.byIndex((packed >> (wheel.ordinal() * SURFACE_BITS)) & ((1 << SURFACE_BITS) - 1));
+    }
+
+    /**
+     * 表示と音に使う、車全体で 1 つの路面。いちばんグリップの低い輪のもの。
+     *
+     * <p>ロードノイズや HUD のように車に 1 つしかないもの向け。<b>輪の足元で起きることに
+     * 使ってはいけない</b>（{@link #getRenderSurface(Wheel)}）。</p>
+     */
+    public RoadSurface getRenderSurface() {
+        RoadSurface worst = getRenderSurface(Wheel.VALUES[0]);
+        for (Wheel wheel : Wheel.VALUES) {
+            RoadSurface surface = getRenderSurface(wheel);
             if (surface.gripScale() < worst.gripScale()) {
                 worst = surface;
             }
         }
         return worst;
-    }
-
-    /**
-     * 表示と音に使う路面。いちばんグリップの低い輪のもの。
-     *
-     * <p>手元で解いていないときは同期された値。配らないと他人の車のロードノイズが
-     * どこでも舗装路の音になる。</p>
-     */
-    public RoadSurface getRenderSurface() {
-        return hasLocalState() ? worstSurface() : RoadSurface.byIndex(entityData.get(DATA_SURFACE));
     }
 
     /** 路面の濡れ具合。0 で乾いている、1 で濡れきっている。 */
@@ -1293,13 +1325,30 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         return speed * (1.0 + SCRUB_SLIP_GAIN * (slip + sideways));
     }
 
-    /** 4 輪でいちばん擦っている輪の値。音のように車 1 台で 1 つ決めたいとき用。 */
-    public double getRenderScrubSpeed() {
-        double worst = 0.0;
-        for (Wheel wheel : Wheel.VALUES) {
-            worst = Math.max(worst, getRenderScrubSpeed(wheel));
-        }
-        return worst;
+    /** 滑る速さの横成分を出すときのドリフト角の上限 [度]。90 度に近づくと tan が発散する。 */
+    private static final double SLIDE_MAX_ANGLE = 80.0;
+
+    /**
+     * タイヤの接地面が路面の上を滑っている速さ [m/s]。スキール音の大きさに使う。
+     *
+     * <p>縦（タイヤの表面の速さ − 車速。ホイールスピンで回すほど、ロックさせるほど大きい）と
+     * 横（車速 × tan(ドリフト角)）の合成。<b>角度・車速・回転数のどれを上げても大きくなる</b>。
+     * 滑り率やスリップ角のままだと、ドリフトでは後輪の空転だけですぐ頭打ちになり、
+     * 角度にも速さにも応じなくなる。</p>
+     *
+     * <p>{@link #getRenderScrubSpeed(Wheel)} とは別物。あちらは転がっているだけでも車速ぶんある
+     * （土煙は滑らなくても舞う）が、こちらは<b>滑っていなければ 0</b>。</p>
+     */
+    public double getRenderSlideSpeed(Wheel wheel) {
+        int index = wheel.ordinal();
+        double forward = getRenderSpeed();
+        double angularVelocity = hasLocalState()
+                ? state.wheelAngularVelocity[index]
+                : entityData.get(DATA_WHEEL_SPEED.get(index));
+        double longitudinal = angularVelocity * spec.wheelRadius() - forward;
+        double angle = Math.min(SLIDE_MAX_ANGLE, Math.abs(getRenderSlipAngleDegrees()));
+        double lateral = Math.abs(forward) * Math.tan(angle * Mth.DEG_TO_RAD);
+        return Math.hypot(longitudinal, lateral);
     }
 
     /** 音に使うアクセルの踏み込み量 0..1。 */

@@ -80,12 +80,12 @@ public final class ClientConfig {
             .define("liveMirrors", false);
 
     public static final ForgeConfigSpec.BooleanValue SHOW_DUST = BUILDER
-            .comment("未舗装路（土・砂・砂利・雪）を走ったときに土煙を舞い上げるかどうか。",
-                    "氷と舗装路では入れていても何も出ない（掻き飛ばすものが無いため）")
+            .comment("タイヤの煙と土煙を出すかどうか。",
+                    "舗装路で滑ったときの白煙と、未舗装路（土・砂・砂利・雪）で舞い上げる土煙の両方")
             .define("showDust", true);
 
     public static final ForgeConfigSpec.DoubleValue DUST_DENSITY = BUILDER
-            .comment("土煙の量の倍率。1.0 が既定。粒の数がそのまま増えるので、重いと感じたら下げる。",
+            .comment("タイヤの煙と土煙の量の倍率。1.0 が既定。粒の数がそのまま増えるので、重いと感じたら下げる。",
                     "0 は無い——消すのは showDust の役目。入り口が 2 つあると、",
                     "どちらが効いているのか分からなくなる")
             .defineInRange("dustDensity", 1.0, 0.25, 2.0);
@@ -142,10 +142,10 @@ public final class ClientConfig {
     /** ミラーに実際の景色を映すか。 */
     public static boolean liveMirrors = false;
 
-    /** 未舗装路で土煙を舞い上げるか。 */
+    /** タイヤの煙と土煙を出すか。キーの名前（showDust）は保存済みの設定のために据え置いている。 */
     public static boolean showDust = true;
 
-    /** 土煙の量の倍率。消すのは {@link #showDust} の役目なので 0 にはならない。 */
+    /** タイヤの煙と土煙の量の倍率。消すのは {@link #showDust} の役目なので 0 にはならない。 */
     public static double dustDensity = 1.0;
 
     /** 自分が運転している車のタイヤ痕を残すか。 */
