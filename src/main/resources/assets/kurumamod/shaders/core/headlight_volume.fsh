@@ -73,7 +73,10 @@ uniform float SurfaceGain;
 const float SURFACE_FLOOR = 0.03;
 
 // ---- 霧 ----
-const int VOLUME_STEPS = 20;
+// 光線の刻み数。少ないと画素ごとにずらした出だしが網目のざらつきとして見える
+const int VOLUME_STEPS = 28;
+// 面の向きをこの値（軸成分の cos。0.9 でおよそ 25 度）より軸に近ければ軸へ揃える
+const float AXIS_SNAP = 0.9;
 const float VOLUME_LENGTH = 40.0;
 // 前方散乱の強さ（Henyey-Greenstein の g）。0 で全方向に均等、1 に近いほど前へ集まる
 const float PHASE_G = 0.6;
@@ -311,7 +314,19 @@ vec3 surfaceNormal(vec3 p, vec2 uv) {
     vec3 dy = dot(up, up) < dot(down, down) ? up : down;
     vec3 n = normalize(cross(dx, dy));
     // カメラの方を向かせる
-    return dot(n, p) > 0.0 ? -n : n;
+    n = dot(n, p) > 0.0 ? -n : n;
+    // <b>軸に近ければ軸へ揃える。</b>深度は刻みが粗いので、隣の画素との差から出した向きは
+    // 平らな地面でも段々に揺れ、光の当たり方が縞（波・ジャギー）になって見えた
+    // （上から見下ろして少し傾けたときに目立つ）。ブロックの面はどれも軸に沿っているので、
+    // 揃えれば誤差が消える。車や人の斜めの面は揃わない角度なのでそのまま
+    vec3 a = abs(n);
+    float largest = max(a.x, max(a.y, a.z));
+    if (largest > AXIS_SNAP) {
+        n = a.y >= largest ? vec3(0.0, sign(n.y), 0.0)
+                : a.x >= largest ? vec3(sign(n.x), 0.0, 0.0)
+                : vec3(0.0, 0.0, sign(n.z));
+    }
+    return n;
 }
 
 float phase(float cosTheta) {
