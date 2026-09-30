@@ -203,26 +203,49 @@ int wrapGrid(int v, int n) {
     return m < 0 ? m + n : m;
 }
 
-vec2 occluder(ivec3 local) {
+// ブロックが光を遮る箱の、ブロック内での下端（xyz）と上端（xyz）。遮らなければ上端 ≦ 下端。
+// 詰め方は HeadlightShadows#occlusion
+void occluderBox(ivec3 local, out vec3 lo, out vec3 hi) {
+    lo = vec3(0.0);
+    hi = vec3(0.0);
     int n = int(GridSize.x);
     int ny = int(GridSize.y);
     if (local.x < -n / 2 || local.x >= n / 2 || local.z < -n / 2 || local.z >= n / 2
             || local.y < -ny / 2 || local.y >= ny / 2) {
-        return vec2(0.0);
+        return;
     }
     ivec3 world = local + ivec3(CameraBlock);
     ivec2 texel = ivec2(wrapGrid(world.x, n) + wrapGrid(world.y, ny) * n, wrapGrid(world.z, n));
-    return texelFetch(VoxelSampler, texel, 0).rg;
+    vec4 v = texelFetch(VoxelSampler, texel, 0);
+    int bx = int(v.b * 255.0 + 0.5);
+    int bz = int(v.a * 255.0 + 0.5);
+    lo = vec3(float(bx / 16) / 16.0, v.r, float(bz / 16) / 16.0);
+    hi = vec3(float(bx - (bx / 16) * 16 + 1) / 16.0, v.g, float(bz - (bz / 16) * 16 + 1) / 16.0);
 }
 
-bool blocks(ivec3 cell, vec3 origin, vec3 dir, float t0, float t1) {
-    vec2 range = occluder(cell);
-    if (range.y <= range.x) {
-        return false;
+// 光線が t0..t1 でブロック cell を通るとき、遮る箱に入る距離。入らなければ -1
+float boxHit(ivec3 cell, vec3 origin, vec3 invDir, float t0, float t1) {
+    vec3 lo;
+    vec3 hi;
+    occluderBox(cell, lo, hi);
+    if (hi.y <= lo.y) {
+        return -1.0;
     }
-    float y0 = origin.y + dir.y * t0 - float(cell.y);
-    float y1 = origin.y + dir.y * t1 - float(cell.y);
-    return max(y0, y1) >= range.x && min(y0, y1) <= range.y;
+    vec3 a = (vec3(cell) + lo - origin) * invDir;
+    vec3 b = (vec3(cell) + hi - origin) * invDir;
+    vec3 near = min(a, b);
+    vec3 far = max(a, b);
+    float enter = max(max(near.x, near.y), max(near.z, t0));
+    float exit = min(min(far.x, far.y), min(far.z, t1));
+    return enter <= exit ? enter : -1.0;
+}
+
+// 向きの逆数（成分が 0 でも割り算で飛ばさない）
+vec3 inverseDir(vec3 dir) {
+    return vec3(
+            1.0 / (abs(dir.x) > 1.0e-6 ? dir.x : 1.0e-6),
+            1.0 / (abs(dir.y) > 1.0e-6 ? dir.y : 1.0e-6),
+            1.0 / (abs(dir.z) > 1.0e-6 ? dir.z : 1.0e-6));
 }
 
 // 面上の点 p（法線 n）からランプまでの間に、光を遮るブロックが無いか
@@ -237,14 +260,19 @@ float pathToLamp(vec3 p, vec3 n, vec3 lampPos) {
     ivec3 cell = ivec3(floor(origin));
     ivec3 stepDir = ivec3(sign(dir));
     vec3 inv = 1.0 / max(abs(dir), vec3(1.0e-6));
+    vec3 invDir = inverseDir(dir);
     vec3 next = vec3(
             (dir.x > 0.0 ? float(cell.x) + 1.0 - origin.x : origin.x - float(cell.x)) * inv.x,
             (dir.y > 0.0 ? float(cell.y) + 1.0 - origin.y : origin.y - float(cell.y)) * inv.y,
             (dir.z > 0.0 ? float(cell.z) + 1.0 - origin.z : origin.z - float(cell.z)) * inv.z);
     float t = 0.0;
+    // <b>出発したブロックは見ない。</b>格子は横方向を 1 ブロックいっぱいとして持つので、
+    // 柱や塀（ブロックの中ほどに面がある）では、面から浮かせてもまだ自分のブロックの中にいる。
+    // 見てしまうと自分で自分を影にして、<b>柱が「ブロックの境目にある面だけ」まだらに光った</b>
+    ivec3 start = cell;
     for (int i = 0; i < 160; i++) {
         float tExit = min(min(next.x, min(next.y, next.z)), end);
-        if (blocks(cell, origin, dir, t, tExit)) {
+        if (cell != start && boxHit(cell, origin, invDir, t, tExit) >= 0.0) {
             return 0.0;
         }
         t = tExit;

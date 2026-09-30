@@ -69,8 +69,8 @@ final class HeadlightShadows {
     static final int MAP_TILE_HEIGHT = 128;
 
     private static final int WIDTH = GRID * GRID_Y;
-    private static final int GL_RG = 0x8227;
-    private static final int GL_RG8 = 0x822B;
+    /** 1 ブロックのバイト数。下端・上端・X の範囲・Z の範囲。 */
+    private static final int BYTES = 4;
 
     private static int voxelTexture = -1;
     private static ByteBuffer voxels;
@@ -99,7 +99,7 @@ final class HeadlightShadows {
     static void update(Level level, Vec3 camera) {
         BlockPos center = BlockPos.containing(camera);
         if (voxelTexture < 0) {
-            voxels = MemoryUtil.memAlloc(WIDTH * GRID * 2);
+            voxels = MemoryUtil.memAlloc(WIDTH * GRID * BYTES);
             MemoryUtil.memSet(voxels, 0);
             voxelTexture = GlStateManager._genTexture();
             GlStateManager._bindTexture(voxelTexture);
@@ -108,7 +108,7 @@ final class HeadlightShadows {
             GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
             GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
             resetUnpack();
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL_RG8, WIDTH, GRID, 0, GL_RG, GL11.GL_UNSIGNED_BYTE, voxels);
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, WIDTH, GRID, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
         }
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int minX = center.getX() - GRID / 2;
@@ -203,30 +203,37 @@ final class HeadlightShadows {
     }
 
     private static void fillCell(Level level, BlockPos.MutableBlockPos pos, int x, int y, int z) {
-        int offset = (Math.floorMod(z, GRID) * WIDTH + Math.floorMod(x, GRID) + Math.floorMod(y, GRID_Y) * GRID) * 2;
+        int offset = (Math.floorMod(z, GRID) * WIDTH + Math.floorMod(x, GRID) + Math.floorMod(y, GRID_Y) * GRID) * BYTES;
         pos.set(x, y, z);
-        long range = occlusion(level, pos);
-        voxels.put(offset, (byte) (range >> 8));
-        voxels.put(offset + 1, (byte) range);
+        voxels.putInt(offset, occlusion(level, pos));
     }
 
     private static void uploadRow(int row) {
-        int rowOffset = row * WIDTH * 2;
-        voxels.position(rowOffset).limit(rowOffset + WIDTH * 2);
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, row, WIDTH, 1, GL_RG, GL11.GL_UNSIGNED_BYTE, voxels);
+        int rowOffset = row * WIDTH * BYTES;
+        voxels.position(rowOffset).limit(rowOffset + WIDTH * BYTES);
+        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, row, WIDTH, 1, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
         voxels.clear();
     }
 
     private static void uploadAll() {
         voxels.clear();
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, WIDTH, GRID, GL_RG, GL11.GL_UNSIGNED_BYTE, voxels);
+        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, WIDTH, GRID, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
     }
 
+    /** 全部を遮るブロック（下端 0・上端 255・X と Z が 0..15）。 */
+    private static final int FULL = pack(0, 255, 0x0F, 0x0F);
+
     /**
-     * そのブロックが光を遮る高さの範囲。上位 8 ビットが下端、下位 8 ビットが上端（0..255）。
-     * 遮らなければ 0（下端 = 上端 = 0 は「空」として読まれる）。
+     * そのブロックが光を遮る箱。テクスチャの 1 画素（RGBA）に詰める:
+     * R = 下端・G = 上端（0..255）、B = X の範囲・A = Z の範囲（上位 4 ビットが始まり、
+     * 下位 4 ビットが終わり。1/16 ブロック刻み）。遮らなければ 0（上端が下端以下は「空」）。
+     *
+     * <p><b>横の範囲も持つこと。</b>高さだけで横を 1 ブロックいっぱいとして扱うと、塀の柱が
+     * 光と平行に並んだとき、隣の柱のブロックを通る光線がすべて遮られ、<b>柱の横の面が
+     * 暗くなり、柱と柱のあいだが縞になった</b>。当たり判定の外枠（{@code bounds}）なので、
+     * 塀の柱と腕のような形は外枠の箱になる。</p>
      */
-    private static long occlusion(Level level, BlockPos pos) {
+    private static int occlusion(Level level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         if (state.isAir()) {
             return 0;
@@ -236,7 +243,7 @@ final class HeadlightShadows {
             return 0;
         }
         if (state.isCollisionShapeFullBlock(level, pos)) {
-            return 255;
+            return FULL;
         }
         VoxelShape shape = state.getCollisionShape(level, pos);
         if (shape.isEmpty()) {
@@ -251,9 +258,22 @@ final class HeadlightShadows {
             }
             shape = outline;
         }
-        int low = Mth.clamp((int) Math.floor(shape.min(Direction.Axis.Y) * 255.0), 0, 254);
-        int high = Mth.clamp((int) Math.ceil(shape.max(Direction.Axis.Y) * 255.0), low + 1, 255);
-        return ((long) low << 8) | high;
+        AABB box = shape.bounds();
+        int low = Mth.clamp((int) Math.floor(box.minY * 255.0), 0, 254);
+        int high = Mth.clamp((int) Math.ceil(box.maxY * 255.0), low + 1, 255);
+        return pack(low, high, sixteenths(box.minX, box.maxX), sixteenths(box.minZ, box.maxZ));
+    }
+
+    /** 0..1 の範囲を、始まりと終わりの 1/16 刻み（4 ビットずつ）に詰める。 */
+    private static int sixteenths(double min, double max) {
+        int from = Mth.clamp((int) Math.floor(min * 16.0 + 1.0e-4), 0, 15);
+        int to = Mth.clamp((int) Math.ceil(max * 16.0 - 1.0e-4) - 1, from, 15);
+        return (from << 4) | to;
+    }
+
+    /** {@code putInt} したときに R, G, B, A の順に並ぶよう詰める（memAlloc のバッファはネイティブ＝リトルエンディアン）。 */
+    private static int pack(int r, int g, int b, int a) {
+        return (r & 0xFF) | (g & 0xFF) << 8 | (b & 0xFF) << 16 | (a & 0xFF) << 24;
     }
 
     /**
