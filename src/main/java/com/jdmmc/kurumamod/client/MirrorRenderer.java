@@ -59,9 +59,17 @@ import java.util.List;
  * 姿でしかない。そこで<b>「運転者が調整し終えたミラー」として、狙いをコードが決める</b>:</p>
  *
  * <ul>
- *   <li>ルームミラー … 真後ろ（{@value #REAR_DOWN} 度だけ下）</li>
- *   <li>ドアミラー … 後方から外へ {@value #DOOR_OUTWARD} 度、下へ {@value #DOOR_DOWN} 度</li>
+ *   <li>ルームミラー … 真後ろ、中心が {@value #REAR_DOWN} 度下。横の画角 {@value #REAR_FOV} 度</li>
+ *   <li>ドアミラー … 中心が {@value #DOOR_DOWN} 度下で、<b>地平線が鏡の中ほどより少し上</b>に来る。
+ *       横の画角 {@value #DOOR_FOV} 度で、<b>自分の車の横腹が鏡の内側 {@value #DOOR_BODY_SHARE} 割ほどに
+ *       映る</b>ところまで外へ振る（実車でいちばん普通の合わせ方）</li>
  * </ul>
+ *
+ * <p><b>画角は目の位置から決めない。固定の値を使う。</b>以前は「目から見た鏡の見込み角」に
+ * していたが、ドアミラーは小さく目から遠いので縦 14 度ほどしかなく、そこへ 7 度下向きを
+ * 足すと鏡の上端がちょうど地平線になり、<b>路面しか映らなかった</b>。値は実車の
+ * ミラーの視野（UN ECE R46 の乗用車向けの規定と、実際の合わせ方）に寄せてある。
+ * 縦の画角は鏡の横縦比から決まる。</p>
  *
  * <p>どちらかは<b>鏡の位置で決める</b>（車体中心から {@value #INTERIOR_HALF_WIDTH}m 以内なら
  * ルームミラー）。名前は見ない——left / right が実際の左右と入れ替わっていても正しく映る。</p>
@@ -69,9 +77,6 @@ import java.util.List;
  * <p><b>板が担うのは「どこに・どれだけ・どの面に映すか」だけ。</b>位置と大きさと貼り付け先の
  * 平面はメッシュのまま使うので、モデル側で角度を合わせ込む作業は要らない。</p>
  *
- * <p>画角は<b>目から見た鏡の見込み角</b>（{@value #FOV_MARGIN} 倍だけ広げてある。実車の
- * ドアミラーは凸面鏡なので、平面のままより少し広いほうが近い）。鏡を大きく作れば広く映り、
- * 遠ざければ狭く映る——ここは実物と同じ振る舞いになる。</p>
  *
  * <h2>効かない場合</h2>
  *
@@ -101,16 +106,18 @@ public final class MirrorRenderer {
 
     /** ここより車体中心に近ければルームミラー、遠ければドアミラー [m]。 */
     private static final double INTERIOR_HALF_WIDTH = 0.35;
-    /** ルームミラーが下を向く角度 [度]。 */
-    private static final double REAR_DOWN = 3.0;
-    /** ドアミラーが外を向く角度 [度]。隣の車線が入る量。 */
-    private static final double DOOR_OUTWARD = 13.0;
-    /** ドアミラーが下を向く角度 [度]。 */
-    private static final double DOOR_DOWN = 7.0;
+    /** ルームミラーの中心が下を向く角度 [度]。地平線がほぼ真ん中に来る。 */
+    private static final double REAR_DOWN = 1.0;
+    /** ルームミラーの横の画角 [度]。リアガラス越しに後ろの車線ぶん。 */
+    private static final double REAR_FOV = 34.0;
+    /** ドアミラーの中心が下を向く角度 [度]。地平線が中ほどより少し上に来る。 */
+    private static final double DOOR_DOWN = 1.5;
+    /** ドアミラーの横の画角 [度]。平面鏡と凸面鏡の間くらい。 */
+    private static final double DOOR_FOV = 22.0;
+    /** ドアミラーの内側のうち、自分の車の横腹が映る割合。そのぶんだけ外へ振る。 */
+    private static final double DOOR_BODY_SHARE = 0.15;
 
-    /** 見込み角に掛ける倍率。1.0 が平面鏡そのもの。 */
-    private static final float FOV_MARGIN = 1.35F;
-    private static final double MIN_FOV = 8.0;
+    private static final double MIN_FOV = 4.0;
     private static final double MAX_FOV = 120.0;
 
     /** 映していないときの鏡面の色。真っ黒にすると穴に見えるので、少しだけ明るくしておく。 */
@@ -262,17 +269,6 @@ public final class MirrorRenderer {
             return;
         }
 
-        // 運転者の目は<b>プレイヤーの目そのもの</b>を使う。席の位置を決めているのは
-        // positionRider（見た目の定義の seat）で、そこから目の高さぶん上が視点になる。
-        // 同じものを見た目の定義から組み立て直すと、車体の拡大率と車高のぶんだけずれる
-        // ——実際にそれをやって<b>目が 1.3m 下（床下）に落ちていた</b>
-        Vec3 eye = mc.player.getEyePosition(partialTick);
-
-        double distance = center.distanceTo(eye);
-        if (distance < 1.0e-4) {
-            return;
-        }
-
         // 狙いは車体基準で固定。<b>板の角度は使わない</b>（理由はクラスの javadoc）
         Vec3 look = rotate(normalMatrix, aim(onCar));
 
@@ -280,9 +276,11 @@ public final class MirrorRenderer {
         float yaw = (float) (Math.atan2(-look.x, look.z) * Mth.RAD_TO_DEG);
         float pitch = (float) (-Math.asin(Mth.clamp(look.y, -1.0, 1.0)) * Mth.RAD_TO_DEG);
 
-        double fov = Mth.clamp(Math.toDegrees(2.0 * Math.atan(halfHeight / distance)) * FOV_MARGIN,
-                MIN_FOV, MAX_FOV);
+        // 画角は固定の横の画角から、鏡の横縦比で縦を出す（射影は縦の画角で作る）
         double aspect = halfWidth / halfHeight;
+        double horizontal = Math.toRadians(isInterior(onCar) ? REAR_FOV : DOOR_FOV);
+        double fov = Mth.clamp(Math.toDegrees(2.0 * Math.atan(Math.tan(horizontal * 0.5) / aspect)),
+                MIN_FOV, MAX_FOV);
 
         // 乗っているプレイヤーをカメラの持ち主にしておくと、LevelRenderer が
         // 「一人称なので自分は描かない」と判断してくれる（鏡に自分の顔は要らない）
@@ -443,10 +441,16 @@ public final class MirrorRenderer {
      *
      * @param onCar 鏡の位置（車体基準）
      */
+    private static boolean isInterior(Vec3 onCar) {
+        return Math.abs(onCar.x) < INTERIOR_HALF_WIDTH;
+    }
+
     private static Vec3 aim(Vec3 onCar) {
-        boolean interior = Math.abs(onCar.x) < INTERIOR_HALF_WIDTH;
-        // 外向きは鏡が付いている側へ。右の鏡（+X）なら +、左なら -
-        double yaw = Math.toRadians(interior ? 0.0 : Math.signum(onCar.x) * DOOR_OUTWARD);
+        boolean interior = isInterior(onCar);
+        // 外向きは鏡が付いている側へ。右の鏡（+X）なら +、左なら -。
+        // 振る量は「内側の端が車体へ DOOR_BODY_SHARE だけ食い込む」ところ: 中心 = 画角 × (1/2 − 割合)
+        double outward = DOOR_FOV * (0.5 - DOOR_BODY_SHARE);
+        double yaw = Math.toRadians(interior ? 0.0 : Math.signum(onCar.x) * outward);
         double pitch = Math.toRadians(interior ? REAR_DOWN : DOOR_DOWN);
         double flat = Math.cos(pitch);
         return new Vec3(Math.sin(yaw) * flat, -Math.sin(pitch), Math.cos(yaw) * flat);
