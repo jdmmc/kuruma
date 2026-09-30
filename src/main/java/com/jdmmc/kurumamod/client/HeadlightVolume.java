@@ -135,53 +135,61 @@ public final class HeadlightVolume {
     private static boolean viewCaptured;
     private static boolean announced;
 
+    /**
+     * 粒（タイヤの煙・土煙）を描く<b>前</b>の画面の色と深度。
+     *
+     * <p><b>粒は深度を書く。</b>描き終えた画面の深度だけで光を解くと、煙が壁として扱われ、
+     * 光線は煙のところで止まり、その奥の光がまるごと消える（煙越しに見ると光が打ち消されて
+     * 見えた）。粒の前の深度で光線と路面を解き、粒は「描く前と後の差」＝その粒が画素に
+     * 足した色として別に照らす。</p>
+     */
+    private static TextureTarget solid;
+    private static boolean solidCaptured;
+    private static int lampCount;
+
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) {
+        RenderLevelStageEvent.Stage stage = event.getStage();
+        if (stage == RenderLevelStageEvent.Stage.AFTER_SKY) {
             // ミラーの描画中は鏡の視点が入ってくるので覚えない
             if (!MirrorRenderer.isRendering()) {
                 VIEW.set(event.getPoseStack().last().pose());
                 viewCaptured = true;
+                solidCaptured = false;
             }
             return;
         }
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL
-                || !isActive() || MirrorRenderer.isRendering() || !viewCaptured) {
+        if (!isActive() || MirrorRenderer.isRendering() || !viewCaptured) {
             return;
         }
-        viewCaptured = false;
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
         if (level == null) {
             return;
         }
-        float partialTick = event.getPartialTick();
-        Vec3 camera = event.getCamera().getPosition();
+        RenderTarget main = mc.getMainRenderTarget();
 
-        int count = collect(level, camera, partialTick);
-        if (count == 0) {
+        if (stage == RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS) {
+            // 粒の直前。ランプが無ければ写さない（写すぶんだけ無駄）
+            lampCount = collect(level, event.getCamera().getPosition(), event.getPartialTick());
+            if (lampCount > 0) {
+                solid = snapshot(solid, main);
+                solidCaptured = true;
+            }
             return;
         }
-
-        RenderTarget main = mc.getMainRenderTarget();
+        if (stage != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            return;
+        }
+        viewCaptured = false;
+        int count = lampCount;
+        if (count == 0 || !solidCaptured) {
+            return;
+        }
+        float partialTick = event.getPartialTick();
         int width = main.width;
         int height = main.height;
-        if (copy == null) {
-            copy = new TextureTarget(width, height, true, Minecraft.ON_OSX);
-        } else if (copy.width != width || copy.height != height) {
-            copy.resize(width, height, Minecraft.ON_OSX);
-        }
-        // ステンシルの有無が違うと深度を写せない（形式が一致しないと blit が失敗する）
-        if (main.isStencilEnabled() && !copy.isStencilEnabled()) {
-            copy.enableStencil();
-        }
-
-        // 色と深度を写し取る。書いている最中の画面を同時に読むことはできないので
-        GlStateManager._glBindFramebuffer(GL_READ_FRAMEBUFFER, main.frameBufferId);
-        GlStateManager._glBindFramebuffer(GL_DRAW_FRAMEBUFFER, copy.frameBufferId);
-        GlStateManager._glBlitFrameBuffer(0, 0, width, height, 0, 0, width, height,
-                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        main.bindWrite(true);
+        copy = snapshot(copy, main);
 
         // 画面の座標から、カメラを原点にした世界の向きの座標へ戻す行列
         Matrix4f inverse = new Matrix4f(event.getProjectionMatrix())
@@ -189,7 +197,9 @@ public final class HeadlightVolume {
                 .invert();
 
         shader.setSampler("SceneSampler", copy.getColorTextureId());
-        shader.setSampler("DepthSampler", copy.getDepthTextureId());
+        shader.setSampler("FinalDepthSampler", copy.getDepthTextureId());
+        shader.setSampler("SolidSampler", solid.getColorTextureId());
+        shader.setSampler("DepthSampler", solid.getDepthTextureId());
         shader.safeGetUniform("InvViewProj").set(inverse);
         for (int i = 0; i < MAX_LAMPS; i++) {
             shader.safeGetUniform("Lamp" + i).set(i < count ? LAMPS[i] : ZERO);
@@ -197,6 +207,9 @@ public final class HeadlightVolume {
         shader.safeGetUniform("LampCount").set(count);
         shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
         shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
+        shader.safeGetUniform("SurfaceGain").set((float) LightDebugScreen.Values.surfaceGain);
+        shader.safeGetUniform("VolumeGain").set((float) LightDebugScreen.Values.volumeGain);
+        shader.safeGetUniform("SmokeGain").set((float) LightDebugScreen.Values.smokeGain);
 
         // 画面いっぱいに 1 枚。色はシェーダーが全部決めるので混色も深度も要らない
         RenderSystem.disableDepthTest();
@@ -217,6 +230,31 @@ public final class HeadlightVolume {
             announced = true;
             LOGGER.info("ヘッドライトを画素ごとに描き始めた（{} 灯、{}x{}）", count, width, height);
         }
+    }
+
+    /**
+     * 主画面の色と深度を {@code target} へ写す（大きさが違えば作り直す）。
+     *
+     * <p>書いている最中の画面を同時に読むことはできないので、読むのは写しのほう。</p>
+     */
+    private static TextureTarget snapshot(TextureTarget target, RenderTarget main) {
+        int width = main.width;
+        int height = main.height;
+        if (target == null) {
+            target = new TextureTarget(width, height, true, Minecraft.ON_OSX);
+        } else if (target.width != width || target.height != height) {
+            target.resize(width, height, Minecraft.ON_OSX);
+        }
+        // ステンシルの有無が違うと深度を写せない（形式が一致しないと blit が失敗する）
+        if (main.isStencilEnabled() && !target.isStencilEnabled()) {
+            target.enableStencil();
+        }
+        GlStateManager._glBindFramebuffer(GL_READ_FRAMEBUFFER, main.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.frameBufferId);
+        GlStateManager._glBlitFrameBuffer(0, 0, width, height, 0, 0, width, height,
+                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        main.bindWrite(true);
+        return target;
     }
 
     /** 近い車から順に、ヘッドライトを点けている車のランプを詰める。 */
@@ -240,7 +278,8 @@ public final class HeadlightVolume {
     }
 
     private static float fogDensity(ClientLevel level, float partialTick) {
-        return CLEAR_FOG + RAIN_FOG * level.getRainLevel(partialTick)
+        // 晴れの濃さは調整画面（Ctrl+D、デバッグ用）で動かせる。既定は CLEAR_FOG
+        return (float) LightDebugScreen.Values.fog + RAIN_FOG * level.getRainLevel(partialTick)
                 + THUNDER_FOG * level.getThunderLevel(partialTick);
     }
 
