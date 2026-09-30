@@ -48,7 +48,7 @@ public class CarSound extends AbstractTickableSoundInstance {
         SAND,
         /**
          * ターボの過給音（ヒュイーン）。ブーストで音程と音量が上がる。ブーストそのものと
-         * ブローオフ（プシュッ）は {@link CarTurbo}。ターボの無い車では鳴らない。
+         * ブローオフ（プシュッ）は {@link CarTurbo}。ターボの部品が付いていなければ鳴らない。
          */
         TURBO
     }
@@ -382,7 +382,7 @@ public class CarSound extends AbstractTickableSoundInstance {
      * 翼の回転＝ブーストで音程が上がり、回転数も少し乗せる（排気が当たっているぶん）。
      */
     private float[] turbo() {
-        if (!sounds.turbo()) {
+        if (!car.hasTurbo()) {
             return new float[]{0.0F, 1.0F};
         }
         CarSpec spec = car.getSpec();

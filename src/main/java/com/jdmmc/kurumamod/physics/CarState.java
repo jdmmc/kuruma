@@ -73,6 +73,11 @@ public final class CarState {
     public double engineRpm;
     /** エンジンが出しているトルク [N*m]。負ならエンジンブレーキ。 */
     public double engineTorque;
+    /**
+     * ターボのブースト（過給の具合）0..1。ターボが無ければ 0。
+     * 回転数とアクセルから {@link CarPhysics} が進める（{@link Turbo}）。
+     */
+    public double boost;
     /** 現在の段。1 以上で前進、-1 で後退、0 でニュートラル。 */
     public int gear;
     /** 変速の残り時間 [s]。0 より大きい間は駆動力が抜ける。 */

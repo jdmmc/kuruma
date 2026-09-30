@@ -3,6 +3,7 @@ package com.jdmmc.kurumamod.part;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jdmmc.kurumamod.physics.Turbo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -107,6 +108,37 @@ public final class CarPartLoader extends SimpleJsonResourceReloadListener {
                 return null;
             }
         }
-        return new CarPart(id, slot, order, cars);
+        Turbo turbo = null;
+        if (root.has("turbo")) {
+            if (slot != PartSlot.TURBO) {
+                LOGGER.warn("turbo はターボの部品（slot \"turbo\"）にしか書けません（無視します）: {}", id);
+            } else {
+                turbo = parseTurbo(GsonHelper.getAsJsonObject(root, "turbo"));
+            }
+        } else if (slot == PartSlot.TURBO) {
+            LOGGER.warn("ターボの部品に turbo が書かれていません（既定の性能にします）: {}", id);
+            turbo = parseTurbo(new JsonObject());
+        }
+        return new CarPart(id, slot, order, cars, turbo);
+    }
+
+    /**
+     * ターボの性能。書かなかった項目は純正タービンくらいの値。範囲の外は {@link Turbo} が丸める。
+     *
+     * <pre>
+     * "turbo": {
+     *   "boost": 0.35,        // ブーストいっぱいでトルクを何割増やすか
+     *   "spool_from": 0.25,   // 過給が立ち上がり始める回転の割合（アイドル 0 〜 レブ 1）
+     *   "spool_full": 0.60,   // 過給がいっぱいになる回転の割合
+     *   "spool_rate": 3.0     // 立ち上がる速さ [1/s]。小さいほどターボラグが長い
+     * }
+     * </pre>
+     */
+    private static Turbo parseTurbo(JsonObject json) {
+        return new Turbo(
+                GsonHelper.getAsDouble(json, "boost", 0.35),
+                GsonHelper.getAsDouble(json, "spool_from", 0.25),
+                GsonHelper.getAsDouble(json, "spool_full", 0.60),
+                GsonHelper.getAsDouble(json, "spool_rate", 3.0));
     }
 }

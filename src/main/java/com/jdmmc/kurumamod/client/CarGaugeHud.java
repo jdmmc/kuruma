@@ -500,7 +500,7 @@ public final class CarGaugeHud {
         lamp(graphics, font, theme, tcs, offset, SUBGAUGE_TOP, pairWidth,
                 car.isTractionControlActive() ? 1.0F : 0.0F, theme.aidOn, text);
         float brake = car.isHandbrakeOn() ? 1.0F : 0.0F;
-        if (!CarTurbo.hasTurbo(car)) {
+        if (!car.hasTurbo()) {
             lamp(graphics, font, theme, handbrake, 0.0F, secondRow, lampWidth(font, handbrake),
                     brake, theme.handbrake, text);
             return;

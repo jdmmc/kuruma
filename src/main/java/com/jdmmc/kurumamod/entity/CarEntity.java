@@ -7,7 +7,11 @@ import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.CarImpact;
 import com.jdmmc.kurumamod.client.CarSeat;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
+import com.jdmmc.kurumamod.part.CarPart;
+import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
+import com.jdmmc.kurumamod.part.PartSlot;
+import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
 import com.jdmmc.kurumamod.network.CarPartsPacket;
 import com.jdmmc.kurumamod.network.CarPushPacket;
@@ -168,6 +172,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      */
     private static final EntityDataAccessor<Byte> DATA_LIGHTS =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.BYTE);
+    /** ターボのブースト 0..1。過給音とメーターの TURBO ランプに使う。 */
+    private static final EntityDataAccessor<Float> DATA_BOOST =
+            SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
 
     /** ヘッドライト点灯。 */
     public static final int LIGHT_HEAD = 1;
@@ -386,6 +393,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         entityData.define(DATA_SLIP_ANGLE, 0.0F);
         entityData.define(DATA_SURFACE, packSurfaces(RoadSurface.PAVED));
         entityData.define(DATA_LIGHTS, (byte) 0);
+        entityData.define(DATA_BOOST, 0.0F);
         entityData.define(DATA_YAW, 0.0F);
     }
 
@@ -394,8 +402,56 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         return spec.staticRideHeight();
     }
 
+    /**
+     * 物理が解く諸元。<b>調整画面の諸元に、装着している部品の性能を載せたもの。</b>
+     *
+     * <p>重ねる順は「車種の諸元 → 調整画面 → 部品」。部品の性能（いまはターボ）は諸元の側に
+     * 焼き込まない——焼き込むと、外しても戻らない・調整画面の値と食い違う、の二重管理になる。
+     * 載せ直すのは諸元か部品か部品の一覧（データパックの再読み込み）が変わったときだけ。</p>
+     *
+     * <p>ターボは調整画面の項目ではないので保存も同期もされない（{@code CarSpecCodec} は
+     * {@code Tunables} しか読み書きしない）。部品の装着状態は別に保存・同期されているので、
+     * どちらの側でも同じものが組み上がる。</p>
+     */
     public CarSpec getSpec() {
-        return spec;
+        if (effectiveBase != spec || effectiveParts != parts || effectiveGeneration != CarParts.generation()) {
+            effectiveSpec = spec.toBuilder().turbo(turboOf(parts)).build();
+            effectiveBase = spec;
+            effectiveParts = parts;
+            effectiveGeneration = CarParts.generation();
+        }
+        return effectiveSpec;
+    }
+
+    private CarSpec effectiveSpec = CarSpec.DEFAULT;
+    private CarSpec effectiveBase;
+    private PartFitment effectiveParts;
+    private int effectiveGeneration = -1;
+
+    /** 装着しているターボの性能。付いていない・知らない部品なら無し。 */
+    private static Turbo turboOf(PartFitment parts) {
+        ResourceLocation id = parts.getPart(PartSlot.TURBO);
+        CarPart part = id == null ? null : CarParts.get(id);
+        return part == null || part.turbo() == null ? Turbo.NONE : part.turbo();
+    }
+
+    /** ターボが付いているか。 */
+    public boolean hasTurbo() {
+        return getSpec().turbo().present();
+    }
+
+    /**
+     * ブローオフバルブが付いているか（<b>音だけ</b>。ターボが無ければ鳴らない）。
+     * 知らない部品（カーパックを外した）なら付いていないものとする。
+     */
+    public boolean hasBlowoff() {
+        ResourceLocation id = parts.getPart(PartSlot.BLOWOFF);
+        return id != null && CarParts.get(id) != null && hasTurbo();
+    }
+
+    /** ブースト 0..1。手元で解いていないときは同期された値。 */
+    public double getRenderBoost() {
+        return hasLocalState() ? state.boost : entityData.get(DATA_BOOST);
     }
 
     /**
@@ -485,7 +541,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
                     (float) state.engineRpm, state.gear, (float) state.throttle,
                     (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
-                    driverLights()));
+                    driverLights(), (float) state.boost));
         }
 
         if (!level().isClientSide) {
@@ -609,7 +665,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
 
         double dt = TICK_SECONDS / PHYSICS_SUBSTEPS;
         for (int i = 0; i < PHYSICS_SUBSTEPS; i++) {
-            CarPhysics.step(spec, state, groundContact, dt, input);
+            CarPhysics.step(getSpec(), state, groundContact, dt, input);
         }
 
         setYRot((float) (state.yaw * Mth.RAD_TO_DEG));
@@ -670,7 +726,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
                     (float) state.engineRpm, state.gear, (float) state.throttle,
                     (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
-                    driverLights());
+                    driverLights(), (float) state.boost);
         }
     }
 
@@ -1102,7 +1158,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     public void applyDriverState(float steerAngle, float speed, float yaw, float pitch, float roll,
                                 float[] suspension, float[] wheelSpeed, float[] friction,
                                 float rpm, int gear, float throttle, float slipAngle, int surface,
-                                byte lights) {
+                                byte lights, float boost) {
         entityData.set(DATA_STEER_ANGLE, steerAngle);
         entityData.set(DATA_SPEED, speed);
         entityData.set(DATA_YAW, yaw);
@@ -1119,6 +1175,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         entityData.set(DATA_SLIP_ANGLE, slipAngle);
         entityData.set(DATA_SURFACE, surface);
         entityData.set(DATA_LIGHTS, lights);
+        entityData.set(DATA_BOOST, Math.max(0.0F, Math.min(1.0F, boost)));
         if (!level().isClientSide) {
             // 運転者が入れた状態を覚えておく。降りた後もサーバーがこれを配り続ける
             headlightsOn = (lights & LIGHT_HEAD) != 0;

@@ -54,7 +54,7 @@ import java.util.function.Supplier;
  *
  * @param overrides 役割の名前（{@link #KEYS}）→ サウンドイベントの名前
  */
-public record CarSoundSet(Map<String, ResourceLocation> overrides, boolean turbo) {
+public record CarSoundSet(Map<String, ResourceLocation> overrides) {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -63,8 +63,8 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, boolean turbo
     public static final String SHIFT = "shift";
     public static final String CRASH = "crash";
     /**
-     * ターボ。文字列ならその音で過給音を鳴らし、{@code false} なら<b>ターボの無い車</b>
-     * （過給音もブローオフも鳴らさない）。書かなければターボ付き。
+     * ターボの過給音の差し替え。<b>ターボが付いているかどうかは音ではなく部品</b>
+     * （{@code car_parts} の slot {@code "turbo"}）で決まる。
      */
     public static final String TURBO = "turbo";
     /** ブローオフバルブの音（1 回だけ鳴る）。 */
@@ -79,7 +79,7 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, boolean turbo
             TURBO, SHIFT, CRASH, BLOWOFF);
 
     /** 何も差し替えない。 */
-    public static final CarSoundSet NONE = new CarSoundSet(Map.of(), true);
+    public static final CarSoundSet NONE = new CarSoundSet(Map.of());
 
     /** 見つからなかったと一度報告した名前。毎ティック同じ警告を出さないため。 */
     private static final Set<ResourceLocation> REPORTED_MISSING = new HashSet<>();
@@ -143,16 +143,9 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, boolean turbo
             return NONE;
         }
         Map<String, ResourceLocation> overrides = new TreeMap<>();
-        boolean turbo = true;
         for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith("_")) {
-                continue;
-            }
-            // "turbo": false は音の差し替えではなく「ターボが無い」の意味
-            if (key.equals(TURBO) && entry.getValue().isJsonPrimitive()
-                    && entry.getValue().getAsJsonPrimitive().isBoolean()) {
-                turbo = entry.getValue().getAsBoolean();
                 continue;
             }
             if (!KEYS.contains(key)) {
@@ -162,6 +155,6 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, boolean turbo
             }
             overrides.put(key, new ResourceLocation(entry.getValue().getAsString()));
         }
-        return new CarSoundSet(overrides, turbo);
+        return new CarSoundSet(overrides);
     }
 }

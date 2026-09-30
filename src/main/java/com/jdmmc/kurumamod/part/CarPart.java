@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.part;
 
+import com.jdmmc.kurumamod.physics.Turbo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +36,8 @@ import java.util.Set;
  * @param order 一覧に並べる順。小さいものが先。同じなら id 順
  * @param cars  付けられる車種。空ならすべて
  */
-public record CarPart(ResourceLocation id, PartSlot slot, int order, Set<ResourceLocation> cars) {
+public record CarPart(ResourceLocation id, PartSlot slot, int order, Set<ResourceLocation> cars,
+                      @Nullable Turbo turbo) {
 
     /** 並び順を書かなかった部品の位置。 */
     public static final int DEFAULT_ORDER = 100;

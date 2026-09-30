@@ -1,0 +1,11 @@
+{
+  "_comment": "純正タービン。中回転から素直に立ち上がる。トルクはブーストいっぱいで 1.35 倍",
+  "slot": "turbo",
+  "order": 10,
+  "turbo": {
+    "boost": 0.35,
+    "spool_from": 0.22,
+    "spool_full": 0.55,
+    "spool_rate": 3.0
+  }
+}

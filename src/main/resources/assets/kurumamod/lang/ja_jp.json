@@ -401,5 +401,11 @@
   "key.kurumamod.headlight_settings": "ヘッドライトの調整",
   "help.kurumamod.headlight_settings": "ライトの調整",
   "subtitles.kurumamod.car_turbo": "ターボの過給音",
-  "subtitles.kurumamod.car_blowoff": "ブローオフ"
+  "subtitles.kurumamod.car_blowoff": "ブローオフ",
+  "part_slot.kurumamod.turbo": "ターボ",
+  "part_slot.kurumamod.blowoff": "ブローオフ",
+  "screen.kurumamod.part.none": "なし",
+  "part.kurumamod.turbo_stock": "純正タービン",
+  "part.kurumamod.turbo_big": "ビッグタービン",
+  "part.kurumamod.blowoff_atmospheric": "大気開放"
 }

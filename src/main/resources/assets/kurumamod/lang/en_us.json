@@ -401,5 +401,11 @@
   "key.kurumamod.headlight_settings": "Headlight settings",
   "help.kurumamod.headlight_settings": "Light settings",
   "subtitles.kurumamod.car_turbo": "Turbo whistles",
-  "subtitles.kurumamod.car_blowoff": "Blow-off valve vents"
+  "subtitles.kurumamod.car_blowoff": "Blow-off valve vents",
+  "part_slot.kurumamod.turbo": "Turbo",
+  "part_slot.kurumamod.blowoff": "Blow-off",
+  "screen.kurumamod.part.none": "None",
+  "part.kurumamod.turbo_stock": "Stock turbo",
+  "part.kurumamod.turbo_big": "Big turbo",
+  "part.kurumamod.blowoff_atmospheric": "Atmospheric"
 }

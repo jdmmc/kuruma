@@ -1,0 +1,11 @@
+{
+  "_comment": "ビッグタービン。立ち上がりが遅く高回転へ寄るが、効き始めると 1.7 倍まで伸びる",
+  "slot": "turbo",
+  "order": 20,
+  "turbo": {
+    "boost": 0.7,
+    "spool_from": 0.4,
+    "spool_full": 0.78,
+    "spool_rate": 1.4
+  }
+}
