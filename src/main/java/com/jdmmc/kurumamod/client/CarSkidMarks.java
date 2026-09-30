@@ -203,7 +203,7 @@ public final class CarSkidMarks {
     private static void track(CarEntity car, boolean own, int limit) {
         Point[] trail = TRAILS.computeIfAbsent(car.getId(), id -> new Point[Wheel.VALUES.length]);
         double speed = Math.abs(car.getRenderSpeed());
-        if (speed < MIN_SPEED || car.getRenderSurface() != RoadSurface.PAVED) {
+        if (speed < MIN_SPEED) {
             java.util.Arrays.fill(trail, null);
             return;
         }
@@ -221,6 +221,11 @@ public final class CarSkidMarks {
 
         for (Wheel wheel : Wheel.VALUES) {
             int index = wheel.ordinal();
+            // 路面は輪ごとに見る。前輪が土に乗っても、舗装の上の後輪の跡は途切れさせない
+            if (car.getRenderSurface(wheel) != RoadSurface.PAVED) {
+                trail[index] = null;
+                continue;
+            }
             double intensity = (car.getRenderFrictionPower(wheel) / reference - MIN_POWER)
                     / (FULL_POWER - MIN_POWER);
             if (intensity <= 0.0) {

@@ -32,6 +32,10 @@ public final class KurumaParticles {
     public static final RegistryObject<SimpleParticleType> DUST =
             PARTICLE_TYPES.register("dust", () -> new SimpleParticleType(false));
 
+    /** 舗装路でタイヤが擦れて上げる白煙。ドリフトではいちばん数が出るので、これも粒の量の設定に従う。 */
+    public static final RegistryObject<SimpleParticleType> TIRE_SMOKE =
+            PARTICLE_TYPES.register("tire_smoke", () -> new SimpleParticleType(false));
+
     private KurumaParticles() {
     }
 }

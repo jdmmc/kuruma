@@ -70,9 +70,16 @@ public class CarSound extends AbstractTickableSoundInstance {
     private static final double ROAD_FULL_SPEED = 30.0;
     private static final double WIND_FULL_SPEED = 45.0;
 
-    /** これ以下の滑りでは鳴らさない。直進中の僅かな滑りで鳴りっぱなしになるのを防ぐ。 */
-    private static final double SLIP_RATIO_THRESHOLD = 0.15;
-    private static final double SLIP_ANGLE_THRESHOLD = 6.0;
+    /**
+     * タイヤが鳴きはじめる／いちばん大きく鳴る滑る速さ [m/s]（{@code CarEntity#getRenderSlideSpeed}）。
+     *
+     * <p>下は、限界で曲がっているだけ（30m/s・スリップ角 5 度で約 2.6m/s）や普通の発進では
+     * ほとんど鳴らない位置。上は、60km/h・45 度のドリフトで届く位置。以前は滑り率と
+     * スリップ角で決めていたので、後輪が空転した時点で最大に張り付き、角度にも速さにも
+     * 応じなかった。</p>
+     */
+    private static final double SQUEAL_MIN_SLIDE = 2.5;
+    private static final double SQUEAL_FULL_SLIDE = 17.0;
 
     /**
      * 未舗装の路面音が鳴りはじめる／いちばん大きくなる撫で速さ [m/s]。
@@ -173,6 +180,18 @@ public class CarSound extends AbstractTickableSoundInstance {
      * 実際に不連続な出来事</b>であり、音量の平滑化（{@link #SMOOTHING}）がひと呼吸ぶんの
      * クロスフェードを作ってくれる。</p>
      */
+    /**
+     * その路面でタイヤがどれだけ鳴くか。0 で鳴かない。
+     *
+     * <p><b>未舗装では 0 にすること。グリップを掛けるだけでは足りない。</b>土は 0.75、砂でも 0.55
+     * あるので、グリップを掛けるだけだと土や砂の上でも 7 割・5 割の大きさで鳴いていた。
+     * 掴む相手のほうが持っていかれる路面では、代わりに GRAVEL / SAND が鳴る。
+     * 氷は掻き飛ばすものも無いので、グリップを掛けてほぼ無音にする。</p>
+     */
+    private static float bite(RoadSurface surface) {
+        return looseOf(surface) != null ? 0.0F : (float) surface.gripScale();
+    }
+
     private static Loose looseOf(RoadSurface surface) {
         return switch (surface) {
             case GRAVEL -> new Loose(Role.GRAVEL, 1.00F);
@@ -261,21 +280,24 @@ public class CarSound extends AbstractTickableSoundInstance {
                 targetPitch = 0.9F + 0.5F * t;
             }
             case SLIP, SLIP_CHATTER -> {
-                double worst = 0.0;
-                for (Wheel wheel : Wheel.VALUES) {
-                    worst = Math.max(worst, Math.abs(car.getRenderSlipRatio(wheel)));
-                }
-                double longitudinal = Math.max(0.0, worst - SLIP_RATIO_THRESHOLD);
-                double lateral = Math.max(0.0,
-                        Math.abs(car.getRenderSlipAngleDegrees()) - SLIP_ANGLE_THRESHOLD) / 20.0;
-                // 止まっているときは鳴らさない。停止寸前はスリップ角が跳ね上がるため
-                double speed = Math.abs(car.getRenderSpeed());
-                float gate = (float) Mth.clamp(speed / 3.0, 0.0, 1.0);
+                // 輪ごとに、接地面が滑っている速さから鳴きを出して、いちばん大きい輪で鳴らす。
+                // 角度が深いほど、速いほど、回すほど滑る速さが上がって大きく鳴る。
                 // ゴムが鳴くのは路面を掴んだまま滑るとき。掴む相手のほうが持っていかれる
-                // 未舗装では鳴らず、代わりに GRAVEL / SAND が出る。氷も掴めないので鳴らない
-                float bite = (float) car.getRenderSurface().gripScale();
-                float squeal = (float) Mth.clamp((longitudinal + lateral) * 0.7, 0.0, 1.0)
-                        * gate * bite;
+                // 未舗装では鳴らず、代わりに GRAVEL / SAND が出る。氷も掴めないので鳴らない。
+                // 路面は<b>その輪の足元</b>で見ること。車全体（いちばん滑りやすい輪）で見ると、
+                // 前輪が土に乗った瞬間に、コンクリートで滑っている後輪の鳴きまで弱まる
+                float squeal = 0.0F;
+                double sliding = 0.0;
+                for (Wheel wheel : Wheel.VALUES) {
+                    double t = Mth.clamp((car.getRenderSlideSpeed(wheel) - SQUEAL_MIN_SLIDE)
+                            / (SQUEAL_FULL_SLIDE - SQUEAL_MIN_SLIDE), 0.0, 1.0);
+                    // 平方根で持ち上げる。線形だと中くらいのドリフトが小さく聞こえすぎる
+                    float wheelSqueal = (float) Math.sqrt(t) * bite(car.getRenderSurface(wheel));
+                    if (wheelSqueal > squeal) {
+                        squeal = wheelSqueal;
+                        sliding = t;
+                    }
+                }
                 // 滑り始めは刻み（キキキキ）、続けば伸ばし（キィー）。等パワーで受け渡すので
                 // 移っている途中でも大きさは変わらない
                 if (squeal > SLIP_ONSET_LEVEL) {
@@ -287,21 +309,34 @@ public class CarSound extends AbstractTickableSoundInstance {
                 double chatter = Mth.clamp(1.0 - slipTicks / (double) CHATTER_TICKS, 0.0, 1.0);
                 double share = role == Role.SLIP_CHATTER ? chatter : 1.0 - chatter;
                 targetVolume = squeal * (float) Math.sqrt(share);
-                targetPitch = 1.0F + 0.3F * (float) Math.min(1.0, longitudinal);
+                // 激しく滑るほど少し高く
+                targetPitch = 0.95F + 0.2F * (float) sliding;
             }
             case GRAVEL, SAND -> {
-                RoadSurface surface = car.getRenderSurface();
+                // 輪ごとに、その輪の足元の路面と掻いている速さで鳴らし、いちばん大きい輪を取る。
+                // 車全体で見ると、前輪が砂利に乗った瞬間に、コンクリートで空転している
+                // 後輪の擦れ具合でジャリジャリ鳴ってしまう。
                 // 掻いている速さは土煙とまったく同じ量から取る。片方だけ直すと
                 // 見えている土煙と聞こえている音が食い違う
-                double scrub = car.getRenderScrubSpeed();
-                float t = (float) Mth.clamp(
-                        (scrub - LOOSE_MIN_SCRUB) / (LOOSE_FULL_SCRUB - LOOSE_MIN_SCRUB),
-                        0.0, 1.0);
-                Loose loose = looseOf(surface);
-                targetVolume = loose != null && loose.role() == role
-                        ? LOOSE_VOLUME * t * loose.gain()
-                        : 0.0F;
-                targetPitch = LOOSE_PITCH_BASE + LOOSE_PITCH_SPAN * t;
+                float loudest = 0.0F;
+                float scrubbing = 0.0F;
+                for (Wheel wheel : Wheel.VALUES) {
+                    Loose loose = looseOf(car.getRenderSurface(wheel));
+                    if (loose == null || loose.role() != role) {
+                        continue;
+                    }
+                    double scrub = car.getRenderScrubSpeed(wheel);
+                    float t = (float) Mth.clamp(
+                            (scrub - LOOSE_MIN_SCRUB) / (LOOSE_FULL_SCRUB - LOOSE_MIN_SCRUB),
+                            0.0, 1.0);
+                    float wheelVolume = LOOSE_VOLUME * t * loose.gain();
+                    if (wheelVolume > loudest) {
+                        loudest = wheelVolume;
+                        scrubbing = t;
+                    }
+                }
+                targetVolume = loudest;
+                targetPitch = LOOSE_PITCH_BASE + LOOSE_PITCH_SPAN * scrubbing;
             }
             default -> {
                 targetVolume = 0.0F;

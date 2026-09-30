@@ -35,7 +35,7 @@ import java.util.function.Supplier;
  * @param gear       今の段。負で後退、0 で変速中。変速音に使う
  * @param throttle   アクセルの踏み込み量 0..1。排気音の音量に使う
  * @param slipAngle  車体スリップ角 [度]。タイヤの悲鳴に使う
- * @param surface    路面の種類（{@code RoadSurface} の並び順）。ロードノイズに使う
+ * @param surface    各輪の路面（{@code RoadSurface} の並び順を 1 輪 4 ビットで詰めたもの）。煙・土煙・ロードノイズに使う
  * @param lights     灯火の状態のビット（ヘッドライト・ブレーキ）。バックは段から分かるので入れない
  */
 public record CarStatePacket(int entityId, float steerAngle, float speed, float yaw,
@@ -48,8 +48,8 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         this(buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(),
                 readWheels(buf), readWheels(buf), readWheels(buf),
-                buf.readFloat(), buf.readByte(), buf.readFloat(), buf.readFloat(), buf.readByte(),
-                buf.readByte());
+                buf.readFloat(), buf.readByte(), buf.readFloat(), buf.readFloat(),
+                buf.readUnsignedShort(), buf.readByte());
     }
 
     private static float[] readWheels(FriendlyByteBuf buf) {
@@ -80,7 +80,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         buf.writeByte(gear);
         buf.writeFloat(throttle);
         buf.writeFloat(slipAngle);
-        buf.writeByte(surface);
+        buf.writeShort(surface);
         buf.writeByte(lights);
     }
 
