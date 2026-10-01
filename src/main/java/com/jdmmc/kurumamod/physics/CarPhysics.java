@@ -1557,11 +1557,12 @@ public final class CarPhysics {
 
             double load = 0.0;
             if (compression > 0.0) {
-                // ダンパーはハードポイントが上がる（＝伸びる）ほど荷重を減らす向きに効く
+                // ダンパーはハードポイントが上がる（＝伸びる）ほど荷重を減らす向きに効く。
+                // 上がっていれば伸び側、下がっていれば縮み側の係数
                 double speed = state.hardpointVerticalSpeed(forwardOffset, rightOffset);
                 load = spec.suspensionStiffness(wheel) * springTravel
                         + spec.bumpStopStiffness(wheel) * bumpStopTravel
-                        - spec.suspensionDamping(wheel) * speed;
+                        - spec.suspensionDamping(wheel, speed > 0.0) * speed;
                 // サスペンションは押すだけで引っ張れない。上限は停車時荷重の何倍かで置くので、
                 // 荷重配分の軽い側は上限も低い
                 load = Math.max(0.0, Math.min(spec.staticWheelLoad(wheel) * MAX_LOAD_FACTOR, load));
