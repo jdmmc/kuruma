@@ -139,6 +139,11 @@ public final class ClientConfig {
                     "11 で無制限（天井は GPU のテクスチャの大きさで、普通は 64 台）")
             .defineInRange("headlightCars", 11.0, 1.0, 11.0);
 
+    public static final ForgeConfigSpec.BooleanValue HEADLIGHT_WITH_SHADER_PACKS = BUILDER
+            .comment("シェーダーパック（Oculus / Iris / OptiFine）を使っている間も、ヘッドライトの光（路面の照り返し・光線・光芒）を描くか。",
+                    "パックによっては合成が崩れるので、そのときは切る（レンズが光るだけになる）")
+            .define("headlightWithShaderPacks", true);
+
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_RANGE = BUILDER
             .comment("光の届く距離 [m]。これより遠い路面・光線・影は計算しない（手前 30% でなめらかに消す）。",
                     "短いほど軽い。光は距離の 2 乗で弱まるので、遠くはもともと暗い")
@@ -213,6 +218,8 @@ public final class ClientConfig {
     public static int headlightCars = 11;
     /** 光の届く距離 [m]。 */
     public static double headlightRange = 48.0;
+    /** シェーダーパックを使っている間も光を描くか。 */
+    public static boolean headlightWithShaderPacks = true;
     /** 「光を描く台数」のこの値は無制限を意味する（スライダーの右端）。 */
     public static final int UNLIMITED_HEADLIGHT_CARS = 11;
 
@@ -259,6 +266,7 @@ public final class ClientConfig {
         headlightSmoke = HEADLIGHT_SMOKE.get();
         headlightCars = (int) Math.round(HEADLIGHT_CARS.get());
         headlightRange = HEADLIGHT_RANGE.get();
+        headlightWithShaderPacks = HEADLIGHT_WITH_SHADER_PACKS.get();
     }
 
     /**
