@@ -37,6 +37,10 @@ package com.jdmmc.kurumamod.physics;
  * @param frontRollCenter      前軸のロールセンター高。<b>重心高に対する割合</b>。0 で地面（すべての荷重移動がバネを通る）。
  *                             {@link #rollCenterHeight} を参照
  * @param rearRollCenter       後軸のロールセンター高。同上
+ * @param frontBumpDamping     前輪ダンパーの縮み側の減衰比（臨界減衰に対する割合）。{@link #suspensionDamping} を参照
+ * @param frontReboundDamping  前輪ダンパーの伸び側の減衰比。同上
+ * @param rearBumpDamping      後輪ダンパーの縮み側の減衰比。同上
+ * @param rearReboundDamping   後輪ダンパーの伸び側の減衰比。同上
  * @param ackermann            アッカーマン率。1 で内輪が幾何どおり深く切れる、0 で平行、負でアンチ。{@link #staticSteer} を参照
  * @param frontToe             前輪の静的トー [rad]（片輪あたり）。正でトーイン
  * @param rearToe              後輪の静的トー [rad]（片輪あたり）。正でトーイン
@@ -92,6 +96,10 @@ public record CarSpec(
         double rearAntiRollStiffness,
         double frontRollCenter,
         double rearRollCenter,
+        double frontBumpDamping,
+        double frontReboundDamping,
+        double rearBumpDamping,
+        double rearReboundDamping,
         double ackermann,
         double frontToe,
         double rearToe,
@@ -173,9 +181,6 @@ public record CarSpec(
      * 車重を変えてもバネが追従し、沈み込みと固有振動数は前後で揃ったままになる。</p>
      */
     private static final double STATIC_SAG_RATIO = 0.3924;
-
-    /** サスペンションの減衰比。ダンパーはここから決まる（前後それぞれのバネと荷重で解く）。 */
-    private static final double DAMPING_RATIO = 0.45;
 
     /** バンプストップが停車時荷重ぶんを受け止めるまでの縮み [m]。 */
     private static final double BUMP_STOP_TRAVEL = 0.015;
@@ -583,20 +588,23 @@ public record CarSpec(
     }
 
     /**
-     * その輪のダンパー減衰係数 [N*s/m]。
+     * その輪のダンパー減衰係数 [N*s/m]。{@code rebound} が true なら伸び側、false なら縮み側。
      *
-     * <p>減衰比が前後で揃うように、<b>その輪のバネと分担荷重から</b>解く
-     * （{@code c = 2 * ζ * sqrt(k * m)}）。前後共通の 1 つの数字で持っていた頃は、
-     * 荷重配分を入れた時点で前 0.40／後 0.51 とずれていた。</p>
+     * <p>諸元が持つのは<b>減衰比</b>（臨界減衰に対する割合）で、係数は
+     * <b>その輪のバネと分担荷重から</b>解く（{@code c = 2 * ζ * sqrt(k * m)}）。
+     * N*s/m で持つと、ストロークや車重を動かしたときに減衰だけが取り残される
+     * （バネはストロークと荷重から決まるので、同じ係数でも減衰比が勝手に変わる）。
+     * 前後共通の 1 つの係数で持っていた頃は、荷重配分を入れた時点で前 0.40／後 0.51 とずれていた。</p>
      */
-    public double suspensionDamping(Wheel wheel) {
+    public double suspensionDamping(Wheel wheel, boolean rebound) {
         double cornerMass = mass * weightShare(wheel) / 2.0;
-        return 2.0 * DAMPING_RATIO * Math.sqrt(suspensionStiffness(wheel) * cornerMass);
+        return 2.0 * dampingRatio(wheel, rebound) * Math.sqrt(suspensionStiffness(wheel) * cornerMass);
     }
 
-    /** サスペンションの減衰比。前後で共通。 */
-    public double dampingRatio() {
-        return DAMPING_RATIO;
+    /** その輪の減衰比。{@code rebound} が true なら伸び側。 */
+    public double dampingRatio(Wheel wheel, boolean rebound) {
+        if (wheel.isFront()) return rebound ? frontReboundDamping : frontBumpDamping;
+        return rebound ? rearReboundDamping : rearBumpDamping;
     }
 
     /**
@@ -949,6 +957,13 @@ public record CarSpec(
         // （LLTD 56.9→56.5%）、ロールだけを 3.68→2.21°/G へ減らす。0 にすると入れる前と同じ
         private double frontRollCenter = 0.4;
         private double rearRollCenter = 0.4;
+        // ダンパーの減衰比（臨界減衰に対する割合）。前後 × 縮み／伸び。係数ではなく比で持つので、
+        // ストロークや車重を変えてもバネに追従する。既定は導出だった頃の 0.45 のまま
+        // （どれを動かしても既定の車の挙動は変わらない）。実車は伸びを縮みの 1.5〜3 倍にすることが多い
+        private double frontBumpDamping = 0.45;
+        private double frontReboundDamping = 0.45;
+        private double rearBumpDamping = 0.45;
+        private double rearReboundDamping = 0.45;
         // ステアリングのジオメトリ（Balkwill）。ロールステアとコンプライアンスステアで
         // アンダーステア勾配を 0 前後から 1°/G ほどへ上げる（実車は 1〜4°/G）。タイヤと荷重配分
         // だけだとこの車はほぼニュートラルで、限界で尻が出る向きに崩れていた。
@@ -1051,6 +1066,10 @@ public record CarSpec(
             rearAntiRollStiffness = spec.rearAntiRollStiffness;
             frontRollCenter = spec.frontRollCenter;
             rearRollCenter = spec.rearRollCenter;
+            frontBumpDamping = spec.frontBumpDamping;
+            frontReboundDamping = spec.frontReboundDamping;
+            rearBumpDamping = spec.rearBumpDamping;
+            rearReboundDamping = spec.rearReboundDamping;
             ackermann = spec.ackermann;
             frontToe = spec.frontToe;
             rearToe = spec.rearToe;
@@ -1141,6 +1160,26 @@ public record CarSpec(
 
         public Builder rearRollCenter(double value) {
             rearRollCenter = value;
+            return this;
+        }
+
+        public Builder frontBumpDamping(double value) {
+            frontBumpDamping = value;
+            return this;
+        }
+
+        public Builder frontReboundDamping(double value) {
+            frontReboundDamping = value;
+            return this;
+        }
+
+        public Builder rearBumpDamping(double value) {
+            rearBumpDamping = value;
+            return this;
+        }
+
+        public Builder rearReboundDamping(double value) {
+            rearReboundDamping = value;
             return this;
         }
 
@@ -1371,6 +1410,7 @@ public record CarSpec(
                     wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     frontRollCenter, rearRollCenter,
+                    frontBumpDamping, frontReboundDamping, rearBumpDamping, rearReboundDamping,
                     ackermann, frontToe, rearToe,
                     frontRollSteer, rearRollSteer, frontComplianceSteer, rearComplianceSteer,
                     corneringStiffness, longitudinalStiffness,

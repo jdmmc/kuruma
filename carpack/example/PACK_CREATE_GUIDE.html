@@ -1818,8 +1818,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <section id="sc" data-guide="car">
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（51 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
-<p class="en">That is all of them (51 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="ja">これで全部（55 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="en">That is all of them (55 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -1829,7 +1829,16 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><td><code>front_roll_center</code></td><td>フロント ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
 <tr><td><code>rear_roll_center</code></td><td>リア ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
 </table>
-<p class="ja"><b>足を硬くしたいときは <code>stroke</code> を短くします。</b>沈み込みがストロークの 39.2% で固定なので、短いほどバネもダンパーも硬くなります。</p>
+<p class="ja"><b>足を硬くしたいときは <code>stroke</code> を短くします。</b>沈み込みがストロークの 39.2% で固定なので、短いほどバネが硬くなり、ダンパーの係数もそれに合わせて上がります。</p>
+<h4 class="ja">ダンパー</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>front_bump_damping</code></td><td>フロント 縮み側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>front_rebound_damping</code></td><td>フロント 伸び側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_bump_damping</code></td><td>リア 縮み側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_rebound_damping</code></td><td>リア 伸び側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+</table>
+<p class="ja"><b>N·s/m ではなく減衰比（臨界減衰に対する割合）で書きます。</b>係数はその輪のバネと荷重から KurumaMod が計算するので、<code>stroke</code> や <code>mass</code> を変えても効き方は変わりません。1 で揺り返しがちょうど出なくなる硬さ。実車は伸び側を縮み側の 1.5〜3 倍にすることが多く、そうすると段差を柔らかくいなしつつ揺れがすぐ収まります。</p>
 <h4 class="ja">ステアリング ジオメトリ</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -1920,7 +1929,16 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><td><code>front_roll_center</code></td><td>Front roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
 <tr><td><code>rear_roll_center</code></td><td>Rear roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
 </table>
-<p class="en"><b>To stiffen the suspension, shorten <code>stroke</code>.</b> Static sag is fixed at 39.2% of the stroke, so a shorter stroke means stiffer springs and dampers.</p>
+<p class="en"><b>To stiffen the suspension, shorten <code>stroke</code>.</b> Static sag is fixed at 39.2% of the stroke, so a shorter stroke means stiffer springs, and the damper coefficients rise with them.</p>
+<h4 class="en">Dampers</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>front_bump_damping</code></td><td>Front bump damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>front_rebound_damping</code></td><td>Front rebound damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_bump_damping</code></td><td>Rear bump damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_rebound_damping</code></td><td>Rear rebound damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+</table>
+<p class="en"><b>Write a damping ratio (a fraction of critical damping), not N·s/m.</b> KurumaMod works out the coefficient from that wheel's spring and load, so changing <code>stroke</code> or <code>mass</code> keeps the feel the same. At 1 the car just stops bouncing back. Real cars often run rebound at 1.5–3 times bump, which soaks up bumps softly but settles quickly.</p>
 <h4 class="en">Steering geometry</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
@@ -2011,7 +2029,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <p class="en"><b>Values that follow from other values are silently dropped.</b> KurumaMod computes them.</p>
 <table class="ja">
 <tr><th>決まるもの</th><th>何から</th></tr>
-<tr><td>バネ・ダンパー・バンプストップ</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>バネ・バンプストップ・ダンパーの係数（減衰比は付録 A）</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
 <tr><td>重心高</td><td>停車時の車高</td></tr>
 <tr><td>慣性モーメント 3 つ</td><td><code>mass</code> と <code>wheel_base</code> / <code>track_width</code></td></tr>
 <tr><td>車輪の慣性・登坂できる段差・終減速比</td><td><code>wheel_radius</code></td></tr>
@@ -2021,7 +2039,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </table>
 <table class="en">
 <tr><th>Derived</th><th>From</th></tr>
-<tr><td>Springs, dampers, bump stops</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>Springs, bump stops, damper coefficients (the ratios are in Appendix A)</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
 <tr><td>Centre of gravity height</td><td>Static ride height</td></tr>
 <tr><td>All three moments of inertia</td><td><code>mass</code> with <code>wheel_base</code> / <code>track_width</code></td></tr>
 <tr><td>Wheel inertia, climbable step, final drive</td><td><code>wheel_radius</code></td></tr>

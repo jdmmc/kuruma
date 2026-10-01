@@ -23,7 +23,7 @@ import java.util.function.Function;
  *   <caption>導出される諸元</caption>
  *   <tr><th>諸元</th><th>何から決まるか</th></tr>
  *   <tr><td>バネ定数（前後）</td><td>荷重とストローク（沈み込みの割合を一定に保つ）</td></tr>
- *   <tr><td>ダンパー</td><td>そのバネと分担荷重（減衰比を一定に保つ）</td></tr>
+ *   <tr><td>ダンパーの係数</td><td>減衰比（諸元）とそのバネと分担荷重</td></tr>
  *   <tr><td>バンプストップ</td><td>停車時荷重</td></tr>
  *   <tr><td>重心高</td><td>停車時の車高</td></tr>
  *   <tr><td>慣性モーメント 3 つ</td><td>車重とホイールベース／トレッド</td></tr>
@@ -68,7 +68,8 @@ public final class Tunables {
 
     public static final List<Group> GROUPS = List.of(
             new Group("suspension", List.of(
-                    // バネ・ダンパー・バンプストップは荷重とストロークから決まるので、ここには無い。
+                    // バネとバンプストップは荷重とストロークから決まるので、ここには無い
+                    // （ダンパーは減衰比を次のタブで持ち、係数はバネに追従する）。
                     // 硬さを変えたいときはストロークを動かす（沈み込みの割合が一定なので、
                     // 短くすればそのぶん硬く、長くすれば柔らかくなる）
                     TunableParameter.linear("stroke", 15, 80, "%.0f",
@@ -97,6 +98,19 @@ public final class Tunables {
                                     CarSpec::rearRollCenter, CarSpec.Builder::rearRollCenter)
                             .unit(0.01)
                             .detail(Tunables::rollCenter))),
+
+            // ダンパー。臨界減衰に対する割合（減衰比）で持つので、ストロークや車重を変えても
+            // 係数がバネに追従して効き方が変わらない。縮み側は路面の入力とロール・ピッチの入り、
+            // 伸び側は揺り返しと、荷重が抜ける側の戻りの速さを決める。補足は実際の係数
+            new Group("damper", List.of(
+                    damping("front_bump_damping", Wheel.FRONT_LEFT, false,
+                            CarSpec::frontBumpDamping, CarSpec.Builder::frontBumpDamping),
+                    damping("front_rebound_damping", Wheel.FRONT_LEFT, true,
+                            CarSpec::frontReboundDamping, CarSpec.Builder::frontReboundDamping),
+                    damping("rear_bump_damping", Wheel.REAR_LEFT, false,
+                            CarSpec::rearBumpDamping, CarSpec.Builder::rearBumpDamping),
+                    damping("rear_rebound_damping", Wheel.REAR_LEFT, true,
+                            CarSpec::rearReboundDamping, CarSpec.Builder::rearReboundDamping))),
 
             // ステアリングのジオメトリ（Balkwill）。ハンドルの角度とタイヤの角度を別物にする。
             // ロールステアとコンプライアンスステアは、どちらも正でアンダー。補足は
@@ -502,6 +516,19 @@ public final class Tunables {
     private static Object steerUndersteer(CarSpec spec) {
         return detail("steer_understeer",
                 String.format("%+.2f", Math.toDegrees(spec.steerUndersteerGradient())));
+    }
+
+    /**
+     * ダンパーの減衰比の項目。4 つとも同じ形なので 1 か所で組み立てる。
+     *
+     * <p>上限 1.5 は刻み幅の都合。係数を 12.5ms の陽的な積分で掛けているので、
+     * これより上（ストローク 15cm でさらに硬くしたとき）は 1 刻みで速度を打ち消しすぎて振動しうる。
+     * 実車でも 1 を超える減衰比はまず使わない。</p>
+     */
+    private static TunableParameter damping(String name, Wheel wheel, boolean rebound,
+                                            TunableParameter.Getter getter, TunableParameter.Setter setter) {
+        return TunableParameter.linear(name, 0.10, 1.50, "%.2f", getter, setter)
+                .detail(spec -> String.format("%.0f", spec.suspensionDamping(wheel, rebound)));
     }
 
     /** ロールセンターの補足。荷重移動の前配分と、1G あたりのロール角。 */
