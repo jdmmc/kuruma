@@ -1,0 +1,4 @@
+# KurumaMod tools/make_tires.py が生成
+newmtl Tire_Rubber
+Kd 1.000000 1.000000 1.000000
+d 1.000000

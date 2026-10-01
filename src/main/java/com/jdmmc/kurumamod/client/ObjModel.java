@@ -143,6 +143,12 @@ public final class ObjModel {
     public static final String LIGHT_PREFIX = "light_";
 
     /**
+     * ホイールのメッシュに付属しているタイヤのオブジェクト名の頭（大文字小文字を問わない）。
+     * タイヤ部品を履いたらこれを隠して、選んだタイヤを描く。
+     */
+    public static final String TIRE_PREFIX = "tire";
+
+    /**
      * 鏡面の名前の頭。{@code mirror_rear}（ルームミラー）/ {@code mirror_left} /
      * {@code mirror_right}。
      *
@@ -177,6 +183,17 @@ public final class ObjModel {
      */
     private final int[] opaqueFaces;
     private final int[] translucentFaces;
+    /** タイヤ（{@link #TIRE_PREFIX}）を除いた面。タイヤを別に描くときのホイール。 */
+    private final int[] opaqueRimFaces;
+    private final int[] translucentRimFaces;
+    /** タイヤの面が 1 つでもあるか。 */
+    private final boolean hasTire;
+    /** タイヤの面の半径の範囲 {内径, 外径}。タイヤが無ければ null。 */
+    private final double[] tireRadialRange;
+    /** タイヤ以外の面のいちばん外の半径（リムの外縁）。 */
+    private final double rimOuterRadius;
+    /** 全部の面の半径の範囲 {内径, 外径}。タイヤ部品のメッシュはこちらを使う。 */
+    private final double[] radialRange;
     /** オブジェクト名 → その面。灯火のレンズのように名指しで描くときに使う。 */
     private final Map<String, int[]> facesByName;
     /** 鏡面。読み込みのときに 1 度だけ measure しておく。 */
@@ -249,6 +266,152 @@ public final class ObjModel {
         }
         this.opaqueFaces = toArray(opaque);
         this.translucentFaces = toArray(translucent);
+
+        // タイヤ（名前が tire で始まるオブジェクト）を見分ける。ホイールのメッシュにタイヤが
+        // 付属しているとき、タイヤ部品を履いたらこれを隠して選んだタイヤを描く
+        boolean[] tire = new boolean[faceCount];
+        boolean anyTire = false;
+        for (Group group : groups) {
+            if (isTireName(group.name())) {
+                for (int face = group.from(); face < group.to(); face++) {
+                    tire[face] = true;
+                    anyTire = true;
+                }
+            }
+        }
+        this.hasTire = anyTire;
+        this.opaqueRimFaces = without(opaqueFaces, tire);
+        this.translucentRimFaces = without(translucentFaces, tire);
+        double[] tireRange = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
+        double[] allRange = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
+        double rimOuter = 0.0;
+        for (int face = 0; face < faceCount; face++) {
+            for (int corner = 0; corner < 4; corner++) {
+                int offset = face * FACE_FLOATS + corner * STRIDE;
+                double r = Math.hypot(vertices[offset + 1], vertices[offset + 2]);
+                allRange[0] = Math.min(allRange[0], r);
+                allRange[1] = Math.max(allRange[1], r);
+                if (tire[face]) {
+                    tireRange[0] = Math.min(tireRange[0], r);
+                    tireRange[1] = Math.max(tireRange[1], r);
+                } else {
+                    rimOuter = Math.max(rimOuter, r);
+                }
+            }
+        }
+        this.tireRadialRange = anyTire ? tireRange : null;
+        this.rimOuterRadius = rimOuter;
+        this.radialRange = faceCount > 0 ? allRange : new double[]{0.0, 0.0};
+    }
+
+    /** タイヤのオブジェクト名か。Blender の既定の大文字（{@code Tire}）も拾う。 */
+    private static boolean isTireName(String name) {
+        return name.toLowerCase(java.util.Locale.ROOT).startsWith(TIRE_PREFIX);
+    }
+
+    private static int[] without(int[] faces, boolean[] excluded) {
+        return java.util.Arrays.stream(faces).filter(face -> !excluded[face]).toArray();
+    }
+
+    /** タイヤのオブジェクトが付属しているか。 */
+    public boolean hasTire() {
+        return hasTire;
+    }
+
+    /** 付属のタイヤの半径の範囲 {内径, 外径}。付属していなければ null。 */
+    @org.jetbrains.annotations.Nullable
+    public double[] tireRadialRange() {
+        return tireRadialRange == null ? null : tireRadialRange.clone();
+    }
+
+    /** タイヤ以外（リム）のいちばん外の半径。 */
+    public double rimOuterRadius() {
+        return rimOuterRadius;
+    }
+
+    /** 全部の面の半径の範囲 {内径, 外径}。 */
+    public double[] radialRange() {
+        return radialRange.clone();
+    }
+
+    /** タイヤ以外に透ける面があるか。 */
+    public boolean hasTranslucentRim() {
+        return translucentRimFaces.length > 0;
+    }
+
+    /**
+     * タイヤのメッシュを、半径 {@code fromInner}〜{@code fromOuter} の帯が {@code toInner}〜{@code toOuter} へ
+     * 収まるよう<b>半径方向に伸び縮みさせた</b>複製。車軸方向（X）は {@code xScale} 倍。
+     *
+     * <p>一様な拡大では内径と外径の比が変わらないので、リムの大きさが違うホイールにタイヤを合わせられない。
+     * 半径を内径から外径へ線形に移せば、<b>リムが大きければサイドウォールが薄く、小さければ厚く</b>なる
+     * （実車のインチアップと同じ）。</p>
+     *
+     * <p>法線は変形の逆転置で直す（半径方向・円周方向・車軸方向で伸び方が違うため）。</p>
+     */
+    public ObjModel fitRadially(double fromInner, double fromOuter, double toInner, double toOuter, double xScale) {
+        float[] out = vertices.clone();
+        double band = Math.max(1e-6, fromOuter - fromInner);
+        double radialScale = (toOuter - toInner) / band;
+        for (int offset = 0; offset < out.length; offset += STRIDE) {
+            double y = out[offset + 1];
+            double z = out[offset + 2];
+            double r = Math.hypot(y, z);
+            double target = toInner + (r - fromInner) * radialScale;
+            double tangential = r > 1e-6 ? target / r : 1.0;
+            out[offset] = (float) (out[offset] * xScale);
+            out[offset + 1] = (float) (y * tangential);
+            out[offset + 2] = (float) (z * tangential);
+
+            // 法線を（車軸, 半径, 円周）に分けて、それぞれの伸びの逆数を掛ける
+            double nx = out[offset + 3];
+            double ny = out[offset + 4];
+            double nz = out[offset + 5];
+            double cy = r > 1e-6 ? y / r : 0.0;
+            double cz = r > 1e-6 ? z / r : 1.0;
+            double nRadial = ny * cy + nz * cz;
+            double nTangential = -ny * cz + nz * cy;
+            double ax = nx / xScale;
+            double ar = nRadial / Math.max(1e-6, radialScale);
+            double at = nTangential / Math.max(1e-6, tangential);
+            double ry = ar * cy - at * cz;
+            double rz = ar * cz + at * cy;
+            double length = Math.sqrt(ax * ax + ry * ry + rz * rz);
+            if (length > 1e-9) {
+                out[offset + 3] = (float) (ax / length);
+                out[offset + 4] = (float) (ry / length);
+                out[offset + 5] = (float) (rz / length);
+            }
+        }
+        return new ObjModel(out, groups);
+    }
+
+    /** 合わせ直したタイヤ。リソースの再読み込みで捨てる。 */
+    private static final Map<FitKey, ObjModel> FITTED = new HashMap<>();
+
+    private record FitKey(ResourceLocation location, double fromInner, double fromOuter,
+                          double toInner, double toOuter, double xScale) {
+    }
+
+    /**
+     * タイヤのメッシュを読み、{@link #fitRadially} で合わせ直したもの。同じ寸法なら使い回す。
+     *
+     * <p>車軸方向は外径の比で一様に拡大する。タイヤを作った大きさに依らず、
+     * 外径に対する太さの比が保たれる。</p>
+     *
+     * @param fromInner メッシュのタイヤの内径。null なら測った値
+     * @param fromOuter メッシュのタイヤの外径。null なら測った値
+     */
+    public static ObjModel fittedTire(ResourceLocation location,
+                                      @org.jetbrains.annotations.Nullable Double fromInner,
+                                      @org.jetbrains.annotations.Nullable Double fromOuter,
+                                      double toInner, double toOuter) {
+        ObjModel source = get(location);
+        double inner = fromInner != null ? fromInner : source.radialRange[0];
+        double outer = fromOuter != null ? fromOuter : source.radialRange[1];
+        double xScale = outer > 1e-6 ? toOuter / outer : 1.0;
+        FitKey key = new FitKey(location, inner, outer, toInner, toOuter, xScale);
+        return FITTED.computeIfAbsent(key, k -> source.fitRadially(inner, outer, toInner, toOuter, xScale));
     }
 
     private static int[] toArray(List<Integer> list) {
@@ -564,6 +727,7 @@ public final class ObjModel {
 
     /** リソースの再読み込みで呼ぶ。次に描くときに読み直される（F3+T で Blender の書き出しを反映できる）。 */
     public static void clearCache() {
+        FITTED.clear();
         CACHE.clear();
     }
 
@@ -631,6 +795,21 @@ public final class ObjModel {
         // 名指し（灯火のレンズ）はパスを問わない。RenderType は呼ぶ側が選んでいる
         int[] faces = only != null ? facesByName.getOrDefault(only, NO_FACES)
                 : pass == Pass.TRANSLUCENT ? translucentFaces : opaqueFaces;
+        renderFaces(faces, matrix, normal, flip, consumer, packedLight, packedOverlay,
+                tintRed, tintGreen, tintBlue, alpha);
+    }
+
+    /** ホイールを、付属のタイヤ（{@link #TIRE_PREFIX}）を除いて描く。タイヤを別に描くときに使う。 */
+    public void renderWithoutTire(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay,
+                                  boolean mirrorX, Pass pass) {
+        renderFaces(pass == Pass.TRANSLUCENT ? translucentRimFaces : opaqueRimFaces,
+                pose.pose(), pose.normal(), mirrorX ? -1.0F : 1.0F, consumer, packedLight, packedOverlay,
+                1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    private void renderFaces(int[] faces, Matrix4f matrix, Matrix3f normal, float flip, VertexConsumer consumer,
+                             int packedLight, int packedOverlay,
+                             float tintRed, float tintGreen, float tintBlue, float alpha) {
 
         for (int face : faces) {
             int base = face * FACE_FLOATS;

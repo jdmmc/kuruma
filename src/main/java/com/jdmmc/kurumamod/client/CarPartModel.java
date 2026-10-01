@@ -57,13 +57,40 @@ public record CarPartModel(
         @Nullable CarModel.Vec3 offset,
         @Nullable CarModel.Vec3 scale,
         @Nullable Double camber,
-        @Nullable Double designRadius) {
+        @Nullable Double designRadius,
+        @Nullable Double rimRadius,
+        @Nullable Tire tire) {
+
+    /**
+     * リムの外縁に対して、タイヤの内径（ビード）をどこに置くか。
+     *
+     * <p>実際のタイヤはリムの縁の内側へ少し潜り込んで嵌まっている。同梱のホイールは
+     * リムの外縁 0.352m に対してタイヤの内径が 0.334m（95%）なので、その比を使う。</p>
+     */
+    public static final double BEAD_RATIO = 0.95;
+
+    /**
+     * タイヤ部品の見た目。{@code assets/<ns>/car_parts/<id>.json} の {@code tire} ブロック。
+     *
+     * <p>メッシュは<b>タイヤだけ</b>で、原点は車軸の中心・回転軸は左右方向（ホイールと同じ）。
+     * 内径と外径はメッシュから測るので書かなくてよい。描くときに、内径がホイールのリムへ、
+     * 外径が物理のタイヤ半径へ来るよう半径方向に伸び縮みさせる（{@code ObjModel#fitRadially}）。</p>
+     */
+    public record Tire(ResourceLocation model, ResourceLocation texture,
+                       @Nullable Double innerRadius, @Nullable Double outerRadius) {
+    }
+
+    /** 何も付けていないとき（とリムだけのホイール）に描く、MOD 標準のタイヤ。 */
+    public static final Tire DEFAULT_TIRE = new Tire(
+            new ResourceLocation(com.jdmmc.kurumamod.Kurumamod.MODID, "models/entity/tire.obj"),
+            new ResourceLocation(com.jdmmc.kurumamod.Kurumamod.MODID, "textures/entity/wheel.png"),
+            null, null);
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** 何も書かれていない定義。＝すべて車種の既定のまま。 */
     private static final CarPartModel EMPTY =
-            new CarPartModel(null, null, null, null, null, null);
+            new CarPartModel(null, null, null, null, null, null, null, null);
 
     /** 部品ごとに読んだ定義。リソースの再読み込み（F3+T）で捨てる。 */
     private static final Map<ResourceLocation, CarPartModel> CACHE = new HashMap<>();
@@ -80,7 +107,8 @@ public record CarPartModel(
             CarModel.Vec3 offset,
             CarModel.Vec3 scale,
             double camber,
-            double designRadius) {
+            double designRadius,
+            @Nullable Double rimRadius) {
     }
 
     /**
@@ -102,7 +130,29 @@ public record CarPartModel(
                 camberOf(car, part, parts.getCamber(PartSlot.WHEEL)),
                 // 0 や負を書かれると拡大率が壊れる（見えなくなる／裏返る）ので既定へ落とす
                 part.designRadius != null && part.designRadius > 0.0
-                        ? part.designRadius : car.designWheelRadius());
+                        ? part.designRadius : car.designWheelRadius(),
+                // リムの半径はホイールのメッシュに付いた値なので、メッシュを差し替えた部品なら部品の値だけを見る
+                part.model != null ? positive(part.rimRadius) : positive(car.wheelRimRadius()));
+    }
+
+    private static @Nullable Double positive(@Nullable Double value) {
+        return value != null && value > 0.0 ? value : null;
+    }
+
+    /**
+     * その車が履いているタイヤの見た目。<b>タイヤ部品を履いていなければ null</b>
+     * （ホイールに付属のタイヤを描く。付属していなければ {@link #DEFAULT_TIRE}）。
+     *
+     * <p>知らない部品・見た目の定義が無い部品は {@link #DEFAULT_TIRE} にする。性能は部品の素性で
+     * 決まっているので、見た目だけ付属のタイヤに戻すと「ダートタイヤなのに見た目はノーマル」になる。</p>
+     */
+    public static @Nullable Tire tireOf(PartFitment parts) {
+        ResourceLocation partId = parts.getPart(PartSlot.TIRE);
+        if (partId == null) {
+            return null;
+        }
+        Tire tire = get(partId).tire;
+        return tire != null ? tire : DEFAULT_TIRE;
     }
 
     /**
@@ -228,6 +278,18 @@ public record CarPartModel(
      * 1 か所にしか付かない部品は入れ子を省ける（{@code CarTypeLoader} の {@code values} と同じ扱い）。</p>
      */
     private static CarPartModel parse(JsonObject root, ResourceLocation location) {
+        // タイヤ部品は tire ブロックに書く（ホイールと違って根には書けない。根の model は
+        // ホイールのメッシュとして読まれてきたので、意味を変えると既存のパックが壊れる）
+        JsonObject tireBlock = CarModel.child(root, PartSlot.TIRE.getSerializedName());
+        if (tireBlock.size() > 0) {
+            JsonObject block = tireBlock;
+            Tire tire = new Tire(
+                    CarModel.location(block, "model", DEFAULT_TIRE.model()),
+                    CarModel.location(block, "texture", DEFAULT_TIRE.texture()),
+                    block.has("innerRadius") ? CarModel.number(block, "innerRadius", 0.0) : null,
+                    block.has("outerRadius") ? CarModel.number(block, "outerRadius", 0.0) : null);
+            return new CarPartModel(null, null, null, null, null, null, null, tire);
+        }
         JsonObject wheel = CarModel.child(root, PartSlot.WHEEL.getSerializedName());
         JsonObject block = wheel.size() > 0 ? wheel : root;
 
@@ -244,6 +306,9 @@ public record CarPartModel(
                 block.has("camber")
                         ? CarModel.wheelCamberInRange(location, CarModel.number(block, "camber", 0.0))
                         : null,
-                block.has("designRadius") ? CarModel.number(block, "designRadius", 0.0) : null);
+                block.has("designRadius") ? CarModel.number(block, "designRadius", 0.0) : null,
+                block.has("rimRadius") ? CarModel.number(block, "rimRadius", 0.0) : null,
+                null);
     }
+
 }

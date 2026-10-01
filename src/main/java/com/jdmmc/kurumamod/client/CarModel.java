@@ -95,6 +95,11 @@ public record CarModel(
         Vec3 wheelScale,
         double camber,
         /**
+         * ホイールのメッシュで、タイヤの内径（ビード）が乗る半径 [m]（メッシュの寸法）。null なら測る
+         * （付属のタイヤがあればその内径、無ければリムの外縁の {@code CarPartModel#BEAD_RATIO} 倍）。
+         */
+        @org.jetbrains.annotations.Nullable Double wheelRimRadius,
+        /**
          * 運転席の位置 [m]。<b>{@code body.offset} と同じ向き</b>（+X 右・+Y 上・-Z 前）で、
          * シャシー基準面から見た座り位置。助手席は左右反転で置く。
          *
@@ -165,6 +170,7 @@ public record CarModel(
                 Vec3.ZERO,
                 Vec3.ONE,
                 0.0,
+                null,
                 new Vec3(0.5, -0.55, 0.2),
                 1.4F,
                 CarSoundSet.NONE);
@@ -210,6 +216,7 @@ public record CarModel(
                 wheelOffsetInRange(location, vector(wheel, "offset", Vec3.ZERO)),
                 wheelScaleInRange(location, vector(wheel, "scale", Vec3.ONE)),
                 wheelCamberInRange(location, number(wheel, "camber", base.camber())),
+                wheel.has("rimRadius") ? number(wheel, "rimRadius", 0.0) : null,
                 vector(root, "seat", base.seatOffset()),
                 (float) number(root, "shadowRadius", base.shadowRadius()),
                 CarSoundSet.parse(child(root, "sounds")));

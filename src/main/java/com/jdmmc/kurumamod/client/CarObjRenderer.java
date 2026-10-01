@@ -223,6 +223,22 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         float scaleY = (float) (scale * wheelScale.y());
         float scaleZ = (float) (scale * wheelScale.z());
 
+        // タイヤ。タイヤ部品を履いておらず、ホイールのメッシュにタイヤが付属していれば、今までどおり
+        // メッシュを丸ごと描く（既存のパックの見た目はそのまま）。それ以外はホイールをタイヤ抜きで描き、
+        // タイヤ（選んだもの、無ければ MOD 標準）を、内径がリムへ・外径がメッシュのタイヤ半径へ来るよう
+        // 半径方向に合わせ直して描く。拡大はホイールと同じ pose が受け持つので、物理のタイヤ半径に接地する
+        ObjModel wheelMesh = ObjModel.get(look.model());
+        CarPartModel.Tire tire = CarPartModel.tireOf(car.getFitment());
+        boolean attachedTire = tire == null && wheelMesh.hasTire();
+        ObjModel tireMesh = null;
+        ResourceLocation tireTexture = null;
+        if (!attachedTire) {
+            CarPartModel.Tire chosen = tire != null ? tire : CarPartModel.DEFAULT_TIRE;
+            tireMesh = ObjModel.fittedTire(chosen.model(), chosen.innerRadius(), chosen.outerRadius(),
+                    beadRadius(look, wheelMesh), look.designRadius());
+            tireTexture = chosen.texture();
+        }
+
         for (Wheel wheel : Wheel.VALUES) {
             pose.pushPose();
 
@@ -267,8 +283,41 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             // 理由は ObjModel#render の javadoc にある。ここより外側の回転は鏡像化された
             // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
             // ホイールの表裏が逆に見えるときはこの条件を反転させる
-            draw(look.model(), look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+            if (attachedTire) {
+                draw(look.model(), look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+            } else {
+                drawRim(wheelMesh, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+                drawMesh(tireMesh, tireTexture, pose, buffer, packedLight, !wheel.isLeft());
+            }
             pose.popPose();
+        }
+    }
+
+    /**
+     * タイヤの内径（ビード）を置く半径（ホイールのメッシュの寸法）。
+     *
+     * <p>書かれていればその値。無ければ、付属のタイヤがあればその内径（作った人が嵌めた位置そのもの）、
+     * それも無ければリムの外縁の {@link CarPartModel#BEAD_RATIO} 倍。</p>
+     */
+    private static double beadRadius(CarPartModel.Wheel look, ObjModel wheelMesh) {
+        if (look.rimRadius() != null) {
+            return look.rimRadius();
+        }
+        double[] attached = wheelMesh.tireRadialRange();
+        if (attached != null) {
+            return attached[0];
+        }
+        return wheelMesh.rimOuterRadius() * CarPartModel.BEAD_RATIO;
+    }
+
+    /** ホイールを、付属のタイヤを除いて描く。 */
+    private void drawRim(ObjModel obj, ResourceLocation texture, PoseStack pose,
+                         MultiBufferSource buffer, int packedLight, boolean mirrorX) {
+        obj.renderWithoutTire(pose.last(), buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
+                packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.OPAQUE);
+        if (obj.hasTranslucentRim()) {
+            obj.renderWithoutTire(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(texture)),
+                    packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.TRANSLUCENT);
         }
     }
 
@@ -293,8 +342,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      */
     private void draw(ResourceLocation model, ResourceLocation texture, PoseStack pose,
                       MultiBufferSource buffer, int packedLight, boolean mirrorX) {
-        ObjModel obj = ObjModel.get(model);
+        drawMesh(ObjModel.get(model), texture, pose, buffer, packedLight, mirrorX);
+    }
 
+    /** 読み込み済みのメッシュを描く（合わせ直したタイヤのように、ファイルと 1 対 1 でないもの）。 */
+    private void drawMesh(ObjModel obj, ResourceLocation texture, PoseStack pose,
+                          MultiBufferSource buffer, int packedLight, boolean mirrorX) {
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
         obj.render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
                 1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE);

@@ -428,7 +428,7 @@ public final class CarPhysics {
         double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
         double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
         double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
-        return lateral / (GRAVITY * spec.corneringStiffness());
+        return lateral / (GRAVITY * spec.effectiveCorneringStiffness());
     }
 
     /**
@@ -518,8 +518,8 @@ public final class CarPhysics {
         // ヨーモーメントが釣り合う配分。重心が前後中央なので前後で等分になる
         double axleForce = spec.mass() * targetAccel / 2.0;
 
-        double frontSlip = axleForce / (spec.corneringStiffness() * frontLoad);
-        double rearSlip = axleForce / (spec.corneringStiffness() * rearLoad);
+        double frontSlip = axleForce / (spec.effectiveCorneringStiffness() * frontLoad);
+        double rearSlip = axleForce / (spec.effectiveCorneringStiffness() * rearLoad);
 
         // タイヤが滑らない理想の幾何。ここを下回らせてはいけない
         double geometric = spec.wheelBase() * targetAccel / (speed * speed);
@@ -782,7 +782,7 @@ public final class CarPhysics {
      * {@link CarSpec#tractionControlSlip()} の値はそこでの閾値として読める。</p>
      */
     private static double aidSlipScale(CarSpec spec, GroundContact contact, Wheel wheel) {
-        double peak = spec.tireFriction() * contact.gripScale(wheel) / spec.longitudinalStiffness();
+        double peak = spec.tireFriction() * contact.gripScale(wheel) / spec.effectiveLongitudinalStiffness();
         return Math.max(1e-3, peak / DEFAULT_PEAK_SLIP);
     }
 
@@ -1240,11 +1240,11 @@ public final class CarPhysics {
         // タイヤが力に変える荷重。荷重感度のぶん、重い輪ほど割り引かれる。
         // 転がり抵抗と摩擦の仕事率は実際の荷重のまま
         double tireLoad = spec.tireLoadFactor(wheel, load);
-        double corneringStiffness = spec.corneringStiffness() * tireLoad;
+        double corneringStiffness = spec.effectiveCorneringStiffness() * tireLoad;
         double lateralForce = -corneringStiffness * slipAngle;
 
         // 縦: まず車輪の回転をグリップしている前提で進め、滑り率を求める
-        double longitudinalStiffness = spec.longitudinalStiffness() * tireLoad;
+        double longitudinalStiffness = spec.effectiveLongitudinalStiffness() * tireLoad;
         double inertia = effectiveWheelInertia(spec, state, wheel);
         // 制動力はブレーキ配分、転がり抵抗は接地荷重の比で分ける。
         // 荷重に比例させておくと、浮いている輪に転がり抵抗が掛からないのが自動で成り立ち、

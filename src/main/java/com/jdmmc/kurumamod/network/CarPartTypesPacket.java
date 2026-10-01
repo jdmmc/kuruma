@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.part.CarPart;
@@ -47,9 +48,12 @@ public record CarPartTypesPacket(List<CarPart> parts) {
             Turbo turbo = buf.readBoolean()
                     ? new Turbo(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
                     : null;
+            Tire tire = buf.readBoolean()
+                    ? new Tire(buf.readDouble(), readScales(buf), readScales(buf))
+                    : null;
             PartSlot slot = PartSlot.byName(name);
             if (slot != null) {
-                parts.add(new CarPart(id, slot, order, cars, turbo));
+                parts.add(new CarPart(id, slot, order, cars, turbo, tire));
             }
             // 知らない場所の部品は落とす。並べようがないので、黙って無視してよい
         }
@@ -73,7 +77,23 @@ public record CarPartTypesPacket(List<CarPart> parts) {
                 buf.writeDouble(turbo.spoolFull());
                 buf.writeDouble(turbo.spoolRate());
             }
+            // タイヤの性能も物理が使う（路面ごとの倍率は CarEntity が接地の条件へ掛ける）
+            Tire tire = part.tire();
+            buf.writeBoolean(tire != null);
+            if (tire != null) {
+                buf.writeDouble(tire.stiffness());
+                writeScales(buf, tire.grip());
+                writeScales(buf, tire.rolling());
+            }
         }
+    }
+
+    private static java.util.Map<String, Double> readScales(FriendlyByteBuf buf) {
+        return buf.readMap(FriendlyByteBuf::readUtf, FriendlyByteBuf::readDouble);
+    }
+
+    private static void writeScales(FriendlyByteBuf buf, java.util.Map<String, Double> scales) {
+        buf.writeMap(scales, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeDouble);
     }
 
     /** いま読み込まれている部品を全部詰めたパケット。 */

@@ -148,7 +148,9 @@ public record CarSpec(
         double dragCoefficient,
         // ターボ。<b>調整画面の項目ではなく部品から来る</b>（Tunables には無いので保存も同期もされず、
         // CarEntity が装着している部品から毎回載せ直す）。既定は無し
-        Turbo turbo) {
+        Turbo turbo,
+        // タイヤ。ターボと同じく部品から来る。既定はノーマル（すべて 1 倍）
+        Tire tire) {
 
     /**
      * 基準の摩擦係数。<b>調整画面の「グリップ」1.00 がこの値</b>で、既定の車もここに置いてある。
@@ -649,6 +651,19 @@ public record CarSpec(
         return centerDiffLock * centerDiffLock;
     }
 
+    /**
+     * タイヤの横剛性 [1/rad]（荷重 1N あたり）。調整画面の値に、履いているタイヤの剛性の倍率を掛けたもの。
+     * <b>物理はこちらを使う</b>（{@code corneringStiffness()} は調整画面の値そのもの）。
+     */
+    public double effectiveCorneringStiffness() {
+        return corneringStiffness * tire.stiffness();
+    }
+
+    /** タイヤの縦剛性（荷重 1N あたり）。横と同じくタイヤの剛性の倍率を掛けたもの。 */
+    public double effectiveLongitudinalStiffness() {
+        return longitudinalStiffness * tire.stiffness();
+    }
+
     /** その輪の減衰比。{@code rebound} が true なら伸び側。 */
     public double dampingRatio(Wheel wheel, boolean rebound) {
         if (wheel.isFront()) return rebound ? frontReboundDamping : frontBumpDamping;
@@ -981,6 +996,7 @@ public record CarSpec(
     public static final class Builder {
 
         private Turbo turbo = Turbo.NONE;
+        private Tire tire = Tire.NORMAL;
 
         // 実車の 1.2 倍。Minecraft のプレイヤーはずんぐりしているので、実寸どおり
         // （ホイールベース 2.6m）だと車が小さく見える。tools/blender_gauge.py の
@@ -1108,6 +1124,7 @@ public record CarSpec(
 
         private Builder(CarSpec spec) {
             turbo = spec.turbo;
+            tire = spec.tire;
             wheelBase = spec.wheelBase;
             trackWidth = spec.trackWidth;
             mass = spec.mass;
@@ -1484,6 +1501,11 @@ public record CarSpec(
             return this;
         }
 
+        public Builder tire(Tire value) {
+            tire = value == null ? Tire.NORMAL : value;
+            return this;
+        }
+
 
         public CarSpec build() {
             return new CarSpec(
@@ -1504,7 +1526,7 @@ public record CarSpec(
                     tractionControl, abs,
                     diffPreload, diffLockRatio, diffCoastRatio,
                     centerDiffLock,
-                    manualTransmission, rollingResistance, dragCoefficient, turbo);
+                    manualTransmission, rollingResistance, dragCoefficient, turbo, tire);
         }
     }
 }
