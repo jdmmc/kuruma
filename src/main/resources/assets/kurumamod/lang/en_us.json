@@ -414,6 +414,8 @@
   "screen.kurumamod.headlight.surface": "Road brightness",
   "screen.kurumamod.headlight.beam": "Beam brightness",
   "screen.kurumamod.headlight.smoke": "Smoke glow",
+  "screen.kurumamod.headlight.cars": "Cars with light",
+  "screen.kurumamod.headlight.cars.unlimited": "Unlimited",
   "screen.kurumamod.headlight.reset_all": "Reset all",
   "screen.kurumamod.headlight.shader_pack": "Headlight light effects are not drawn while a shader pack is in use",
   "key.kurumamod.headlight_settings": "Headlight settings",

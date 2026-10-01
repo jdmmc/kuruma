@@ -62,6 +62,7 @@ public final class HeadlightScreen extends Screen {
             new Row("surface", 0.25, "%.2f", ClientConfig.HEADLIGHT_SURFACE),
             new Row("beam", 5.0, "%.0f", ClientConfig.HEADLIGHT_BEAM),
             new Row("smoke", 0.25, "%.2f", ClientConfig.HEADLIGHT_SMOKE),
+            new Row("cars", 1.0, "%.0f", ClientConfig.HEADLIGHT_CARS),
     };
 
     private static final int ROW_HEIGHT = 24;
@@ -84,12 +85,16 @@ public final class HeadlightScreen extends Screen {
         return (width - (LABEL_WIDTH + SLIDER_WIDTH + 4 + RESET_WIDTH)) / 2;
     }
 
+    private static int rowY(int index) {
+        return TOP + index * ROW_HEIGHT;
+    }
+
     @Override
     protected void init() {
         int left = left();
         for (int i = 0; i < ROWS.length; i++) {
             Row row = ROWS[i];
-            int y = TOP + i * ROW_HEIGHT;
+            int y = rowY(i);
             Slider slider = new Slider(left + LABEL_WIDTH, y, SLIDER_WIDTH, 20, row);
             addRenderableWidget(slider);
             addRenderableWidget(Button.builder(Component.literal("R"), button -> {
@@ -99,7 +104,7 @@ public final class HeadlightScreen extends Screen {
                     .bounds(left + LABEL_WIDTH + SLIDER_WIDTH + 4, y, RESET_WIDTH, 20)
                     .build());
         }
-        int bottom = TOP + ROWS.length * ROW_HEIGHT + 8;
+        int bottom = rowY(ROWS.length) + 8;
         addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.headlight.reset_all"), button -> {
                     for (Row row : ROWS) {
                         row.set(row.defaultValue());
@@ -110,6 +115,7 @@ public final class HeadlightScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds(width / 2 + 4, bottom, 100, 20).build());
     }
+
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -125,12 +131,12 @@ public final class HeadlightScreen extends Screen {
             // 既定から変えた項目は黄色（調整画面と同じ）
             boolean changed = Math.abs(row.get() - row.defaultValue()) > row.step() * 0.5;
             graphics.drawString(font, Component.translatable("screen.kurumamod.headlight." + row.key()),
-                    left, TOP + i * ROW_HEIGHT + 6, changed ? 0xFFFF55 : 0xFFFFFF);
+                    left, rowY(i) + 6, changed ? 0xFFFF55 : 0xFFFFFF);
         }
         if (HeadlightVolume.ShaderPacks.inUse()) {
             // シェーダーパックの間は光の効果を描かないので、動かしても何も変わらない
             graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.headlight.shader_pack"),
-                    width / 2, TOP + ROWS.length * ROW_HEIGHT + 36, 0xFFAA55);
+                    width / 2, rowY(ROWS.length) + 36, 0xFFAA55);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }
@@ -167,6 +173,11 @@ public final class HeadlightScreen extends Screen {
 
         @Override
         protected void updateMessage() {
+            // 台数の右端は「無制限」
+            if (row.key().equals("cars") && row.get() >= ClientConfig.UNLIMITED_HEADLIGHT_CARS) {
+                setMessage(Component.translatable("screen.kurumamod.headlight.cars.unlimited"));
+                return;
+            }
             setMessage(Component.literal(String.format(Locale.ROOT, row.format(), row.get())));
         }
 
