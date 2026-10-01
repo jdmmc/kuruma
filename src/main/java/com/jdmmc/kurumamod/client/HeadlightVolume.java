@@ -101,7 +101,19 @@ public final class HeadlightVolume {
 
     /** 画素ごとの光が使えるか。使えないなら {@link CarLights} が形を積んで代用する。 */
     public static boolean isActive() {
-        return shader != null && shadowShader != null && !ShaderPacks.inUse();
+        return shader != null && shadowShader != null && !suppressedByShaderPack();
+    }
+
+    /**
+     * シェーダーパックのために光を止めているか。<b>止めるのは、パックが使われていて、かつ設定で
+     * 「使用中も光を描く」を切っているときだけ</b>（{@link com.jdmmc.kurumamod.ClientConfig#headlightWithShaderPacks}）。
+     *
+     * <p>以前はパックが使われていれば無条件に止めていた（Oculus で描画がおかしくなったため）。
+     * 2026-10-01 に Oculus 1.8.0 ＋ Embeddium で試すと、路面の照り返しも光芒も深度どおりに乗ったので、
+     * 既定で描くようにした。合わないパックのときだけプレイヤーが切れる。パックが無ければ何も変わらない。</p>
+     */
+    public static boolean suppressedByShaderPack() {
+        return !com.jdmmc.kurumamod.ClientConfig.headlightWithShaderPacks && ShaderPacks.inUse();
     }
 
     /**
@@ -145,7 +157,7 @@ public final class HeadlightVolume {
             if (last == null || last != inUse) {
                 // 切り替わったときだけ残す。光が出ない・おかしいときに、どちらの描き方かを切り分けるため
                 LOGGER.info(inUse
-                        ? "シェーダーパックが使われている。ヘッドライトの光の効果は描かない"
+                        ? "シェーダーパックが使われている（光の効果を描くかは設定 headlightWithShaderPacks しだい）"
                         : "シェーダーパックは使われていない。ヘッドライトを画素ごとに描く");
                 last = inUse;
             }

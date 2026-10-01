@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.ClientConfig;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -105,11 +106,21 @@ public final class HeadlightScreen extends Screen {
                     .bounds(left + LABEL_WIDTH + SLIDER_WIDTH + 4, y, RESET_WIDTH, 20)
                     .build());
         }
-        int bottom = rowY(ROWS.length) + 8;
+        // シェーダーパック使用中も光を描くか。パックが無ければ何も変わらない
+        addRenderableWidget(CycleButton.onOffBuilder(ClientConfig.headlightWithShaderPacks)
+                .displayOnlyValue()
+                .create(left + LABEL_WIDTH, rowY(ROWS.length), SLIDER_WIDTH, 20, Component.empty(),
+                        (button, value) -> {
+                            ClientConfig.HEADLIGHT_WITH_SHADER_PACKS.set(value);
+                            ClientConfig.refresh();
+                        }));
+        int bottom = rowY(ROWS.length + 1) + 8;
         addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.headlight.reset_all"), button -> {
                     for (Row row : ROWS) {
                         row.set(row.defaultValue());
                     }
+                    ClientConfig.HEADLIGHT_WITH_SHADER_PACKS.set(true);
+                    ClientConfig.refresh();
                     rebuildPending = true;
                 })
                 .bounds(width / 2 - 104, bottom, 100, 20).build());
@@ -134,10 +145,12 @@ public final class HeadlightScreen extends Screen {
             graphics.drawString(font, Component.translatable("screen.kurumamod.headlight." + row.key()),
                     left, rowY(i) + 6, changed ? 0xFFFF55 : 0xFFFFFF);
         }
-        if (HeadlightVolume.ShaderPacks.inUse()) {
-            // シェーダーパックの間は光の効果を描かないので、動かしても何も変わらない
+        graphics.drawString(font, Component.translatable("screen.kurumamod.headlight.with_shader_packs"),
+                left, rowY(ROWS.length) + 6, ClientConfig.headlightWithShaderPacks ? 0xFFFFFF : 0xFFFF55);
+        if (HeadlightVolume.suppressedByShaderPack()) {
+            // パックの間は光の効果を描かないので、スライダーを動かしても何も変わらない
             graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.headlight.shader_pack"),
-                    width / 2, rowY(ROWS.length) + 36, 0xFFAA55);
+                    width / 2, rowY(ROWS.length + 1) + 36, 0xFFAA55);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }

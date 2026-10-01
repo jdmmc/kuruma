@@ -269,10 +269,10 @@ public final class CarLights {
         if (!head && !tail && !reverse) {
             return;
         }
-        // シェーダーパックが使われているときは光の効果を一切描かない（レンズの点灯は描く）。
-        // 路面の照り返し・光の筋・光芒はどれも自前の合成（加算・掛け算・深度を書かない半透明）で、
-        // パックは描画の流れごと差し替えるので正しく重ならない（Oculus で描画がおかしくなった）
-        if (HeadlightVolume.ShaderPacks.inUse()) {
+        // シェーダーパックを使っていて、設定で「使用中も光を描く」を切っているときは光の効果を描かない
+        // （レンズの点灯は描く）。路面の照り返し・光の筋・光芒はどれも自前の合成で、パックによっては
+        // 描画の流れごと差し替えられて正しく重ならない
+        if (HeadlightVolume.suppressedByShaderPack()) {
             return;
         }
 
