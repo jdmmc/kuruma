@@ -1,0 +1,7 @@
+{
+  "_comment": "メッシュは tools/make_tires.py が作る。内径と外径はメッシュから測るので書かなくてよい",
+  "tire": {
+    "model": "kurumamod:models/entity/tire_dirt.obj",
+    "texture": "kurumamod:textures/entity/tire_block.png"
+  }
+}

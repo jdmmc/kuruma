@@ -187,6 +187,7 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
   <a href="#s-sound" data-guide="car" class="ja">7. 音を付ける</a><a href="#s-sound" data-guide="car" class="en">7. Add sounds</a>
   <a href="#s-spec" data-guide="car" class="ja">8. 諸元（走り）を書く</a><a href="#s-spec" data-guide="car" class="en">8. Write the spec</a>
   <a href="#s-parts" data-guide="wheel" class="ja">2. ホイールを部品にする</a><a href="#s-parts" data-guide="wheel" class="en">2. Make a wheel a part</a>
+  <a href="#s-tire" data-guide="wheel" class="ja">3. タイヤを部品にする</a><a href="#s-tire" data-guide="wheel" class="en">3. Make a tyre a part</a>
   <a href="#s-jar" data-guide="common" class="ja">4. jar に固めて配る</a><a href="#s-jar" data-guide="common" class="en">4. Pack it and ship it</a>
   <a href="#s10" data-guide="common" class="ja">5. 確認する</a><a href="#s10" data-guide="common" class="en">5. Check it in game</a>
   <a href="#s11" data-guide="common" class="ja">6. 症状別の直しかた</a><a href="#s11" data-guide="common" class="en">6. Troubleshooting</a>
@@ -1699,6 +1700,89 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </ul>
 </section>
 
+<section id="s-tire" data-guide="wheel">
+<h2 class="ja"><span class="num">3</span>タイヤを部品にする</h2>
+<h2 class="en"><span class="num">3</span>Make a tyre a part</h2>
+
+<p class="ja"><b>タイヤはホイールとは別の部品です。</b>換装画面の「タイヤ」タブで選び、<b>走りが変わります</b>（路面ごとのグリップと、よれやすさ）。KurumaMod にはノーマル（何も付けていない状態）・ダート・オフロードが入っています。</p>
+<p class="en"><b>Tyres are a separate part from wheels.</b> They are picked on the Tyres tab of the parts screen, and <b>they change how the car drives</b> (grip on each surface, and how much the tread squirms). KurumaMod ships Normal (nothing fitted), Gravel and Mud terrain.</p>
+
+<h3 class="ja">ホイールの中のタイヤには名前を付ける</h3>
+<h3 class="en">Name the tyre inside your wheel</h3>
+<p class="ja">ホイールのメッシュにタイヤも作ってあるなら、<b>タイヤを別のオブジェクトにして、名前を <code>Tire</code>（<code>tire</code> で始まる名前。大文字小文字は問いません）にしてください。</b></p>
+<ul class="ja">
+<li>タイヤを選んでいない（ノーマル）ときは、そのタイヤがそのまま出ます。<b>今までと同じ見た目です。</b></li>
+<li>別のタイヤを選ぶと、そのタイヤは隠れて、選んだタイヤがリムに嵌まります。</li>
+<li><b>名前が無いと、タイヤもホイールの一部として描かれたまま</b>、選んだタイヤと重なって見えます。</li>
+</ul>
+<p class="en">If your wheel mesh includes a tyre, <b>make the tyre its own object and name it <code>Tire</code></b> (anything starting with <code>tire</code>, in any case).</p>
+<ul class="en">
+<li>With no tyre picked (Normal), that tyre is drawn as before. <b>Nothing changes.</b></li>
+<li>Pick another tyre and yours is hidden; the picked tyre sits on the rim instead.</li>
+<li><b>Without the name, your tyre stays part of the wheel</b> and shows through the picked one.</li>
+</ul>
+<p class="ja"><b>タイヤを作らず、リムだけのホイールにしても構いません。</b>そのときノーマルでは KurumaMod 標準のタイヤが嵌まります。</p>
+<p class="en"><b>You may also build just the rim, with no tyre.</b> With Normal picked, KurumaMod's own tyre is fitted.</p>
+
+<h3 class="ja">タイヤはリムと外径の間に合わせて伸び縮みする</h3>
+<h3 class="en">Tyres stretch to fit between the rim and the outer diameter</h3>
+<p class="ja">選んだタイヤは、<b>内径（ビード）がホイールのリムへ、外径がタイヤ半径（諸元）へ</b>来るよう、半径方向に伸び縮みして描かれます。リムの大きいホイールではサイドウォールが薄く、小さいホイールでは厚くなります（実車のインチアップと同じ）。どこにビードを置くかは、こう決まります。</p>
+<ol class="ja">
+<li>ホイールの見た目の JSON に <code>rimRadius</code> が書いてあればその値（メッシュの寸法・m）</li>
+<li>無ければ、付属のタイヤ（<code>Tire</code>）の内径。作った人が嵌めた位置そのものです</li>
+<li>それも無ければ、リムのいちばん外側の半径の 95%（タイヤはリムの縁の少し内側に潜り込んで嵌まっているため）</li>
+</ol>
+<p class="en">A picked tyre is stretched radially so that <b>its inner edge (bead) sits on the wheel's rim and its outer edge at the tyre radius in the spec</b>. Big rims get thin sidewalls and small rims thick ones, like a real plus-size fitment. The bead sits at:</p>
+<ol class="en">
+<li><code>rimRadius</code> in the wheel's looks JSON, if written (mesh units, m)</li>
+<li>otherwise, the inner edge of the wheel's own <code>Tire</code> object, exactly where its maker seated it</li>
+<li>otherwise, 95% of the rim's outermost radius (a real tyre tucks slightly inside the rim lip)</li>
+</ol>
+
+<h3 class="ja">タイヤ部品を作る</h3>
+<h3 class="en">Making a tyre part</h3>
+<p class="ja"><b>メッシュはタイヤだけ。</b>原点は車軸の中心、回転軸は左右方向（ホイールと同じ）。<b>大きさは自由</b>で、内径と外径はメッシュから測ります。太さは外径に対する比のまま保たれます。換装画面の「太さ」はホイールとタイヤに一緒に効きます。</p>
+<p class="en"><b>The mesh is the tyre alone.</b> Origin at the centre of the axle, spinning about the left–right axis (same as a wheel). <b>Any size will do</b>: the inner and outer radii are measured from the mesh, and the width keeps its ratio to the outer diameter. The Width slider on the parts screen acts on the wheel and tyre together.</p>
+<p class="ja">素性（<code>data/&lt;pack&gt;/car_parts/my_tire.json</code>）に性能を書きます。<b>倍率はすべてノーマルタイヤに対する比</b>で、書かなかったものは 1 です。</p>
+<p class="en">The definition (<code>data/&lt;pack&gt;/car_parts/my_tire.json</code>) holds the performance. <b>Every number is a ratio to the Normal tyre</b>, and anything left out is 1.</p>
+<pre>{
+  "slot": "tire",
+  "order": 30,
+  "tire": {
+    "stiffness": 0.85,
+    "grip":    { "paved": 0.88, "dirt": 1.20, "gravel": 1.25, "sand": 1.10, "snow": 1.10 },
+    "rolling": { "paved": 1.15 }
+  }
+}</pre>
+<p class="ja">見た目（<code>assets/&lt;pack&gt;/car_parts/my_tire.json</code>）は <b><code>"tire"</code> ブロックに</b>書きます（ホイールと違って、根には書けません）。</p>
+<p class="en">The looks (<code>assets/&lt;pack&gt;/car_parts/my_tire.json</code>) go <b>inside a <code>"tire"</code> block</b> (unlike wheels, not at the top level).</p>
+<pre>{
+  "tire": {
+    "model": "mypack:models/entity/my_tire.obj",
+    "texture": "mypack:textures/entity/my_tire.png"
+  }
+}</pre>
+
+<h3 class="ja">性能の決め方</h3>
+<h3 class="en">Choosing the numbers</h3>
+<p class="ja">路面の名前は <code>paved</code>（舗装）・<code>dirt</code>（土・草）・<code>gravel</code>（砂利）・<code>sand</code>（砂）・<code>snow</code>（雪）・<code>ice</code>（氷）。<code>grip</code> はその路面でのグリップ、<code>rolling</code> は転がり抵抗、<code>stiffness</code> は舵を切ってから力が立ち上がるまでの鋭さ（ブロックの大きいタイヤほど小さく）です。同梱のタイヤの値と、既定の車での効き目:</p>
+<p class="en">Surface names are <code>paved</code>, <code>dirt</code> (dirt and grass), <code>gravel</code>, <code>sand</code>, <code>snow</code> and <code>ice</code>. <code>grip</code> is grip on that surface, <code>rolling</code> is rolling resistance, and <code>stiffness</code> is how sharply force builds once you steer (lower for chunky tread). The shipped tyres, and what they do on the default car:</p>
+<table class="ja">
+<tr><th></th><th>stiffness</th><th>grip</th><th>rolling</th><th>効き目</th></tr>
+<tr><td>ノーマル</td><td>1</td><td>すべて 1</td><td>すべて 1</td><td>舗装の横 G 0.93・砂利 0.62・砂 0.48</td></tr>
+<tr><td>ダート</td><td>0.85</td><td>舗装 0.88・土 1.20・砂利 1.25・砂 1.10・雪 1.10</td><td>舗装 1.15</td><td>舗装 0.84・砂利 0.77・砂 0.54。砂利の制動 31.9→25.7m</td></tr>
+<tr><td>オフロード</td><td>0.75</td><td>舗装 0.80・土 1.15・砂利 1.10・砂 1.35・雪 1.25・氷 1.05</td><td>舗装 1.40・土 0.85・砂 0.70・雪 0.80</td><td>舗装 0.77・砂利 0.68・砂 0.68。砂の 0-100 7.15→6.18 秒</td></tr>
+</table>
+<table class="en">
+<tr><th></th><th>stiffness</th><th>grip</th><th>rolling</th><th>Effect</th></tr>
+<tr><td>Normal</td><td>1</td><td>all 1</td><td>all 1</td><td>lateral g 0.93 paved, 0.62 gravel, 0.48 sand</td></tr>
+<tr><td>Gravel</td><td>0.85</td><td>paved 0.88, dirt 1.20, gravel 1.25, sand 1.10, snow 1.10</td><td>paved 1.15</td><td>0.84 paved, 0.77 gravel, 0.54 sand. Gravel braking 31.9→25.7 m</td></tr>
+<tr><td>Mud terrain</td><td>0.75</td><td>paved 0.80, dirt 1.15, gravel 1.10, sand 1.35, snow 1.25, ice 1.05</td><td>paved 1.40, dirt 0.85, sand 0.70, snow 0.80</td><td>0.77 paved, 0.68 gravel, 0.68 sand. Sand 0–100 7.15→6.18 s</td></tr>
+</table>
+<p class="ja"><b>どの路面でも強いタイヤは作らないでください。</b>得意な路面があれば苦手な路面がある、のがタイヤを選ぶ意味です。倍率は 0.3〜3.0 に丸めて読みます。</p>
+<p class="en"><b>Please don't make a tyre that wins everywhere.</b> A tyre that is good somewhere should be worse somewhere else; that is what makes the choice matter. Ratios are clamped to 0.3–3.0.</p>
+</section>
+
 <section id="s-turbo" data-guide="parts">
 <h2 class="ja"><span class="num">1</span>ターボとブローオフバルブ</h2>
 <h2 class="en"><span class="num">1</span>Turbos and blow-off valves</h2>
@@ -2064,23 +2148,29 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
-<tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。<code>"wheel"</code>・<code>"turbo"</code>・<code>"blowoff"</code></td></tr>
+<tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。<code>"wheel"</code>・<code>"tire"</code>・<code>"turbo"</code>・<code>"blowoff"</code></td></tr>
 <tr><td><code>order</code></td><td>整数</td><td><code>100</code></td><td>換装画面に並ぶ順</td></tr>
 <tr><td><code>cars</code></td><td>車種 id の配列</td><td>（すべての車種）</td><td>付けられる車種。読める値が 1 つも無ければ、その部品は捨てられる</td></tr>
 <tr><td><code>turbo.boost</code></td><td>数字</td><td><code>0.35</code></td><td>ターボだけ。ブーストいっぱいでトルクを何割増やすか（0〜1.5）</td></tr>
 <tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1）</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
+<tr><td><code>tire.stiffness</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。横・縦の剛性の倍率（よれやすさ。0.3〜3.0）</td></tr>
+<tr><td><code>tire.grip.&lt;路面&gt;</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。その路面でのグリップの倍率。路面は <code>paved</code>・<code>dirt</code>・<code>gravel</code>・<code>sand</code>・<code>snow</code>・<code>ice</code></td></tr>
+<tr><td><code>tire.rolling.&lt;路面&gt;</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。その路面での転がり抵抗の倍率</td></tr>
 </table>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits: <code>"wheel"</code>, <code>"turbo"</code> or <code>"blowoff"</code></td></tr>
+<tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits: <code>"wheel"</code>, <code>"tire"</code>, <code>"turbo"</code> or <code>"blowoff"</code></td></tr>
 <tr><td><code>order</code></td><td>integer</td><td><code>100</code></td><td>Position in the parts screen</td></tr>
 <tr><td><code>cars</code></td><td>array of car ids</td><td>(every car)</td><td>Which cars can fit it. If none of the values can be read, the part is dropped</td></tr>
 <tr><td><code>turbo.boost</code></td><td>number</td><td><code>0.35</code></td><td>Turbos only. Extra torque at full boost (0 to 1.5)</td></tr>
 <tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1)</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
+<tr><td><code>tire.stiffness</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Scale on lateral and longitudinal stiffness (tread squirm; 0.3 to 3.0)</td></tr>
+<tr><td><code>tire.grip.&lt;surface&gt;</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Grip on that surface. Surfaces: <code>paved</code>, <code>dirt</code>, <code>gravel</code>, <code>sand</code>, <code>snow</code>, <code>ice</code></td></tr>
+<tr><td><code>tire.rolling.&lt;surface&gt;</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Rolling resistance on that surface</td></tr>
 </table>
 <h4 class="ja">見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"wheel": { ... }</code> の中。入れ子を省いて根に書いてもよい。<b>ホイールだけ</b>。ターボとブローオフには要らない）</h4>
 <h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting). <b>Wheels only</b>; turbos and blow-off valves need none</h4>
@@ -2092,6 +2182,15 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車種の <code>wheel.offset</code></td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
 <tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車種の <code>wheel.scale</code></td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
 <tr><td><code>camber</code></td><td>数字</td><td>その車種の <code>wheel.camber</code></td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
+<tr><td><code>rimRadius</code></td><td>数字</td><td>（測る）</td><td>タイヤの内径（ビード）を置く半径 [m]（メッシュの寸法）。<a href="#s-tire">3 章</a></td></tr>
+</table>
+<h4 class="ja">タイヤの見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"tire": { ... }</code> の中。<b>根には書けない</b>）</h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>KurumaMod 標準のタイヤ</td><td>タイヤの OBJ（タイヤだけ。原点は車軸の中心）</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/wheel.png</code></td><td>タイヤのテクスチャ</td></tr>
+<tr><td><code>innerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの内径 [m]。測った値がおかしいときだけ書く</td></tr>
+<tr><td><code>outerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの外径 [m]。同上</td></tr>
 </table>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
@@ -2101,6 +2200,15 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's <code>wheel.offset</code></td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
 <tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's <code>wheel.scale</code></td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
 <tr><td><code>camber</code></td><td>number</td><td>the car's <code>wheel.camber</code></td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
+<tr><td><code>rimRadius</code></td><td>number</td><td>(measured)</td><td>Radius where the tyre's bead sits [m], in mesh units. <a href="#s-tire">Chapter 3</a></td></tr>
+</table>
+<h4 class="en">Tyre looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"tire": { ... }</code>; <b>not at the top level</b>)</h4>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>KurumaMod's own tyre</td><td>Tyre OBJ (tyre only, origin at the axle centre)</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/wheel.png</code></td><td>Tyre texture</td></tr>
+<tr><td><code>innerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's inner tyre radius [m]. Only write it if the measured one is wrong</td></tr>
+<tr><td><code>outerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's outer tyre radius [m]. Likewise</td></tr>
 </table>
 </section>
 

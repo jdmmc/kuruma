@@ -16,6 +16,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import com.jdmmc.kurumamod.physics.CarSpec;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -64,6 +65,8 @@ public class CarPartScreen extends Screen {
     private static final int SIDE_MARGIN = 22;
     private static final int SLIDER_WIDTH = 210;
     private static final int RESET_WIDTH = 18;
+    /** 場所の切り替えのタブの幅。性能の表がタブとかぶるかの判定にも使う。 */
+    private static final int TAB_WIDTH = 68;
     /** 調整値 1 行ぶんの高さ。 */
     private static final int ROW_STEP = 24;
     private static final int TEXT_LEFT = 24;
@@ -162,7 +165,7 @@ public class CarPartScreen extends Screen {
         if (shown.size() < 2) {
             return;
         }
-        int tabWidth = 68;
+        int tabWidth = TAB_WIDTH;
         int y = rowTop - ROW_STEP * (Adjustment.VALUES.length + 1);
         int totalWidth = shown.size() * (tabWidth + TILE_GAP) - TILE_GAP;
         int left = (width - totalWidth) / 2;
@@ -301,6 +304,56 @@ public class CarPartScreen extends Screen {
                 TEXT_LEFT, TITLE_Y + 26, ScreenStyle.HINT);
 
         renderScrollHints(graphics);
+        renderInfo(graphics, car, fitted);
+    }
+
+    /** パネルの上端。左上のタイトルと操作ヒントの下から。 */
+    private static final int INFO_TOP = TITLE_Y + 42;
+    private static final int INFO_RIGHT_MARGIN = 12;
+
+    /**
+     * 部品の性能の表（タイヤとタービンだけ）。<b>マウスを乗せているタイルがあればその部品、
+     * 無ければ装着中の部品</b>を出す。乗せて見比べてから履けるように。
+     *
+     * <p>下端はタブとぶつからない高さまで。タブは中央に並ぶので、パネルが横にかぶるときだけ
+     * タブの上で止め、かぶらなければタイルの上まで使う。入りきらなければパネルが自分で縮む。</p>
+     */
+    private void renderInfo(GuiGraphics graphics, @Nullable CarEntity car, @Nullable ResourceLocation fitted) {
+        if (!PartInfoPanel.covers(slot)) {
+            return;
+        }
+        PartTile shown = null;
+        boolean preview = false;
+        for (PartTile tile : tiles) {
+            if (tile.visible && tile.isHovered() && !sameId(tile.entry.id(), fitted)) {
+                shown = tile;
+                preview = true;
+                break;
+            }
+        }
+        if (shown == null) {
+            for (PartTile tile : tiles) {
+                if (sameId(tile.entry.id(), fitted)) {
+                    shown = tile;
+                    break;
+                }
+            }
+        }
+        if (shown == null) {
+            return;
+        }
+        int right = width - INFO_RIGHT_MARGIN;
+        int bottom = rowTop - 6;
+        int tabCount = shownSlots().size();
+        if (tabCount >= 2) {
+            int tabsRight = width / 2 + (tabCount * (TAB_WIDTH + TILE_GAP) - TILE_GAP) / 2;
+            if (right - PartInfoPanel.WIDTH < tabsRight + 4) {
+                bottom = rowTop - ROW_STEP * (Adjustment.VALUES.length + 1) - 4;
+            }
+        }
+        CarSpec spec = car != null ? car.getSpec() : CarSpec.DEFAULT;
+        PartInfoPanel.render(graphics, font, slot, shown.entry.id(), shown.entry.label(), preview,
+                spec, right, INFO_TOP, bottom);
     }
 
     /** 列の左右に、まだ先があることを出す。<b>出さないと 1 画面に収まっていると読める。</b> */
@@ -624,6 +677,7 @@ public class CarPartScreen extends Screen {
             float iconX = (left + right) / 2.0F;
             float iconY = (top + labelTop) / 2.0F;
             switch (slot) {
+                case TIRE -> renderTireIcon(graphics, iconX, iconY);
                 case TURBO -> renderTurboIcon(graphics, iconX, iconY);
                 case BLOWOFF -> renderBlowoffIcon(graphics, iconX, iconY);
                 default -> renderWheelIcon(graphics, iconX, iconY);
@@ -661,6 +715,20 @@ public class CarPartScreen extends Screen {
                         radius * 0.18F, radius * 0.66F, i * 72.0F, 2.6F, rim);
             }
             GaugePainter.arc(graphics, centerX, centerY, 0.0F, radius * 0.22F, 0.0F, 360.0F, rim);
+        }
+
+        /**
+         * タイヤの絵。太い輪と、外周に並ぶトレッドの刻み。中は空けて、ホイールの絵と見分けさせる。
+         */
+        private void renderTireIcon(GuiGraphics graphics, float centerX, float centerY) {
+            float radius = 14.0F;
+            int accent = fitted ? COLOR_RIM_FITTED : COLOR_RIM;
+            GaugePainter.arc(graphics, centerX, centerY, radius * 0.50F, radius, 0.0F, 360.0F, COLOR_TIRE);
+            for (int i = 0; i < 12; i++) {
+                GaugePainter.radialBar(graphics, centerX, centerY,
+                        radius * 0.80F, radius * 1.0F, i * 30.0F, 2.0F, 0xFF3C3C3C);
+            }
+            GaugePainter.arc(graphics, centerX, centerY, radius * 0.44F, radius * 0.50F, 0.0F, 360.0F, accent);
         }
 
         /**

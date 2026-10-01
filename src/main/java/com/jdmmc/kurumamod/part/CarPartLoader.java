@@ -3,6 +3,7 @@ package com.jdmmc.kurumamod.part;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -13,6 +14,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +121,57 @@ public final class CarPartLoader extends SimpleJsonResourceReloadListener {
             LOGGER.warn("ターボの部品に turbo が書かれていません（既定の性能にします）: {}", id);
             turbo = parseTurbo(new JsonObject());
         }
-        return new CarPart(id, slot, order, cars, turbo);
+        Tire tire = null;
+        if (root.has("tire")) {
+            if (slot != PartSlot.TIRE) {
+                LOGGER.warn("tire はタイヤの部品（slot \"tire\"）にしか書けません（無視します）: {}", id);
+            } else {
+                tire = parseTire(id, GsonHelper.getAsJsonObject(root, "tire"));
+            }
+        } else if (slot == PartSlot.TIRE) {
+            LOGGER.warn("タイヤの部品に tire が書かれていません（ノーマルと同じ性能にします）: {}", id);
+            tire = Tire.NORMAL;
+        }
+        return new CarPart(id, slot, order, cars, turbo, tire);
+    }
+
+    /** 路面の名前。{@code RoadSurface#surfaceName} と同じ並び。知らない名前はログに残して捨てる。 */
+    private static final Set<String> SURFACES = Set.of("paved", "dirt", "gravel", "sand", "snow", "ice");
+
+    /**
+     * タイヤの性能。倍率はすべてノーマルタイヤに対する比で、書かなかったものは 1。
+     * 範囲の外は {@link Tire} が丸める。
+     *
+     * <pre>
+     * "tire": {
+     *   "stiffness": 0.85,                          // 横・縦の剛性の倍率（よれやすさ）
+     *   "grip":    { "paved": 0.88, "gravel": 1.3 }, // 路面ごとのグリップの倍率
+     *   "rolling": { "sand": 0.7 }                   // 路面ごとの転がり抵抗の倍率
+     * }
+     * </pre>
+     */
+    private static Tire parseTire(ResourceLocation id, JsonObject json) {
+        return new Tire(GsonHelper.getAsDouble(json, "stiffness", 1.0),
+                surfaceScales(id, json, "grip"), surfaceScales(id, json, "rolling"));
+    }
+
+    private static Map<String, Double> surfaceScales(ResourceLocation id, JsonObject json, String key) {
+        Map<String, Double> scales = new HashMap<>();
+        if (!json.has(key)) {
+            return scales;
+        }
+        for (Map.Entry<String, JsonElement> entry : GsonHelper.getAsJsonObject(json, key).entrySet()) {
+            if (entry.getKey().startsWith("_")) {
+                continue;
+            }
+            if (!SURFACES.contains(entry.getKey())) {
+                LOGGER.warn("知らない路面です（その値だけ無視します）: {} の tire.{}.{}（使えるのは {}）",
+                        id, key, entry.getKey(), SURFACES);
+                continue;
+            }
+            scales.put(entry.getKey(), entry.getValue().getAsDouble());
+        }
+        return scales;
     }
 
     /**

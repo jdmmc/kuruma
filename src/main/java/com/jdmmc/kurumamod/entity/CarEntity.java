@@ -11,6 +11,7 @@ import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
+import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
 import com.jdmmc.kurumamod.network.CarPartsPacket;
@@ -405,7 +406,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     /**
      * 物理が解く諸元。<b>調整画面の諸元に、装着している部品の性能を載せたもの。</b>
      *
-     * <p>重ねる順は「車種の諸元 → 調整画面 → 部品」。部品の性能（いまはターボ）は諸元の側に
+     * <p>重ねる順は「車種の諸元 → 調整画面 → 部品」。部品の性能（ターボとタイヤ）は諸元の側に
      * 焼き込まない——焼き込むと、外しても戻らない・調整画面の値と食い違う、の二重管理になる。
      * 載せ直すのは諸元か部品か部品の一覧（データパックの再読み込み）が変わったときだけ。</p>
      *
@@ -415,7 +416,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      */
     public CarSpec getSpec() {
         if (effectiveBase != spec || effectiveParts != parts || effectiveGeneration != CarParts.generation()) {
-            effectiveSpec = spec.toBuilder().turbo(turboOf(parts)).build();
+            effectiveSpec = spec.toBuilder().turbo(turboOf(parts)).tire(tireOf(parts)).build();
             effectiveBase = spec;
             effectiveParts = parts;
             effectiveGeneration = CarParts.generation();
@@ -433,6 +434,13 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         ResourceLocation id = parts.getPart(PartSlot.TURBO);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.turbo() == null ? Turbo.NONE : part.turbo();
+    }
+
+    /** 履いているタイヤの性能。付いていない・知らない部品ならノーマル。 */
+    private static Tire tireOf(PartFitment parts) {
+        ResourceLocation id = parts.getPart(PartSlot.TIRE);
+        CarPart part = id == null ? null : CarParts.get(id);
+        return part == null || part.tire() == null ? Tire.NORMAL : part.tire();
     }
 
     /** ターボが付いているか。 */
@@ -934,7 +942,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             if (hit.isInside()) {
                 // 起点が塞がっている＝登坂限界より上まで続く壁。乗せずに据え置く
                 groundContact.set(wheel, previousGroundHeight[index],
-                        surfaces[index].gripScale(wetness), surfaces[index].rollingScale());
+                        tireGrip(surfaces[index]), tireRolling(surfaces[index]));
                 continue;
             }
 
@@ -942,9 +950,23 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // 他 MOD の道路ブロックはそのままアスファルトとして走れる
             RoadSurface surface = SurfaceLookup.of(level().getBlockState(hit.getBlockPos()));
             surfaces[index] = surface;
-            setGroundHeight(wheel, hit.getLocation().y,
-                    surface.gripScale(wetness), surface.rollingScale());
+            setGroundHeight(wheel, hit.getLocation().y, tireGrip(surface), tireRolling(surface));
         }
+    }
+
+    /**
+     * その路面で物理へ渡すグリップの倍率。路面（と濡れ具合）に、履いているタイヤのその路面での倍率を掛ける。
+     *
+     * <p><b>タイヤの路面ごとの得意・不得意はここで掛ける</b>（物理コアは路面の種類を知らない）。
+     * ノーマルタイヤはどの路面でも 1 なので、路面の値がそのまま渡る。</p>
+     */
+    private double tireGrip(RoadSurface surface) {
+        return surface.gripScale(wetness) * getSpec().tire().gripOn(surface.surfaceName());
+    }
+
+    /** その路面で物理へ渡す転がり抵抗の倍率。路面に、タイヤのその路面での倍率を掛ける。 */
+    private double tireRolling(RoadSurface surface) {
+        return surface.rollingScale() * getSpec().tire().rollingOn(surface.surfaceName());
     }
 
     private void setGroundHeight(Wheel wheel, double height) {

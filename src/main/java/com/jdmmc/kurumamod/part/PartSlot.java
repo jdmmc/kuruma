@@ -14,8 +14,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public enum PartSlot {
 
-    /** ホイール。タイヤの見た目そのもの。 */
+    /** ホイール。見た目だけ。メッシュにタイヤが付属していれば、タイヤを選ばない限りそれが出る。 */
     WHEEL("wheel", null),
+    /**
+     * タイヤ。<b>走りが変わる</b>（部品の {@code tire} が剛性と路面ごとのグリップを決める）。
+     * 何も付けていなければノーマル（すべて 1 倍）で、見た目はホイールに付属のタイヤ。
+     */
+    TIRE("tire", null),
     /**
      * ターボ。<b>走りが変わる</b>（部品の {@code turbo} がトルクと立ち上がりを決める）。
      * 何も付けていなければ自然吸気。
@@ -48,11 +53,15 @@ public enum PartSlot {
     /**
      * 何も付けていないときの呼び名の翻訳キー。
      *
-     * <p>ホイールは「純正」（車種の既定の見た目）だが、ターボとブローオフは「なし」——
-     * 付いていないのが素の状態だから。</p>
+     * <p>ホイールは「純正」（車種の既定の見た目）、タイヤは「ノーマル」（既定の性能）だが、
+     * ターボとブローオフは「なし」——付いていないのが素の状態だから。</p>
      */
     public String emptyKey() {
-        return this == WHEEL ? "screen.kurumamod.part.stock" : "screen.kurumamod.part.none";
+        return switch (this) {
+            case WHEEL -> "screen.kurumamod.part.stock";
+            case TIRE -> "screen.kurumamod.part.tire_normal";
+            default -> "screen.kurumamod.part.none";
+        };
     }
 
     public String getSerializedName() {
