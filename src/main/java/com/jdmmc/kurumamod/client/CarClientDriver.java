@@ -9,6 +9,8 @@ import com.jdmmc.kurumamod.network.KurumaNetwork;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.CarInput;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.player.Input;
@@ -18,6 +20,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * 運転中のキー入力を車へ渡すクライアント側の橋渡し。
@@ -49,6 +52,10 @@ public final class CarClientDriver {
      * 点いたまま残り、別の車へ乗り換えるとその車の状態になる。</p>
      */
     private static boolean headlightsOn;
+
+    /** 画面越しに読んだ変速キーの前ティックの状態。押した瞬間だけを拾うため。 */
+    private static boolean shiftUpHeld;
+    private static boolean shiftDownHeld;
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
@@ -133,12 +140,26 @@ public final class CarClientDriver {
         // 灯火は操作ではなく状態なので、画面を開いていても消えないよう先に渡す
         car.setHeadlights(headlightsOn);
 
-        // 画面を開いている間は運転操作を受け付けない（入力が画面に取られているため）。
-        // カウントダウン中も動かせない。スタート信号を意味のあるものにするため
-        if (minecraft.screen != null || RaceHud.isFrozen()) {
+        // カウントダウン中は動かせない。スタート信号を意味のあるものにするため
+        if (RaceHud.isFrozen()) {
             car.setDriverInput(CarInput.NONE);
             return;
         }
+
+        // 調整画面（G）だけは開いたまま運転できる。挙動の変化を走りながら確かめる画面なので。
+        // それ以外の画面は入力が画面に取られているので受け付けない
+        if (minecraft.screen != null) {
+            if (minecraft.screen instanceof CarTuningScreen) {
+                car.setDriverInput(inputThroughScreen(minecraft));
+            } else {
+                car.setDriverInput(CarInput.NONE);
+            }
+            return;
+        }
+        // 画面越しの変速は押しっぱなしの状態で閉じたときに 1 回ぶん誤って拾わないよう、
+        // 画面の外では「押されている」で揃えておく（離すまで次の押下にならない）
+        shiftUpHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_UP);
+        shiftDownHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_DOWN);
 
         // コントローラを触っている間はそちらを使い、触っていなければキーボードへ戻す。
         // どちらかに固定すると、持ち替えるたびに設定を触ることになる
@@ -153,6 +174,57 @@ public final class CarClientDriver {
         // 衝突するので、ジャンプの押下状態をそのまま借りる
         car.setDriverInput(new CarInput(in.up, in.down, in.left, in.right,
                 shiftUp, shiftDown, in.jumping));
+    }
+
+    /**
+     * 画面を開いたままの運転入力。
+     *
+     * <p><b>{@code KeyMapping#isDown} は使えない。</b>画面を開くとバニラが {@code KeyMapping.releaseAll()}
+     * を呼び、開いている間のキーは画面にしか届かないので、押していても false のまま。
+     * そこで割り当てられているキーの物理的な状態を GLFW から直接読む（割り当ては尊重する）。
+     * 変速は押した瞬間だけを拾う。</p>
+     */
+    private static CarInput inputThroughScreen(Minecraft minecraft) {
+        boolean upHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_UP);
+        boolean downHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_DOWN);
+        boolean shiftUp = upHeld && !shiftUpHeld;
+        boolean shiftDown = downHeld && !shiftDownHeld;
+        shiftUpHeld = upHeld;
+        shiftDownHeld = downHeld;
+
+        CarInput pad = ControllerInput.toCarInput();
+        if (pad != null && !ControllerInput.isIdle()) {
+            return pad;
+        }
+        var options = minecraft.options;
+        return new CarInput(isKeyDown(minecraft, options.keyUp), isKeyDown(minecraft, options.keyDown),
+                isKeyDown(minecraft, options.keyLeft), isKeyDown(minecraft, options.keyRight),
+                shiftUp, shiftDown, isKeyDown(minecraft, options.keyJump));
+    }
+
+    /** 画面を開いたまま運転するときに車へ渡すキーか。画面側がこれらを握りつぶすのに使う。 */
+    public static boolean isDrivingKey(int keyCode, int scanCode) {
+        var options = Minecraft.getInstance().options;
+        for (KeyMapping mapping : new KeyMapping[]{options.keyUp, options.keyDown, options.keyLeft,
+                options.keyRight, options.keyJump, KurumaKeys.SHIFT_UP, KurumaKeys.SHIFT_DOWN}) {
+            if (mapping.matches(keyCode, scanCode)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 割り当てられたキー（またはマウスボタン）がいま物理的に押されているか。 */
+    private static boolean isKeyDown(Minecraft minecraft, KeyMapping mapping) {
+        InputConstants.Key key = mapping.getKey();
+        if (key.equals(InputConstants.UNKNOWN)) {
+            return false;
+        }
+        long window = minecraft.getWindow().getWindow();
+        if (key.getType() == InputConstants.Type.MOUSE) {
+            return GLFW.glfwGetMouseButton(window, key.getValue()) == GLFW.GLFW_PRESS;
+        }
+        return key.getType() == InputConstants.Type.KEYSYM && InputConstants.isKeyDown(window, key.getValue());
     }
 
     /** いま運転している車。運転していなければ null。 */

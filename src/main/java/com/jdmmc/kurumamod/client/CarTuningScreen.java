@@ -333,6 +333,19 @@ public class CarTuningScreen extends Screen {
         syncToServer();
     }
 
+    /**
+     * 運転に使うキーは画面へ渡さない。開いたまま運転できるので（{@link CarClientDriver}）、
+     * 渡すとスペース（サイドブレーキ）でフォーカス中のボタンが押されたり、
+     * 矢印キーに割り当てた人のハンドルでフォーカスやスライダーが動いたりする。
+     */
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (CarClientDriver.isDrivingKey(keyCode, scanCode)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     /** ゲームを止めない。止めると挙動の変化を見ながら調整できないため。 */
     @Override
     public boolean isPauseScreen() {
