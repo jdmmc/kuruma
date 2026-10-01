@@ -59,6 +59,7 @@ public final class DeferredGlows {
 
     /** シェーダーパックを使っていて、光を描く設定のときだけ。 */
     static boolean active() {
+        ensureShader();
         return shader != null && HeadlightVolume.ShaderPacks.inUse() && !HeadlightVolume.suppressedByShaderPack()
                 && !MirrorRenderer.isRendering();
     }
@@ -66,6 +67,22 @@ public final class DeferredGlows {
     /** 光芒を描かずに捨てる場面か（パックが影を描いている最中）。そのときは記録も描画もしない。 */
     static boolean skip() {
         return HeadlightVolume.ShaderPacks.renderingShadowPass();
+    }
+
+    private static boolean loadAttempted;
+
+    /** シェーダーが無ければ自分で読む。理由は {@link HeadlightVolume#ensureShaders} と同じ。 */
+    private static void ensureShader() {
+        if (shader != null || loadAttempted) {
+            return;
+        }
+        loadAttempted = true;
+        try {
+            shader = new ShaderInstance(Minecraft.getInstance().getResourceManager(),
+                    new ResourceLocation(Kurumamod.MODID, "light_glow"), DefaultVertexFormat.POSITION_COLOR);
+        } catch (IOException | RuntimeException e) {
+            LOGGER.error("光芒のシェーダーを読めなかった。シェーダーパック使用中の光芒は崩れたまま描く", e);
+        }
     }
 
     /** 光芒の頂点を受け取る書き込み先。 */
@@ -80,6 +97,7 @@ public final class DeferredGlows {
 
         @SubscribeEvent
         public static void onRegisterShaders(RegisterShadersEvent event) {
+            loadAttempted = false;
             try {
                 event.registerShader(new ShaderInstance(event.getResourceProvider(),
                                 new ResourceLocation(Kurumamod.MODID, "light_glow"),
