@@ -134,6 +134,18 @@ minecraft {
             args '--username', 'Dev2'
         }
 
+        // 性能比較用。-Pperf_profile=kuruma|embeddium|dynlights で入れる MOD を選び、
+        // 作業ディレクトリ（ワールド・設定・ログ）も組み合わせごとに分ける。
+        // 例: ./gradlew runPerf -Pperf_profile=embeddium
+        perf {
+            parent runs.client
+            def profile = project.findProperty('perf_profile') ?: 'kuruma'
+            workingDirectory project.file("run-perf-${profile}")
+            args '--username', "Perf_${profile}"
+            // 3 つ同時に立てても 16GB に収まるよう本体を絞る（比べる条件は 3 つとも同じ）
+            jvmArgs '-Xmx2G'
+        }
+
         server {
             property 'forge.enabledGameTestNamespaces', mod_id
             args '--nogui'
@@ -175,6 +187,24 @@ def extraResourceMods = hasExtraMods
         ? (project.findProperty('extra_resource_mods') ?: '').split(',')
                 .collect { it.trim() }.findAll { !it.isEmpty() }
         : []
+
+// 性能比較（runPerf）の組み合わせ。指定したときは extra_mods を<b>置き換える</b>
+// （道路 MOD などが混ざると比べる条件が揃わない）。jar は extra_mods_dir から借りる
+def perfProfiles = [
+        kuruma   : [],
+        embeddium: ['embeddium:0.3.31+mc1.20.1'],
+        dynlights: ['embeddium:0.3.31+mc1.20.1',
+                    'sodiumoptionsapi-forge:1.0.10-1.20.1',
+                    'sodiumdynamiclights-forge:1.0.10-1.20.1'],
+]
+def perfProfile = project.findProperty('perf_profile')
+if (perfProfile != null) {
+    if (!perfProfiles.containsKey(perfProfile)) {
+        throw new GradleException("perf_profile は ${perfProfiles.keySet()} のどれか: ${perfProfile}")
+    }
+    extraMods = hasExtraMods ? perfProfiles[perfProfile] : []
+    extraResourceMods = []
+}
 
 repositories {
     // 本番インスタンスの mods フォルダ。外部 MOD をここから借りる
