@@ -7,7 +7,7 @@
   "diff_lock_ratio": 1.0,
   "diff_preload": 0.0,
   "drag": 0.0004,
-  "drive_bias": 1.0,
+  "drive_layout": 1.0,
   "drivetrain_efficiency": 0.9,
   "engine_brake": 35.0,
   "engine_inertia": 0.25,

@@ -1818,8 +1818,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <section id="sc" data-guide="car">
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（55 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
-<p class="en">That is all of them (55 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -1893,12 +1893,15 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <h4 class="ja">駆動系・デフ</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
-<tr><td><code>drive_bias</code></td><td>駆動配分（0=前 1=後）</td><td>0 = 前・1 = 後</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>drive_layout</code></td><td>駆動方式</td><td>0 = FF・1 = FR・2 = 4WD</td><td>2</td><td>0 – 2</td></tr>
+<tr><td><code>torque_split</code></td><td>前後トルク配分</td><td>後輪の割合（4WD のみ）</td><td>0.5</td><td>0.1 – 0.9</td></tr>
 <tr><td><code>diff_preload</code></td><td>デフ イニシャルトルク</td><td>N·m</td><td>0</td><td>0 – 300</td></tr>
 <tr><td><code>diff_lock_ratio</code></td><td>デフ 差動制限率</td><td>—</td><td>0</td><td>0 – 1</td></tr>
 <tr><td><code>diff_coast_ratio</code></td><td>デフ 戻し側の効き</td><td>—</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>center_diff_lock</code></td><td>センターデフ 締結の強さ</td><td>—</td><td>0</td><td>0 – 1</td></tr>
 </table>
 <p class="ja"><code>diff_lock_ratio</code> と <code>diff_preload</code> がどちらも 0 ならオープンデフ。<code>diff_coast_ratio</code> は 0 で 1way、0.5 で 1.5way、1 で 2way。</p>
+<p class="ja"><code>torque_split</code> と <code>center_diff_lock</code> は 4WD（<code>drive_layout</code> が 2）のときだけ効きます。<code>torque_split</code> は前後へ配る駆動力の割合で、後ろへ寄せるほど踏んだときに尻が出やすくなります（FR 寄り）。<code>center_diff_lock</code> が 0 ならオープンで配分どおり、上げると前後の回転差を揃えにいき、空転しかけた軸から掴んでいる軸へトルクが移ります（1 で直結）。締めるほど配分の意味は薄れ、低速で小さく回ったときに止まろうとします（タイトコーナーブレーキング）。サイドブレーキを引いている間は自動で切れます。古い <code>drive_bias</code>（0 = FF・1 = FR・間は 4WD の配分）も読めます。</p>
 <h4 class="ja">ブレーキ・走行抵抗</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -1993,12 +1996,15 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <h4 class="en">Driveline & Differential</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
-<tr><td><code>drive_bias</code></td><td>Drive bias (0=front, 1=rear)</td><td>0 = front, 1 = rear</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>drive_layout</code></td><td>Drive layout</td><td>0 = FWD, 1 = RWD, 2 = AWD</td><td>2</td><td>0 – 2</td></tr>
+<tr><td><code>torque_split</code></td><td>Front/rear torque split</td><td>rear share (AWD only)</td><td>0.5</td><td>0.1 – 0.9</td></tr>
 <tr><td><code>diff_preload</code></td><td>Diff preload</td><td>N·m</td><td>0</td><td>0 – 300</td></tr>
 <tr><td><code>diff_lock_ratio</code></td><td>Diff lock ratio</td><td>—</td><td>0</td><td>0 – 1</td></tr>
 <tr><td><code>diff_coast_ratio</code></td><td>Diff coast ratio</td><td>—</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>center_diff_lock</code></td><td>Centre diff lock</td><td>—</td><td>0</td><td>0 – 1</td></tr>
 </table>
 <p class="en">With <code>diff_lock_ratio</code> and <code>diff_preload</code> both at 0 it is an open diff. <code>diff_coast_ratio</code> is 1-way at 0, 1.5-way at 0.5, 2-way at 1.</p>
+<p class="en"><code>torque_split</code> and <code>center_diff_lock</code> only apply to AWD (<code>drive_layout</code> 2). <code>torque_split</code> is the share of drive sent to each axle; the more goes to the rear, the more the tail steps out on the throttle (RWD-like). With <code>center_diff_lock</code> at 0 the centre is open and the split holds exactly; raising it pulls the front and rear speeds together and moves torque from an axle that starts to spin to the one that still grips (1 is fully locked). The tighter it is, the less the split matters, and the car resists tight turns at low speed (tight-corner braking). It opens automatically while the handbrake is pulled. The old <code>drive_bias</code> (0 = FWD, 1 = RWD, anything between = AWD split) is still read.</p>
 <h4 class="en">Brakes & Resistance</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>

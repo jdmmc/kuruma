@@ -235,9 +235,22 @@ public final class Tunables {
                             .detail(spec -> spec.isManual() ? "MT (R/F)" : "AT"))),
 
             new Group("driveline", List.of(
-                    TunableParameter.linear("drive_bias", 0.0, 1.0, "%.2f",
-                                    CarSpec::driveBias, CarSpec.Builder::driveBias)
+                    // 駆動方式（FF / FR / 4WD）と 4WD の前後トルク配分は分けて持つ。1 本だった頃は
+                    // 0 と 1 だけ「方式の選択」で間が「4WD の配分」と意味が違っていた
+                    TunableParameter.linear("drive_layout", 0, 2, "%.0f",
+                                    CarSpec::driveLayout, CarSpec.Builder::driveLayout)
                             .detail(Tunables::driveLayout),
+                    // 4WD の前後トルク配分。表示は後輪の %。配分が決めるのは回転ではなく<b>押す力</b>の分担で、
+                    // 後ろへ寄せるほど後輪が縦にグリップを使い、踏むと尻が出る（FR 寄り）
+                    TunableParameter.linear("torque_split", 10, 90, "%.0f",
+                                    CarSpec::torqueSplit, CarSpec.Builder::torqueSplit)
+                            .unit(0.01)
+                            .detail(Tunables::torqueSplit),
+                    // センターデフ（4WD の前後）。0 でオープン＝前後トルク配分どおりの固定比、1 で直結。
+                    // 締めると回転差を揃えにいき、空転しかけた軸から掴んでいる軸へトルクが移る
+                    TunableParameter.linear("center_diff_lock", 0.0, 1.0, "%.2f",
+                                    CarSpec::centerDiffLock, CarSpec.Builder::centerDiffLock)
+                            .detail(Tunables::centerDifferentialType),
                     TunableParameter.linear("diff_preload", 0, 300, "%.0f",
                             CarSpec::diffPreload, CarSpec.Builder::diffPreload),
                     TunableParameter.linear("diff_lock_ratio", 0.0, 1.0, "%.2f",
@@ -328,17 +341,28 @@ public final class Tunables {
      * 落ち方も書かれていなければ当時の既定（0.45）で換算する——{@code peak_torque_rpm} だけ書いた
      * カーパックが、既定の最高出力回転数（6676rpm）を押し付けられて別の曲線にならないため。</p>
      *
+     * <p>駆動方式と 4WD の前後トルク配分は、かつて {@code drive_bias}（後輪配分）1 本で持っていた。
+     * {@code drive_layout} が書かれていなければそこから読む。</p>
+     *
      * @param stored 項目名から保存されていた値を引く。無ければ null
      */
     static CarSpec migrateLegacy(CarSpec spec, Function<String, Double> stored) {
-        if (stored.apply("peak_power_rpm") != null) {
-            return spec;
+        CarSpec.Builder builder = spec.toBuilder();
+        if (stored.apply("peak_power_rpm") == null) {
+            Double falloff = stored.apply("torque_falloff");
+            double shape = falloff != null ? falloff : CarSpec.LEGACY_TORQUE_FALLOFF;
+            builder.peakPowerRpm(CarSpec.peakPowerRpmFor(spec.peakTorqueRpm(), shape));
         }
-        Double falloff = stored.apply("torque_falloff");
-        double shape = falloff != null ? falloff : CarSpec.LEGACY_TORQUE_FALLOFF;
-        return spec.toBuilder()
-                .peakPowerRpm(CarSpec.peakPowerRpmFor(spec.peakTorqueRpm(), shape))
-                .build();
+        // 駆動方式と 4WD の配分は、かつて drive_bias 1 本（後輪配分）で持っていた。
+        // 0 なら FF、1 なら FR、間なら 4WD＋その配分として読む（配分は今のスライダーの範囲へ丸める）
+        Double bias = stored.apply("drive_bias");
+        if (bias != null && stored.apply("drive_layout") == null && Double.isFinite(bias)) {
+            builder.driveBias(bias);
+            if (bias > 0.0 && bias < 1.0) {
+                builder.torqueSplit(Math.max(0.1, Math.min(0.9, bias)));
+            }
+        }
+        return builder.build();
     }
 
     /**
@@ -389,6 +413,26 @@ public final class Tunables {
         return String.format("%.0f", spec.topGearSpeed() * 3.6);
     }
 
+    /** センターデフの種類。四駆でなければ効かないことを出す。 */
+    private static Object centerDifferentialType(CarSpec spec) {
+        if (!spec.isAwd()) {
+            return detail("awd_only");
+        }
+        if (spec.centerDiffLock() >= 1.0) {
+            return detail("center_diff_locked");
+        }
+        return spec.centerDiffLock() <= 0.0 ? detail("open_diff") : "LSD";
+    }
+
+    /** 前後トルク配分の補足。前：後の比。4WD でなければ効かないことを出す。 */
+    private static Object torqueSplit(CarSpec spec) {
+        if (!spec.isAwd()) {
+            return detail("awd_only");
+        }
+        double rear = Math.round(spec.torqueSplit() * 100.0);
+        return detail("torque_split", String.format("%.0f", 100.0 - rear), String.format("%.0f", rear));
+    }
+
     /** デフの種類。0 ならオープンデフ。 */
     private static Object differentialType(CarSpec spec) {
         boolean open = spec.diffLockRatio() <= 0.0 && spec.diffPreload() <= 0.0;
@@ -412,12 +456,13 @@ public final class Tunables {
         return "1.5way";
     }
 
-    /** 駆動方式の呼び名。数字だけだと前後どちらか分からないため。 */
+    /** 駆動方式の呼び名。数字だけだと何なのか分からないため。 */
     private static String driveLayout(CarSpec spec) {
-        double bias = spec.driveBias();
-        if (bias <= 0.05) return "FF";
-        if (bias >= 0.95) return "FR";
-        return "4WD";
+        return switch (spec.layout()) {
+            case FF -> "FF";
+            case FR -> "FR";
+            case AWD -> "4WD";
+        };
     }
 
     /**

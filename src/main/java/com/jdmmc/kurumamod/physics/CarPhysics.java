@@ -1094,7 +1094,7 @@ public final class CarPhysics {
         for (Wheel wheel : Wheel.VALUES) {
             contacts[wheel.ordinal()] = wheelContact(spec, state, contact, input, wheel, brakeForce, dt);
         }
-        applyDifferential(spec, state, contacts, dt);
+        applyDifferential(spec, state, contacts, input, dt);
 
         double longitudinal = 0.0;
         double lateral = 0.0;
@@ -1293,9 +1293,62 @@ public final class CarPhysics {
      *
      * <p>移すだけなので軸の合計トルクは変わらない。</p>
      */
-    private static void applyDifferential(CarSpec spec, CarState state, WheelContact[] contacts, double dt) {
+    private static void applyDifferential(CarSpec spec, CarState state, WheelContact[] contacts,
+                                          CarInput input, double dt) {
+        // 前後を先に決める。左右のデフはそれぞれの軸に来たトルクを配り直すだけなので、後でよい
+        lockCenter(spec, state, contacts, input, dt);
         lockAxle(spec, state, contacts, dt, Wheel.FRONT_LEFT, Wheel.FRONT_RIGHT);
         lockAxle(spec, state, contacts, dt, Wheel.REAR_LEFT, Wheel.REAR_RIGHT);
+    }
+
+    /**
+     * センターデフ（四駆の前後）の差動制限。左右の {@link #lockAxle} と同じく<b>摩擦として解く</b>。
+     *
+     * <p>差動制限が無ければ前後へ {@code driveBias} どおりの固定比で配るだけで、これは
+     * <b>オープンのセンターデフ</b>そのもの（入れる前の挙動）。荷重の軽い前軸が先に空転すると、
+     * 後軸がまだ押せるのにトルクを増やせない。</p>
+     *
+     * <p>移す量は「前後の平均の回転を揃えるのに要るトルク」に、締結の強さから決まる割合
+     * （{@link CarSpec#centerDiffLockFraction}）を掛けたもの。アクセルの有無に依らず、戻し側も同じ効き。
+     * イニシャルトルクは持たない——強さと役目がほぼ重なり、どちらを触ればよいか分からなくなるため
+     * （グランツーリスモもイニシャルを持つのは左右の LSD だけ）。</p>
+     *
+     * <p><b>締結の強さを「全体のトルクの何割まで移せるか」（左右の LSD と同じ容量の形）に
+     * してはいけない。</b>前後のグリップはもともと近く、要る移し量は全体の 1 割にも届かないので、
+     * 目盛りの 0.1 から上がすべて直結と同じになった（駆動配分 0.65 の車で実測）。
+     * 要る量に対する割合なら、端から端まで意味を持つ。</p>
+     *
+     * <p><b>軸の応答は左右の輪から組む。</b>軸へ Δ 足すと左右へ半分ずつ行くので
+     * （ここでは軸のデフはオープンとして見積もる）、軸の平均の角速度は
+     * {@code (A左+A右)/2 + (B左+B右)/4·Δ}。</p>
+     *
+     * <p><b>サイドブレーキを引いている間は切る。</b>ラリー車の油圧サイドと同じ。締結したままだと、
+     * 後輪を止めようとする力がセンターデフを通って前輪まで止めてしまい、サイドターンにならない。</p>
+     */
+    private static void lockCenter(CarSpec spec, CarState state, WheelContact[] contacts,
+                                   CarInput input, double dt) {
+        double fraction = spec.centerDiffLockFraction();
+        if (!spec.isAwd() || fraction <= 0.0 || input.handbrake()) {
+            return;
+        }
+        double[] torque = state.wheelDriveTorque;
+
+        double[] fl = wheelResponse(spec, state, contacts[Wheel.FRONT_LEFT.ordinal()], Wheel.FRONT_LEFT, dt);
+        double[] fr = wheelResponse(spec, state, contacts[Wheel.FRONT_RIGHT.ordinal()], Wheel.FRONT_RIGHT, dt);
+        double[] rl = wheelResponse(spec, state, contacts[Wheel.REAR_LEFT.ordinal()], Wheel.REAR_LEFT, dt);
+        double[] rr = wheelResponse(spec, state, contacts[Wheel.REAR_RIGHT.ordinal()], Wheel.REAR_RIGHT, dt);
+        double frontA = (fl[0] + fr[0]) / 2.0;
+        double frontB = (fl[1] + fr[1]) / 4.0;
+        double rearA = (rl[0] + rr[0]) / 2.0;
+        double rearB = (rl[1] + rr[1]) / 4.0;
+        // 前から後ろへ transfer だけ移すと、前の平均 = 前A − 前B·transfer、後ろ = 後A + 後B·transfer
+        double lockingTransfer = (frontA - rearA) / (frontB + rearB);
+        double transfer = fraction * lockingTransfer;
+
+        torque[Wheel.FRONT_LEFT.ordinal()] -= transfer / 2.0;
+        torque[Wheel.FRONT_RIGHT.ordinal()] -= transfer / 2.0;
+        torque[Wheel.REAR_LEFT.ordinal()] += transfer / 2.0;
+        torque[Wheel.REAR_RIGHT.ordinal()] += transfer / 2.0;
     }
 
     private static void lockAxle(CarSpec spec, CarState state, WheelContact[] contacts, double dt,
