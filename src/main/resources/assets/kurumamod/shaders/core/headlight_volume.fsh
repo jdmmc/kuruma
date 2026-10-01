@@ -34,6 +34,8 @@ uniform mat4 InvViewProj;
 // ランプ 1 灯ぶん。列 0 = 位置（カメラ基準）と届く距離、列 1 = 光軸と強さ、列 2 = 右、列 3 = 上
 uniform sampler2D LampSampler;
 uniform int LampCount;
+// 光の届く距離 [m]（Ctrl+L）。ランプからこれより遠い点は計算しない。手前 30% でなめらかに消す
+uniform float LightRange;
 uniform float FogDensity;
 uniform vec2 ScreenSize;
 
@@ -134,8 +136,15 @@ float emitted(mat4 L, vec3 v, float soften) {
         return 0.0;
     }
     // 光軸の先で壁に当たっていれば、そこから先へは届かない
+    // 届く距離より遠い点は 0。路面の照り返しは光が 0 なら影の計算（pathToLamp。距離に比例して
+    // 重い）を飛ばすので、ここで切ると遠くの路面のぶんがまるごと軽くなる
+    float distance = length(v);
+    if (distance >= LightRange) {
+        return 0.0;
+    }
+    float rangeFade = 1.0 - smoothstep(LightRange * 0.7, LightRange, distance);
     float reach = L[0].w;
-    float blocked = 1.0 - smoothstep(reach - 0.3, reach + 0.8, along);
+    float blocked = (1.0 - smoothstep(reach - 0.3, reach + 0.8, along)) * rangeFade;
     float tx = dot(v, L[2].xyz) / along;
     float ty = dot(v, L[3].xyz) / along;
     return pattern(tx, ty, soften) * blocked * L[1].w;
@@ -397,7 +406,7 @@ void main() {
         vec3 axis = L[1].xyz;
         // 光の届く範囲を包む球と視線が交わる区間だけ刻む。刻みがそこへ集まるので、
         // 少ない歩数でも光線の中が粗くならない
-        float reach = min(VOLUME_LENGTH, L[0].w + 0.8);
+        float reach = min(min(VOLUME_LENGTH, LightRange), L[0].w + 0.8);
         vec3 center = origin + axis * (reach * 0.5);
         float radius = reach * 0.5 + 1.5;
         float mid = dot(center, rayDir);

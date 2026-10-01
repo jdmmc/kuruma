@@ -298,6 +298,7 @@ public final class HeadlightVolume {
         shader.safeGetUniform("InvViewProj").set(inverse);
         shader.setSampler("LampSampler", HeadlightShadows.lampTexture());
         shader.safeGetUniform("LampCount").set(count);
+        shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
         shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
         shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
         shader.safeGetUniform("SurfaceGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSurface);
