@@ -50,7 +50,8 @@ package com.jdmmc.kurumamod.physics;
  * @param rearComplianceSteer  後軸の横力コンプライアンスステア [rad/G]。同上
  * @param corneringStiffness   コーナリングパワー係数 [1/rad]。接地荷重に掛けて N/rad になる
  * @param longitudinalStiffness 縦方向のすべり剛性 [1/-]。接地荷重に掛けて滑り率 1 あたりの N になる
- * @param driveBias            駆動力の後輪配分。0 で前輪駆動、1 で後輪駆動
+ * @param driveLayout          駆動方式。0 で FF、1 で FR、2 で 4WD（間の値は丸めて読む）。{@link #driveBias} を参照
+ * @param torqueSplit          4WD の前後トルク配分（後輪の割合）。FF・FR では使わない
  * @param tireFriction         タイヤの摩擦係数。接地荷重に掛けたものがグリップの上限。
  *                             調整画面では {@link #REFERENCE_FRICTION} を 1.00 とした相対値で出す
  * @param tireFalloff          ピークを越えて滑ったときに失うグリップの割合。0 で落ちない（ピークで頭打ち）
@@ -81,6 +82,8 @@ package com.jdmmc.kurumamod.physics;
  * @param diffPreload          差動制限のイニシャルトルク [N*m]。無入力でも効く分
  * @param diffLockRatio        駆動トルクのうち差動制限に回る割合。0 でオープンデフ
  * @param diffCoastRatio       アクセルを戻したときの効きの倍率。0 で 1way、0.5 で 1.5way、1 で 2way
+ * @param centerDiffLock       センターデフの締結の強さ（0〜1）。0 でオープン（{@code torqueSplit} どおりの固定配分）、
+ *                             1 で前後の回転を毎回揃えきる（直結）。{@link #centerDiffLockFraction} を参照
  * @param manualTransmission   0 でオートマ、1 でマニュアル
  * @param rollingResistance    転がり抵抗による減速度 [m/s^2]
  * @param dragCoefficient      空気抵抗の係数（速度の 2 乗に比例する減速度を作る）
@@ -109,7 +112,8 @@ public record CarSpec(
         double rearComplianceSteer,
         double corneringStiffness,
         double longitudinalStiffness,
-        double driveBias,
+        double driveLayout,
+        double torqueSplit,
         double tireFriction,
         double tireFalloff,
         double tireLoadSensitivity,
@@ -138,6 +142,7 @@ public record CarSpec(
         double diffPreload,
         double diffLockRatio,
         double diffCoastRatio,
+        double centerDiffLock,
         double manualTransmission,
         double rollingResistance,
         double dragCoefficient,
@@ -398,9 +403,40 @@ public record CarSpec(
         return allowedSlip(abs);
     }
 
+    /** 駆動方式。 */
+    public enum Layout { FF, FR, AWD }
+
+    /** 駆動方式（{@code driveLayout} を丸めたもの）。 */
+    public Layout layout() {
+        int index = (int) Math.round(Math.max(0.0, Math.min(2.0, driveLayout)));
+        return Layout.values()[index];
+    }
+
+    /** 4WD か。センターデフはこのときだけ効く。 */
+    public boolean isAwd() {
+        return layout() == Layout.AWD;
+    }
+
+    /**
+     * 駆動力の後輪配分。0 で FF、1 で FR、4WD なら前後トルク配分。
+     *
+     * <p><b>駆動方式と配分を 1 つの数字で持っていた頃の名残</b>だが、物理はこの形のほうが扱いやすいので
+     * アクセサとして残してある。諸元として持つのは方式（{@code driveLayout}）と配分（{@code torqueSplit}）。
+     * 1 本で持っていた頃は 0 と 1 だけ「方式の選択」で間が「4WD の配分」と意味が違い、
+     * FR と FF を行き来するのにスライダーを端まで動かす必要があった。</p>
+     */
+    public double driveBias() {
+        return switch (layout()) {
+            case FF -> 0.0;
+            case FR -> 1.0;
+            case AWD -> torqueSplit;
+        };
+    }
+
     /** その輪が受け持つ駆動力の割合。 */
     public double driveShare(Wheel wheel) {
-        return (wheel.isFront() ? 1.0 - driveBias : driveBias) / 2.0;
+        double bias = driveBias();
+        return (wheel.isFront() ? 1.0 - bias : bias) / 2.0;
     }
 
     /** その輪が受け持つ制動力の割合。 */
@@ -599,6 +635,18 @@ public record CarSpec(
     public double suspensionDamping(Wheel wheel, boolean rebound) {
         double cornerMass = mass * weightShare(wheel) / 2.0;
         return 2.0 * dampingRatio(wheel, rebound) * Math.sqrt(suspensionStiffness(wheel) * cornerMass);
+    }
+
+    /**
+     * センターデフが、前後の回転を揃えるのに要るトルクのうち何割を移すか。締結の強さの 2 乗。
+     *
+     * <p><b>強さをそのまま割合にすると、目盛りの下の方に変化が詰まる。</b>揃えきれなかった
+     * 回転差は {@code (1−割合)/割合} で残るので、0.1 で既にかなり締まり、0.5 から上はほぼ直結になる。
+     * 2 乗にすると、駆動配分 0.65 の車が砂利で舵＋全開したときの最大スリップ角が
+     * 0.3 で 20°、0.5 で 10°、0.7 で 7° と、0〜0.7 にかけてなめらかに締まる。</p>
+     */
+    public double centerDiffLockFraction() {
+        return centerDiffLock * centerDiffLock;
     }
 
     /** その輪の減衰比。{@code rebound} が true なら伸び側。 */
@@ -829,8 +877,8 @@ public record CarSpec(
     public double tractionLimitAccel() {
         double mu = tireFriction;
         double transfer = mu * cgHeight() / wheelBase;
-        double rearShare = driveBias;
-        double frontShare = 1.0 - driveBias;
+        double rearShare = driveBias();
+        double frontShare = 1.0 - rearShare;
         double limit = mu * CarPhysics.GRAVITY; // 全輪を使いきってもこれ以上は出ない
         if (rearShare > transfer) {
             limit = Math.min(limit, mu * CarPhysics.GRAVITY * (1.0 - weightBias) / (rearShare - transfer));
@@ -980,7 +1028,8 @@ public record CarSpec(
         private double corneringStiffness = 12.0;
         // 縦は横よりグリップの立ち上がりが速いのが実タイヤの性質
         private double longitudinalStiffness = 18.0;
-        private double driveBias = 0.5;   // 駆動配分。1.0 で後輪駆動、0 で前輪駆動、0.5 で四輪駆動
+        private double driveLayout = 2.0; // 駆動方式。0 で FF、1 で FR、2 で 4WD
+        private double torqueSplit = 0.5; // 4WD の後輪配分。0.5 で前後等分
         private double tireFriction = REFERENCE_FRICTION;
         private double tireFalloff = 0.0;
         private double tireLoadSensitivity = 0.15; // 0.30 では四駆の制動＋フルロックがスピンする
@@ -1043,6 +1092,9 @@ public record CarSpec(
         private double diffPreload = 0.0;
         private double diffLockRatio = 0.0;
         private double diffCoastRatio = 0.5; // 1.5way
+        // センターデフ（四駆の前後）。既定はオープン＝torqueSplit どおりの固定配分で、入れる前と同じ。
+        // 締めると空転しかけた軸から掴んでいる軸へトルクが移る（ラリーの四駆はここが効く）
+        private double centerDiffLock = 0.0;
         // 0 でオートマ、1 でマニュアル
         private double manualTransmission = 0.0;
         // 実車の転がり抵抗はおよそ 0.012G、空気抵抗は 100km/h で 0.03G 程度。
@@ -1079,7 +1131,8 @@ public record CarSpec(
             rearComplianceSteer = spec.rearComplianceSteer;
             corneringStiffness = spec.corneringStiffness;
             longitudinalStiffness = spec.longitudinalStiffness;
-            driveBias = spec.driveBias;
+            driveLayout = spec.driveLayout;
+            torqueSplit = spec.torqueSplit;
             tireFriction = spec.tireFriction;
             tireFalloff = spec.tireFalloff;
             tireLoadSensitivity = spec.tireLoadSensitivity;
@@ -1108,6 +1161,7 @@ public record CarSpec(
             diffPreload = spec.diffPreload;
             diffLockRatio = spec.diffLockRatio;
             diffCoastRatio = spec.diffCoastRatio;
+            centerDiffLock = spec.centerDiffLock;
             manualTransmission = spec.manualTransmission;
             rollingResistance = spec.rollingResistance;
             dragCoefficient = spec.dragCoefficient;
@@ -1228,8 +1282,29 @@ public record CarSpec(
             return this;
         }
 
+        public Builder driveLayout(double value) {
+            driveLayout = value;
+            return this;
+        }
+
+        public Builder torqueSplit(double value) {
+            torqueSplit = value;
+            return this;
+        }
+
+        /**
+         * 後輪配分 1 つから方式と配分をまとめて入れる。0 以下で FF、1 以上で FR、間なら 4WD。
+         * 実験コードと、1 本で持っていた頃の値（{@code drive_bias}）の読み替え用。
+         */
         public Builder driveBias(double value) {
-            driveBias = value;
+            if (value <= 0.0) {
+                driveLayout = Layout.FF.ordinal();
+            } else if (value >= 1.0) {
+                driveLayout = Layout.FR.ordinal();
+            } else {
+                driveLayout = Layout.AWD.ordinal();
+                torqueSplit = value;
+            }
             return this;
         }
 
@@ -1382,6 +1457,11 @@ public record CarSpec(
             return this;
         }
 
+        public Builder centerDiffLock(double value) {
+            centerDiffLock = value;
+            return this;
+        }
+
 
         public Builder manualTransmission(double value) {
             manualTransmission = value;
@@ -1414,7 +1494,7 @@ public record CarSpec(
                     ackermann, frontToe, rearToe,
                     frontRollSteer, rearRollSteer, frontComplianceSteer, rearComplianceSteer,
                     corneringStiffness, longitudinalStiffness,
-                    driveBias, tireFriction, tireFalloff, tireLoadSensitivity,
+                    driveLayout, torqueSplit, tireFriction, tireFalloff, tireLoadSensitivity,
                     steerGripMargin, visualSlipLimit,
                     maxSteerAngle, steerRateSeconds, steerReturnSeconds, selfAligning,
                     pedalPressSeconds, pedalReleaseSeconds,
@@ -1423,6 +1503,7 @@ public record CarSpec(
                     gearCount, firstGearRatio, topGearRatio, drivetrainEfficiency, shiftSeconds,
                     tractionControl, abs,
                     diffPreload, diffLockRatio, diffCoastRatio,
+                    centerDiffLock,
                     manualTransmission, rollingResistance, dragCoefficient, turbo);
         }
     }
