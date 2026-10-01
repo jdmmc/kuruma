@@ -101,7 +101,40 @@ public final class HeadlightVolume {
 
     /** 画素ごとの光が使えるか。使えないなら {@link CarLights} が形を積んで代用する。 */
     public static boolean isActive() {
+        ensureShaders();
         return shader != null && shadowShader != null && !suppressedByShaderPack();
+    }
+
+    /** {@link #ensureShaders} で自分で読もうとしたか。読み直しの合図が来たら戻す。 */
+    private static boolean loadAttempted;
+
+    /**
+     * シェーダーが無ければ、自分で読む。
+     *
+     * <p><b>シェーダーパックを有効にしたまま起動すると、{@code RegisterShadersEvent} が飛ばない。</b>
+     * Oculus が Minecraft 標準のシェーダーの読み直しを止めるため。合図を待つだけだと、KurumaMod の
+     * シェーダーは空のままで、<b>パックを切った後も代用の描き方（ブロック単位のギザギザ）に落ちたままになった</b>。
+     * 合図が来たときはそちらで読み直す。描画のスレッドで呼ぶこと。</p>
+     */
+    static void ensureShaders() {
+        if ((shader != null && shadowShader != null) || loadAttempted) {
+            return;
+        }
+        loadAttempted = true;
+        try {
+            var resources = Minecraft.getInstance().getResourceManager();
+            if (shader == null) {
+                shader = new ShaderInstance(resources, new ResourceLocation(Kurumamod.MODID, "headlight_volume"),
+                        DefaultVertexFormat.POSITION);
+            }
+            if (shadowShader == null) {
+                shadowShader = new ShaderInstance(resources, new ResourceLocation(Kurumamod.MODID, "headlight_shadow"),
+                        DefaultVertexFormat.POSITION);
+            }
+            LOGGER.info("ヘッドライトのシェーダーを自分で読んだ（読み直しの合図が来なかった。シェーダーパックを有効にしたまま起動したとき）");
+        } catch (IOException | RuntimeException e) {
+            LOGGER.error("ヘッドライトのシェーダーを読めなかった。形を積む描き方で代用する", e);
+        }
     }
 
     /**
@@ -222,6 +255,7 @@ public final class HeadlightVolume {
 
         @SubscribeEvent
         public static void onRegisterShaders(RegisterShadersEvent event) {
+            loadAttempted = false;
             try {
                 event.registerShader(new ShaderInstance(event.getResourceProvider(),
                                 new ResourceLocation(Kurumamod.MODID, "headlight_volume"),
