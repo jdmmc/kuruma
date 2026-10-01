@@ -1611,9 +1611,10 @@ public final class CarPhysics {
      * <p>効くのは 2 つそろったときだけ:</p>
      *
      * <ul>
-     *   <li><b>止まっている</b>（前後・横の合成速度が {@link #STOP_THRESHOLD} 以下）。
+     *   <li><b>ほとんど止まっている</b>（前後・横の合成速度が {@link #TUMBLE_SPEED_LIMIT} 以下）。
      *       転がっている最中は自由に転がってよい——事故の見え方には手を入れず、
-     *       <b>収拾がつかなくなったところだけ収める</b></li>
+     *       <b>収拾がつかなくなったところだけ収める</b>。以前は停止のしきい値（0.3m/s）で
+     *       見ていたが、それだと横倒しのままゆっくり転がり続ける車がいつまでも収まらない</li>
      *   <li><b>大きく傾いている</b>（{@link #TUMBLE_START} から効きはじめ
      *       {@link #TUMBLE_FULL} で全開）。停まっている車の揺れ戻りまで殺さないため</li>
      * </ul>
@@ -1627,8 +1628,8 @@ public final class CarPhysics {
      * 諸元には持たせず {@link #TUMBLE_DAMPING_PER_TICK} に固定してある。</p>
      */
     private static void dampTumbling(CarSpec spec, CarState state, double dt) {
-        // 止まっているときだけ。転がっている最中は勢いを削らない
-        if (Math.hypot(state.forwardSpeed, state.lateralSpeed) > STOP_THRESHOLD) {
+        // ほとんど止まっているときだけ。勢いよく転がっている最中は削らない
+        if (Math.hypot(state.forwardSpeed, state.lateralSpeed) > TUMBLE_SPEED_LIMIT) {
             return;
         }
         // 車体の上向きと世界の上向きのなす角。水平で 0、裏返しで π
@@ -1655,6 +1656,9 @@ public final class CarPhysics {
      * いるので、この強さで足りる。</p>
      */
     private static final double TUMBLE_DAMPING_PER_TICK = 0.30;
+
+    /** 横転の減衰が効く速さの上限 [m/s]。10km/h。 */
+    private static final double TUMBLE_SPEED_LIMIT = 10.0 / 3.6;
 
     /** 1 ティックの秒数 [s]。上の割合をサブステップの刻みへ割り直すのに使う。 */
     private static final double TICK_SECONDS = 0.05;
