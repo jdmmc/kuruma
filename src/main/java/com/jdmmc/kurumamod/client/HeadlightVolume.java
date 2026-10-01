@@ -130,6 +130,7 @@ public final class HeadlightVolume {
     static final class ShaderPacks {
         private static boolean resolved;
         private static java.lang.reflect.Method irisInUse;
+        private static java.lang.reflect.Method irisShadowPass;
         private static Object irisApi;
         private static java.lang.reflect.Method optifineInUse;
         /** 聞き方が分からなかった（API が変わった）。安全側に倒す。 */
@@ -166,6 +167,26 @@ public final class HeadlightVolume {
 
         private static Boolean last;
 
+        /**
+         * Oculus / Iris が<b>影を描いている最中</b>か。パックは影のために光源の視点からもエンティティを
+         * 描くので、その間に光芒を記録すると、光源の視点の座標が混ざって変な場所に描かれる。
+         * 聞けなければ false（影のパスが無い OptiFine やパック無しと同じ扱い）。
+         */
+        static boolean renderingShadowPass() {
+            if (!resolved) {
+                resolve();
+            }
+            if (irisShadowPass == null) {
+                return false;
+            }
+            try {
+                return (Boolean) irisShadowPass.invoke(irisApi);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                irisShadowPass = null;
+                return false;
+            }
+        }
+
         private static void resolve() {
             resolved = true;
             boolean iris = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
@@ -174,6 +195,7 @@ public final class HeadlightVolume {
                     Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
                     irisApi = api.getMethod("getInstance").invoke(null);
                     irisInUse = api.getMethod("isShaderPackInUse");
+                    irisShadowPass = api.getMethod("isRenderingShadowPass");
                 } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
                     LOGGER.warn("Oculus / Iris の API が見つからない。シェーダーパックが使われているものとして扱う", e);
                     unknown = true;

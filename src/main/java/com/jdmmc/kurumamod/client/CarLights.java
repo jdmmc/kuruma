@@ -275,6 +275,10 @@ public final class CarLights {
         if (HeadlightVolume.suppressedByShaderPack()) {
             return;
         }
+        // パックが影を描いている最中（光源の視点）は、光を描いても意味がなく、記録すると変な場所に出る
+        if (DeferredGlows.skip()) {
+            return;
+        }
 
         // 車体と同じ変換を、姿勢を掛ける前の原点から組み直す。ここで出た位置は
         // 「車の補間位置を原点にした世界の向き」になる
@@ -324,7 +328,11 @@ public final class CarLights {
             }
         }
 
-        VertexConsumer additive = buffer.getBuffer(KurumaRenderTypes.LIGHT_ADDITIVE);
+        // シェーダーパックを使っている間は、加算の RenderType がパックのプログラムに差し替えられて
+        // 灰色の板に化ける。世界を描き終えた後に自前のシェーダーで足す（DeferredGlows）。パックが無ければ今までどおり
+        VertexConsumer additive = DeferredGlows.active()
+                ? DeferredGlows.recorder()
+                : buffer.getBuffer(KurumaRenderTypes.LIGHT_ADDITIVE);
         if (beam != null && !screenSpace) {
             float volume = VOLUME_DAYLIGHT + (1.0F - VOLUME_DAYLIGHT) * darkness;
             for (Vec3 lamp : beam.lamps) {
