@@ -64,7 +64,7 @@ final class HeadlightShadows {
     /** カメラがこれより大きく飛んだら（テレポートなど）全部読み直す。 */
     private static final int JUMP = 24;
 
-    /** 距離の地図。横が光の左右、縦がランプ 8 灯ぶんの段。 */
+    /** 距離の地図。横が光の左右、縦がランプの数だけの段（灯数に合わせて高さを変える）。 */
     static final int MAP_WIDTH = 512;
     static final int MAP_TILE_HEIGHT = 128;
 
@@ -77,6 +77,16 @@ final class HeadlightShadows {
     private static int cursor;
     private static BlockPos lastCenter;
     private static TextureTarget map;
+
+    /**
+     * 画素ごとの光で扱えるランプの数の天井。<b>実際の天井はテクスチャの最大の高さ</b>
+     * （影の地図が 1 灯 {@link #MAP_TILE_HEIGHT} 行）で、普通の GPU（16384）なら 128 灯＝64 台。
+     */
+    static final int LAMP_CAP = 128;
+    /** ランプの行列を詰めたテクスチャ（RGBA 浮動小数、横 4 画素＝4 列 × 縦 1 灯 1 行）。 */
+    private static int lampTexture = -1;
+    private static java.nio.FloatBuffer lampData;
+    private static int maxLamps = -1;
 
     private HeadlightShadows() {
     }
@@ -92,7 +102,57 @@ final class HeadlightShadows {
     }
 
     static int mapHeight(int lamps) {
-        return MAP_TILE_HEIGHT * lamps;
+        return MAP_TILE_HEIGHT * Math.max(1, lamps);
+    }
+
+    /** この GPU で扱えるランプの数。影の地図の高さがテクスチャの最大を超えない範囲。 */
+    static int maxLamps() {
+        if (maxLamps < 0) {
+            int size = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
+            maxLamps = Math.max(1, Math.min(LAMP_CAP, size / MAP_TILE_HEIGHT));
+        }
+        return maxLamps;
+    }
+
+    /** ランプの行列のテクスチャ。 */
+    static int lampTexture() {
+        return lampTexture;
+    }
+
+    /**
+     * ランプの行列をテクスチャへ送る。1 灯が 1 行で、4 画素が行列の 4 列
+     * （シェーダーの {@code mat4} の列と同じ並び。列 0 位置と届く距離・列 1 光軸と強さ・列 2 右・列 3 上）。
+     *
+     * <p>以前は 1 灯ずつ uniform（{@code Lamp0}〜）で渡していたので、灯数がシェーダーに決め打ちだった。</p>
+     */
+    static void uploadLamps(Matrix4f[] lamps, int count) {
+        int rows = maxLamps();
+        if (lampTexture < 0) {
+            lampData = MemoryUtil.memAllocFloat(4 * 4 * rows);
+            lampTexture = GlStateManager._genTexture();
+            GlStateManager._bindTexture(lampTexture);
+            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+            GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+            resetUnpack();
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, org.lwjgl.opengl.GL30.GL_RGBA32F, 4, rows, 0,
+                    GL11.GL_RGBA, GL11.GL_FLOAT, (java.nio.FloatBuffer) null);
+        }
+        int n = Math.min(count, rows);
+        if (n <= 0) {
+            return;
+        }
+        lampData.clear();
+        org.joml.Vector4f column = new org.joml.Vector4f();
+        for (int i = 0; i < n; i++) {
+            for (int c = 0; c < 4; c++) {
+                lamps[i].getColumn(c, column);
+                lampData.put(column.x).put(column.y).put(column.z).put(column.w);
+            }
+        }
+        lampData.flip();
+        GlStateManager._bindTexture(lampTexture);
+        resetUnpack();
+        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, 4, n, GL11.GL_RGBA, GL11.GL_FLOAT, lampData);
     }
 
     /** 格子を読み直す。新しく範囲に入った列はすぐ、それ以外は少しずつ。初回とテレポートの後は全部。 */
@@ -297,17 +357,17 @@ final class HeadlightShadows {
     }
 
     /** ランプから見た距離の地図を描く。描き終えたら主画面へ戻す。 */
-    static void renderMap(ShaderInstance shader, Matrix4f[] lamps, int count, int maxLamps, Vec3 camera,
-                          RenderTarget main) {
-        int height = MAP_TILE_HEIGHT * maxLamps;
+    static void renderMap(ShaderInstance shader, int count, Vec3 camera, RenderTarget main) {
+        // 高さは灯数に合わせる。使わない段まで描くと、灯数を増やせるようにした意味が薄れる
+        int height = mapHeight(count);
         if (map == null) {
             map = new TextureTarget(MAP_WIDTH, height, false, Minecraft.ON_OSX);
+        } else if (map.height != height) {
+            map.resize(MAP_WIDTH, height, Minecraft.ON_OSX);
         }
         shader.setSampler("VoxelSampler", voxelTexture);
+        shader.setSampler("LampSampler", lampTexture);
         setGridUniforms(shader, camera);
-        for (int i = 0; i < maxLamps; i++) {
-            shader.safeGetUniform("Lamp" + i).set(i < count ? lamps[i] : new Matrix4f().zero());
-        }
         shader.safeGetUniform("LampCount").set(count);
 
         map.bindWrite(true);

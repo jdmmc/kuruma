@@ -32,14 +32,7 @@ uniform vec2 GridSize;
 
 uniform mat4 InvViewProj;
 // ランプ 1 灯ぶん。列 0 = 位置（カメラ基準）と届く距離、列 1 = 光軸と強さ、列 2 = 右、列 3 = 上
-uniform mat4 Lamp0;
-uniform mat4 Lamp1;
-uniform mat4 Lamp2;
-uniform mat4 Lamp3;
-uniform mat4 Lamp4;
-uniform mat4 Lamp5;
-uniform mat4 Lamp6;
-uniform mat4 Lamp7;
+uniform sampler2D LampSampler;
 uniform int LampCount;
 uniform float FogDensity;
 uniform vec2 ScreenSize;
@@ -100,7 +93,6 @@ const float SMOKE_COVERAGE_GAIN = 3.0;
 const float SMOKE_COVERAGE_MAX = 0.8;
 
 // ---- 影（headlight_shadow.fsh と同じ範囲） ----
-const int MAX_LAMPS = 8;
 const float SHADOW_DISTANCE = 48.0;
 const float TX_MIN = -1.3;
 const float TX_MAX = 1.3;
@@ -111,15 +103,12 @@ const float TY_MAX = 0.15;
 const float SHADOW_BIAS = 0.12;
 const float SHADOW_BIAS_PER_METER = 0.02;
 
+// ランプは LampSampler の 1 行 = 1 灯（4 画素 = 行列の 4 列）。数の上限はテクスチャの高さだけ
 mat4 lamp(int i) {
-    if (i == 0) return Lamp0;
-    if (i == 1) return Lamp1;
-    if (i == 2) return Lamp2;
-    if (i == 3) return Lamp3;
-    if (i == 4) return Lamp4;
-    if (i == 5) return Lamp5;
-    if (i == 6) return Lamp6;
-    return Lamp7;
+    return mat4(texelFetch(LampSampler, ivec2(0, i), 0),
+                texelFetch(LampSampler, ivec2(1, i), 0),
+                texelFetch(LampSampler, ivec2(2, i), 0),
+                texelFetch(LampSampler, ivec2(3, i), 0));
 }
 
 float pattern(float tx, float ty, float soften) {
@@ -153,7 +142,7 @@ float emitted(mat4 L, vec3 v, float soften) {
 }
 
 float shadowDistance(int index, ivec2 texel) {
-    int tile = int(ShadowSize.y) / MAX_LAMPS;
+    int tile = int(ShadowSize.y) / max(LampCount, 1);
     texel = clamp(texel, ivec2(0), ivec2(int(ShadowSize.x) - 1, tile - 1));
     vec2 encoded = texelFetch(ShadowSampler, ivec2(texel.x, texel.y + index * tile), 0).rg;
     return (encoded.r + encoded.g / 255.0) * SHADOW_DISTANCE;
@@ -176,7 +165,7 @@ float shadow(int index, mat4 L, vec3 v, bool soft) {
         return 1.0;
     }
     float bias = SHADOW_BIAS + SHADOW_BIAS_PER_METER * distance;
-    float tile = ShadowSize.y / float(MAX_LAMPS);
+    float tile = ShadowSize.y / float(max(LampCount, 1));
     vec2 px = vec2((tx - TX_MIN) / (TX_MAX - TX_MIN) * ShadowSize.x,
                    (ty - TY_MIN) / (TY_MAX - TY_MIN) * tile);
     if (!soft) {

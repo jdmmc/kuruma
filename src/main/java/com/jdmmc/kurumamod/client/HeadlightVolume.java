@@ -67,8 +67,14 @@ public final class HeadlightVolume {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** シェーダーへ渡せるランプの数（json の Lamp0..Lamp7）。車 4 台ぶん。 */
-    private static final int MAX_LAMPS = 8;
+    /**
+     * ランプを集める入れ物の大きさ。<b>シェーダー側に灯数の決め打ちは無い</b>（ランプはテクスチャで渡す。
+     * {@link HeadlightShadows#uploadLamps}）。実際に描く台数は設定
+     * （{@link com.jdmmc.kurumamod.ClientConfig#headlightCars}、無制限あり）で絞り、天井は GPU の
+     * テクスチャの大きさ（{@link HeadlightShadows#maxLamps}）。シェーダーのループは {@code LampCount}
+     * までしか回らないので、絞ったぶんだけ軽くなる。
+     */
+    private static final int MAX_LAMPS = HeadlightShadows.LAMP_CAP;
     /** これより遠い車の光は計算しない。 */
     private static final double MAX_DISTANCE = 128.0;
 
@@ -89,7 +95,6 @@ public final class HeadlightVolume {
     private static TextureTarget copy;
 
     private static final Matrix4f[] LAMPS = new Matrix4f[MAX_LAMPS];
-    private static final Matrix4f ZERO = new Matrix4f().zero();
 
     private HeadlightVolume() {
     }
@@ -273,7 +278,8 @@ public final class HeadlightVolume {
         // 影。ブロックの格子を少し読み直してから、ランプから見た距離の地図を描く
         Vec3 camera = event.getCamera().getPosition();
         HeadlightShadows.update(level, camera);
-        HeadlightShadows.renderMap(shadowShader, LAMPS, count, MAX_LAMPS, camera, main);
+        HeadlightShadows.uploadLamps(LAMPS, count);
+        HeadlightShadows.renderMap(shadowShader, count, camera, main);
 
         // 画面の座標から、カメラを原点にした世界の向きの座標へ戻す行列
         Matrix4f inverse = new Matrix4f(event.getProjectionMatrix())
@@ -288,11 +294,9 @@ public final class HeadlightVolume {
         shader.setSampler("VoxelSampler", HeadlightShadows.voxelTexture());
         HeadlightShadows.setGridUniforms(shader, camera);
         shader.safeGetUniform("ShadowSize").set((float) HeadlightShadows.MAP_WIDTH,
-                (float) HeadlightShadows.mapHeight(MAX_LAMPS));
+                (float) HeadlightShadows.mapHeight(count));
         shader.safeGetUniform("InvViewProj").set(inverse);
-        for (int i = 0; i < MAX_LAMPS; i++) {
-            shader.safeGetUniform("Lamp" + i).set(i < count ? LAMPS[i] : ZERO);
-        }
+        shader.setSampler("LampSampler", HeadlightShadows.lampTexture());
         shader.safeGetUniform("LampCount").set(count);
         shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
         shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
@@ -356,14 +360,20 @@ public final class HeadlightVolume {
             }
         }
         cars.sort(Comparator.comparingDouble(car -> car.position().distanceToSqr(camera)));
+        int wanted = com.jdmmc.kurumamod.ClientConfig.headlightCars;
+        int limit = wanted >= com.jdmmc.kurumamod.ClientConfig.UNLIMITED_HEADLIGHT_CARS
+                ? HeadlightShadows.maxLamps()
+                : Math.min(HeadlightShadows.maxLamps(), Math.max(1, wanted) * 2);
         int count = 0;
+        int taken = 0;
         for (CarEntity car : cars) {
-            if (count >= MAX_LAMPS) {
+            if (count >= limit || taken >= limit / 2) {
                 break;
             }
             count += CarLights.collectLamps(car, partialTick, camera, LAMPS, count);
+            taken++;
         }
-        return count;
+        return Math.min(count, limit);
     }
 
     private static float fogDensity(ClientLevel level, float partialTick) {

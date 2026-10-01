@@ -134,6 +134,11 @@ public final class ClientConfig {
             .comment("光の中のタイヤの煙・土煙の光り方")
             .defineInRange("headlightSmoke", 4.0, 0.0, 10.0);
 
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_CARS = BUILDER
+            .comment("路面を照らす光と霧の中の光線を描く車の台数（近い順・128 ブロック以内）。多いほど重い。1 台 = ヘッドライト 2 灯。",
+                    "11 で無制限（天井は GPU のテクスチャの大きさで、普通は 64 台）")
+            .defineInRange("headlightCars", 11.0, 1.0, 11.0);
+
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     /** 運転中に操作ヘルプを出すか。 */
@@ -199,6 +204,10 @@ public final class ClientConfig {
     public static double headlightBeam = 120.0;
     /** 光の中の煙の光り方。 */
     public static double headlightSmoke = 4.0;
+    /** 画素ごとの光を描く車の台数。{@link #UNLIMITED_HEADLIGHT_CARS} 以上で無制限。 */
+    public static int headlightCars = 11;
+    /** 「光を描く台数」のこの値は無制限を意味する（スライダーの右端）。 */
+    public static final int UNLIMITED_HEADLIGHT_CARS = 11;
 
     private ClientConfig() {
     }
@@ -241,6 +250,7 @@ public final class ClientConfig {
         headlightSurface = HEADLIGHT_SURFACE.get();
         headlightBeam = HEADLIGHT_BEAM.get();
         headlightSmoke = HEADLIGHT_SMOKE.get();
+        headlightCars = (int) Math.round(HEADLIGHT_CARS.get());
     }
 
     /**

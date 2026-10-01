@@ -3,19 +3,12 @@
 // ランプから見た距離の地図。1 画素がランプから出る 1 方向で、その向きへブロックの格子を
 // 光線で辿り（Amanatides-Woo の DDA）、最初に光を遮るブロックまでの距離を書く。
 //
-// 縦はランプ 8 灯ぶんの段に分かれる（1 段 = 1 灯）。横と段の中の縦が、光軸からの正接
+// 縦はランプの数だけの段に分かれる（1 段 = 1 灯。地図の高さは灯数に合わせて Java 側が変える）。横と段の中の縦が、光軸からの正接
 // （横 tx・縦 ty）に対応する。範囲は headlight_volume.fsh と同じ値。片方だけ変えないこと。
 
 uniform sampler2D VoxelSampler;
 
-uniform mat4 Lamp0;
-uniform mat4 Lamp1;
-uniform mat4 Lamp2;
-uniform mat4 Lamp3;
-uniform mat4 Lamp4;
-uniform mat4 Lamp5;
-uniform mat4 Lamp6;
-uniform mat4 Lamp7;
+uniform sampler2D LampSampler;
 uniform int LampCount;
 // カメラのいるブロックの座標と、その中での位置。ランプの位置はカメラ基準で来る
 uniform vec3 CameraBlock;
@@ -27,7 +20,6 @@ in vec2 texCoord;
 
 out vec4 fragColor;
 
-const int MAX_LAMPS = 8;
 const float MAX_DISTANCE = 48.0;
 const float TX_MIN = -1.3;
 const float TX_MAX = 1.3;
@@ -37,15 +29,12 @@ const float TY_MAX = 0.15;
 const float START = 0.3;
 const int MAX_STEPS = 160;
 
+// ランプは LampSampler の 1 行 = 1 灯（4 画素 = 行列の 4 列）。数の上限はテクスチャの高さだけ
 mat4 lamp(int i) {
-    if (i == 0) return Lamp0;
-    if (i == 1) return Lamp1;
-    if (i == 2) return Lamp2;
-    if (i == 3) return Lamp3;
-    if (i == 4) return Lamp4;
-    if (i == 5) return Lamp5;
-    if (i == 6) return Lamp6;
-    return Lamp7;
+    return mat4(texelFetch(LampSampler, ivec2(0, i), 0),
+                texelFetch(LampSampler, ivec2(1, i), 0),
+                texelFetch(LampSampler, ivec2(2, i), 0),
+                texelFetch(LampSampler, ivec2(3, i), 0));
 }
 
 int wrap(int v, int n) {
@@ -142,7 +131,7 @@ vec4 encode(float distance) {
 }
 
 void main() {
-    float row = texCoord.y * float(MAX_LAMPS);
+    float row = texCoord.y * float(max(LampCount, 1));
     int index = int(row);
     if (index >= LampCount) {
         fragColor = encode(MAX_DISTANCE);
