@@ -10,6 +10,7 @@
     ],
     "uniforms": [
         { "name": "LampCount", "type": "int", "count": 1, "values": [ 0 ] },
+        { "name": "LightRange", "type": "float", "count": 1, "values": [ 48.0 ] },
         { "name": "CameraBlock", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
         { "name": "CameraFrac", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
         { "name": "GridSize", "type": "float", "count": 2, "values": [ 96.0, 24.0 ] }

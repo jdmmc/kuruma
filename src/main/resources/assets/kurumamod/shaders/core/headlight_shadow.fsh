@@ -10,6 +10,8 @@ uniform sampler2D VoxelSampler;
 
 uniform sampler2D LampSampler;
 uniform int LampCount;
+// 光の届く距離 [m]。これより先は辿らない（遮りなしとして書く。届く距離の外は光が 0 なので見えない）
+uniform float LightRange;
 // カメラのいるブロックの座標と、その中での位置。ランプの位置はカメラ基準で来る
 uniform vec3 CameraBlock;
 uniform vec3 CameraFrac;
@@ -106,7 +108,7 @@ float march(vec3 origin, vec3 dir) {
             }
         }
         t = tExit;
-        if (t > MAX_DISTANCE) {
+        if (t > min(MAX_DISTANCE, LightRange)) {
             return MAX_DISTANCE;
         }
         if (next.x <= next.y && next.x <= next.z) {

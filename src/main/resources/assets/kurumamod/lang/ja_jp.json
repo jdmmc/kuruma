@@ -416,6 +416,7 @@
   "screen.kurumamod.headlight.smoke": "煙の光り方",
   "screen.kurumamod.headlight.cars": "光を描く台数",
   "screen.kurumamod.headlight.cars.unlimited": "無制限",
+  "screen.kurumamod.headlight.range": "光の届く距離",
   "screen.kurumamod.headlight.reset_all": "全部戻す",
   "screen.kurumamod.headlight.shader_pack": "シェーダーパックを使っている間は、ライトの光は描かれません",
   "key.kurumamod.headlight_settings": "ヘッドライトの調整",

@@ -369,6 +369,7 @@ final class HeadlightShadows {
         shader.setSampler("LampSampler", lampTexture);
         setGridUniforms(shader, camera);
         shader.safeGetUniform("LampCount").set(count);
+        shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
 
         map.bindWrite(true);
         RenderSystem.disableDepthTest();

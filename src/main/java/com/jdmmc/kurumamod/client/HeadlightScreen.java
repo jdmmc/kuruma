@@ -63,6 +63,7 @@ public final class HeadlightScreen extends Screen {
             new Row("beam", 5.0, "%.0f", ClientConfig.HEADLIGHT_BEAM),
             new Row("smoke", 0.25, "%.2f", ClientConfig.HEADLIGHT_SMOKE),
             new Row("cars", 1.0, "%.0f", ClientConfig.HEADLIGHT_CARS),
+            new Row("range", 1.0, "%.0f m", ClientConfig.HEADLIGHT_RANGE),
     };
 
     private static final int ROW_HEIGHT = 24;
