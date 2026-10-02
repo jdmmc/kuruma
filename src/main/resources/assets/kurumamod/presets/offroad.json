@@ -1,6 +1,8 @@
 {
   "order": 20,
   "abs": 0.7,
+  "ackermann": 0.5,
+  "center_diff_lock": 0.0,
   "cornering_stiffness": 12.0,
   "diff_coast_ratio": 0.5,
   "diff_lock_ratio": 1.0,
@@ -14,8 +16,11 @@
   "friction": 1.0,
   "front_anti_roll": 0.0,
   "front_bump_damping": 0.5,
+  "front_compliance_steer": 0.008726646259971648,
   "front_rebound_damping": 1.38,
   "front_roll_center": 0.0,
+  "front_roll_steer": 0.05,
+  "front_toe": 0.0,
   "gear_count": 4.842783505154639,
   "idle_rpm": 800.0,
   "longitudinal_stiffness": 18.0,
@@ -29,16 +34,21 @@
   "pedal_release": 0.30412371134020616,
   "rear_anti_roll": 20000.0,
   "rear_bump_damping": 0.5,
+  "rear_compliance_steer": 0.003490658503988659,
   "rear_rebound_damping": 1.38,
   "rear_roll_center": 0.0,
+  "rear_roll_steer": 0.08,
+  "rear_toe": 0.0,
   "redline_rpm": 4600.0,
   "rolling_resistance": 0.2,
   "self_aligning": 0.0,
   "shift_time": 0.06572164948453607,
-  "steer_grip_margin": 1.0,
+  "steer_grip_margin": 1.9952494670979275,
   "steer_rate": 0.3015463917525773,
   "steer_return": 0.30412371134020616,
-  "stroke": 0.751417525773196,
+  "stroke": 0.8,
+  "tire_falloff": 0.0,
+  "tire_load_sensitivity": 0.15,
   "top_gear": 0.8110824742268041,
   "torque_split": 0.5,
   "track_width": 2.2175257731958764,
@@ -46,5 +56,10 @@
   "visual_slip_limit": 0.7853981633974483,
   "weight_distribution": 0.54,
   "wheel_base": 3.35,
-  "wheel_radius": 0.6005154639175257
+  "wheel_radius": 0.6005154639175257,
+  "parts": {
+    "tire": {
+      "id": "kurumamod:tire_offroad"
+    }
+  }
 }

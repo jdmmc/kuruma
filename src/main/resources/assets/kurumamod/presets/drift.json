@@ -2,6 +2,7 @@
   "order": 10,
   "abs": 0.0,
   "ackermann": 0.5,
+  "center_diff_lock": 0.0,
   "cornering_stiffness": 12.0,
   "diff_coast_ratio": 1.0,
   "diff_lock_ratio": 1.0,
@@ -14,7 +15,9 @@
   "first_gear": 4.2,
   "friction": 1.0,
   "front_anti_roll": 2500.0,
+  "front_bump_damping": 0.45,
   "front_compliance_steer": 0.008726646259971648,
+  "front_rebound_damping": 0.45,
   "front_roll_center": 0.4,
   "front_roll_steer": 0.05,
   "front_toe": -0.008726646259971648,
@@ -30,7 +33,9 @@
   "pedal_press": 0.10051546391752578,
   "pedal_release": 0.10051546391752578,
   "rear_anti_roll": 1500.0,
+  "rear_bump_damping": 0.45,
   "rear_compliance_steer": 0.003490658503988659,
+  "rear_rebound_damping": 0.45,
   "rear_roll_center": 0.4,
   "rear_roll_steer": 0.08,
   "rear_toe": 0.008726646259971648,
@@ -45,10 +50,19 @@
   "tire_falloff": 0.0,
   "tire_load_sensitivity": 0.15,
   "top_gear": 0.85,
+  "torque_split": 0.5,
   "track_width": 1.8,
   "traction_control": 0.0,
   "visual_slip_limit": 0.26314886917955743,
   "weight_distribution": 0.56,
   "wheel_base": 3.12,
-  "wheel_radius": 0.4
+  "wheel_radius": 0.4,
+  "parts": {
+    "turbo": {
+      "id": "kurumamod:turbo_stock"
+    },
+    "blowoff": {
+      "id": "kurumamod:blowoff_atmospheric"
+    }
+  }
 }

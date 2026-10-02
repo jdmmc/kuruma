@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.physics.CarSpec;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -22,7 +22,8 @@ import java.util.List;
  * </ul>
  *
  * <p>読み込むと {@link CarTuning} が丸ごと差し替わり、運転中なら次のティックから挙動が
- * 変わる。サーバーへも送る（降りた後の車高がずれないように）。</p>
+ * 変わる。サーバーへも送る（降りた後の車高がずれないように）。パーツを含むプリセットなら
+ * 換装も要求する（{@link PresetParts}）。</p>
  *
  * <p><b>削除は 2 度押しで確かめる。</b>作り込んだセッティングが 1 クリックで消えると
  * 取り返しがつかないため、1 度目で「本当に？」に変わり、他を触ると元に戻る。</p>
@@ -162,12 +163,15 @@ public class CarPresetScreen extends Screen {
     }
 
     private void loadPreset(Entry entry) {
-        CarSpec spec = entry.builtin() ? builtinSpec(entry.id()) : CarSetups.load(entry.id());
-        if (spec == null) {
+        CarSetups.Setup setup = entry.builtin() ? builtinSetup(entry.id()) : CarSetups.get(entry.id());
+        if (setup == null) {
             return;
         }
-        CarTuning.apply(spec);
+        CarTuning.apply(setup.toSpec());
         CarClientDriver.sendTuningToServer();
+        if (setup.parts() != null) {
+            reportSkipped(PresetParts.apply(setup.parts()));
+        }
         pendingDelete = null;
         // 読み込んだ名前を入れておくと、少し直して上書き保存する流れがそのまま通る
         if (!entry.builtin()) {
@@ -177,13 +181,21 @@ public class CarPresetScreen extends Screen {
         refreshSaveButton();
     }
 
-    private static CarSpec builtinSpec(String id) {
+    private static CarSetups.Setup builtinSetup(String id) {
         for (CarPresets.Preset preset : CarPresets.all()) {
             if (preset.id().equals(id)) {
-                return preset.toSpec();
+                return new CarSetups.Setup(preset.values(), preset.parts());
             }
         }
         return null;
+    }
+
+    /** この車に付かずに飛ばしたパーツがあれば、黙らずに知らせる。 */
+    static void reportSkipped(int skipped) {
+        if (skipped > 0 && Minecraft.getInstance().player != null) {
+            Minecraft.getInstance().player.displayClientMessage(
+                    Component.translatable("setup.kurumamod.parts_skipped", skipped), true);
+        }
     }
 
     /** 1 度目は確認に変え、2 度目で消す。 */
@@ -202,7 +214,7 @@ public class CarPresetScreen extends Screen {
         if (!isValidName(name)) {
             return;
         }
-        CarSetups.save(name, CarTuning.spec());
+        CarSetups.save(name, CarTuning.spec(), PresetParts.current());
         nameText = name;
         pendingDelete = null;
         needsRebuild = true;

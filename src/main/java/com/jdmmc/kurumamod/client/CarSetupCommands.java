@@ -1,7 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.Kurumamod;
-import com.jdmmc.kurumamod.physics.CarSpec;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
@@ -56,7 +55,7 @@ public final class CarSetupCommands {
     private static int save(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "name");
         boolean overwrite = CarSetups.exists(name);
-        CarSetups.save(name, CarTuning.spec());
+        CarSetups.save(name, CarTuning.spec(), PresetParts.current());
         ctx.getSource().sendSuccess(() -> Component.translatable(
                         overwrite ? "setup.kurumamod.overwritten" : "setup.kurumamod.saved", name)
                 .withStyle(ChatFormatting.GREEN), false);
@@ -65,13 +64,16 @@ public final class CarSetupCommands {
 
     private static int load(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "name");
-        CarSpec spec = CarSetups.load(name);
-        if (spec == null) {
+        CarSetups.Setup setup = CarSetups.get(name);
+        if (setup == null) {
             ctx.getSource().sendFailure(Component.translatable("setup.kurumamod.not_found", name));
             return 0;
         }
         // 運転中なら次のティックで CarClientDriver が車へ流し込み、サーバーへも送る
-        CarTuning.apply(spec);
+        CarTuning.apply(setup.toSpec());
+        if (setup.parts() != null) {
+            CarPresetScreen.reportSkipped(PresetParts.apply(setup.parts()));
+        }
         ctx.getSource().sendSuccess(() -> Component.translatable("setup.kurumamod.loaded", name)
                 .withStyle(ChatFormatting.GREEN), false);
         return 1;
