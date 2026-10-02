@@ -56,10 +56,21 @@ import java.nio.ByteBuffer;
  */
 final class HeadlightShadows {
 
-    /** 格子の水平の大きさ（カメラから ±48）と高さ（±12）。 */
-    static final int GRID = 96;
+    /**
+     * 格子の水平の大きさの最小（カメラから ±48）と高さ（±12）。
+     *
+     * <p><b>水平の大きさは光の届く距離（Ctrl+L）で変わる。</b>96m 以下では 96 のまま（以前とまったく同じ）。
+     * それより遠くまで照らすときは、届く距離の 2 倍（カメラから ±届く距離）まで広げ、
+     * {@link #MAX_GRID} で頭打ちにする。格子の外は「光を遮らない」扱いなので、狭いままだと
+     * 遠くで光が壁や丘をすり抜ける。影の地図の届く距離も格子の半分に合わせる（シェーダーが GridSize から求める）。</p>
+     */
+    static final int MIN_GRID = 96;
     static final int GRID_Y = 24;
-    /** 1 フレームに読み直す行（z）の数。GRID / これ ＝ 全体が新しくなるまでのフレーム数。 */
+    /** 水平の大きさの上限（±128）。初回とテレポートの読み直しが 96 の約 7 倍になるので、これ以上は広げない。 */
+    static final int MAX_GRID = 256;
+    /** 今の水平の大きさ。 */
+    private static int grid = MIN_GRID;
+    /** 1 フレームに読み直す行（z）の数。grid / これ ＝ 全体が新しくなるまでのフレーム数。 */
     private static final int ROWS_PER_FRAME = 8;
     /** カメラがこれより大きく飛んだら（テレポートなど）全部読み直す。 */
     private static final int JUMP = 24;
@@ -68,7 +79,6 @@ final class HeadlightShadows {
     static final int MAP_WIDTH = 512;
     static final int MAP_TILE_HEIGHT = 128;
 
-    private static final int WIDTH = GRID * GRID_Y;
     /** 1 ブロックのバイト数。下端・上端・X の範囲・Z の範囲。 */
     private static final int BYTES = 4;
 
@@ -89,6 +99,21 @@ final class HeadlightShadows {
     private static int maxLamps = -1;
 
     private HeadlightShadows() {
+    }
+
+    /** 格子を詰めたテクスチャの横幅（高さの段を横に並べる）。 */
+    private static int width() {
+        return grid * GRID_Y;
+    }
+
+    /** 光の届く距離から決まる、格子の水平の大きさ。96m 以下は {@link #MIN_GRID}。 */
+    private static int wantedGrid() {
+        double range = com.jdmmc.kurumamod.ClientConfig.headlightRange;
+        if (range <= MIN_GRID) {
+            return MIN_GRID;
+        }
+        int size = (int) Math.ceil(range * 2.0 / 16.0) * 16;
+        return Math.min(MAX_GRID, Math.max(MIN_GRID, size));
     }
 
     /** 格子のテクスチャ。 */
@@ -158,8 +183,19 @@ final class HeadlightShadows {
     /** 格子を読み直す。新しく範囲に入った列はすぐ、それ以外は少しずつ。初回とテレポートの後は全部。 */
     static void update(Level level, Vec3 camera) {
         BlockPos center = BlockPos.containing(camera);
+        int wanted = wantedGrid();
+        if (wanted != grid && voxelTexture >= 0) {
+            // 届く距離が変わって格子の大きさが変わった。作り直して全部読み直す
+            GlStateManager._deleteTexture(voxelTexture);
+            MemoryUtil.memFree(voxels);
+            voxelTexture = -1;
+            voxels = null;
+            lastCenter = null;
+            cursor = 0;
+        }
+        grid = wanted;
         if (voxelTexture < 0) {
-            voxels = MemoryUtil.memAlloc(WIDTH * GRID * BYTES);
+            voxels = MemoryUtil.memAlloc(width() * grid * BYTES);
             MemoryUtil.memSet(voxels, 0);
             voxelTexture = GlStateManager._genTexture();
             GlStateManager._bindTexture(voxelTexture);
@@ -168,18 +204,18 @@ final class HeadlightShadows {
             GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
             GlStateManager._texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
             resetUnpack();
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, WIDTH, GRID, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, width(), grid, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
         }
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        int minX = center.getX() - GRID / 2;
+        int minX = center.getX() - grid / 2;
         int minY = center.getY() - GRID_Y / 2;
-        int minZ = center.getZ() - GRID / 2;
+        int minZ = center.getZ() - grid / 2;
         GlStateManager._bindTexture(voxelTexture);
         resetUnpack();
 
         if (lastCenter == null || lastCenter.distManhattan(center) > JUMP) {
             // 初回とテレポートの後は全部
-            for (int z = minZ; z < minZ + GRID; z++) {
+            for (int z = minZ; z < minZ + grid; z++) {
                 fillRow(level, pos, z, minX, minY);
             }
             uploadAll();
@@ -192,13 +228,13 @@ final class HeadlightShadows {
         // 読み直しの順番を待つと、そのあいだ後ろの地面が前の壁として扱われ、
         // <b>走っていると遠くの路面がときどき黒くなった</b>。1 ブロック進むごとに
         // 列 1 本（2304 ブロック）なので安い
-        int oldMinX = lastCenter.getX() - GRID / 2;
+        int oldMinX = lastCenter.getX() - grid / 2;
         int oldMinY = lastCenter.getY() - GRID_Y / 2;
-        int oldMinZ = lastCenter.getZ() - GRID / 2;
+        int oldMinZ = lastCenter.getZ() - grid / 2;
         lastCenter = center;
         boolean whole = false;
-        for (int x : entered(oldMinX, minX, GRID)) {
-            for (int z = minZ; z < minZ + GRID; z++) {
+        for (int x : entered(oldMinX, minX, grid)) {
+            for (int z = minZ; z < minZ + grid; z++) {
                 for (int y = minY; y < minY + GRID_Y; y++) {
                     fillCell(level, pos, x, y, z);
                 }
@@ -206,25 +242,25 @@ final class HeadlightShadows {
             whole = true;
         }
         for (int y : entered(oldMinY, minY, GRID_Y)) {
-            for (int z = minZ; z < minZ + GRID; z++) {
-                for (int x = minX; x < minX + GRID; x++) {
+            for (int z = minZ; z < minZ + grid; z++) {
+                for (int x = minX; x < minX + grid; x++) {
                     fillCell(level, pos, x, y, z);
                 }
             }
             whole = true;
         }
         java.util.List<Integer> rows = new java.util.ArrayList<>();
-        for (int z : entered(oldMinZ, minZ, GRID)) {
+        for (int z : entered(oldMinZ, minZ, grid)) {
             fillRow(level, pos, z, minX, minY);
-            rows.add(Math.floorMod(z, GRID));
+            rows.add(Math.floorMod(z, grid));
         }
 
         // 置いた・壊したブロックを拾うための読み直し。少しずつ回す
         for (int r = 0; r < ROWS_PER_FRAME; r++) {
             int row = cursor;
-            cursor = (cursor + 1) % GRID;
-            // この行（z mod GRID == row）に当たる、いまの範囲の中の世界の z
-            int z = minZ + Math.floorMod(row - minZ, GRID);
+            cursor = (cursor + 1) % grid;
+            // この行（z mod grid == row）に当たる、いまの範囲の中の世界の z
+            int z = minZ + Math.floorMod(row - minZ, grid);
             fillRow(level, pos, z, minX, minY);
             rows.add(row);
         }
@@ -256,28 +292,28 @@ final class HeadlightShadows {
 
     private static void fillRow(Level level, BlockPos.MutableBlockPos pos, int z, int minX, int minY) {
         for (int y = minY; y < minY + GRID_Y; y++) {
-            for (int x = minX; x < minX + GRID; x++) {
+            for (int x = minX; x < minX + grid; x++) {
                 fillCell(level, pos, x, y, z);
             }
         }
     }
 
     private static void fillCell(Level level, BlockPos.MutableBlockPos pos, int x, int y, int z) {
-        int offset = (Math.floorMod(z, GRID) * WIDTH + Math.floorMod(x, GRID) + Math.floorMod(y, GRID_Y) * GRID) * BYTES;
+        int offset = (Math.floorMod(z, grid) * width() + Math.floorMod(x, grid) + Math.floorMod(y, GRID_Y) * grid) * BYTES;
         pos.set(x, y, z);
         voxels.putInt(offset, occlusion(level, pos));
     }
 
     private static void uploadRow(int row) {
-        int rowOffset = row * WIDTH * BYTES;
-        voxels.position(rowOffset).limit(rowOffset + WIDTH * BYTES);
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, row, WIDTH, 1, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
+        int rowOffset = row * width() * BYTES;
+        voxels.position(rowOffset).limit(rowOffset + width() * BYTES);
+        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, row, width(), 1, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
         voxels.clear();
     }
 
     private static void uploadAll() {
         voxels.clear();
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, WIDTH, GRID, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
+        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, width(), grid, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, voxels);
     }
 
     /** 全部を遮るブロック（下端 0・上端 255・X と Z が 0..15）。 */
@@ -353,7 +389,7 @@ final class HeadlightShadows {
         shader.safeGetUniform("CameraBlock").set((float) block.getX(), (float) block.getY(), (float) block.getZ());
         shader.safeGetUniform("CameraFrac").set((float) (camera.x - block.getX()),
                 (float) (camera.y - block.getY()), (float) (camera.z - block.getZ()));
-        shader.safeGetUniform("GridSize").set((float) GRID, (float) GRID_Y);
+        shader.safeGetUniform("GridSize").set((float) grid, (float) GRID_Y);
     }
 
     /** ランプから見た距離の地図を描く。描き終えたら主画面へ戻す。 */

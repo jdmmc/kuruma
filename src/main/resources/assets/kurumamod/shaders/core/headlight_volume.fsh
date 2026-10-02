@@ -78,16 +78,19 @@ const float SURFACE_FLOOR = 0.03;
 // 3. 明るくして、上は色相を保って丸める
 // 霧の光線と煙の光は白い膜を足すだけになるので、ほぼ消す（パック自身の霧とブルームがある）
 // 強さはどれも調整画面（Ctrl+L の右の列）から渡す。仮置き
+//
+// PackMode: 0 = パック無し（全部描く）、1 = パックの仕上げ前の絵に<b>路面だけ</b>、2 = 仕上がった絵に<b>光線だけ</b>、
+// 3 = 仕上がった絵に<b>路面も光線も</b>（仕上げの前に入れない設定のとき。Bliss のように仕上げの前に照らされた絵が無いパック向け）。
+// 路面は掛け算なので仕上げ前に入れればブロックの色が残る。光線は薄い足し算なので、仕上げ前に入れると
+// パックの 2.2 乗や霧で潰れる（Complementary で見えなくなった）。仕上げの後に足せばどのパックでも同じに見える
 uniform float PackMode;
-// 明るくする強さ（SurfaceGain に掛ける）
-uniform float PackSurface;
 // 輝度のコントラストの上げ幅
 uniform float PackContrast;
 // 色かぶりを取る強さ（0 で取らない、1 で平均色を白へ戻しきる）
 uniform float PackTint;
-// 霧の光線・煙の光に掛ける倍率
-uniform float PackBeam;
-uniform float PackSmoke;
+// パック使用中のビームの倍率。仕上がった絵に足すので、パック無しと同じ強さでは白い膜になる。
+// 明るさ（Ctrl+L）は路面と共通の 1 本なので、パック使用中の比はここで決めておく
+const float PACK_BEAM_SCALE = 0.3;
 // 照らされた所に光の色をそのまま足す量（0 で足さない）。白っぽくしたい・色を乗せたいとき
 uniform float PackAdd;
 const float PACK_CONTRAST_REF = 0.25;
@@ -122,7 +125,8 @@ const float SMOKE_COVERAGE_GAIN = 3.0;
 const float SMOKE_COVERAGE_MAX = 0.8;
 
 // ---- 影（headlight_shadow.fsh と同じ範囲） ----
-const float SHADOW_DISTANCE = 48.0;
+// 距離の地図の最大の距離 = 格子の半分（headlight_shadow.fsh と同じ）
+#define SHADOW_DISTANCE (GridSize.x * 0.5)
 const float TX_MIN = -1.3;
 const float TX_MAX = 1.3;
 const float TY_MIN = -0.45;
@@ -298,7 +302,9 @@ float pathToLamp(vec3 p, vec3 n, vec3 lampPos) {
     // 柱や塀（ブロックの中ほどに面がある）では、面から浮かせてもまだ自分のブロックの中にいる。
     // 見てしまうと自分で自分を影にして、<b>柱が「ブロックの境目にある面だけ」まだらに光った</b>
     ivec3 start = cell;
-    for (int i = 0; i < 160; i++) {
+    // 歩数の上限。格子が最小（届く距離 96m 以下）なら以前と同じ 160。遠くまで照らすときは広げる
+    int steps = GridSize.x > 96.5 ? 420 : 160;
+    for (int i = 0; i < steps; i++) {
         float tExit = min(min(next.x, min(next.y, next.z)), end);
         if (cell != start && boxHit(cell, origin, invDir, t, tExit) >= 0.0) {
             return 0.0;
@@ -398,7 +404,8 @@ void main() {
     vec3 color = scene;
 
     // 粒がこの画素の手前にあるか。あれば、粒が足した色と、粒のある位置
-    bool particle = finalDepth < depth - 1.0e-6;
+    // パックを使っている間は粒の前後の絵が取れない（主画面の生の枠は使われていない）ので煙は照らさない
+    bool particle = PackMode < 0.5 && finalDepth < depth - 1.0e-6;
     vec3 particleAdded = particle ? max(scene - solidColor, vec3(0.0)) : vec3(0.0);
     float coverage = particle
             ? min(SMOKE_COVERAGE_MAX, luma(abs(scene - solidColor)) * SMOKE_COVERAGE_GAIN)
@@ -411,7 +418,7 @@ void main() {
     float surfaceDistance = sky ? SKY_DISTANCE : length(surface);
 
     // ---- 路面の照り返し ----
-    if (!sky) {
+    if (!sky && (PackMode < 1.5 || PackMode > 2.5)) {
         vec3 n = surfaceNormal(surface, texCoord);
         float illuminance = 0.0;
         for (int i = 0; i < LampCount; i++) {
@@ -443,7 +450,7 @@ void main() {
                 float y = max(luma(base), 1.0e-4);
                 base *= pow(y / PACK_CONTRAST_REF, PackContrast * lit);
                 // 仕上げ前の絵（明るさが 1 を超えてよい）なので、上を丸めるのはパックのトーンマップに任せる
-                vec3 target = base * (1.0 + SurfaceGain * PackSurface * lit * LightColor);
+                vec3 target = base * (1.0 + SurfaceGain * lit * LightColor);
                 target += LightColor * (PackAdd * lit);
                 color += (target - solidColor) * (1.0 - coverage);
             } else {
@@ -456,7 +463,9 @@ void main() {
     // ---- 霧の中の光線 ----
     float jitter = interleavedGradientNoise(gl_FragCoord.xy);
     vec3 scattered = vec3(0.0);
-    for (int i = 0; i < LampCount; i++) {
+    // 仕上げ前の段（PackMode 1）では光線を描かない
+    int beamLamps = abs(PackMode - 1.0) < 0.5 ? 0 : LampCount;
+    for (int i = 0; i < beamLamps; i++) {
         mat4 L = lamp(i);
         vec3 origin = L[0].xyz;
         vec3 axis = L[1].xyz;
@@ -503,7 +512,7 @@ void main() {
         }
         scattered += vec3(sum);
     }
-    scattered *= FogDensity * VolumeGain * (PackMode > 0.5 ? PackBeam : 1.0);
+    scattered *= FogDensity * VolumeGain * (PackMode > 0.5 ? PACK_BEAM_SCALE : 1.0);
     color += LightColor * (1.0 - exp(-scattered));
 
     // ---- 煙・土煙 ----
@@ -524,7 +533,8 @@ void main() {
             received += strength * phase(cosTheta) / dist2;
         }
         float glow = 1.0 - exp(-received * SMOKE_EXPOSURE);
-        color += particleAdded * SmokeGain * (PackMode > 0.5 ? PackSmoke : 1.0) * glow * LightColor;
+        // パック使用中はここへ来ない（particle が偽）。煙は路面の照り返しが絵ごと明るくする
+        color += particleAdded * SmokeGain * glow * LightColor;
     }
 
     fragColor = vec4(color, 1.0);

@@ -22,14 +22,20 @@ in vec2 texCoord;
 
 out vec4 fragColor;
 
-const float MAX_DISTANCE = 48.0;
+// 距離の地図に書く最大の距離 = 格子の半分（96m 以下の届く距離では 48m、以前と同じ）
+float maxDistance() {
+    return GridSize.x * 0.5;
+}
 const float TX_MIN = -1.3;
 const float TX_MAX = 1.3;
 const float TY_MIN = -0.45;
 const float TY_MAX = 0.15;
 // ランプのすぐ近くは見ない（ランプが車体の一部のブロックに埋まっていても自分を影にしない）
 const float START = 0.3;
-const int MAX_STEPS = 160;
+// 辿る歩数の上限。格子が最小（届く距離 96m 以下）なら以前と同じ 160、広げたら 420
+int maxSteps() {
+    return GridSize.x > 96.5 ? 420 : 160;
+}
 
 // ランプは LampSampler の 1 行 = 1 灯（4 画素 = 行列の 4 列）。数の上限はテクスチャの高さだけ
 mat4 lamp(int i) {
@@ -99,7 +105,8 @@ float march(vec3 origin, vec3 dir) {
             (dir.y > 0.0 ? float(cell.y) + 1.0 - origin.y : origin.y - float(cell.y)) * inv.y,
             (dir.z > 0.0 ? float(cell.z) + 1.0 - origin.z : origin.z - float(cell.z)) * inv.z);
     float t = 0.0;
-    for (int i = 0; i < MAX_STEPS; i++) {
+    int steps = maxSteps();
+    for (int i = 0; i < steps; i++) {
         float tExit = min(next.x, min(next.y, next.z));
         if (tExit > START) {
             float h = boxHit(cell, origin, invDir, max(t, START), tExit);
@@ -108,8 +115,8 @@ float march(vec3 origin, vec3 dir) {
             }
         }
         t = tExit;
-        if (t > min(MAX_DISTANCE, LightRange)) {
-            return MAX_DISTANCE;
+        if (t > min(maxDistance(), LightRange)) {
+            return maxDistance();
         }
         if (next.x <= next.y && next.x <= next.z) {
             cell.x += stepDir.x;
@@ -122,12 +129,12 @@ float march(vec3 origin, vec3 dir) {
             next.z += inv.z;
         }
     }
-    return MAX_DISTANCE;
+    return maxDistance();
 }
 
 vec4 encode(float distance) {
     // 8 ビット 2 つに分けて 16 ビットで持つ（48m を 0.7mm 刻み）
-    float n = clamp(distance / MAX_DISTANCE, 0.0, 1.0) * 255.0;
+    float n = clamp(distance / maxDistance(), 0.0, 1.0) * 255.0;
     float high = floor(n);
     return vec4(high / 255.0, n - high, 0.0, 1.0);
 }
@@ -136,7 +143,7 @@ void main() {
     float row = texCoord.y * float(max(LampCount, 1));
     int index = int(row);
     if (index >= LampCount) {
-        fragColor = encode(MAX_DISTANCE);
+        fragColor = encode(maxDistance());
         return;
     }
     float tx = mix(TX_MIN, TX_MAX, texCoord.x);

@@ -80,6 +80,11 @@ public final class HeadlightVolume {
     /** これより遠い車の光は計算しない。 */
     private static final double MAX_DISTANCE = 128.0;
 
+    /** 光を描く車を集める距離。128m か、光の届く距離 +32m の大きい方（96m 以下では 128m のまま）。 */
+    private static double collectDistance() {
+        return Math.max(MAX_DISTANCE, com.jdmmc.kurumamod.ClientConfig.headlightRange + 32.0);
+    }
+
     /**
      * 霧の濃さ（1m あたりに吸われ・散らされる割合）。
      *
@@ -307,6 +312,10 @@ public final class HeadlightVolume {
     private static float framePartialTick;
     /** このフレームの光をもう描いたか（シェーダーパックの仕上げ前か、AFTER_LEVEL のどちらか一方で描く）。 */
     private static boolean renderedThisFrame;
+    /** シェーダーパックの仕上げ前に路面を描いた。AFTER_LEVEL では光線だけを足す。 */
+    private static boolean packSurfaceDone;
+    /** このフレームの影の地図をもう描いたか（路面と光線を 2 回に分けて描くとき、2 回目は使い回す）。 */
+    private static boolean shadowsDone;
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
@@ -318,6 +327,8 @@ public final class HeadlightVolume {
                 viewCaptured = true;
                 solidCaptured = false;
                 renderedThisFrame = false;
+                packSurfaceDone = false;
+                shadowsDone = false;
             }
             return;
         }
@@ -348,8 +359,13 @@ public final class HeadlightVolume {
         }
         viewCaptured = false;
         // シェーダーパックの仕上げの前に描けていれば、ここでは描かない
-        if (!renderedThisFrame) {
-            render(level, main, -1);
+        if (packSurfaceDone) {
+            // 路面はパックの仕上げ前に入れた。光線は仕上がった絵に足す（PackMode 2）
+            render(level, main, -1, 2.0F);
+        } else if (!renderedThisFrame) {
+            // パック使用中に仕上げの前へ入れなかった（設定で切った・パックの絵が読めない）ときは、
+            // 仕上がった画面に路面も光の筋もまとめて重ねる（PackMode 3）
+            render(level, main, -1, ShaderPacks.inUse() ? 3.0F : 0.0F);
         }
     }
 
@@ -366,7 +382,8 @@ public final class HeadlightVolume {
      * GL の状態は Iris がこのあと自分の枠で描くので、書き込み先と描く範囲だけ元に戻す。</p>
      */
     public static void renderBeforePackComposite() {
-        if (renderedThisFrame || !viewCaptured || !isActive() || MirrorRenderer.isRendering()) {
+        if (renderedThisFrame || !viewCaptured || !isActive() || MirrorRenderer.isRendering()
+                || !com.jdmmc.kurumamod.ClientConfig.headlightPackPreComposite) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -382,7 +399,8 @@ public final class HeadlightVolume {
         int[] viewport = new int[4];
         GL11.glGetIntegerv(GL11.GL_VIEWPORT, viewport);
         try {
-            render(mc.level, mc.getMainRenderTarget(), packScene);
+            render(mc.level, mc.getMainRenderTarget(), packScene, 1.0F);
+            packSurfaceDone = true;
         } finally {
             GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, drawFramebuffer);
             GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, readFramebuffer);
@@ -394,7 +412,7 @@ public final class HeadlightVolume {
      * 光を描く。{@code packScene} が 0 以上なら、シェーダーパックの仕上げ前の絵を読んでそこへ書き戻す。
      * 負なら主画面を写して主画面へ描く（パック無し、またはパックの絵が読めないとき）。
      */
-    private static void render(ClientLevel level, RenderTarget main, int packScene) {
+    private static void render(ClientLevel level, RenderTarget main, int packScene, float packMode) {
         int count = lampCount;
         if (count == 0 || !solidCaptured) {
             return;
@@ -410,9 +428,12 @@ public final class HeadlightVolume {
 
         // 影。ブロックの格子を少し読み直してから、ランプから見た距離の地図を描く
         Vec3 camera = frameCamera;
-        HeadlightShadows.update(level, camera);
-        HeadlightShadows.uploadLamps(LAMPS, count);
-        HeadlightShadows.renderMap(shadowShader, count, camera, main);
+        if (!shadowsDone) {
+            HeadlightShadows.update(level, camera);
+            HeadlightShadows.uploadLamps(LAMPS, count);
+            HeadlightShadows.renderMap(shadowShader, count, camera, main);
+            shadowsDone = true;
+        }
 
         // 画面の座標から、カメラを原点にした世界の向きの座標へ戻す行列
         Matrix4f inverse = new Matrix4f(PROJECTION)
@@ -434,16 +455,15 @@ public final class HeadlightVolume {
         shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
         shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
         shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
-        shader.safeGetUniform("SurfaceGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSurface);
-        shader.safeGetUniform("VolumeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightBeam);
+        // 明るさは 1 本のつまみ（Ctrl+L）で、路面とビームに同じ割合で掛ける
+        float brightness = (float) com.jdmmc.kurumamod.ClientConfig.headlightBrightness;
+        shader.safeGetUniform("SurfaceGain").set(SURFACE_GAIN * brightness);
+        shader.safeGetUniform("VolumeGain").set(VOLUME_GAIN * brightness);
         shader.safeGetUniform("SmokeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke);
         // シェーダーパックの仕上げ前の絵に描くときは明るくし方を変える
-        shader.safeGetUniform("PackMode").set(packScene >= 0 ? 1.0F : 0.0F);
-        shader.safeGetUniform("PackSurface").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackSurface);
+        shader.safeGetUniform("PackMode").set(packMode);
         shader.safeGetUniform("PackContrast").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackContrast);
         shader.safeGetUniform("PackTint").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackTint);
-        shader.safeGetUniform("PackBeam").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackBeam);
-        shader.safeGetUniform("PackSmoke").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackSmoke);
         shader.safeGetUniform("PackAdd").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackAdd);
         float[] lightColor = com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
         shader.safeGetUniform("LightColor").set(lightColor[0], lightColor[1], lightColor[2]);
@@ -505,7 +525,7 @@ public final class HeadlightVolume {
         List<CarEntity> cars = new ArrayList<>();
         for (Entity entity : level.entitiesForRendering()) {
             if (entity instanceof CarEntity car && car.isHeadlightOn()
-                    && car.position().distanceToSqr(camera) < MAX_DISTANCE * MAX_DISTANCE) {
+                    && car.position().distanceToSqr(camera) < collectDistance() * collectDistance()) {
                 cars.add(car);
             }
         }
@@ -531,6 +551,11 @@ public final class HeadlightVolume {
         return (float) com.jdmmc.kurumamod.ClientConfig.headlightFog + RAIN_FOG * level.getRainLevel(partialTick)
                 + THUNDER_FOG * level.getThunderLevel(partialTick);
     }
+
+    /** 明るさ 1.0 のときの、照らされた路面を何倍まで明るくするか。 */
+    private static final float SURFACE_GAIN = 5.0F;
+    /** 明るさ 1.0 のときの、霧の中のビームの強さ。 */
+    private static final float VOLUME_GAIN = 120.0F;
 
     private static final int GL_READ_FRAMEBUFFER = 0x8CA8;
     private static final int GL_DRAW_FRAMEBUFFER = 0x8CA9;
