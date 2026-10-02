@@ -2,6 +2,7 @@ package com.jdmmc.kurumamod.client;
 
 import com.google.gson.JsonObject;
 import com.jdmmc.kurumamod.Kurumamod;
+import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import com.mojang.logging.LogUtils;
@@ -10,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.GsonHelper;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -62,9 +64,10 @@ public final class CarPresets {
      *
      * @param id     ファイル名から取った識別子。翻訳キーに使う
      * @param values 項目名 → 内部単位の値。載っていない項目は既定値になる
+     * @param parts  装着状態（{@code "parts"}）。書かれていなければ null で、読み込んでもパーツに触らない
      * @param order  表示順。同じなら id 順
      */
-    public record Preset(String id, Map<String, Double> values, int order) {
+    public record Preset(String id, Map<String, Double> values, @Nullable PartFitment parts, int order) {
 
         public String translationKey() {
             return "preset.kurumamod." + id;
@@ -127,14 +130,13 @@ public final class CarPresets {
         int order = root.has("order") ? root.get("order").getAsInt() : DEFAULT_ORDER;
         JsonObject values = root.has("values") ? root.getAsJsonObject("values") : root;
 
-        Map<String, Double> parsed = new TreeMap<>();
-        for (String key : values.keySet()) {
-            // order を values と同じ階層に書ける形にしてあるので、拾わないよう避ける
-            if (values == root && key.equals("order")) {
-                continue;
-            }
-            parsed.put(key, values.get(key).getAsDouble());
+        // ユーザーのセッティングと同じ読み方をする（数でないキーと "parts" はここで分かれる）
+        CarSetups.Setup setup = CarSetups.parse(values);
+        Map<String, Double> parsed = new TreeMap<>(setup.values());
+        // order を values と同じ階層に書ける形にしてあるので、拾わないよう避ける
+        if (values == root) {
+            parsed.remove("order");
         }
-        return new Preset(id, Map.copyOf(parsed), order);
+        return new Preset(id, Map.copyOf(parsed), setup.parts(), order);
     }
 }

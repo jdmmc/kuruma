@@ -1,6 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.entity.CarEntity;
+import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.tuning.TunableParameter;
 import com.jdmmc.kurumamod.tuning.Tunables;
 import net.minecraft.client.gui.GuiGraphics;
@@ -185,6 +186,9 @@ public class CarTuningScreen extends Screen {
                             CarTuning.reset();
                             rows.forEach(Row::syncSlider);
                             syncToServer();
+                            // パーツも純正へ（角度・オフセット・太さの上書きも消える）。
+                            // 「すべて」と書いてあるのに換装だけ残ると、元の車に戻らない
+                            PresetParts.apply(PartFitment.EMPTY);
                         })
                 .bounds(right - buttonWidth, y, buttonWidth, 20)
                 .build()));

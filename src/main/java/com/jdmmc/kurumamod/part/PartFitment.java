@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.part;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -295,6 +297,65 @@ public final class PartFitment {
             LOGGER.warn("部品の id を読めませんでした（この場所だけ外します）: {} = {}", key, raw);
         }
         return id;
+    }
+
+    /**
+     * プリセット（{@code kurumamod-setups.json} と {@code presets/*.json}）に書く形。
+     *
+     * <p>NBT と同じく場所の名前で引き、キーも小文字にしてある（手で読み書きされるため）。
+     * 何もしていない場所は書かない。</p>
+     */
+    public JsonObject toJson() {
+        JsonObject root = new JsonObject();
+        for (Map.Entry<PartSlot, Setting> entry : parts.entrySet()) {
+            Setting setting = entry.getValue();
+            JsonObject slot = new JsonObject();
+            if (setting.partId() != null) {
+                slot.addProperty("id", setting.partId().toString());
+            }
+            if (setting.camber() != null) {
+                slot.addProperty("camber", setting.camber());
+            }
+            if (setting.offset() != null) {
+                slot.addProperty("offset", setting.offset());
+            }
+            if (setting.width() != null) {
+                slot.addProperty("width", setting.width());
+            }
+            root.add(entry.getKey().getSerializedName(), slot);
+        }
+        return root;
+    }
+
+    /** {@link #toJson()} の逆。知らない場所・読めない値は読み飛ばし、範囲へ丸める。 */
+    public static PartFitment fromJson(JsonObject root) {
+        EnumMap<PartSlot, Setting> parts = new EnumMap<>(PartSlot.class);
+        for (String key : root.keySet()) {
+            PartSlot slot = PartSlot.byName(key);
+            if (slot == null || !root.get(key).isJsonObject()) {
+                continue;
+            }
+            JsonObject entry = root.getAsJsonObject(key);
+            ResourceLocation id = entry.has("id") ? parseId(entry.get("id").getAsString(), key) : null;
+            Double camber = jsonNumber(entry, "camber", CAMBER_MIN, CAMBER_MAX);
+            Double offset = jsonNumber(entry, "offset", OFFSET_MIN, OFFSET_MAX);
+            Double width = jsonNumber(entry, "width", WIDTH_MIN, WIDTH_MAX);
+            Setting setting = new Setting(id, camber, offset, width);
+            if (!setting.isEmpty()) {
+                parts.put(slot, setting);
+            }
+        }
+        return parts.isEmpty() ? EMPTY : new PartFitment(parts);
+    }
+
+    @Nullable
+    private static Double jsonNumber(JsonObject entry, String key, double min, double max) {
+        JsonElement element = entry.get(key);
+        if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            return null;
+        }
+        double value = element.getAsDouble();
+        return Double.isFinite(value) ? Mth.clamp(value, min, max) : null;
     }
 
     public void write(FriendlyByteBuf buf) {
