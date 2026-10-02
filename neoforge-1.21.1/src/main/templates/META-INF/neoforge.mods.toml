@@ -14,7 +14,8 @@ logoFile = "kurumamod.png"
 authors = "${mod_authors}"
 description = '''${mod_description}'''
 
-# シェーダーパック（Iris）の仕上げの前にヘッドライトの光を入れる（mixin/IrisPipelineMixin）。
+# シェーダーパック（Iris）の仕上げの前にヘッドライトの光を入れる（mixin/IrisPipelineMixin）と、
+# 三人称のカメラを Camera#setup の最後で置き直す（mixin/CameraMixin）。
 # NeoForge は mods.toml に書いた mixin 設定だけを読む
 [[mixins]]
 config = "${mod_id}.mixins.json"
