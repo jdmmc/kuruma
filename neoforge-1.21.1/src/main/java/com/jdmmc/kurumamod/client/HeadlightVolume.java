@@ -284,11 +284,11 @@ public final class HeadlightVolume {
     /**
      * このフレームのカメラの向き。{@code AFTER_SKY} で覚えておく。
      *
-     * <p><b>{@code AFTER_LEVEL} の {@code getPoseStack()} にはカメラの向きが入っていない。</b>
-     * あの段は {@code LevelRenderer#renderLevel} の外（{@code GameRenderer}）から投げられ、
-     * 渡ってくるのは世界の描画に使ったものとは別の PoseStack（バイトコードで確認）。
-     * そのまま使うと画面から世界へ戻す行列がカメラの向きを失い、<b>光がどこにも出なかった</b>。
-     * {@code AFTER_SKY} は {@code renderLevel} の中なので、世界の描画と同じ向きが入っている。</p>
+     * <p><b>1.21 では {@code getPoseStack()} にカメラの向きが入っていない。</b>1.20.5 から
+     * カメラの回転は PoseStack から外れ、別の行列（{@link RenderLevelStageEvent#getModelViewMatrix()}）
+     * で渡されるようになった。1.20.1 版のように PoseStack から取ると単位行列になり、
+     * 画面から世界へ戻す計算が向きを失って<b>照らす場所がずれる</b>（プレイヤーの周りが丸く
+     * 光る・地面が格子状に光る、という形で出た）。</p>
      */
     private static final Matrix4f VIEW = new Matrix4f();
     private static boolean viewCaptured;
@@ -323,7 +323,7 @@ public final class HeadlightVolume {
         if (stage == RenderLevelStageEvent.Stage.AFTER_SKY) {
             // ミラーの描画中は鏡の視点が入ってくるので覚えない
             if (!MirrorRenderer.isRendering()) {
-                VIEW.set(event.getPoseStack().last().pose());
+                VIEW.set(event.getModelViewMatrix());
                 viewCaptured = true;
                 solidCaptured = false;
                 renderedThisFrame = false;

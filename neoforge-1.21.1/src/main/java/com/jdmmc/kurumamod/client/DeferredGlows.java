@@ -38,8 +38,9 @@ import java.io.IOException;
  * 重ねていて、パックが手を出さないので崩れなかった。そこで光芒もその段へ回す。</p>
  *
  * <p>形の計算は {@link CarLights} のまま。書き込み先をここの記録器に替えるだけで、頂点は
- * 車を描いている時点の行列（カメラの向き込み）で変換済みの座標として残る。描き終えた後の段
- * （{@code AFTER_LEVEL}）の PoseStack にはカメラの向きが入っていないので、ここでは射影だけ掛ける。</p>
+ * 車を描いている時点の行列で変換済みの座標（カメラを原点にした位置）として残る。
+ * <b>1.21 ではこの行列にカメラの回転が入っていない</b>（1.20.1 版との違い）ので、描くときに
+ * カメラの回転（{@code getModelViewMatrix()}）と射影を掛ける。</p>
  *
  * <p><b>パックが無いときは使わない</b>（{@link #active()}）。バニラの見た目はそれまでと同じ。</p>
  */
@@ -136,9 +137,12 @@ public final class DeferredGlows {
 
         Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
         VertexSorting oldSorting = RenderSystem.getVertexSorting();
+        // 記録した頂点はカメラを原点にした位置だが、<b>1.21 ではカメラの回転が入っていない</b>
+        // （1.20.5 から回転は PoseStack ではなくモデルビュー行列が持つ）。ここで回転を掛けないと、
+        // 光芒が画面に貼り付いて車から離れて見える
         Matrix4fStack modelView = RenderSystem.getModelViewStack();
         modelView.pushMatrix();
-        modelView.identity();
+        modelView.set(event.getModelViewMatrix());
         RenderSystem.applyModelViewMatrix();
         RenderSystem.setProjectionMatrix(event.getProjectionMatrix(), VertexSorting.DISTANCE_TO_ORIGIN);
 
