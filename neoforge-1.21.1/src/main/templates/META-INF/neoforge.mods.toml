@@ -1,0 +1,34 @@
+# MOD の情報。ドル記号と波括弧の値は build.gradle の generateModMetadata が gradle.properties の値で埋める
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+displayURL = "https://static.jdm-mc.com"
+# Mod 一覧に出すロゴ。jar のルートからの名前で書く（src/main/resources/ の直下に置く）。
+# tools/LogoRender.java が s15.obj / wheel.obj を焼いて作ったもの
+logoFile = "kurumamod.png"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+
+# シェーダーパック（Iris）の仕上げの前にヘッドライトの光を入れる（mixin/IrisPipelineMixin）。
+# NeoForge は mods.toml に書いた mixin 設定だけを読む
+[[mixins]]
+config = "${mod_id}.mixins.json"
+
+[[dependencies."${mod_id}"]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

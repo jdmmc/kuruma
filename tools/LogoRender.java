@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * s15.obj / wheel.obj を焼いて Mod 一覧のロゴ（{@code mods.toml} の {@code logoFile}）を作る。
- * 出力は {@code src/main/resources/kurumamod.png}。CurseForge のプロジェクトアバターにも
+ * 出力は {@code core/src/main/resources/kurumamod.png}。CurseForge のプロジェクトアバターにも
  * そのまま使える（400×400 推奨だが、512 を上げれば先方で縮む）。
  *
  * <p>依存は無い。リポジトリのルートで:</p>
@@ -35,7 +35,7 @@ import java.util.List;
 public class LogoRender {
 
     /** モデルの置き場。既定はリポジトリのルートから実行した前提。第 2 引数で差し替えられる */
-    static String DIR = "src/main/resources/assets/kurumamod/models/entity/";
+    static String DIR = "core/src/main/resources/assets/kurumamod/models/entity/";
 
     // ---- CarSpec.DEFAULT から ----
     static final double WHEEL_BASE = 3.12;
@@ -436,7 +436,7 @@ public class LogoRender {
     static final int BG_TOP = 0x11141B, BG_FLOOR = 0x39404F;
 
     public static void main(String[] args) throws Exception {
-        String out = args.length > 0 ? args[0] : "src/main/resources/kurumamod.png";
+        String out = args.length > 0 ? args[0] : "core/src/main/resources/kurumamod.png";
         if (args.length > 1 && !args[1].isEmpty()) DIR = args[1];
         String text = args.length > 2 && !args[2].isEmpty() ? args[2] : "Kuruma";
         String sub = args.length > 3 && !args[3].isEmpty() ? args[3] : null;

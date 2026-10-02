@@ -21,7 +21,7 @@ import random
 
 from PIL import Image
 
-OUT = "src/main/resources/assets/kurumamod/textures/particle/"
+OUT = "core/src/main/resources/assets/kurumamod/textures/particle/"
 SIZE = 16
 FRAMES = 12
 # 3 階調（明・中・暗）。暗い側も 0.86 までしか落とさない

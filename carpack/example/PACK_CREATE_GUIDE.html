@@ -1014,7 +1014,8 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <p class="en">A jar that adds a vehicle just by being dropped into <code>mods/</code>. The key point is that <b>looks and specs live in different folders</b>.</p>
 
 <pre class="ja"><code>mypack.jar
-├── META-INF/mods.toml
+├── META-INF/mods.toml              ← Forge 1.20.1 用
+├── META-INF/neoforge.mods.toml     ← NeoForge 1.21.1 用（両方入れれば 1 つの jar で両方に効く）
 ├── pack.mcmeta
 ├── assets/mypack/
 │   ├── models/entity/ae86.obj      ← 見た目（クライアントだけが読む）
@@ -1024,7 +1025,8 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 └── data/mypack/
     └── cars/ae86.json              ← 諸元（サーバーが読む。8 章）</code></pre>
 <pre class="en"><code>mypack.jar
-├── META-INF/mods.toml
+├── META-INF/mods.toml              &lt;- for Forge 1.20.1
+├── META-INF/neoforge.mods.toml     &lt;- for NeoForge 1.21.1 (with both, one jar works on both)
 ├── pack.mcmeta
 ├── assets/mypack/
 │   ├── models/entity/ae86.obj      &lt;- looks (client only)
@@ -1034,7 +1036,9 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 └── data/mypack/
     └── cars/ae86.json              &lt;- specs (server reads these; chapter 8)</code></pre>
 
+<p class="ja"><b>Forge 1.20.1 と NeoForge 1.21.1 の両方で使えます。</b>Forge は <code>mods.toml</code> だけを、NeoForge は <code>neoforge.mods.toml</code> だけを読むので、両方を入れておけば同じ jar がどちらでも読まれます。2 つの中身はほぼ同じで、違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけです。<code>pack.mcmeta</code> には <code>"supported_formats": [15, 48]</code> を足して、1.21.1 でも互換と見なされるようにします。見本の 2 つのパックはどちらもそうなっています。</p>
 <p class="ja"><b>見本一式が <code>carpack/example/</code> にそのまま入っています。</b>コピーして、<code>kurumamod_example_carpack</code> を自分の名前に、<code>sample</code> を自分の車種名に置き換えるのが作業のほぼすべてです。</p>
+<p class="en"><b>A pack can work on both Forge 1.20.1 and NeoForge 1.21.1.</b> Forge reads only <code>mods.toml</code> and NeoForge reads only <code>neoforge.mods.toml</code>, so with both inside, the same jar loads on either. The two files are nearly identical; only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ. Add <code>"supported_formats": [15, 48]</code> to <code>pack.mcmeta</code> so 1.21.1 treats it as compatible. Both bundled packs are set up this way.</p>
 <p class="en"><b>A complete working example sits in <code>carpack/example/</code>.</b> Copy it and replace <code>kurumamod_example_carpack</code> with your own name and <code>sample</code> with your own car name — that is very nearly the whole job.</p>
 <table class="ja">
 <tr><th>id</th><th>何の見本か</th></tr>
