@@ -1,4 +1,5 @@
 {
+  "message.kurumamod.need_car": "You need to be in a car!",
   "itemGroup.kurumamod": "KurumaMod",
   "item.kurumamod.car": "Nissan S15 Silvia",
   "car.kurumamod.car": "Nissan S15 Silvia",
@@ -7,6 +8,7 @@
   "key.kurumamod.tuning": "Tuning Screen",
   "screen.kurumamod.tuning.title": "Car Setup",
   "screen.kurumamod.tuning.hint": "Changes apply immediately  Esc to close",
+  "screen.kurumamod.tuning.hint_passenger": "Passenger seat: view only (the driver's setup)  Esc to close",
   "screen.kurumamod.tuning.reset_all": "Reset All",
   "screen.kurumamod.tuning.reset_one": "Reset this entry to default",
   "screen.kurumamod.tuning.presets": "Presets",
