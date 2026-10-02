@@ -142,19 +142,19 @@ public final class ClientConfig {
     // シェーダーパック使用中だけ効く強さ（仮置き。値を詰めたら定数へ戻すかもしれない）
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_SURFACE = BUILDER
             .comment("シェーダーパック使用中: 照らされた路面を明るくする強さ（路面の明るさに掛ける）")
-            .defineInRange("headlightPackSurface", 0.72, 0.0, 2.0);
+            .defineInRange("headlightPackSurface", 1.0, 0.0, 2.0);
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_CONTRAST = BUILDER
             .comment("シェーダーパック使用中: 照らされた所のコントラストの上げ幅（明るさだけ。色の比は変えない）")
-            .defineInRange("headlightPackContrast", 0.5, 0.0, 1.5);
+            .defineInRange("headlightPackContrast", 0.0, 0.0, 1.5);
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_TINT = BUILDER
             .comment("シェーダーパック使用中: 月明かりの色かぶり（画面の平均色）を照らされた所から取る強さ")
-            .defineInRange("headlightPackTint", 1.0, 0.0, 1.0);
+            .defineInRange("headlightPackTint", 0.0, 0.0, 1.0);
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_BEAM = BUILDER
             .comment("シェーダーパック使用中: 霧の中の光線に掛ける倍率")
-            .defineInRange("headlightPackBeam", 0.08, 0.0, 1.0);
+            .defineInRange("headlightPackBeam", 0.3, 0.0, 1.0);
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_SMOKE = BUILDER
             .comment("シェーダーパック使用中: 煙の光り方に掛ける倍率")
@@ -250,10 +250,10 @@ public final class ClientConfig {
     /** シェーダーパックを使っている間も光を描くか。 */
     public static boolean headlightWithShaderPacks = true;
     /** シェーダーパック使用中の強さ。 */
-    public static double headlightPackSurface = 0.72;
-    public static double headlightPackContrast = 0.5;
-    public static double headlightPackTint = 1.0;
-    public static double headlightPackBeam = 0.08;
+    public static double headlightPackSurface = 1.0;
+    public static double headlightPackContrast = 0.0;
+    public static double headlightPackTint = 0.0;
+    public static double headlightPackBeam = 0.3;
     public static double headlightPackSmoke = 0.0;
     public static double headlightPackAdd = 0.0;
     /** 照らす光の色。 */

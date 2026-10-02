@@ -25,6 +25,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -299,6 +301,13 @@ public final class HeadlightVolume {
     private static boolean solidCaptured;
     private static int lampCount;
 
+    /** 粒の直前（AFTER_TRIPWIRE_BLOCKS）で覚えた、このフレームの射影・カメラ・補間の割合。 */
+    private static final Matrix4f PROJECTION = new Matrix4f();
+    private static Vec3 frameCamera = Vec3.ZERO;
+    private static float framePartialTick;
+    /** このフレームの光をもう描いたか（シェーダーパックの仕上げ前か、AFTER_LEVEL のどちらか一方で描く）。 */
+    private static boolean renderedThisFrame;
+
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
         RenderLevelStageEvent.Stage stage = event.getStage();
@@ -308,6 +317,7 @@ public final class HeadlightVolume {
                 VIEW.set(event.getPoseStack().last().pose());
                 viewCaptured = true;
                 solidCaptured = false;
+                renderedThisFrame = false;
             }
             return;
         }
@@ -324,6 +334,9 @@ public final class HeadlightVolume {
         if (stage == RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS) {
             // 粒の直前。ランプが無ければ写さない（写すぶんだけ無駄）
             lampCount = collect(level, event.getCamera().getPosition(), event.getPartialTick());
+            PROJECTION.set(event.getProjectionMatrix());
+            frameCamera = event.getCamera().getPosition();
+            framePartialTick = event.getPartialTick();
             if (lampCount > 0) {
                 solid = snapshot(solid, main);
                 solidCaptured = true;
@@ -334,29 +347,81 @@ public final class HeadlightVolume {
             return;
         }
         viewCaptured = false;
+        // シェーダーパックの仕上げの前に描けていれば、ここでは描かない
+        if (!renderedThisFrame) {
+            render(level, main, -1);
+        }
+    }
+
+    /**
+     * シェーダーパック（Oculus / Iris）が仕上げ（composite・final）を流す<b>直前</b>に呼ばれる
+     * （{@code IrisPipelineMixin}）。ここで仕上げ前の絵（colortex0）に光を入れれば、パックが霧・ブルーム・
+     * トーンマップを一度だけ掛けてくれる。
+     *
+     * <p><b>Forge の {@code AFTER_LEVEL} は仕上げの後に飛ぶ</b>（{@code GameRenderer} から投げられ、
+     * Iris の仕上げは {@code renderLevel} の最後）。そこで描いていた頃は、仕上がった絵（月明かり・霧・
+     * トーンマップ済み）を明るくするしかなく、暗い所のブロックの色が残っていないので色褪せた。</p>
+     *
+     * <p>パックの絵が読めなければ何もしない（{@code AFTER_LEVEL} で今までどおり描かれる）。
+     * GL の状態は Iris がこのあと自分の枠で描くので、書き込み先と描く範囲だけ元に戻す。</p>
+     */
+    public static void renderBeforePackComposite() {
+        if (renderedThisFrame || !viewCaptured || !isActive() || MirrorRenderer.isRendering()) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            return;
+        }
+        int packScene = IrisScene.colorTexture();
+        if (packScene < 0) {
+            return;
+        }
+        int drawFramebuffer = GL11.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING);
+        int readFramebuffer = GL11.glGetInteger(GL30.GL_READ_FRAMEBUFFER_BINDING);
+        int[] viewport = new int[4];
+        GL11.glGetIntegerv(GL11.GL_VIEWPORT, viewport);
+        try {
+            render(mc.level, mc.getMainRenderTarget(), packScene);
+        } finally {
+            GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, drawFramebuffer);
+            GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, readFramebuffer);
+            GlStateManager._viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+        }
+    }
+
+    /**
+     * 光を描く。{@code packScene} が 0 以上なら、シェーダーパックの仕上げ前の絵を読んでそこへ書き戻す。
+     * 負なら主画面を写して主画面へ描く（パック無し、またはパックの絵が読めないとき）。
+     */
+    private static void render(ClientLevel level, RenderTarget main, int packScene) {
         int count = lampCount;
         if (count == 0 || !solidCaptured) {
             return;
         }
-        float partialTick = event.getPartialTick();
+        renderedThisFrame = true;
+        float partialTick = framePartialTick;
         int width = main.width;
         int height = main.height;
+        // 深度はパックを使っていても主画面のもの（Iris は Minecraft の深度をそのまま使う）
         copy = snapshot(copy, main);
+        int packColor = packScene >= 0 ? IrisScene.copy(packScene) : -1;
+        main.bindWrite(true);
 
         // 影。ブロックの格子を少し読み直してから、ランプから見た距離の地図を描く
-        Vec3 camera = event.getCamera().getPosition();
+        Vec3 camera = frameCamera;
         HeadlightShadows.update(level, camera);
         HeadlightShadows.uploadLamps(LAMPS, count);
         HeadlightShadows.renderMap(shadowShader, count, camera, main);
 
         // 画面の座標から、カメラを原点にした世界の向きの座標へ戻す行列
-        Matrix4f inverse = new Matrix4f(event.getProjectionMatrix())
+        Matrix4f inverse = new Matrix4f(PROJECTION)
                 .mul(VIEW)
                 .invert();
 
-        shader.setSampler("SceneSampler", copy.getColorTextureId());
+        shader.setSampler("SceneSampler", packColor >= 0 ? packColor : copy.getColorTextureId());
         shader.setSampler("FinalDepthSampler", copy.getDepthTextureId());
-        shader.setSampler("SolidSampler", solid.getColorTextureId());
+        shader.setSampler("SolidSampler", packColor >= 0 ? packColor : solid.getColorTextureId());
         shader.setSampler("DepthSampler", solid.getDepthTextureId());
         shader.setSampler("ShadowSampler", HeadlightShadows.mapTexture());
         shader.setSampler("VoxelSampler", HeadlightShadows.voxelTexture());
@@ -372,8 +437,8 @@ public final class HeadlightVolume {
         shader.safeGetUniform("SurfaceGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSurface);
         shader.safeGetUniform("VolumeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightBeam);
         shader.safeGetUniform("SmokeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke);
-        // シェーダーパックの絵はトーンマップ済みで暗部も持ち上がっているので、明るくし方を変える
-        shader.safeGetUniform("PackMode").set(ShaderPacks.inUse() ? 1.0F : 0.0F);
+        // シェーダーパックの仕上げ前の絵に描くときは明るくし方を変える
+        shader.safeGetUniform("PackMode").set(packScene >= 0 ? 1.0F : 0.0F);
         shader.safeGetUniform("PackSurface").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackSurface);
         shader.safeGetUniform("PackContrast").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackContrast);
         shader.safeGetUniform("PackTint").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackTint);
@@ -387,6 +452,9 @@ public final class HeadlightVolume {
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         RenderSystem.disableBlend();
+        if (packScene >= 0) {
+            IrisScene.bindForWrite(packScene);
+        }
         RenderSystem.setShader(() -> shader);
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
@@ -395,6 +463,9 @@ public final class HeadlightVolume {
         builder.vertex(1.0, 1.0, 0.0).endVertex();
         builder.vertex(-1.0, 1.0, 0.0).endVertex();
         BufferUploader.drawWithShader(builder.end());
+        if (packScene >= 0) {
+            main.bindWrite(true);
+        }
         RenderSystem.depthMask(true);
         RenderSystem.enableDepthTest();
         if (!announced) {
