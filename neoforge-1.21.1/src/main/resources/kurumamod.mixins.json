@@ -4,6 +4,7 @@
   "package": "com.jdmmc.kurumamod.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "CameraMixin",
     "IrisPipelineMixin"
   ],
   "injectors": {

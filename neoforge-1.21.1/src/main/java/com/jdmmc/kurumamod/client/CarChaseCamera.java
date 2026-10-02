@@ -17,20 +17,16 @@ import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.util.ObfuscationReflectionHelper;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
-import java.lang.reflect.Method;
 
 /**
  * 三人称のカメラを<b>車の中心を軸に、決めた距離で</b>置き直す。
  *
- * <p><b>カメラの位置を毎フレーム自分で置く。</b>{@code Camera#setPosition} は protected だが、
- * <b>アクセストランスフォーマではなくリフレクションで開ける</b>（この ForgeGradle は AT を
- * 有効にすると成果物の解決に失敗するが、リフレクションはビルドに何も要求しない）。
- * SRG 名を {@link ObfuscationReflectionHelper} に渡すので、開発環境でも製品環境でも通る。</p>
+ * <p><b>カメラの位置を毎フレーム自分で置く。</b>NeoForge 版は {@code Camera#setup} の最後に
+ * 割り込む mixin（{@code mixin/CameraMixin}）が {@link #placement} を聞いて置き直す。</p>
  *
  * <p><b>これ以前は「乗り手の位置＝カメラの起点」をずらして距離を稼いでいたが、その方式は
  * 原理的に揺れる。</b>乗り手の位置は 20Hz でしか更新できないのに、カメラの角度は毎フレーム
@@ -38,20 +34,19 @@ import java.lang.reflect.Method;
  * 位置を直接置けば<b>毎フレーム・補間済みの車の位置から計算できる</b>ので、この食い違いが
  * そもそも生じない。</p>
  *
- * <p>{@code ViewportEvent.ComputeCameraAngles} は {@code Camera#setup} の<b>後</b>に飛ぶので、
- * ここで置き直した位置がそのまま描画に使われる。角度はこの後 {@code setAnglesInternal} で
- * 入れ直されるが、位置には触られない。</p>
+ * <p><b>Forge 1.20.1 版とはイベントの飛ぶ順番が違う。</b>あちらの {@code ComputeCameraAngles} は
+ * {@code Camera#setup} の<b>後</b>に飛ぶので、イベントの中で位置を置けた。NeoForge 1.21.1 では
+ * {@code setup} の<b>中で、位置を決める前</b>に飛ぶので、イベントで置いた位置はすぐバニラに
+ * 上書きされる（H メニューの距離・高さが効かず、バニラの 4 ブロック固定になった）。そこで
+ * 角度はイベントで足し、位置は {@code setup} の最後（mixin）で置く、と 2 つに分けてある。</p>
  *
- * <p>後方視点（F5 を 2 回）では {@code Camera#setup} が向きを 180 度回して渡してくるので、
- * <b>同じ式のまま車の前へ回り込む</b>。分岐は要らない。</p>
+ * <p>後方視点（F5 を 2 回）では {@code Camera#setup} が最後に向きを 180 度回すので、
+ * 位置を置く時点の視線の逆は<b>車の前</b>になる。分岐は要らない。</p>
  */
 @EventBusSubscriber(modid = Kurumamod.MODID, value = Dist.CLIENT)
 public final class CarChaseCamera {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-
-    /** {@code Camera#setPosition(double, double, double)}。見つからなければ諦めてバニラのままにする。 */
-    private static final Method SET_POSITION = findSetPosition();
 
     /** 壁に当たったときに手前で止める余裕 [ブロック]。 */
     private static final double WALL_MARGIN = 0.3;
@@ -148,19 +143,16 @@ public final class CarChaseCamera {
      */
     private static float showroom;
 
-    private CarChaseCamera() {
-    }
+    /**
+     * このフレームのショールームの構えの寄り具合と、イベントの時点の（自分で足す前の）角度。
+     * イベントで決めて、{@link #placement} で使う。<b>寄り具合を進めるのは 1 フレーム 1 回</b>
+     * （両方で進めると倍の速さで寄る）。
+     */
+    private static float frameLift;
+    private static float frameYaw;
+    private static float framePitch;
 
-    private static Method findSetPosition() {
-        try {
-            // NeoForge 1.21.1 は配布環境でも Mojang の名前で走るので、SRG 名ではなく元の名前で引く
-            return ObfuscationReflectionHelper.findMethod(Camera.class, "setPosition",
-                    double.class, double.class, double.class);
-        } catch (RuntimeException e) {
-            LOGGER.warn("カメラの位置を置けない（Camera#setPosition が見つからない）。"
-                    + "三人称はバニラの 4 ブロック固定になる", e);
-            return null;
-        }
+    private CarChaseCamera() {
     }
 
     /**
@@ -202,29 +194,60 @@ public final class CarChaseCamera {
     }
 
     /**
-     * 三人称のあいだ、カメラを車の中心の後ろへ置く。
+     * 三人称のあいだ、カメラの<b>角度</b>を足す（ショールームで回したぶんと見下ろすぶん）。
+     *
+     * <p>位置はここでは置けない（NeoForge 1.21.1 では、このあとバニラが位置を決め直す）。
+     * 位置は {@link #placement} が {@code Camera#setup} の最後で置く。</p>
      *
      * <p>優先度を下げてあるのは、角度を触る他のハンドラ（{@link CarImpact} の揺れなど）と
-     * 順番を争わないため。位置と角度は独立なので実際には衝突しないが、
-     * 「最後に位置を決める」ことをはっきりさせておく。</p>
+     * 順番を争わないため。どちらも<b>足すだけ</b>なので打ち消し合わない。</p>
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onComputeCameraAngles(ViewportEvent.ComputeCameraAngles event) {
-        if (SET_POSITION == null) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (riding(minecraft) == null) {
+            frameLift = 0.0F;
             return;
         }
-        Minecraft minecraft = Minecraft.getInstance();
+        // 換装画面のあいだは引いて、回転の中心をフロアまで下げる
+        frameLift = updateShowroom(minecraft);
+        frameYaw = event.getYaw();
+        framePitch = event.getPitch();
+
+        // 回したぶんは位置と同じだけ回し、そのうえで SHOWROOM_PITCH だけ余分に下を向く——
+        // 位置は「車が中心に来る」向きのままなので、下げたぶんだけ車が上へずれる
+        if (frameLift > 0.0F) {
+            event.setYaw(event.getYaw() + orbitYaw * frameLift);
+            event.setPitch(event.getPitch() + orbitPitch * frameLift + SHOWROOM_PITCH * frameLift);
+        }
+    }
+
+    /** 三人称で車に乗っているならその車。それ以外は null（バニラのまま）。 */
+    private static CarEntity riding(Minecraft minecraft) {
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.options.getCameraType().isFirstPerson()
                 || minecraft.getCameraEntity() != player
                 || !(player.getVehicle() instanceof CarEntity car)) {
-            return;
+            return null;
         }
+        return car;
+    }
 
-        Camera camera = event.getCamera();
-        float partial = (float) event.getPartialTick();
-        // 換装画面のあいだは引いて、回転の中心をフロアまで下げる
-        float lift = updateShowroom(minecraft);
+    /**
+     * 三人称のあいだ、カメラを置く位置。<b>{@code Camera#setup} の最後に mixin から呼ばれる。</b>
+     *
+     * <p>この時点でバニラは位置と向きを決め終えている（後方視点の 180 度もここまでに回してある）。
+     * 返した位置で置き直す。</p>
+     *
+     * @return 置き直す位置。バニラのままでよければ null
+     */
+    public static Vec3 placement(Camera camera, float partial) {
+        Minecraft minecraft = Minecraft.getInstance();
+        CarEntity car = riding(minecraft);
+        if (car == null) {
+            return null;
+        }
+        float lift = frameLift;
 
         // 車の中心。位置は毎フレーム補間して取り直す（ここが 20Hz に縛られない理由）。
         //
@@ -243,17 +266,13 @@ public final class CarChaseCamera {
         distance = Mth.lerp(lift, distance,
                 Math.max(1.0, Math.max(distance, SHOWROOM_DISTANCE) + orbitZoom));
 
-        // 視線の逆方向。カメラは既に setup 済みなので、向きはここから取れば毎フレーム正確。
-        //
-        // 回したぶんはここに足す（＝カメラが車のまわりを回る）。一方
+        // 視線の逆方向。回したぶんは足す（＝カメラが車のまわりを回る）。一方
         // SHOWROOM_PITCH は<b>足さない</b>——あれは視線だけを下げて車を画面の上へ
         // ずらすためのもので、位置にまで効かせると車が中心へ戻ってしまう
-        float orbitYawApplied = orbitYaw * lift;
-        float orbitPitchApplied = orbitPitch * lift;
         Vec3 back;
         if (lift > 0.0F) {
-            back = Vec3.directionFromRotation(camera.getXRot() + orbitPitchApplied,
-                    camera.getYRot() + orbitYawApplied).scale(-1.0);
+            back = Vec3.directionFromRotation(framePitch + orbitPitch * lift,
+                    frameYaw + orbitYaw * lift).scale(-1.0);
         } else {
             Vector3f look = camera.getLookVector();
             back = new Vec3(-look.x(), -look.y(), -look.z());
@@ -267,20 +286,7 @@ public final class CarChaseCamera {
             double lowest = Mth.lerp(lift, position.y, floorY + SHOWROOM_FLOOR_MARGIN);
             position = new Vec3(position.x, Math.max(position.y, lowest), position.z);
         }
-        try {
-            SET_POSITION.invoke(camera, position.x, position.y, position.z);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("カメラの位置を置けなかった", e);
-        }
-
-        // 位置を決めた後で視線を合わせる。回したぶんは位置と同じだけ回し、そのうえで
-        // SHOWROOM_PITCH だけ余分に下を向く——位置は「車が中心に来る」向きのままなので、
-        // 下げたぶんだけ車が上へずれる。どちらも<b>足すだけ</b>にしてあるので、
-        // 衝突の揺れ（CarImpact）を打ち消さない
-        if (lift > 0.0F) {
-            event.setYaw(event.getYaw() + orbitYawApplied);
-            event.setPitch(event.getPitch() + orbitPitchApplied + SHOWROOM_PITCH * lift);
-        }
+        return position;
     }
 
     /**
