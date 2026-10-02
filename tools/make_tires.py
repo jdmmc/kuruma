@@ -15,7 +15,7 @@ import struct
 import zlib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent / "src" / "main" / "resources" / "assets" / "kurumamod"
+ROOT = Path(__file__).resolve().parent.parent / "core" / "src" / "main" / "resources" / "assets" / "kurumamod"
 MODELS = ROOT / "models" / "entity"
 TEXTURES = ROOT / "textures" / "entity"
 

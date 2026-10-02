@@ -15,6 +15,7 @@ run-server/
 run-client2/
 run-perf-*/
 runs/
+run-neo*/
 
 # IntelliJ IDEA
 .idea/

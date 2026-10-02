@@ -5,7 +5,11 @@ pluginManagement {
             name = 'MinecraftForge'
             url = 'https://maven.minecraftforge.net/'
         }
-        // MixinGradle（mixin の設定を起動引数と jar の目録へ載せ、refmap を作る）
+        maven {
+            name = 'NeoForged'
+            url = 'https://maven.neoforged.net/releases'
+        }
+        // MixinGradle（Forge 版。mixin の設定を起動引数と jar の目録へ載せ、refmap を作る）
         maven {
             name = 'Sponge'
             url = 'https://repo.spongepowered.org/repository/maven-public/'
@@ -14,7 +18,15 @@ pluginManagement {
 }
 
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
 
 rootProject.name = 'kurumamod'
+
+// 1 回のビルドで 2 つの jar を出す。
+//   core/             物理・諸元（Minecraft に依存しない）と、両方で同じリソース（assets・車種・部品）
+//   forge-1.20.1/     Forge 47 / Minecraft 1.20.1 の jar
+//   neoforge-1.21.1/  NeoForge 21.1 / Minecraft 1.21.1 の jar
+// core は Gradle のプロジェクトではなく、両方がソースとして取り込むだけのフォルダ
+include 'forge-1.20.1'
+include 'neoforge-1.21.1'

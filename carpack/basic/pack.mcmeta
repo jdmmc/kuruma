@@ -1,6 +1,10 @@
 {
   "pack": {
     "description": "KurumaMod Basic Car Pack",
-    "pack_format": 15
+    "pack_format": 15,
+    "supported_formats": [
+      15,
+      48
+    ]
   }
 }

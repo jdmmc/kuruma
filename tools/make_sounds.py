@@ -22,7 +22,7 @@ import numpy as np
 import soundfile as sf
 
 SR = 48000
-OUT = "src/main/resources/assets/kurumamod/sounds/"
+OUT = "core/src/main/resources/assets/kurumamod/sounds/"
 SAMPLE = "sample/"
 
 

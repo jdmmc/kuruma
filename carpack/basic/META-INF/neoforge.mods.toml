@@ -1,0 +1,30 @@
+# NeoForge 1.21.1 用。中身は同じフォルダの mods.toml（Forge 1.20.1 用）と同じで、違うのは
+# ローダーの版と Minecraft の版だけ。<b>1 つの jar に両方入れておけば、どちらのローダーでも読まれる</b>
+# （Forge は mods.toml だけを、NeoForge は neoforge.mods.toml だけを見る）。
+modLoader = "lowcodefml"
+loaderVersion = "[4,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "kurumamod_basic_carpack"
+version = "1.0.0"
+displayName = "KurumaMod Basic Car Pack"
+# MOD 一覧に出る画像。jar の直下からの名前で書く
+logoFile = "kurumamod_basic_carpack.png"
+# MOD 一覧に出る説明文。読む相手が日本語話者とは限らないので英語で書く
+description = '''The official car pack for KurumaMod.'''
+
+# KurumaMod が無いと車種を読む側がいないので、必須依存にする
+[[dependencies.kurumamod_basic_carpack]]
+modId = "kurumamod"
+type = "required"
+versionRange = "[1.5.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.kurumamod_basic_carpack]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"
