@@ -399,7 +399,28 @@ public class CarPartScreen extends Screen {
         }
     }
 
-    /** いまの状態をサーバーへ送る。スライダーを離したときと、画面を閉じるとき。 */
+    /** スライダーで調整値を変えたが、まだサーバーへ送っていない。 */
+    private boolean lookChanged;
+
+    /**
+     * 変わっていればティックごとに送る（セッティング画面と同じ。{@code CarClientDriver} が諸元の
+     * 変化をティックごとに見て送るのと同じ間隔）。
+     *
+     * <p>以前は<b>離したときだけ</b>送っていたが、バニラは離したときの知らせをマウスの下にある部品に
+     * しか渡さない（{@code ContainerEventHandler#mouseReleased}）ので、つまみをスライダーの外まで
+     * 引っぱって離すと送られず、他の人の画面でだけ元のままになった。ティックごとなら、つまんでいる
+     * 間も他の人の画面で動いて見え、離し方にも依らない。毎フレームではないので 1 秒に 20 回まで。</p>
+     */
+    @Override
+    public void tick() {
+        super.tick();
+        if (lookChanged) {
+            lookChanged = false;
+            sendCurrent();
+        }
+    }
+
+    /** いまの状態をサーバーへ送る。調整値が変わったティックと、画面を閉じるとき。 */
     private void sendCurrent() {
         CarEntity car = CarClientDriver.driving();
         if (car != null) {
@@ -620,15 +641,11 @@ public class CarPartScreen extends Screen {
 
         @Override
         protected void applyValue() {
-            // つまんでいる間はここが毎フレーム呼ばれる。送るのは離したときだけ
+            // つまんでいる間はここが毎フレーム呼ばれる。送るのはティックごと（tick）
             apply(adjustment, adjustment.toInternal(adjustment.fromSlider(this.value)));
+            lookChanged = true;
         }
 
-        @Override
-        public void onRelease(double mouseX, double mouseY) {
-            super.onRelease(mouseX, mouseY);
-            sendCurrent();
-        }
     }
 
     /**
