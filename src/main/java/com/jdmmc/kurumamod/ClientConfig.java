@@ -111,7 +111,7 @@ public final class ClientConfig {
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_AIM = BUILDER
             .comment("ヘッドライトの光軸の下向き [度]。大きいほど手前を照らす。実車のロービームは 0.6 度前後")
-            .defineInRange("headlightAim", 0.9, 0.0, 4.0);
+            .defineInRange("headlightAim", 0.0, 0.0, 4.0);
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_LEVELING = BUILDER
             .comment("オートレベライザーの効き。ブレーキや加速でサスが沈んだぶんの傾きを、どれだけ光軸で打ち消すか。",
@@ -122,13 +122,9 @@ public final class ClientConfig {
             .comment("晴れているときの霧の濃さ [1/m]。濃いほど光線がはっきり見えるが奥まで届かない。雨と雷ではこれに足される")
             .defineInRange("headlightFog", 0.025, 0.0, 0.15);
 
-    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_SURFACE = BUILDER
-            .comment("照らされた路面を何倍まで明るくするか")
-            .defineInRange("headlightSurface", 5.0, 0.0, 12.0);
-
-    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_BEAM = BUILDER
-            .comment("霧の中の光線の明るさ")
-            .defineInRange("headlightBeam", 120.0, 0.0, 400.0);
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_BRIGHTNESS = BUILDER
+            .comment("ヘッドライトの明るさ（路面を照らす光とビームの両方に掛かる倍率）。1.0 で既定")
+            .defineInRange("headlightBrightness", 1.0, 0.0, 2.5);
 
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_SMOKE = BUILDER
             .comment("光の中のタイヤの煙・土煙の光り方")
@@ -140,10 +136,6 @@ public final class ClientConfig {
             .defineInRange("headlightCars", 11.0, 1.0, 11.0);
 
     // シェーダーパック使用中だけ効く強さ（仮置き。値を詰めたら定数へ戻すかもしれない）
-    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_SURFACE = BUILDER
-            .comment("シェーダーパック使用中: 照らされた路面を明るくする強さ（路面の明るさに掛ける）")
-            .defineInRange("headlightPackSurface", 1.0, 0.0, 2.0);
-
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_CONTRAST = BUILDER
             .comment("シェーダーパック使用中: 照らされた所のコントラストの上げ幅（明るさだけ。色の比は変えない）")
             .defineInRange("headlightPackContrast", 0.0, 0.0, 1.5);
@@ -152,17 +144,15 @@ public final class ClientConfig {
             .comment("シェーダーパック使用中: 月明かりの色かぶり（画面の平均色）を照らされた所から取る強さ")
             .defineInRange("headlightPackTint", 0.0, 0.0, 1.0);
 
-    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_BEAM = BUILDER
-            .comment("シェーダーパック使用中: 霧の中の光線に掛ける倍率")
-            .defineInRange("headlightPackBeam", 0.3, 0.0, 1.0);
-
-    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_SMOKE = BUILDER
-            .comment("シェーダーパック使用中: 煙の光り方に掛ける倍率")
-            .defineInRange("headlightPackSmoke", 0.0, 0.0, 1.0);
-
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_ADD = BUILDER
             .comment("シェーダーパック使用中: 照らされた所に光の色をそのまま足す量（0 で足さない）")
             .defineInRange("headlightPackAdd", 0.0, 0.0, 1.0);
+
+    public static final ForgeConfigSpec.BooleanValue HEADLIGHT_PACK_PRE_COMPOSITE = BUILDER
+            .comment("シェーダーパック使用中: 路面を照らす光を、パックの仕上げ（霧・トーンマップ）の前に入れるか。",
+                    "入れるとブロックの色が残る。パックによっては仕上げの前に照らされた絵が無く光が見えなくなる（Bliss など）ので、そのときは切る",
+                    "（切ると仕上がった画面に重ねる。色は褪せるが、どのパックでも見える）")
+            .define("headlightPackPreComposite", true);
 
     public static final ForgeConfigSpec.EnumValue<HeadlightColor> HEADLIGHT_COLOR = BUILDER
             .comment("ヘッドライトが照らす光の色（路面・光線・光芒）")
@@ -176,7 +166,7 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.DoubleValue HEADLIGHT_RANGE = BUILDER
             .comment("光の届く距離 [m]。これより遠い路面・光線・影は計算しない（手前 30% でなめらかに消す）。",
                     "短いほど軽い。光は距離の 2 乗で弱まるので、遠くはもともと暗い")
-            .defineInRange("headlightRange", 48.0, 16.0, 96.0);
+            .defineInRange("headlightRange", 150.0, 16.0, 192.0);
 
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
@@ -232,30 +222,27 @@ public final class ClientConfig {
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
     /** ヘッドライトの光軸の下向き [度]。 */
-    public static double headlightAim = 0.9;
+    public static double headlightAim = 0.0;
     /** オートレベライザーの効き 0..1。 */
     public static double headlightLeveling = 0.85;
     /** 晴れのときの霧の濃さ [1/m]。 */
     public static double headlightFog = 0.025;
-    /** 照らされた路面の明るさ。 */
-    public static double headlightSurface = 5.0;
-    /** 霧の中の光線の明るさ。 */
-    public static double headlightBeam = 120.0;
+    /** ヘッドライトの明るさ（路面とビームに掛かる倍率）。 */
+    public static double headlightBrightness = 1.0;
     /** 光の中の煙の光り方。 */
     public static double headlightSmoke = 4.0;
     /** 画素ごとの光を描く車の台数。{@link #UNLIMITED_HEADLIGHT_CARS} 以上で無制限。 */
     public static int headlightCars = 11;
     /** 光の届く距離 [m]。 */
-    public static double headlightRange = 48.0;
+    public static double headlightRange = 150.0;
     /** シェーダーパックを使っている間も光を描くか。 */
     public static boolean headlightWithShaderPacks = true;
     /** シェーダーパック使用中の強さ。 */
-    public static double headlightPackSurface = 1.0;
     public static double headlightPackContrast = 0.0;
     public static double headlightPackTint = 0.0;
-    public static double headlightPackBeam = 0.3;
-    public static double headlightPackSmoke = 0.0;
     public static double headlightPackAdd = 0.0;
+    /** シェーダーパックの仕上げの前に路面の光を入れるか。 */
+    public static boolean headlightPackPreComposite = true;
     /** 照らす光の色。 */
     public static HeadlightColor headlightColor = HeadlightColor.HALOGEN;
     /** 「光を描く台数」のこの値は無制限を意味する（スライダーの右端）。 */
@@ -299,18 +286,15 @@ public final class ClientConfig {
         headlightAim = HEADLIGHT_AIM.get();
         headlightLeveling = HEADLIGHT_LEVELING.get();
         headlightFog = HEADLIGHT_FOG.get();
-        headlightSurface = HEADLIGHT_SURFACE.get();
-        headlightBeam = HEADLIGHT_BEAM.get();
+        headlightBrightness = HEADLIGHT_BRIGHTNESS.get();
         headlightSmoke = HEADLIGHT_SMOKE.get();
         headlightCars = (int) Math.round(HEADLIGHT_CARS.get());
         headlightRange = HEADLIGHT_RANGE.get();
         headlightWithShaderPacks = HEADLIGHT_WITH_SHADER_PACKS.get();
-        headlightPackSurface = HEADLIGHT_PACK_SURFACE.get();
         headlightPackContrast = HEADLIGHT_PACK_CONTRAST.get();
         headlightPackTint = HEADLIGHT_PACK_TINT.get();
-        headlightPackBeam = HEADLIGHT_PACK_BEAM.get();
-        headlightPackSmoke = HEADLIGHT_PACK_SMOKE.get();
         headlightPackAdd = HEADLIGHT_PACK_ADD.get();
+        headlightPackPreComposite = HEADLIGHT_PACK_PRE_COMPOSITE.get();
         headlightColor = HEADLIGHT_COLOR.get();
     }
 

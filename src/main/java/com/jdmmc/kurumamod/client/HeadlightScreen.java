@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.HeadlightColor;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
@@ -11,6 +12,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraftforge.common.ForgeConfigSpec;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -61,8 +64,7 @@ public final class HeadlightScreen extends Screen {
             new Row("aim", 0.05, "%.2f°", ClientConfig.HEADLIGHT_AIM),
             new Row("leveling", 0.05, "%.2f", ClientConfig.HEADLIGHT_LEVELING),
             new Row("fog", 0.0025, "%.4f", ClientConfig.HEADLIGHT_FOG),
-            new Row("surface", 0.25, "%.2f", ClientConfig.HEADLIGHT_SURFACE),
-            new Row("beam", 5.0, "%.0f", ClientConfig.HEADLIGHT_BEAM),
+            new Row("brightness", 0.05, "%.2f", ClientConfig.HEADLIGHT_BRIGHTNESS),
             new Row("smoke", 0.25, "%.2f", ClientConfig.HEADLIGHT_SMOKE),
             new Row("cars", 1.0, "%.0f", ClientConfig.HEADLIGHT_CARS),
             new Row("range", 1.0, "%.0f m", ClientConfig.HEADLIGHT_RANGE),
@@ -70,11 +72,8 @@ public final class HeadlightScreen extends Screen {
 
     /** シェーダーパック使用中だけ効く行（仮置き）。幅があれば右の列、無ければ下に並べる。 */
     private static final Row[] PACK_ROWS = {
-            new Row("pack_surface", 0.02, "%.2f", ClientConfig.HEADLIGHT_PACK_SURFACE),
             new Row("pack_contrast", 0.05, "%.2f", ClientConfig.HEADLIGHT_PACK_CONTRAST),
             new Row("pack_tint", 0.05, "%.2f", ClientConfig.HEADLIGHT_PACK_TINT),
-            new Row("pack_beam", 0.01, "%.2f", ClientConfig.HEADLIGHT_PACK_BEAM),
-            new Row("pack_smoke", 0.01, "%.2f", ClientConfig.HEADLIGHT_PACK_SMOKE),
             new Row("pack_add", 0.02, "%.2f", ClientConfig.HEADLIGHT_PACK_ADD),
     };
     private static final int COLUMN_GAP = 16;
@@ -91,15 +90,26 @@ public final class HeadlightScreen extends Screen {
      */
     private boolean rebuildPending;
 
+    /** シェーダーパックの列の部品。パックを使っていない間は押せなくする（動かしても何も変わらないため）。 */
+    private final List<AbstractWidget> packWidgets = new ArrayList<>();
+
     public HeadlightScreen() {
         super(Component.translatable("screen.kurumamod.headlight.title"));
     }
 
     private static final int COLUMN_WIDTH = LABEL_WIDTH + SLIDER_WIDTH + 4 + RESET_WIDTH;
 
-    /** 2 列に並べられる幅があるか。 */
+    /**
+     * シェーダーパックの列を出すか。「シェーダーパック使用中も光を描く」が入っているときだけ
+     * （切っていればパック使用中は光を描かないので、どれを動かしても何も変わらない）。
+     */
+    private static boolean packVisible() {
+        return ClientConfig.headlightWithShaderPacks;
+    }
+
+    /** 2 列に並べるか（パックの列を出していて、並べられる幅があるとき）。 */
     private boolean twoColumns() {
-        return width >= COLUMN_WIDTH * 2 + COLUMN_GAP + 16;
+        return packVisible() && width >= COLUMN_WIDTH * 2 + COLUMN_GAP + 16;
     }
 
     private int left() {
@@ -118,18 +128,26 @@ public final class HeadlightScreen extends Screen {
 
     /** 下のボタンの行番号。 */
     private int bottomRow() {
-        return Math.max(ROWS.length + 2, packFirstRow() + PACK_ROWS.length);
+        if (!packVisible()) {
+            return ROWS.length + 2;
+        }
+        // パックの列は、スライダーの下に「ライトの描き方」の切り替えが 1 行ある
+        return Math.max(ROWS.length + 2, packFirstRow() + PACK_ROWS.length + 1);
     }
 
-    private void addRow(Row row, int x, int y) {
+    private void addRow(Row row, int x, int y, List<AbstractWidget> group) {
         Slider slider = new Slider(x + LABEL_WIDTH, y, SLIDER_WIDTH, 20, row);
         addRenderableWidget(slider);
-        addRenderableWidget(Button.builder(Component.literal("R"), button -> {
+        Button reset = addRenderableWidget(Button.builder(Component.literal("R"), button -> {
                     row.set(row.defaultValue());
                     slider.sync();
                 })
                 .bounds(x + LABEL_WIDTH + SLIDER_WIDTH + 4, y, RESET_WIDTH, 20)
                 .build());
+        if (group != null) {
+            group.add(slider);
+            group.add(reset);
+        }
     }
 
     private static int rowY(int index) {
@@ -138,12 +156,15 @@ public final class HeadlightScreen extends Screen {
 
     @Override
     protected void init() {
+        packWidgets.clear();
         int left = left();
         for (int i = 0; i < ROWS.length; i++) {
-            addRow(ROWS[i], left, rowY(i));
+            addRow(ROWS[i], left, rowY(i), null);
         }
-        for (int i = 0; i < PACK_ROWS.length; i++) {
-            addRow(PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i));
+        if (packVisible()) {
+            for (int i = 0; i < PACK_ROWS.length; i++) {
+                addRow(PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i), packWidgets);
+            }
         }
         // シェーダーパック使用中も光を描くか。パックが無ければ何も変わらない
         addRenderableWidget(CycleButton.onOffBuilder(ClientConfig.headlightWithShaderPacks)
@@ -152,6 +173,8 @@ public final class HeadlightScreen extends Screen {
                         (button, value) -> {
                             ClientConfig.HEADLIGHT_WITH_SHADER_PACKS.set(value);
                             ClientConfig.refresh();
+                            // パックの列を出し入れするので並べ直す（クリックの伝播中には作り直さない）
+                            rebuildPending = true;
                         }));
         // 照らす光の色
         addRenderableWidget(CycleButton.<HeadlightColor>builder(color -> Component.translatable(color.translationKey()))
@@ -163,6 +186,18 @@ public final class HeadlightScreen extends Screen {
                             ClientConfig.HEADLIGHT_COLOR.set(value);
                             ClientConfig.refresh();
                         }));
+        // ライトの描き方。シェーダーになじませる（パックの仕上げの前に路面の光を入れる）か、
+        // シェーダーの上から重ねるか。パックによっては重ねないと光が見えない（Bliss など）
+        if (packVisible()) packWidgets.add(addRenderableWidget(CycleButton.booleanBuilder(
+                        Component.translatable("screen.kurumamod.headlight.pack_pre_composite.blend"),
+                        Component.translatable("screen.kurumamod.headlight.pack_pre_composite.overlay"))
+                .withInitialValue(ClientConfig.headlightPackPreComposite)
+                .displayOnlyValue()
+                .create(packLeft() + LABEL_WIDTH, rowY(packFirstRow() + PACK_ROWS.length), SLIDER_WIDTH, 20,
+                        Component.empty(), (button, value) -> {
+                            ClientConfig.HEADLIGHT_PACK_PRE_COMPOSITE.set(value);
+                            ClientConfig.refresh();
+                        })));
         int bottom = rowY(bottomRow()) + 8;
         addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.headlight.reset_all"), button -> {
                     for (Row row : ROWS) {
@@ -173,6 +208,7 @@ public final class HeadlightScreen extends Screen {
                     }
                     ClientConfig.HEADLIGHT_WITH_SHADER_PACKS.set(true);
                     ClientConfig.HEADLIGHT_COLOR.set(HeadlightColor.HALOGEN);
+                    ClientConfig.HEADLIGHT_PACK_PRE_COMPOSITE.set(true);
                     ClientConfig.refresh();
                     rebuildPending = true;
                 })
@@ -194,12 +230,27 @@ public final class HeadlightScreen extends Screen {
         for (int i = 0; i < ROWS.length; i++) {
             drawLabel(graphics, ROWS[i], left, rowY(i));
         }
-        // シェーダーパックの列の見出し。パックを使っていないときは灰色（動かしても変わらない）
-        int packColor = HeadlightVolume.ShaderPacks.inUse() ? 0xFFFFFF : 0x888888;
-        graphics.drawString(font, Component.translatable("screen.kurumamod.headlight.pack_header"),
-                packLeft(), rowY(packFirstRow() - 1) + 6, packColor);
-        for (int i = 0; i < PACK_ROWS.length; i++) {
-            drawLabel(graphics, PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i));
+        if (packVisible()) {
+            // パックを使っていない間は、列ごと押せなくして文字も灰色にする（動かしても何も変わらない）。
+            // 画面を開いたままパックを切り替えることもあるので毎フレーム見る
+            boolean packOn = HeadlightVolume.ShaderPacks.inUse();
+            for (AbstractWidget widget : packWidgets) {
+                widget.active = packOn;
+            }
+            int dim = 0x888888;
+            graphics.drawString(font, Component.translatable("screen.kurumamod.headlight.pack_header"),
+                    packLeft(), rowY(packFirstRow() - 1) + 6, packOn ? 0xFFFFFF : dim);
+            for (int i = 0; i < PACK_ROWS.length; i++) {
+                if (packOn) {
+                    drawLabel(graphics, PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i));
+                } else {
+                    graphics.drawString(font, Component.translatable("screen.kurumamod.headlight." + PACK_ROWS[i].key()),
+                            packLeft(), rowY(packFirstRow() + i) + 6, dim);
+                }
+            }
+            graphics.drawString(font, Component.translatable("screen.kurumamod.headlight.pack_pre_composite"),
+                    packLeft(), rowY(packFirstRow() + PACK_ROWS.length) + 6,
+                    !packOn ? dim : ClientConfig.headlightPackPreComposite ? 0xFFFFFF : 0xFFFF55);
         }
         graphics.drawString(font, Component.translatable("screen.kurumamod.headlight.with_shader_packs"),
                 left, rowY(ROWS.length) + 6, ClientConfig.headlightWithShaderPacks ? 0xFFFFFF : 0xFFFF55);
