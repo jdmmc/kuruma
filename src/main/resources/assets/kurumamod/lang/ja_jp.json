@@ -1,4 +1,5 @@
 {
+  "message.kurumamod.need_car": "車に乗る必要があります！",
   "itemGroup.kurumamod": "KurumaMod",
   "item.kurumamod.car": "日産 シルビア S15",
   "car.kurumamod.car": "日産 シルビア S15",
@@ -7,6 +8,7 @@
   "key.kurumamod.tuning": "セッティング画面",
   "screen.kurumamod.tuning.title": "車のセッティング",
   "screen.kurumamod.tuning.hint": "変更はすぐ反映されます  Esc で閉じる",
+  "screen.kurumamod.tuning.hint_passenger": "助手席では見るだけです（運転している人のセッティング）  Esc で閉じる",
   "screen.kurumamod.tuning.reset_all": "すべて既定値に戻す",
   "screen.kurumamod.tuning.reset_one": "この項目を既定値に戻す",
   "screen.kurumamod.tuning.presets": "プリセット",

@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.tuning.TunableParameter;
 import com.jdmmc.kurumamod.tuning.Tunables;
 import net.minecraft.client.gui.GuiGraphics;
@@ -82,8 +83,19 @@ public class CarTuningScreen extends Screen {
     private int tabLeft;
     private int tabTop;
 
+    /** 上のボタン（プリセット・換装・全部戻す）。助手席では押せなくする。 */
+    private final List<Button> headerButtons = new ArrayList<>();
+
     public CarTuningScreen() {
         super(Component.translatable("screen.kurumamod.tuning.title"));
+    }
+
+    /**
+     * 変えてよいか。<b>助手席では見るだけ</b>（人の車なので触れない）。
+     * 運転している人が降りて自分が運転席へ移れば、開いたまま変えられるようになる。
+     */
+    private boolean editable() {
+        return minecraft == null || CarClientDriver.isDriver(minecraft);
     }
 
     private static List<Tunables.Group> groups() {
@@ -94,6 +106,7 @@ public class CarTuningScreen extends Screen {
     protected void init() {
         rows.clear();
         tabs.clear();
+        headerButtons.clear();
         panelLeft = (width - PANEL_WIDTH) / 2;
         selectedGroup = Math.max(0, Math.min(selectedGroup, groups().size() - 1));
 
@@ -154,19 +167,19 @@ public class CarTuningScreen extends Screen {
         int buttonWidth = 68;
         int right = width - SIDE_MARGIN;
         int y = TITLE_Y - 5;
-        addRenderableWidget(Button.builder(
+        headerButtons.add(addRenderableWidget(Button.builder(
                         Component.translatable("screen.kurumamod.tuning.presets"),
                         button -> minecraft.setScreen(new CarPresetScreen(this)))
                 .bounds(right - buttonWidth * 3 - GAP * 2, y, buttonWidth, 20)
-                .build());
+                .build()));
         // 換装はここから開く。設定の置き場所を 2 か所にしないのと同じ理由で、
         // 車をいじる入り口はこの画面に集める
-        addRenderableWidget(Button.builder(
+        headerButtons.add(addRenderableWidget(Button.builder(
                         Component.translatable("screen.kurumamod.tuning.parts"),
                         button -> minecraft.setScreen(new CarPartScreen(this)))
                 .bounds(right - buttonWidth * 2 - GAP, y, buttonWidth, 20)
-                .build());
-        addRenderableWidget(Button.builder(
+                .build()));
+        headerButtons.add(addRenderableWidget(Button.builder(
                         Component.translatable("screen.kurumamod.tuning.reset_all"),
                         button -> {
                             CarTuning.reset();
@@ -174,7 +187,7 @@ public class CarTuningScreen extends Screen {
                             syncToServer();
                         })
                 .bounds(right - buttonWidth, y, buttonWidth, 20)
-                .build());
+                .build()));
     }
 
     private Row createRow(TunableParameter parameter) {
@@ -266,8 +279,20 @@ public class CarTuningScreen extends Screen {
         // renderBackground は呼ばない。走らせながら詰める画面なので、
         // 暗くすると肝心の車の動きが見えなくなる
 
+        boolean editable = editable();
+        if (!editable) {
+            // 助手席: 運転している人の今の値を追って表示する
+            CarEntity car = CarClientDriver.ridingCar(minecraft);
+            if (car != null && CarTuning.spec() != car.getSpec()) {
+                CarClientDriver.viewPassengerCar(car);
+                rows.forEach(Row::syncSlider);
+            }
+        }
+        for (Button button : headerButtons) {
+            button.active = editable;
+        }
         for (Row row : rows) {
-            row.refresh();
+            row.refresh(editable);
         }
 
         // 下敷きは行ごとに敷く。パネルで一枚に覆うと、そのぶん車が隠れる
@@ -285,7 +310,8 @@ public class CarTuningScreen extends Screen {
         graphics.drawString(font, title, TEXT_LEFT, TITLE_Y, 0xFFFFFFFF);
         graphics.drawString(font, Component.translatable(groups().get(selectedGroup).translationKey()),
                 TEXT_LEFT, TITLE_Y + 12, ScreenStyle.ACCENT);
-        graphics.drawString(font, Component.translatable("screen.kurumamod.tuning.hint"),
+        graphics.drawString(font, Component.translatable(editable
+                        ? "screen.kurumamod.tuning.hint" : "screen.kurumamod.tuning.hint_passenger"),
                 TEXT_LEFT, TITLE_Y + 26, ScreenStyle.HINT);
 
         for (Row row : rows) {
@@ -435,12 +461,13 @@ public class CarTuningScreen extends Screen {
             slider.syncFromTuning();
         }
 
-        /** 表示中の行の状態を今の設定値に合わせる。 */
-        void refresh() {
+        /** 表示中の行の状態を今の設定値に合わせる。変えてよくなければ押せなくする（助手席）。 */
+        void refresh(boolean editable) {
             if (!visible) {
                 return;
             }
-            reset.active = !parameter.isDefault(CarTuning.spec(), CarTuning.base());
+            slider.active = editable;
+            reset.active = editable && !parameter.isDefault(CarTuning.spec(), CarTuning.base());
             // 減衰比のように他項目の影響を受ける補足表示があるので、毎フレーム作り直す
             slider.refreshLabel();
         }

@@ -12,6 +12,7 @@ import com.jdmmc.kurumamod.physics.CarInput;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.player.Input;
 import net.minecraft.client.player.LocalPlayer;
@@ -82,7 +83,10 @@ public final class CarClientDriver {
             CarCamera.toggle();
         }
         while (KurumaKeys.TOGGLE_HEADLIGHTS.consumeClick()) {
-            headlightsOn = !headlightsOn;
+            // ライトは車の状態なので、運転していなければ切り替えない
+            if (requireDriver(minecraft)) {
+                headlightsOn = !headlightsOn;
+            }
         }
         while (KurumaKeys.CAMERA_CLOSER.consumeClick()) {
             CarChaseCamera.stepDistance(-1);
@@ -278,8 +282,60 @@ public final class CarClientDriver {
         while (KurumaKeys.OPEN_TUNING.consumeClick()) {
             requested = true;
         }
+        // セッティングは乗っている車の諸元を変える画面なので、乗っていなければ開かない。
+        // 助手席なら開けるが見るだけ（人の車なので触れない。CarTuningScreen#editable）
         if (requested && minecraft.screen == null) {
-            minecraft.setScreen(new CarTuningScreen());
+            CarEntity car = ridingCar(minecraft);
+            if (car == null) {
+                if (minecraft.player != null) {
+                    minecraft.player.displayClientMessage(Component.translatable("message.kurumamod.need_car"), true);
+                }
+            } else {
+                if (car.getControllingPassenger() != minecraft.player) {
+                    viewPassengerCar(car);
+                }
+                minecraft.setScreen(new CarTuningScreen());
+            }
         }
+    }
+
+    /** 乗っている車（運転席でも助手席でも）。乗っていなければ null。 */
+    static CarEntity ridingCar(Minecraft minecraft) {
+        return minecraft.player != null && minecraft.player.getVehicle() instanceof CarEntity car ? car : null;
+    }
+
+    /** 自分が運転しているか（セッティングを変えてよいか）。 */
+    static boolean isDriver(Minecraft minecraft) {
+        CarEntity car = ridingCar(minecraft);
+        return car != null && car.getControllingPassenger() == minecraft.player;
+    }
+
+    /**
+     * 助手席から見ている車の値を調整画面の入れ物へ取り込む（見るだけ。送り返さない）。
+     * 運転している人がセッティングを変えると車の諸元が届くので、画面は毎フレームこれを呼んで追う。
+     */
+    static void viewPassengerCar(CarEntity car) {
+        if (CarTuning.spec() != car.getSpec()) {
+            CarTuning.adopt(car.getSpec(), CarTypes.get(car.getCarId()).spec());
+        }
+    }
+
+    /**
+     * 運転しているか。していなければアクションバーで知らせて false を返す。
+     *
+     * <p>G（セッティング）や L（ライト）は乗っている車の状態を変えるキーなので、降りているときに
+     * 押しても何も起きない。黙って無視すると壊れているように見えるので理由を出す。
+     * <b>助手席では何もしない（知らせもしない）。</b>人の車なので、触れないのが当たり前。</p>
+     */
+    private static boolean requireDriver(Minecraft minecraft) {
+        LocalPlayer player = minecraft.player;
+        if (player == null) {
+            return false;
+        }
+        if (player.getVehicle() instanceof CarEntity car) {
+            return car.getControllingPassenger() == player;
+        }
+        player.displayClientMessage(Component.translatable("message.kurumamod.need_car"), true);
+        return false;
     }
 }
