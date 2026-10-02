@@ -108,16 +108,22 @@ sourceSets.main.resources { srcDir rootProject.file('core/src/main/resources') }
 // 両方のブランチで使うので、1.20.1 用の jar が紛れ込むと起動できない。
 //
 // NeoForge は開発環境も配布 jar も同じ Mojang の名前で走るので、1.20.1 版のような
-// 難読化の解除（fg.deobf）は要らない。jar をそのまま足すだけでよい
+// 難読化の解除（fg.deobf）は要らない。<b>起動の前に run-neo*/mods/ へ写すだけ</b>。
+//
+// <b>runtimeOnly files(...) でクラスパスへ足してはいけない。</b>jar は「見つかった」と
+// ログに出るのに MOD として登録されず、Iris が「Sodium が無い」と言って起動が止まった
 def neoExtraModsDir = project.findProperty('neo_extra_mods_dir')
 def neoExtraMods = neoExtraModsDir != null && file(neoExtraModsDir).isDirectory()
         ? (project.findProperty('neo_extra_mods') ?: '').split(',')
                 .collect { it.trim() }.findAll { !it.isEmpty() }
-                .collect { new File(file(neoExtraModsDir), it) }
         : []
 
-dependencies {
-    neoExtraMods.each { runtimeOnly files(it) }
+[NeoClient: 'run-neo', NeoClient1: 'run-neo', NeoClient2: 'run-neo-client2'].each { suffix, dir ->
+    def copy = tasks.register("copyExtraMods${suffix}", Copy) {
+        from(neoExtraModsDir ?: 'none') { include neoExtraMods.isEmpty() ? ['__none__'] : neoExtraMods }
+        into rootProject.file("${dir}/mods")
+    }
+    tasks.matching { it.name == "run${suffix}" }.configureEach { dependsOn copy }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
