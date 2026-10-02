@@ -372,6 +372,16 @@ public final class HeadlightVolume {
         shader.safeGetUniform("SurfaceGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSurface);
         shader.safeGetUniform("VolumeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightBeam);
         shader.safeGetUniform("SmokeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke);
+        // シェーダーパックの絵はトーンマップ済みで暗部も持ち上がっているので、明るくし方を変える
+        shader.safeGetUniform("PackMode").set(ShaderPacks.inUse() ? 1.0F : 0.0F);
+        shader.safeGetUniform("PackSurface").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackSurface);
+        shader.safeGetUniform("PackContrast").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackContrast);
+        shader.safeGetUniform("PackTint").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackTint);
+        shader.safeGetUniform("PackBeam").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackBeam);
+        shader.safeGetUniform("PackSmoke").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackSmoke);
+        shader.safeGetUniform("PackAdd").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackAdd);
+        float[] lightColor = com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
+        shader.safeGetUniform("LightColor").set(lightColor[0], lightColor[1], lightColor[2]);
 
         // 画面いっぱいに 1 枚。色はシェーダーが全部決めるので混色も深度も要らない
         RenderSystem.disableDepthTest();

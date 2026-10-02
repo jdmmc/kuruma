@@ -89,8 +89,10 @@ public final class CarLights {
     /** テールランプは常時うっすら点いている。ブレーキで最大になる。 */
     private static final float TAIL_IDLE = 0.35F;
 
-    /** 照らされた光の色（ハロゲン寄りの暖かい白）。 */
-    private static final float[] BEAM_COLOR = {1.0F, 0.94F, 0.82F};
+    /** 照らされた光の色（Ctrl+L で選ぶ。既定はハロゲン寄りの暖かい白）。書き換えないこと。 */
+    private static float[] beamColor() {
+        return com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
+    }
 
     // ---- 配光 ----------------------------------------------------------------------
     // 角度はすべて光軸からの<b>正接</b>で持つ（横 = x/z、縦 = y/z）。角度にすると
@@ -344,7 +346,7 @@ public final class CarLights {
         if (head) {
             for (Vec3 lamp : beam.lamps) {
                 renderGlows(matrix, additive, camera, lamp, forward, eye, HEAD_GLOW_RADIUS,
-                        BEAM_COLOR, glow, true);
+                        beamColor(), glow, true);
             }
         }
         if (tail) {
@@ -1044,9 +1046,9 @@ public final class CarLights {
                 bl = (color & 0xFF) / 255.0F;
             }
             // 光の色も掛ける。昼の白い光で描くと、照らされたところだけ真昼に見える
-            r *= BEAM_COLOR[0];
-            g *= BEAM_COLOR[1];
-            bl *= BEAM_COLOR[2];
+            r *= beamColor()[0];
+            g *= beamColor()[1];
+            bl *= beamColor()[2];
             for (int v = 0; v < 4; v++) {
                 int o = v * stride;
                 float rx = px[v] - (float) origin.x;
@@ -1135,10 +1137,10 @@ public final class CarLights {
             }
             if (ring0 != null) {
                 for (int s = 0; s < VOLUME_SEGMENTS; s++) {
-                    colored(matrix, consumer, ring0[s], BEAM_COLOR);
-                    colored(matrix, consumer, ring0[s + 1], BEAM_COLOR);
-                    colored(matrix, consumer, ring[s + 1], BEAM_COLOR);
-                    colored(matrix, consumer, ring[s], BEAM_COLOR);
+                    colored(matrix, consumer, ring0[s], beamColor());
+                    colored(matrix, consumer, ring0[s + 1], beamColor());
+                    colored(matrix, consumer, ring[s + 1], beamColor());
+                    colored(matrix, consumer, ring[s], beamColor());
                 }
             }
             ring0 = ring;
@@ -1243,7 +1245,7 @@ public final class CarLights {
             for (int v = 0; v < count; v++) {
                 int o = v * 4;
                 consumer.vertex(matrix, data[o], data[o + 1], data[o + 2])
-                        .color(BEAM_COLOR[0], BEAM_COLOR[1], BEAM_COLOR[2], Math.min(1.0F, data[o + 3] * gain))
+                        .color(beamColor()[0], beamColor()[1], beamColor()[2], Math.min(1.0F, data[o + 3] * gain))
                         .endVertex();
             }
         }

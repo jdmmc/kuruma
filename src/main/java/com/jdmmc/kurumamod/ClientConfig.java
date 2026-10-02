@@ -139,6 +139,35 @@ public final class ClientConfig {
                     "11 で無制限（天井は GPU のテクスチャの大きさで、普通は 64 台）")
             .defineInRange("headlightCars", 11.0, 1.0, 11.0);
 
+    // シェーダーパック使用中だけ効く強さ（仮置き。値を詰めたら定数へ戻すかもしれない）
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_SURFACE = BUILDER
+            .comment("シェーダーパック使用中: 照らされた路面を明るくする強さ（路面の明るさに掛ける）")
+            .defineInRange("headlightPackSurface", 0.72, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_CONTRAST = BUILDER
+            .comment("シェーダーパック使用中: 照らされた所のコントラストの上げ幅（明るさだけ。色の比は変えない）")
+            .defineInRange("headlightPackContrast", 0.5, 0.0, 1.5);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_TINT = BUILDER
+            .comment("シェーダーパック使用中: 月明かりの色かぶり（画面の平均色）を照らされた所から取る強さ")
+            .defineInRange("headlightPackTint", 1.0, 0.0, 1.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_BEAM = BUILDER
+            .comment("シェーダーパック使用中: 霧の中の光線に掛ける倍率")
+            .defineInRange("headlightPackBeam", 0.08, 0.0, 1.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_SMOKE = BUILDER
+            .comment("シェーダーパック使用中: 煙の光り方に掛ける倍率")
+            .defineInRange("headlightPackSmoke", 0.0, 0.0, 1.0);
+
+    public static final ForgeConfigSpec.DoubleValue HEADLIGHT_PACK_ADD = BUILDER
+            .comment("シェーダーパック使用中: 照らされた所に光の色をそのまま足す量（0 で足さない）")
+            .defineInRange("headlightPackAdd", 0.0, 0.0, 1.0);
+
+    public static final ForgeConfigSpec.EnumValue<HeadlightColor> HEADLIGHT_COLOR = BUILDER
+            .comment("ヘッドライトが照らす光の色（路面・光線・光芒）")
+            .defineEnum("headlightColor", HeadlightColor.HALOGEN);
+
     public static final ForgeConfigSpec.BooleanValue HEADLIGHT_WITH_SHADER_PACKS = BUILDER
             .comment("シェーダーパック（Oculus / Iris / OptiFine）を使っている間も、ヘッドライトの光（路面の照り返し・光線・光芒）を描くか。",
                     "パックによっては合成が崩れるので、そのときは切る（レンズが光るだけになる）")
@@ -220,6 +249,15 @@ public final class ClientConfig {
     public static double headlightRange = 48.0;
     /** シェーダーパックを使っている間も光を描くか。 */
     public static boolean headlightWithShaderPacks = true;
+    /** シェーダーパック使用中の強さ。 */
+    public static double headlightPackSurface = 0.72;
+    public static double headlightPackContrast = 0.5;
+    public static double headlightPackTint = 1.0;
+    public static double headlightPackBeam = 0.08;
+    public static double headlightPackSmoke = 0.0;
+    public static double headlightPackAdd = 0.0;
+    /** 照らす光の色。 */
+    public static HeadlightColor headlightColor = HeadlightColor.HALOGEN;
     /** 「光を描く台数」のこの値は無制限を意味する（スライダーの右端）。 */
     public static final int UNLIMITED_HEADLIGHT_CARS = 11;
 
@@ -267,6 +305,13 @@ public final class ClientConfig {
         headlightCars = (int) Math.round(HEADLIGHT_CARS.get());
         headlightRange = HEADLIGHT_RANGE.get();
         headlightWithShaderPacks = HEADLIGHT_WITH_SHADER_PACKS.get();
+        headlightPackSurface = HEADLIGHT_PACK_SURFACE.get();
+        headlightPackContrast = HEADLIGHT_PACK_CONTRAST.get();
+        headlightPackTint = HEADLIGHT_PACK_TINT.get();
+        headlightPackBeam = HEADLIGHT_PACK_BEAM.get();
+        headlightPackSmoke = HEADLIGHT_PACK_SMOKE.get();
+        headlightPackAdd = HEADLIGHT_PACK_ADD.get();
+        headlightColor = HEADLIGHT_COLOR.get();
     }
 
     /**
