@@ -190,6 +190,14 @@ def extraResourceMods = hasExtraMods
         ? (project.findProperty('extra_resource_mods') ?: '').split(',')
                 .collect { it.trim() }.findAll { !it.isEmpty() }
         : []
+// extra_mods を探す追加の場所（; 区切り）。自分でビルドした MOD の build/libs を
+// 指せば、本番インスタンスへ入れずに新しい版を試せる。探すのは extra_mods だけで、
+// extra_resource_mods は extra_mods_dir からしか拾わない
+def extraModsMoreDirs = hasExtraMods
+        ? (project.findProperty('extra_mods_more_dirs') ?: '').split(';')
+                .collect { it.trim() }.findAll { !it.isEmpty() }
+                .collect { file(it) }.findAll { it.isDirectory() }
+        : []
 
 // 性能比較（runPerf）の組み合わせ。指定したときは extra_mods を<b>置き換える</b>
 // （道路 MOD などが混ざると比べる条件が揃わない）。jar は extra_mods_dir から借りる
@@ -212,7 +220,7 @@ if (perfProfile != null) {
 repositories {
     // 本番インスタンスの mods フォルダ。外部 MOD をここから借りる
     if (hasExtraMods) {
-        flatDir { dir extraModsDir }
+        flatDir { dirs([extraModsDir] + extraModsMoreDirs) }
     }
 
     // Put repositories for dependencies here

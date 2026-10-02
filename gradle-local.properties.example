@@ -16,6 +16,10 @@
 # must be remapped to the official names the dev environment runs with.
 #extra_mods=fcl:20.42, fvtm:4.20.51
 
+# More places to look for extra_mods, separated by ";". Useful for a mod you build
+# yourself: point at its build/libs and name the new version in extra_mods.
+#extra_mods_more_dirs=C:/Users/<name>/projects/roads/build/libs
+
 # Jars with no classes - resource packs or data packs only - written as file names.
 # There is nothing to remap, so these are just copied into run*/resourcepacks/.
 #extra_resource_mods=Hashim's Extra Roads.jar
