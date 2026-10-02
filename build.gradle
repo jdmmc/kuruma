@@ -2,6 +2,9 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+    // mixin。開発環境は official 名、配布 jar は SRG 名で走るので、Minecraft のメソッドへ
+    // 割り込むときは名前の対応表（refmap）が jar に要る
+    id 'org.spongepowered.mixin' version '0.7.+'
 }
 
 
@@ -243,6 +246,9 @@ dependencies {
     // group は flatDir では見られないので何でもよく、慣例で blank としている
     extraMods.each { runtimeOnly fg.deobf("blank:${it}") }
 
+    // mixin の refmap を作る注釈プロセッサ
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
     // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
@@ -278,6 +284,12 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
+// mixin（シェーダーパックの仕上げの前にヘッドライトの光を入れる。mixin/IrisPipelineMixin）
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
 // Example for how to get properties into the manifest for reading at runtime.
 tasks.named('jar', Jar).configure {
     // ライセンス条文を jar に同梱する。GPLv3 は「本ライセンスの写しを一緒に渡すこと」を
@@ -291,7 +303,8 @@ tasks.named('jar', Jar).configure {
                     "Implementation-Title"    : project.name,
                     "Implementation-Version"  : project.jar.archiveVersion,
                     "Implementation-Vendor"   : mod_authors,
-                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")])
+                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                    "MixinConfigs"            : "${mod_id}.mixins.json"])
     }
 
     // This is the preferred method to reobfuscate your jar file

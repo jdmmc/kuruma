@@ -442,13 +442,8 @@ void main() {
                 vec3 base = solidColor / mix(vec3(1.0), tint, lit * PackTint);
                 float y = max(luma(base), 1.0e-4);
                 base *= pow(y / PACK_CONTRAST_REF, PackContrast * lit);
+                // 仕上げ前の絵（明るさが 1 を超えてよい）なので、上を丸めるのはパックのトーンマップに任せる
                 vec3 target = base * (1.0 + SurfaceGain * PackSurface * lit * LightColor);
-                float peak = max(max(target.r, target.g), target.b);
-                if (peak > 0.8) {
-                    // 0.8 から上を 1.0 へ漸近させる
-                    float over = peak - 0.8;
-                    target *= (0.8 + 0.2 * over / (over + 0.2)) / peak;
-                }
                 target += LightColor * (PackAdd * lit);
                 color += (target - solidColor) * (1.0 - coverage);
             } else {
