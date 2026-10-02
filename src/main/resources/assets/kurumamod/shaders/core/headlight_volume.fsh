@@ -43,7 +43,8 @@ in vec2 texCoord;
 
 out vec4 fragColor;
 
-const vec3 LIGHT_COLOR = vec3(1.0, 0.94, 0.82);
+// 照らす光の色（Ctrl+L で選ぶ。既定はハロゲンの暖かい白）
+uniform vec3 LightColor;
 
 // ---- 配光（CarLights と同じ） ----
 const float CUTOFF = 0.010472;       // tan 0.6°
@@ -66,6 +67,32 @@ const float EXPOSURE_GAMMA = 0.6;
 uniform float SurfaceGain;
 // 真っ黒な面にも少しだけ光を乗せる
 const float SURFACE_FLOOR = 0.03;
+
+// ---- シェーダーパック使用中 ----
+// 1 ならシェーダーパックの絵の上に重ねている。パックは夜の暗部を月明かりの青灰色まで持ち上げてから
+// トーンマップ済みの絵を渡してくる。そこへバニラ向けの「最大 5 倍・(1 − 色) で伸びしろを詰める」を
+// 掛けると白へ飛び（乳白色）、成分ごとにコントラストを上げると青が強調される（青くなる）。
+// 実際のライトは<b>月明かりの青を、ランプの暖かい白に置き換える</b>ので、それをやる:
+// 1. 画面全体の平均色（空を除く）を月明かりの色かぶりとみなし、照らされたぶんだけ割って白に戻す
+// 2. コントラストは明るさ（輝度）だけで上げる。色の比は変えないので、どの色も強調されない
+// 3. 明るくして、上は色相を保って丸める
+// 霧の光線と煙の光は白い膜を足すだけになるので、ほぼ消す（パック自身の霧とブルームがある）
+// 強さはどれも調整画面（Ctrl+L の右の列）から渡す。仮置き
+uniform float PackMode;
+// 明るくする強さ（SurfaceGain に掛ける）
+uniform float PackSurface;
+// 輝度のコントラストの上げ幅
+uniform float PackContrast;
+// 色かぶりを取る強さ（0 で取らない、1 で平均色を白へ戻しきる）
+uniform float PackTint;
+// 霧の光線・煙の光に掛ける倍率
+uniform float PackBeam;
+uniform float PackSmoke;
+// 照らされた所に光の色をそのまま足す量（0 で足さない）。白っぽくしたい・色を乗せたいとき
+uniform float PackAdd;
+const float PACK_CONTRAST_REF = 0.25;
+// 色かぶりを見積もるために画面を何点で拾うか（一辺）
+const int PACK_TINT_GRID = 6;
 
 // ---- 霧 ----
 // 光線の刻み数。少ないと画素ごとにずらした出だしが網目のざらつきとして見える
@@ -347,6 +374,22 @@ float luma(vec3 c) {
     return dot(c, vec3(0.299, 0.587, 0.114));
 }
 
+// 画面全体の色かぶり（明るさ 1 に揃えた平均色）。空は月明かりの色ではないので除く
+vec3 ambientTint() {
+    vec3 sum = vec3(0.0);
+    for (int y = 0; y < PACK_TINT_GRID; y++) {
+        for (int x = 0; x < PACK_TINT_GRID; x++) {
+            vec2 uv = (vec2(x, y) + 0.5) / float(PACK_TINT_GRID);
+            if (texture(DepthSampler, uv).r < 1.0) {
+                sum += texture(SolidSampler, uv).rgb;
+            }
+        }
+    }
+    float l = luma(sum);
+    // 真っ暗・空だけのときは色かぶり無し
+    return l > 1.0e-4 ? clamp(sum / l, vec3(0.25), vec3(4.0)) : vec3(1.0);
+}
+
 void main() {
     vec3 scene = texture(SceneSampler, texCoord).rgb;
     vec3 solidColor = texture(SolidSampler, texCoord).rgb;
@@ -392,8 +435,26 @@ void main() {
             float lit = 1.0 - exp(-pow(illuminance * EXPOSURE_GAIN, EXPOSURE_GAMMA));
             // 元の色のまま明るくする（模様が残る）。明るいところほど伸びしろを小さく。
             // 明るくするのは<b>粒の奥の面</b>の色で、粒に覆われているぶんは見えない
-            vec3 added = solidColor * SurfaceGain * lit * LIGHT_COLOR + SURFACE_FLOOR * lit * LIGHT_COLOR;
-            color += added * (1.0 - solidColor) * (1.0 - coverage);
+            if (PackMode > 0.5) {
+                // 月明かりの色かぶりを照らされたぶんだけ取り、輝度だけでコントラストを上げてから
+                // ランプの色で明るくする。1 を超えたぶんは最も明るい成分で丸めるので色の比が残る
+                vec3 tint = ambientTint();
+                vec3 base = solidColor / mix(vec3(1.0), tint, lit * PackTint);
+                float y = max(luma(base), 1.0e-4);
+                base *= pow(y / PACK_CONTRAST_REF, PackContrast * lit);
+                vec3 target = base * (1.0 + SurfaceGain * PackSurface * lit * LightColor);
+                float peak = max(max(target.r, target.g), target.b);
+                if (peak > 0.8) {
+                    // 0.8 から上を 1.0 へ漸近させる
+                    float over = peak - 0.8;
+                    target *= (0.8 + 0.2 * over / (over + 0.2)) / peak;
+                }
+                target += LightColor * (PackAdd * lit);
+                color += (target - solidColor) * (1.0 - coverage);
+            } else {
+                vec3 added = solidColor * SurfaceGain * lit * LightColor + SURFACE_FLOOR * lit * LightColor;
+                color += added * (1.0 - solidColor) * (1.0 - coverage);
+            }
         }
     }
 
@@ -447,8 +508,8 @@ void main() {
         }
         scattered += vec3(sum);
     }
-    scattered *= FogDensity * VolumeGain;
-    color += LIGHT_COLOR * (1.0 - exp(-scattered));
+    scattered *= FogDensity * VolumeGain * (PackMode > 0.5 ? PackBeam : 1.0);
+    color += LightColor * (1.0 - exp(-scattered));
 
     // ---- 煙・土煙 ----
     // 粒の位置に届いている光を、霧と同じ前方散乱で求める。光線の中の煙は光り、
@@ -468,7 +529,7 @@ void main() {
             received += strength * phase(cosTheta) / dist2;
         }
         float glow = 1.0 - exp(-received * SMOKE_EXPOSURE);
-        color += particleAdded * SmokeGain * glow * LIGHT_COLOR;
+        color += particleAdded * SmokeGain * (PackMode > 0.5 ? PackSmoke : 1.0) * glow * LightColor;
     }
 
     fragColor = vec4(color, 1.0);
