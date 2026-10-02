@@ -326,6 +326,24 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     /** 最初のティックは前の値が無いので、両方を同じ値で埋める。 */
     private boolean renderSnapshotReady;
 
+    /**
+     * 他人の車の姿勢を、届いた値へ何ティックかけて寄せるか。<b>位置と同じ 3</b>
+     * （バニラはエンティティの移動を {@code lerpTo(..., 3, ...)} で寄せる）。
+     *
+     * <p>以前は届いた値をそのまま「今ティックの値」にしていたので、知らせの届き方のばらつきが
+     * そのまま出た。届かなかったティックは止まり、2 つまとめて届いたティックは 2 ティックぶん
+     * 飛ぶ。位置は寄せているので滑らかなのに、<b>ドリフト中のロールだけがカクついて見えた</b>。
+     * 寄せておけば届かないティックも目標へ動き続け、遅れも位置と揃う。</p>
+     */
+    private static final int POSE_LERP_STEPS = 3;
+    /** 姿勢の目標（最後に届いた値）と、あと何ティックで寄せきるか。 */
+    private float targetYaw;
+    private float targetPitch;
+    private float targetRoll;
+    private float targetSteer;
+    private final double[] targetSuspension = new double[Wheel.COUNT];
+    private int poseLerpSteps;
+
     private int lerpSteps;
     private double lerpX;
     private double lerpY;
@@ -573,13 +591,15 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         prevRenderSteer = renderSteer;
         System.arraycopy(renderSuspension, 0, prevRenderSuspension, 0, Wheel.COUNT);
 
-        renderYaw = local ? getYRot() : entityData.get(DATA_YAW);
-        renderPitch = local ? (float) state.pitch : entityData.get(DATA_PITCH);
-        renderRoll = local ? (float) state.roll : entityData.get(DATA_ROLL);
-        renderSteer = local ? (float) state.steerAngle : entityData.get(DATA_STEER_ANGLE);
-        for (int i = 0; i < Wheel.COUNT; i++) {
-            renderSuspension[i] = local
-                    ? state.suspensionLength[i] : entityData.get(DATA_SUSPENSION.get(i));
+        if (local) {
+            renderYaw = getYRot();
+            renderPitch = (float) state.pitch;
+            renderRoll = (float) state.roll;
+            renderSteer = (float) state.steerAngle;
+            System.arraycopy(state.suspensionLength, 0, renderSuspension, 0, Wheel.COUNT);
+            poseLerpSteps = 0;
+        } else {
+            approachSyncedPose();
         }
 
         if (!renderSnapshotReady) {
@@ -590,6 +610,64 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             prevRenderSteer = renderSteer;
             System.arraycopy(renderSuspension, 0, prevRenderSuspension, 0, Wheel.COUNT);
         }
+    }
+
+    /**
+     * 同期された姿勢へ寄せる（他人の車）。新しい値が届いていたら目標を差し替えて数え直し、
+     * 残りティック数で割った分だけ進める（バニラの位置の寄せ方と同じ）。
+     */
+    private void approachSyncedPose() {
+        float yaw = entityData.get(DATA_YAW);
+        float pitch = entityData.get(DATA_PITCH);
+        float roll = entityData.get(DATA_ROLL);
+        float steer = entityData.get(DATA_STEER_ANGLE);
+        boolean changed = !renderSnapshotReady || yaw != targetYaw || pitch != targetPitch
+                || roll != targetRoll || steer != targetSteer;
+        for (int i = 0; i < Wheel.COUNT; i++) {
+            double length = entityData.get(DATA_SUSPENSION.get(i));
+            changed |= length != targetSuspension[i];
+            targetSuspension[i] = length;
+        }
+        targetYaw = yaw;
+        targetPitch = pitch;
+        targetRoll = roll;
+        targetSteer = steer;
+        if (!renderSnapshotReady) {
+            // 最初は寄せずにそのまま置く
+            renderYaw = yaw;
+            renderPitch = pitch;
+            renderRoll = roll;
+            renderSteer = steer;
+            System.arraycopy(targetSuspension, 0, renderSuspension, 0, Wheel.COUNT);
+            poseLerpSteps = 0;
+            return;
+        }
+        if (changed) {
+            poseLerpSteps = POSE_LERP_STEPS;
+        }
+        if (poseLerpSteps <= 0) {
+            return;
+        }
+        float step = 1.0F / poseLerpSteps;
+        renderYaw += Mth.wrapDegrees(yaw - renderYaw) * step;
+        renderPitch = wrapRadians(renderPitch + wrapRadians(pitch - renderPitch) * step);
+        renderRoll = wrapRadians(renderRoll + wrapRadians(roll - renderRoll) * step);
+        renderSteer += (steer - renderSteer) * step;
+        for (int i = 0; i < Wheel.COUNT; i++) {
+            renderSuspension[i] += (targetSuspension[i] - renderSuspension[i]) * step;
+        }
+        poseLerpSteps--;
+    }
+
+    /** 角度 [rad] を -π..π へ巻き取る。 */
+    private static float wrapRadians(float angle) {
+        float wrapped = angle % Mth.TWO_PI;
+        if (wrapped >= Mth.PI) {
+            wrapped -= Mth.TWO_PI;
+        } else if (wrapped < -Mth.PI) {
+            wrapped += Mth.TWO_PI;
+        }
+        return wrapped;
     }
 
     /** 送信用に各輪のサスペンション長を float でまとめる。 */
