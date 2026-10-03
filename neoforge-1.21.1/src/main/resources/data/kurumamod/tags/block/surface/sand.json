@@ -2,7 +2,7 @@
 	"replace": false,
 	"values": [
 		"#minecraft:sand",
-		{ "id": "#forge:sand", "required": false },
+		{"id": "#c:sands", "required": false},
 		"minecraft:soul_sand",
 		"minecraft:soul_soil"
 	]

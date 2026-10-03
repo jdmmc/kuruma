@@ -112,15 +112,18 @@ sourceSets.main.resources { srcDir rootProject.file('core/src/main/resources') }
 //
 // <b>runtimeOnly files(...) でクラスパスへ足してはいけない。</b>jar は「見つかった」と
 // ログに出るのに MOD として登録されず、Iris が「Sodium が無い」と言って起動が止まった
+//
+// <b>neo_extra_mods にはフルパスも書ける</b>（自分でビルドした MOD の build/libs など、
+// neo_extra_mods_dir 以外の場所の jar）。ファイル名だけなら neo_extra_mods_dir から探す
 def neoExtraModsDir = project.findProperty('neo_extra_mods_dir')
-def neoExtraMods = neoExtraModsDir != null && file(neoExtraModsDir).isDirectory()
-        ? (project.findProperty('neo_extra_mods') ?: '').split(',')
-                .collect { it.trim() }.findAll { !it.isEmpty() }
-        : []
+def neoExtraMods = (project.findProperty('neo_extra_mods') ?: '').split(',')
+        .collect { it.trim() }.findAll { !it.isEmpty() }
+        .collect { new File(it).isAbsolute() ? new File(it) : (neoExtraModsDir != null ? new File(neoExtraModsDir, it) : null) }
+        .findAll { it != null && it.isFile() }
 
 [NeoClient: 'run-neo', NeoClient1: 'run-neo', NeoClient2: 'run-neo-client2'].each { suffix, dir ->
     def copy = tasks.register("copyExtraMods${suffix}", Copy) {
-        from(neoExtraModsDir ?: 'none') { include neoExtraMods.isEmpty() ? ['__none__'] : neoExtraMods }
+        from neoExtraMods
         into rootProject.file("${dir}/mods")
     }
     tasks.matching { it.name == "run${suffix}" }.configureEach { dependsOn copy }
