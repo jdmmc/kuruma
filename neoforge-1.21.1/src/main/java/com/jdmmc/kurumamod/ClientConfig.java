@@ -79,6 +79,12 @@ public final class ClientConfig {
                     "描画設定「最高」とシェーダーパックのときは自動で切れる")
             .define("liveMirrors", false);
 
+    public static final ModConfigSpec.BooleanValue GPU_CAR_MESHES = BUILDER
+            .comment("車体・ホイール・タイヤを GPU に置いたまま描くかどうか（軽くなる）。",
+                    "切ると、毎フレーム頂点を送り直す以前の描き方になる。見た目は同じ。",
+                    "シェーダーパックを使っている間は、この設定に関係なく以前の描き方になる")
+            .define("gpuCarMeshes", true);
+
     public static final ModConfigSpec.BooleanValue SHOW_DUST = BUILDER
             .comment("タイヤの煙と土煙を出すかどうか。",
                     "舗装路で滑ったときの白煙と、未舗装路（土・砂・砂利・雪）で舞い上げる土煙の両方")
@@ -203,6 +209,9 @@ public final class ClientConfig {
     /** ミラーに実際の景色を映すか。 */
     public static boolean liveMirrors = false;
 
+    /** 車のメッシュを GPU に置いたまま描くか（{@code CarMeshes}）。 */
+    public static boolean gpuCarMeshes = true;
+
     /** タイヤの煙と土煙を出すか。キーの名前（showDust）は保存済みの設定のために据え置いている。 */
     public static boolean showDust = true;
 
@@ -277,6 +286,7 @@ public final class ClientConfig {
         speedFov = SPEED_FOV.get();
         gaugeTheme = GAUGE_THEME.get();
         liveMirrors = LIVE_MIRRORS.get();
+        gpuCarMeshes = GPU_CAR_MESHES.get();
         showDust = SHOW_DUST.get();
         dustDensity = DUST_DENSITY.get();
         showOwnSkidMarks = SHOW_OWN_SKID_MARKS.get();
