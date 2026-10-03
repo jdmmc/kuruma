@@ -1540,7 +1540,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 
 <table class="ja">
 <tr><th>症状</th><th>見るところ</th></tr>
-<tr><td>MOD 一覧にすら出ない</td><td><code>META-INF/mods.toml</code> が jar の直下にあるか（フォルダごと固めていないか）。<code>modId</code> に <code>-</code> や <code>.</code> を使っていないか</td></tr>
+<tr><td>MOD 一覧にすら出ない</td><td><code>META-INF/mods.toml</code>（NeoForge では <code>META-INF/neoforge.mods.toml</code>）が jar の直下にあるか（フォルダごと固めていないか）。<code>modId</code> に <code>-</code> や <code>.</code> を使っていないか</td></tr>
 <tr><td>車種が 1 台も増えない</td><td><code>data/&lt;pack&gt;/cars/*.json</code> があるか。ログの <code>車種を N 件読み込みました</code> を見る</td></tr>
 <tr><td>その 1 台だけ増えない</td><td>その JSON が壊れている。理由がログに残っています</td></tr>
 <tr><td>表示名が <code>ae86</code> のまま出る</td><td>lang の翻訳キーが <code>car.&lt;pack&gt;.&lt;car&gt;</code> になっているか</td></tr>
@@ -1575,7 +1575,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Where to look</th></tr>
-<tr><td>Does not even appear in the mod list</td><td>Is <code>META-INF/mods.toml</code> at the top level of the jar (did you zip the folder itself)? Does <code>modId</code> contain <code>-</code> or <code>.</code>?</td></tr>
+<tr><td>Does not even appear in the mod list</td><td>Is <code>META-INF/mods.toml</code> (on NeoForge, <code>META-INF/neoforge.mods.toml</code>) at the top level of the jar (did you zip the folder itself)? Does <code>modId</code> contain <code>-</code> or <code>.</code>?</td></tr>
 <tr><td>No cars added at all</td><td>Does <code>data/&lt;pack&gt;/cars/*.json</code> exist? Check the <code>車種を N 件読み込みました</code> line in the log</td></tr>
 <tr><td>Only that one car missing</td><td>That JSON is broken. The reason is in the log</td></tr>
 <tr><td>Display name shows as <code>ae86</code></td><td>Is the translation key <code>car.&lt;pack&gt;.&lt;car&gt;</code>?</td></tr>
