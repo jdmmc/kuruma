@@ -6,7 +6,7 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 
 ![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
-**Forge 1.20.1 (47.4.22+) · No dependencies · Multiplayer · Wheel & gamepad**
+**Forge 1.20.1 (47.4.22+) / NeoForge 1.21.1 (21.1+) · No dependencies · Multiplayer · Wheel & gamepad**
 
 🚗 [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
@@ -131,7 +131,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 ![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
-**Forge 1.20.1（47.4.22+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
+**Forge 1.20.1（47.4.22+）／NeoForge 1.21.1（21.1+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
 
 🚗 [ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
