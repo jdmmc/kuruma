@@ -27,6 +27,7 @@
 # NeoForge 1.21.1 build only. Kept separate from extra_mods because both builds read this
 # same file, and 1.20.1 jars cannot load on 1.21.1. NeoForge runs on Mojang names in both
 # development and release, so these jars are used as-is (no deobfuscation step).
-# neo_extra_mods lists jar file names (not name:version) inside neo_extra_mods_dir.
+# neo_extra_mods lists jar file names (not name:version) inside neo_extra_mods_dir,
+# or full paths to jars elsewhere (for example a mod you build yourself).
 #neo_extra_mods_dir=C:/Users/<name>/curseforge/minecraft/Instances/<1.21.1 instance>/mods
 #neo_extra_mods=iris-neoforge-1.8.1+mc1.21.1.jar, sodium-neoforge-0.6.0+mc1.21.1.jar
