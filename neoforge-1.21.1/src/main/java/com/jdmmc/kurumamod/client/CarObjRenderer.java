@@ -6,6 +6,7 @@ import com.jdmmc.kurumamod.physics.Wheel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * 車の描画。Blender で作った OBJ を、車体 1 つ ＋ タイヤ 4 つとして組み立てる。
@@ -86,8 +88,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         applyRotations(car, pose, partialTick);
 
         CarSpec spec = car.getSpec();
-        renderBody(car, model, spec, pose, buffer, packedLight);
-        renderWheels(car, model, spec, pose, buffer, packedLight, partialTick);
+        int lod = lodLevel(car, partialTick);
+        renderBody(car, model, spec, pose, buffer, packedLight, lod);
+        renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
         // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
         // 車体とタイヤを描き終えてから重ねる（理由は KurumaRenderTypes#glass）
         renderGlass(model, spec, pose, buffer, packedLight);
@@ -126,16 +129,40 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         pose.mulPose(Axis.ZP.rotationDegrees(-car.getRenderRoll(partialTick) * Mth.RAD_TO_DEG));
     }
 
+    /** ここより遠い車は頂点を間引いた版で描く [ブロック]（{@link ObjModel#lod}）。 */
+    private static final double LOD_NEAR = 24.0;
+    private static final double LOD_FAR = 64.0;
+
+    /**
+     * 何段階間引くか。カメラからの距離で決める。
+     *
+     * <p>遠い車ほど画面では小さく、細部は数画素に潰れて見分けられない。シェーダーパックを使っていると
+     * 車 1 台の頂点の数がそのまま重さになる（影の段と本描画で 2 回描くうえ、1 頂点ごとにパック用の
+     * 情報を足す）ので、見えないぶんを減らす。</p>
+     */
+    private static int lodLevel(CarEntity car, float partialTick) {
+        Vec3 eye = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+        double distance = eye.distanceToSqr(car.getPosition(partialTick));
+        return distance > LOD_FAR * LOD_FAR ? 2 : distance > LOD_NEAR * LOD_NEAR ? 1 : 0;
+    }
+
     private void renderBody(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
-                            MultiBufferSource buffer, int packedLight) {
+                            MultiBufferSource buffer, int packedLight, int lod) {
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
 
-        // ここでは不透明な面だけ。ガラスは renderGlass が最後に描く
-        ObjModel.get(model.bodyModel()).render(pose.last(),
-                buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
-                packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
-                ObjModel.Pass.OPAQUE);
+        // ここでは不透明な面だけ。ガラスは renderGlass が最後に描く。
+        // GPU に置いたまま描けるならそうする（CarMeshes。シェーダーパック中などは以前の描き方）
+        // 遠ければ間引いた版。灯火・鏡・ガラスは元のメッシュのまま（数が少なく、位置を測るのにも使うため）
+        ObjModel bodyMesh = ObjModel.get(model.bodyModel()).lod(lod);
+        if (CarMeshes.enabled()) {
+            CarMeshes.draw(bodyMesh, false, false, model.bodyTexture(), pose.last(), packedLight);
+        } else {
+            bodyMesh.render(pose.last(),
+                    buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+                    packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
+                    ObjModel.Pass.OPAQUE);
+        }
 
         // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
@@ -202,7 +229,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     }
 
     private void renderWheels(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
-                              MultiBufferSource buffer, int packedLight, float partialTick) {
+                              MultiBufferSource buffer, int packedLight, float partialTick, int lod) {
         // 見た目だけ抑えた角度。物理が使う切れ角とは別物（大きく流したとき、進行方向に対して
         // 垂直を超えたタイヤが描かれるのを防ぐ）
         float steer = car.getVisualSteerAngle(partialTick);
@@ -235,9 +262,11 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         if (!attachedTire) {
             CarPartModel.Tire chosen = tire != null ? tire : CarPartModel.DEFAULT_TIRE;
             tireMesh = ObjModel.fittedTire(chosen.model(), chosen.innerRadius(), chosen.outerRadius(),
-                    beadRadius(look, wheelMesh), look.designRadius());
+                    beadRadius(look, wheelMesh), look.designRadius()).lod(lod);
             tireTexture = chosen.texture();
         }
+        // 寸法を測り終えてから間引いた版へ（ビードの半径などは元のメッシュで測る）
+        ObjModel wheelDrawn = wheelMesh.lod(lod);
 
         for (Wheel wheel : Wheel.VALUES) {
             pose.pushPose();
@@ -284,9 +313,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
             // ホイールの表裏が逆に見えるときはこの条件を反転させる
             if (attachedTire) {
-                draw(look.model(), look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+                drawMesh(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
             } else {
-                drawRim(wheelMesh, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+                drawRim(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
                 drawMesh(tireMesh, tireTexture, pose, buffer, packedLight, !wheel.isLeft());
             }
             pose.popPose();
@@ -313,8 +342,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     /** ホイールを、付属のタイヤを除いて描く。 */
     private void drawRim(ObjModel obj, ResourceLocation texture, PoseStack pose,
                          MultiBufferSource buffer, int packedLight, boolean mirrorX) {
-        obj.renderWithoutTire(pose.last(), buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
-                packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.OPAQUE);
+        if (CarMeshes.enabled()) {
+            CarMeshes.draw(obj, true, mirrorX, texture, pose.last(), packedLight);
+        } else {
+            obj.renderWithoutTire(pose.last(), buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
+                    packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.OPAQUE);
+        }
         if (obj.hasTranslucentRim()) {
             obj.renderWithoutTire(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(texture)),
                     packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.TRANSLUCENT);
@@ -340,17 +373,15 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      * <p>透ける面が 1 つも無ければ 2 パス目は呼ばない。呼ぶと {@code RenderType} が
      * 切り替わって<b>何も描かない描画呼び出しがタイヤ 4 本ぶん増える</b>だけになる。</p>
      */
-    private void draw(ResourceLocation model, ResourceLocation texture, PoseStack pose,
-                      MultiBufferSource buffer, int packedLight, boolean mirrorX) {
-        drawMesh(ObjModel.get(model), texture, pose, buffer, packedLight, mirrorX);
-    }
-
-    /** 読み込み済みのメッシュを描く（合わせ直したタイヤのように、ファイルと 1 対 1 でないもの）。 */
     private void drawMesh(ObjModel obj, ResourceLocation texture, PoseStack pose,
                           MultiBufferSource buffer, int packedLight, boolean mirrorX) {
-        VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
-        obj.render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
-                1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE);
+        if (CarMeshes.enabled()) {
+            CarMeshes.draw(obj, false, mirrorX, texture, pose.last(), packedLight);
+        } else {
+            VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
+            obj.render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                    1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE);
+        }
 
         if (!obj.hasTranslucent()) {
             return;

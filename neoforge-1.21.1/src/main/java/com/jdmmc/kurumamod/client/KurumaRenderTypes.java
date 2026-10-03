@@ -187,6 +187,33 @@ public final class KurumaRenderTypes extends RenderType {
     private static final Map<ResourceLocation, RenderType> GLASS = new HashMap<>();
 
     /**
+     * GPU に置いた車のメッシュを描くときの状態（{@link CarMeshes}）。<b>頂点は積まない</b>——
+     * 描く直前に {@code setupRenderState} で状態だけ整えて、頂点バッファを直接流す。
+     *
+     * <p>中身は {@code entityCutoutNoCull} と同じで、シェーダーだけが自前（明るさと変換を外から渡す）。</p>
+     */
+    public static RenderType carMesh(ResourceLocation texture) {
+        return CAR_MESHES.computeIfAbsent(texture, location -> create(
+                "kurumamod_car_mesh",
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                256,
+                true,
+                false,
+                CompositeState.builder()
+                        .setShaderState(new ShaderStateShard(CarMeshes::shader))
+                        .setTextureState(new TextureStateShard(location, false, false))
+                        .setTransparencyState(NO_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP)
+                        .setOverlayState(NO_OVERLAY)
+                        .createCompositeState(true)));
+    }
+
+    /** テクスチャごとに 1 つ。 */
+    private static final Map<ResourceLocation, RenderType> CAR_MESHES = new HashMap<>();
+
+    /**
      * 鏡面に景色を貼るためのもの。<b>テクスチャは {@link MirrorRenderer} が持っている
      * フレームバッファ</b>で、{@code ResourceLocation} では指せない。</p>
      *

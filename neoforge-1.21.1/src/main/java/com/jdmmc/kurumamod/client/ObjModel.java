@@ -1,7 +1,12 @@
 package com.jdmmc.kurumamod.client;
 
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -199,6 +204,21 @@ public final class ObjModel {
     private final Map<String, int[]> facesByName;
     /** 鏡面。読み込みのときに 1 度だけ measure しておく。 */
     private final List<MirrorFace> mirrors;
+    /**
+     * GPU に置いた不透明な面（{@link CarMeshes}）。添字は {@code (タイヤ抜き ? 2 : 0) | (左右反転 ? 1 : 0)}。
+     * 初めて描くときに作り、モデルを読み直すとき（{@link #clearCache}）に捨てる。
+     */
+    private final VertexBuffer[] gpuMeshes = new VertexBuffer[4];
+    /** 作ってみたら面が無かった組み合わせ。毎フレーム作り直そうとしないため。 */
+    private final boolean[] gpuEmpty = new boolean[4];
+
+    /**
+     * 遠くの車に使う、頂点を間引いた版（{@link #lod}）。添字が段階で、0（元のまま）は使わない。
+     * 初めて要るときに作る。
+     */
+    // 長さは定数で書くこと。LOD_CELLS（static）を見ると、クラスの読み込み中に作られる EMPTY から
+    // まだ用意されていない表を読むことになって、クラスの初期化ごと落ちる（実際に落ちた）
+    private final ObjModel[] lods = new ObjModel[LOD_LEVELS];
     /** {@link #groupSideCenters} の答え。メッシュから決まるので 1 度だけ測る。 */
     private final Map<String, List<Vec3>> sideCenters = new HashMap<>();
     /** {@link #isUvMapped} の答え。同上。 */
@@ -207,6 +227,16 @@ public final class ObjModel {
     /** OBJ の {@code o} / {@code g} ひと区切り。 */
     private record Group(String name, int from, int to) {
     }
+
+    /**
+     * 間引くときの箱の大きさ [m]。段階 1 は中距離、2 は遠距離（距離は {@code CarObjRenderer} が決める）。
+     *
+     * <p>S15 の車体なら 5cm で 7 割・12cm で 4 割、ホイールなら 5cm で 5 割・12cm で 2 割の面が残る。
+     * 24 ブロック先の 5cm、64 ブロック先の 12cm は、どちらも 1080p の画面で 2 画素ほど。</p>
+     */
+    private static final double[] LOD_CELLS = {0.0, 0.05, 0.12};
+    /** {@link #LOD_CELLS} の長さ。コンパイル時の定数なので、クラスの初期化の順番に左右されない。 */
+    private static final int LOD_LEVELS = 3;
 
     private ObjModel(float[] vertices, List<Group> groups) {
         this.vertices = vertices;
@@ -727,8 +757,161 @@ public final class ObjModel {
 
     /** リソースの再読み込みで呼ぶ。次に描くときに読み直される（F3+T で Blender の書き出しを反映できる）。 */
     public static void clearCache() {
+        // GPU に置いた頂点は GC では消えないので、自分で返す
+        FITTED.values().forEach(ObjModel::releaseGpu);
+        CACHE.values().forEach(ObjModel::releaseGpu);
         FITTED.clear();
         CACHE.clear();
+    }
+
+    /**
+     * GPU に置いた不透明な面。<b>初めて呼ばれたときに作る</b>（描画スレッドから呼ぶこと）。
+     *
+     * <p>頂点の中身は {@link #render} が毎フレーム積んでいたものと同じで、変換だけを掛けていない
+     * （メッシュの座標のまま）。明るさとオーバーレイは使わないので 0 を入れておく
+     * （{@code kurumamod:car_mesh} は外から渡された値を読む）。</p>
+     *
+     * @param withoutTire 付属のタイヤを除くか（タイヤを別に描くときのホイール）
+     * @param mirrorX     左右を反転するか（右側のタイヤ）。反転は頂点の段で済ませる（{@link #render} の理由と同じ）
+     * @return 面が 1 つも無ければ null
+     */
+    VertexBuffer gpuMesh(boolean withoutTire, boolean mirrorX) {
+        int index = (withoutTire ? 2 : 0) | (mirrorX ? 1 : 0);
+        if (gpuMeshes[index] != null || gpuEmpty[index]) {
+            return gpuMeshes[index];
+        }
+        int[] faces = withoutTire ? opaqueRimFaces : opaqueFaces;
+        if (faces.length == 0) {
+            gpuEmpty[index] = true;
+            return null;
+        }
+        float flip = mirrorX ? -1.0F : 1.0F;
+        BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+        for (int face : faces) {
+            int base = face * FACE_FLOATS;
+            for (int corner = 0; corner < 4; corner++) {
+                int offset = base + corner * STRIDE;
+                builder.addVertex(flip * vertices[offset], vertices[offset + 1], vertices[offset + 2])
+                        .setColor(vertices[offset + 8], vertices[offset + 9], vertices[offset + 10],
+                                vertices[offset + ALPHA_OFFSET])
+                        .setUv(vertices[offset + 6], vertices[offset + 7])
+                        .setOverlay(0)
+                        .setLight(0)
+                        .setNormal(flip * vertices[offset + 3], vertices[offset + 4], vertices[offset + 5]);
+            }
+        }
+        VertexBuffer buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
+        buffer.bind();
+        buffer.upload(builder.buildOrThrow());
+        VertexBuffer.unbind();
+        gpuMeshes[index] = buffer;
+        return buffer;
+    }
+
+    /**
+     * 頂点を間引いた版。<b>遠くの車を軽く描くため</b>（シェーダーパック使用中は特に効く）。
+     *
+     * <p>空間を {@link #LOD_CELLS} の大きさの箱に区切り、同じ箱に入った頂点をその平均の位置へ寄せる
+     * （頂点クラスタリング）。それで 3 点より少なくつぶれた面（点や線になった面）は捨てる。
+     * 細部（ホイールのスポーク、車体の小さな凹凸）から消えていく。</p>
+     *
+     * <p>結果は普通の {@code ObjModel} なので、面の振り分け（不透明・ガラス・灯火・タイヤ）も
+     * 読み込みと同じ道で決まる。UV と法線は元の頂点のまま。</p>
+     *
+     * @param level 0 なら自分自身。1 以上は間引いた版（大きいほど粗い）
+     */
+    public ObjModel lod(int level) {
+        if (level <= 0 || faceCount == 0) {
+            return this;
+        }
+        int index = Math.min(level, LOD_CELLS.length - 1);
+        ObjModel lod = lods[index];
+        if (lod == null) {
+            lod = simplify(LOD_CELLS[index]);
+            lods[index] = lod;
+        }
+        return lod;
+    }
+
+    private ObjModel simplify(double cell) {
+        // 箱ごとの平均の位置
+        Map<Long, double[]> sums = new HashMap<>();
+        for (int face = 0; face < faceCount; face++) {
+            for (int corner = 0; corner < 4; corner++) {
+                int offset = face * FACE_FLOATS + corner * STRIDE;
+                double[] sum = sums.computeIfAbsent(cellKey(offset, cell), key -> new double[4]);
+                sum[0] += vertices[offset];
+                sum[1] += vertices[offset + 1];
+                sum[2] += vertices[offset + 2];
+                sum[3]++;
+            }
+        }
+
+        // 残る面を、順番を保ったまま詰める。kept[i] = 面 i より前に残った面の数（グループの範囲の数え直しに使う）
+        int[] kept = new int[faceCount + 1];
+        float[] out = new float[vertices.length];
+        int outFaces = 0;
+        long[] cells = new long[4];
+        for (int face = 0; face < faceCount; face++) {
+            kept[face] = outFaces;
+            int distinct = 0;
+            for (int corner = 0; corner < 4; corner++) {
+                long key = cellKey(face * FACE_FLOATS + corner * STRIDE, cell);
+                boolean seen = false;
+                for (int i = 0; i < distinct; i++) {
+                    seen |= cells[i] == key;
+                }
+                if (!seen) {
+                    cells[distinct++] = key;
+                }
+            }
+            if (distinct < 3) {
+                continue;
+            }
+            int from = face * FACE_FLOATS;
+            int to = outFaces * FACE_FLOATS;
+            System.arraycopy(vertices, from, out, to, FACE_FLOATS);
+            for (int corner = 0; corner < 4; corner++) {
+                double[] sum = sums.get(cellKey(from + corner * STRIDE, cell));
+                int offset = to + corner * STRIDE;
+                out[offset] = (float) (sum[0] / sum[3]);
+                out[offset + 1] = (float) (sum[1] / sum[3]);
+                out[offset + 2] = (float) (sum[2] / sum[3]);
+            }
+            outFaces++;
+        }
+        kept[faceCount] = outFaces;
+
+        List<Group> simplified = new ArrayList<>(groups.size());
+        for (Group group : groups) {
+            simplified.add(new Group(group.name(), kept[Math.min(group.from(), faceCount)],
+                    kept[Math.min(group.to(), faceCount)]));
+        }
+        return new ObjModel(java.util.Arrays.copyOf(out, outFaces * FACE_FLOATS), simplified);
+    }
+
+    /** 頂点がどの箱に入るか。座標を箱の番号に直して 1 つの long に詰める。 */
+    private long cellKey(int offset, double cell) {
+        long x = (long) Math.floor(vertices[offset] / cell) & 0x1FFFFF;
+        long y = (long) Math.floor(vertices[offset + 1] / cell) & 0x1FFFFF;
+        long z = (long) Math.floor(vertices[offset + 2] / cell) & 0x1FFFFF;
+        return x | (y << 21) | (z << 42);
+    }
+
+    /** GPU に置いた頂点を返す。 */
+    private void releaseGpu() {
+        for (ObjModel lod : lods) {
+            if (lod != null) {
+                lod.releaseGpu();
+            }
+        }
+        for (int i = 0; i < gpuMeshes.length; i++) {
+            if (gpuMeshes[i] != null) {
+                gpuMeshes[i].close();
+                gpuMeshes[i] = null;
+            }
+            gpuEmpty[i] = false;
+        }
     }
 
     public boolean isEmpty() {
@@ -810,6 +993,11 @@ public final class ObjModel {
     private void renderFaces(int[] faces, Matrix4f matrix, Matrix3f normal, float flip, VertexConsumer consumer,
                              int packedLight, int packedOverlay,
                              float tintRed, float tintGreen, float tintBlue, float alpha) {
+        // Embeddium / Sodium があれば頂点を塊で渡す。シェーダーパック使用中にいちばん効く（BulkVertexWriter）
+        if (BulkVertexWriter.write(consumer, vertices, faces, FACE_FLOATS, STRIDE, ALPHA_OFFSET, matrix, normal,
+                flip, packedLight, packedOverlay, tintRed, tintGreen, tintBlue, alpha)) {
+            return;
+        }
 
         // 1.21 の VertexConsumer には Matrix3f で法線を回す口が無いので、ここで回して渡す
         Vector3f n = new Vector3f();
