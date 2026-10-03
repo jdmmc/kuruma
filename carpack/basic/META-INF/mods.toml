@@ -19,7 +19,7 @@ description = '''The official car pack for KurumaMod.'''
 [[dependencies.kurumamod_basic_carpack]]
 modId = "kurumamod"
 mandatory = true
-versionRange = "[1.2.0,)"
+versionRange = "[1.6.0,)"
 ordering = "NONE"
 side = "BOTH"
 

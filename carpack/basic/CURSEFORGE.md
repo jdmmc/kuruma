@@ -17,7 +17,7 @@ can be tuned in-game, so the numbers below are a starting point, not something f
 ## 📦 How to install
 
 1. Minecraft **1.20.1** with **Forge 47.4.22+**, or Minecraft **1.21.1** with **NeoForge 21.1+** — the same jar works on both
-2. **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** — install it first (on NeoForge, Kuruma 1.6.0 or later)
+2. **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** — install it first (1.6.0 or later)
 3. This pack's `.jar` into your `mods/` folder (the same place as Kuruma)
 
 That's it. No extra libraries, no config files to edit.
@@ -70,7 +70,7 @@ Kuruma に最初から入っている軽いスポーツカーの隣に置きた�
 ## 📦 導入方法
 
 1. Minecraft **1.20.1** ＋ **Forge 47.4.22 以降**、または Minecraft **1.21.1** ＋ **NeoForge 21.1 以降**（同じ jar でどちらにも入ります）
-2. **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** を先に入れる（NeoForge では Kuruma 1.6.0 以降）
+2. **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** を先に入れる（1.6.0 以降）
 3. このパックの `.jar` を `mods/` フォルダへ（Kuruma と同じ場所）
 
 以上です。追加のライブラリも、設定ファイルの編集も要りません。
