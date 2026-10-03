@@ -51,6 +51,10 @@ Set **camber, offset and wheel width** until it sits just right — flush, poke,
 
 Tarmac, dirt, gravel, sand, snow, ice — change the surface and the car behaves completely differently. Rain makes the road slippery, while tunnels and bridges stay dry. Roads from other mods work as they are.
 
+## 💡 Night driving
+
+Switch the headlights on with **L** and they really light the road: a low beam with a proper cut-off, beams glowing in fog and rain, and shadows cast by trees and walls. Drift through your own tyre smoke and it lights up in the beam. Every car's lights work, however many are on the road, and they work with shader packs (Iris / Oculus) too. Tune the aim, brightness and reach with **Ctrl+L**.
+
 ## 🏁 Racing
 
 ![kuruma mod race image](https://cdn.modrinth.com/data/ghlgwxFS/images/4d801d6626f96f7c6d289f615770966559e12df3.jpeg)
@@ -100,6 +104,7 @@ Fully analog throttle, brake and steering. Plug it in, press **J**, and move the
 | **H** | Mod menu (display and camera) |
 | **V** / **PageUp / PageDown** | Camera follow / distance |
 | **L** | Headlights |
+| **Ctrl+L** | Headlight settings |
 | **J** | Controller setup |
 
 Seats two — whoever gets in first drives. All keys can be changed in Options → Controls.
@@ -176,6 +181,10 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 舗装・土・砂利・砂・雪・氷。路面が変われば、車の挙動はまったく変わります。雨が降れば路面が滑りやすくなり、トンネルや橋の下は乾いたまま。他 MOD の道路ブロックの上でも、そのまま走れます。
 
+## 💡 夜のドライブ
+
+**L** でヘッドライトを点けると、本当に路面が照らされます。カットオフの付いたロービームの配光、霧や雨の中に浮かぶ光の筋、木や塀が落とす影。ドリフトの煙も光を受けて浮かび上がります。何台走っていても全車のライトが路面を照らし、シェーダーパック（Iris / Oculus）とも一緒に使えます。光軸・明るさ・届く距離は **Ctrl+L** で調整できます。
+
 ## 🏁 レース
 
 ![kuruma mod race image](https://cdn.modrinth.com/data/ghlgwxFS/images/4d801d6626f96f7c6d289f615770966559e12df3.jpeg)
@@ -225,6 +234,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 | **H** | MOD メニュー（表示とカメラ） |
 | **V** / **PageUp / PageDown** | カメラ追従 / 距離 |
 | **L** | ヘッドライト |
+| **Ctrl+L** | ヘッドライトの調整 |
 | **J** | コントローラ設定 |
 
 2 人乗りで、先に乗った方が運転します。キーはすべて「設定 → 操作設定」で変更できます。
