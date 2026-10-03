@@ -1,4 +1,4 @@
-# Kuruma - Sample Car Pack
+# Kuruma - Example Car Pack
 
 ### Adds a car to Kuruma.
 
@@ -63,7 +63,7 @@ All rights reserved. Do not redistribute.
 
 ---
 
-# Kuruma - サンプルカーパック（日本語）
+# Kuruma - エグザンプルカーパック（日本語）
 
 ### Kuruma に車を 1 台追加します。
 
