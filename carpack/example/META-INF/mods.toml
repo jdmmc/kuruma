@@ -19,7 +19,7 @@ description = '''An example car pack for KurumaMod, meant as a starting point fo
 [[dependencies.kurumamod_example_carpack]]
 modId = "kurumamod"
 mandatory = true
-versionRange = "[1.2.0,)"
+versionRange = "[1.6.0,)"
 ordering = "NONE"
 side = "BOTH"
 
