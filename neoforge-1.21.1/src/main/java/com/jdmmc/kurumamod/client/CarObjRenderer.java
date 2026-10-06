@@ -267,6 +267,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
         // 寸法を測り終えてから間引いた版へ（ビードの半径などは元のメッシュで測る）
         ObjModel wheelDrawn = wheelMesh.lod(lod);
+        // シェーダーパックが太陽・月の影を描いている最中は、ホイール（リム）を描かずタイヤだけ描く。
+        // タイヤの影は落ち、スポークの影は落ちない
+        boolean shadowPass = HeadlightVolume.ShaderPacks.renderingShadowPass();
 
         for (Wheel wheel : Wheel.VALUES) {
             pose.pushPose();
@@ -312,10 +315,16 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             // 理由は ObjModel#render の javadoc にある。ここより外側の回転は鏡像化された
             // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
             // ホイールの表裏が逆に見えるときはこの条件を反転させる
-            if (attachedTire) {
+            if (attachedTire && shadowPass) {
+                wheelDrawn.renderTireOnly(pose.last(),
+                        buffer.getBuffer(RenderType.entityCutoutNoCull(look.texture())),
+                        packedLight, OverlayTexture.NO_OVERLAY, !wheel.isLeft());
+            } else if (attachedTire) {
                 drawMesh(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
             } else {
-                drawRim(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+                if (!shadowPass) {
+                    drawRim(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+                }
                 drawMesh(tireMesh, tireTexture, pose, buffer, packedLight, !wheel.isLeft());
             }
             pose.popPose();
