@@ -191,6 +191,8 @@ public final class ObjModel {
     /** タイヤ（{@link #TIRE_PREFIX}）を除いた面。タイヤを別に描くときのホイール。 */
     private final int[] opaqueRimFaces;
     private final int[] translucentRimFaces;
+    /** 付属のタイヤ（{@link #TIRE_PREFIX}）の不透明な面だけ。シェーダーパックの影にタイヤだけ落とすときに使う。 */
+    private final int[] opaqueTireFaces;
     /** タイヤの面が 1 つでもあるか。 */
     private final boolean hasTire;
     /** タイヤの面の半径の範囲 {内径, 外径}。タイヤが無ければ null。 */
@@ -313,6 +315,7 @@ public final class ObjModel {
         this.hasTire = anyTire;
         this.opaqueRimFaces = without(opaqueFaces, tire);
         this.translucentRimFaces = without(translucentFaces, tire);
+        this.opaqueTireFaces = java.util.Arrays.stream(opaqueFaces).filter(face -> tire[face]).toArray();
         double[] tireRange = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
         double[] allRange = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
         double rimOuter = 0.0;
@@ -991,6 +994,13 @@ public final class ObjModel {
         renderFaces(pass == Pass.TRANSLUCENT ? translucentRimFaces : opaqueRimFaces,
                 pose.pose(), pose.normal(), mirrorX ? -1.0F : 1.0F, consumer, packedLight, packedOverlay,
                 1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    /** 付属のタイヤ（{@link #TIRE_PREFIX}）の不透明な面だけを描く。シェーダーパックの影を描くときに使う。 */
+    public void renderTireOnly(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay,
+                               boolean mirrorX) {
+        renderFaces(opaqueTireFaces, pose.pose(), pose.normal(), mirrorX ? -1.0F : 1.0F, consumer,
+                packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderFaces(int[] faces, Matrix4f matrix, Matrix3f normal, float flip, VertexConsumer consumer,
