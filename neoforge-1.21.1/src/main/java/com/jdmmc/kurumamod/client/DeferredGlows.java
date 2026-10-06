@@ -37,6 +37,8 @@ import java.io.IOException;
  * 一方、路面の照り返し（{@link HeadlightVolume}）は世界を描き終えた後に KurumaMod 自前のシェーダーで
  * 重ねていて、パックが手を出さないので崩れなかった。そこで光芒もその段へ回す。</p>
  *
+ * <p>タイヤ痕（{@link CarSkidMarks}）もパック使用中は同じ描き方（{@link #draw}）を借りる。</p>
+ *
  * <p>形の計算は {@link CarLights} のまま。書き込み先をここの記録器に替えるだけで、頂点は
  * 車を描いている時点の行列で変換済みの座標（カメラを原点にした位置）として残る。
  * <b>1.21 ではこの行列にカメラの回転が入っていない</b>（1.20.1 版との違い）ので、描くときに
@@ -115,8 +117,9 @@ public final class DeferredGlows {
     /**
      * 世界を描き終えた後に足す。<b>路面の照り返し（{@link HeadlightVolume}）より後</b>——あちらは画面を写して
      * 描き直すので、先に足すと消される。優先度を下げて後に回している。
+     * タイヤ痕（{@link CarSkidMarks}、LOW）よりも後——路面の跡が手前の光芒を暗く塗らないように。
      */
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderLevel(RenderLevelStageEvent event) {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) {
             // 前のフレームの描き残しを捨てる（描き終えた後の段が飛ばなかったとき）
@@ -130,10 +133,37 @@ public final class DeferredGlows {
             return;
         }
         RECORDER.commit();
-        if (count == 0 || shader == null) {
+        draw(event.getProjectionMatrix(), event.getModelViewMatrix(), data, count, GL11.GL_SRC_ALPHA, GL11.GL_ONE, true, shader);
+        count = 0;
+    }
+
+    /** シェーダーが使えるか（無ければ読んでみる）。タイヤ痕がパック使用中の描き方を選ぶのに使う。 */
+    static boolean shaderReady() {
+        ensureShader();
+        return shader != null;
+    }
+
+    static ShaderInstance shader() {
+        return shader;
+    }
+
+    /**
+     * 色付きの四角形を自前のシェーダーで描く（パックにプログラムを差し替えられない描き方）。
+     * {@code data} は x, y, z, r, g, b, a の 7 個ずつで、{@code modelView} を掛ける前の座標。
+     * 色の足し方は {@code srcRgb} / {@code dstRgb} で選ぶ（光芒は加算の {@code SRC_ALPHA, ONE}、
+     * タイヤ痕は路面を暗くする掛け算の {@code ZERO, ONE_MINUS_SRC_ALPHA}）。深度はテストするだけで書かない。
+     *
+     * @param bindMain 主画面へ描くか。false なら呼ぶ側が結んだ書き込み先へ描く（パックの仕上げ前の絵）
+     * @param program  使うシェーダー（位置と色の頂点を受け、行列は ModelViewMat / ProjMat）
+     */
+    static void draw(Matrix4f projection, Matrix4f modelViewMatrix, float[] data, int count,
+                     int srcRgb, int dstRgb, boolean bindMain, ShaderInstance program) {
+        if (count == 0 || program == null) {
             return;
         }
-        Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
+        if (bindMain) {
+            Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
+        }
 
         Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
         VertexSorting oldSorting = RenderSystem.getVertexSorting();
@@ -142,28 +172,28 @@ public final class DeferredGlows {
         // 光芒が画面に貼り付いて車から離れて見える
         Matrix4fStack modelView = RenderSystem.getModelViewStack();
         modelView.pushMatrix();
-        modelView.set(event.getModelViewMatrix());
+        modelView.set(modelViewMatrix);
         RenderSystem.applyModelViewMatrix();
-        RenderSystem.setProjectionMatrix(event.getProjectionMatrix(), VertexSorting.DISTANCE_TO_ORIGIN);
+        RenderSystem.setProjectionMatrix(projection, VertexSorting.DISTANCE_TO_ORIGIN);
 
         // <b>ブレンドは OpenGL を直接呼んで掛ける。</b>Oculus は RenderSystem / GlStateManager のブレンドの
         // 呼び出しを横取りして固定するので、それを通すと加算が掛からず、光芒がベタ塗りの円盤と扇形に
         // なった（輪郭のぼかしの α が丸ごと無視された）。直接掛けて、描き終えたら元の状態に戻す。
         // GlStateManager の覚えている値とずれないよう、戻すのも直接（前の状態をそのまま書き戻す）
         boolean blendWas = GL11.glIsEnabled(GL11.GL_BLEND);
-        int srcRgb = GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB);
-        int dstRgb = GL11.glGetInteger(GL14.GL_BLEND_DST_RGB);
+        int oldSrcRgb = GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB);
+        int oldDstRgb = GL11.glGetInteger(GL14.GL_BLEND_DST_RGB);
         int srcAlpha = GL11.glGetInteger(GL14.GL_BLEND_SRC_ALPHA);
         int dstAlpha = GL11.glGetInteger(GL14.GL_BLEND_DST_ALPHA);
         int equation = GL11.glGetInteger(GL20.GL_BLEND_EQUATION_RGB);
         GL11.glEnable(GL11.GL_BLEND);
         GL14.glBlendEquation(GL14.GL_FUNC_ADD);
-        GL14.glBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO, GL11.GL_ONE);
+        GL14.glBlendFuncSeparate(srcRgb, dstRgb, GL11.GL_ZERO, GL11.GL_ONE);
         RenderSystem.enableDepthTest();
         RenderSystem.depthFunc(515); // GL_LEQUAL
         RenderSystem.depthMask(false);
         RenderSystem.disableCull();
-        RenderSystem.setShader(() -> shader);
+        RenderSystem.setShader(() -> program);
 
         BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         for (int i = 0; i < count; i++) {
@@ -172,10 +202,9 @@ public final class DeferredGlows {
                     .setColor(data[o + 3], data[o + 4], data[o + 5], data[o + 6]);
         }
         BufferUploader.drawWithShader(builder.buildOrThrow());
-        count = 0;
 
         GL14.glBlendEquation(equation);
-        GL14.glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
+        GL14.glBlendFuncSeparate(oldSrcRgb, oldDstRgb, srcAlpha, dstAlpha);
         if (!blendWas) {
             GL11.glDisable(GL11.GL_BLEND);
         }

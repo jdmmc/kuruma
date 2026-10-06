@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
+import com.jdmmc.kurumamod.client.CarSkidMarks;
 import com.jdmmc.kurumamod.client.HeadlightVolume;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -26,6 +27,8 @@ public abstract class IrisPipelineMixin {
             at = @At(value = "INVOKE", remap = false,
                     target = "Lnet/irisshaders/iris/pipeline/CompositeRenderer;renderAll()V"))
     private void kurumamod$headlightsBeforeComposite(CallbackInfo ci) {
+        // タイヤ痕を先に入れる。光がその上から路面を照らす
+        CarSkidMarks.renderBeforePackComposite();
         HeadlightVolume.renderBeforePackComposite();
     }
 }
