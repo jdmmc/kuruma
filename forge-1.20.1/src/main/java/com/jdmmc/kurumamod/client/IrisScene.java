@@ -150,6 +150,24 @@ final class IrisScene {
         GlStateManager._viewport(0, 0, width, height);
     }
 
+    /**
+     * パックの絵を書き込み先にし、深度に主画面の深度（Iris もこれをそのまま使う）を付ける。
+     * 深度テストをして描くもの（タイヤ痕）のため。描き終えたら {@link #detachDepth()} で外すこと
+     * （同じ枠を光の書き戻しにも使うので、付けたままにしない）。
+     */
+    static void bindForWriteWithDepth(int sceneTexture, int depthTexture) {
+        bindScene(GL30.GL_FRAMEBUFFER, sceneTexture);
+        GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT,
+                GL11.GL_TEXTURE_2D, depthTexture, 0);
+        GlStateManager._viewport(0, 0, width, height);
+    }
+
+    static void detachDepth() {
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, sceneFramebuffer);
+        GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT,
+                GL11.GL_TEXTURE_2D, 0, 0);
+    }
+
     private static void bindScene(int target, int sceneTexture) {
         if (sceneFramebuffer < 0) {
             sceneFramebuffer = GlStateManager.glGenFramebuffers();

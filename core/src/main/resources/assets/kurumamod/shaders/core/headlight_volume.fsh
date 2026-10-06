@@ -102,6 +102,12 @@ const int PACK_TINT_GRID = 6;
 const int VOLUME_STEPS = 28;
 // 面の向きをこの値（軸成分の cos。0.9 でおよそ 25 度）より軸に近ければ軸へ揃える
 const float AXIS_SNAP = 0.9;
+// 面への置き直し（refineSurface）。視線を辿る幅は「隣の画素との奥行きの差 × SCALE ＋ MIN」[m]。
+// パックのずらしは半画素なので差の半分で足りるが、余裕を見て 1 画素ぶん。歩数は浅い角度の遠くで
+// 幅が数 m になっても届くだけ
+const float REFINE_MARGIN_SCALE = 1.0;
+const float REFINE_MARGIN_MIN = 0.02;
+const int REFINE_STEPS = 32;
 const float VOLUME_LENGTH = 40.0;
 // 前方散乱の強さ（Henyey-Greenstein の g）。0 で全方向に均等、1 に近いほど前へ集まる
 const float PHASE_G = 0.6;
@@ -334,6 +340,86 @@ vec3 reconstruct(vec2 uv) {
     return world.xyz / world.w;
 }
 
+// 深度から組み立てた点 p を、視線上の<b>本当のブロックの面</b>へ置き直す。当たれば n も面の向きにして true。
+//
+// <b>シェーダーパックは TAA のために深度を毎フレーム半画素ずらして描く</b>（パックの頂点シェーダーの中で
+// ずらすので、こちらの射影には入っていない）。水平に近い視線では半画素で奥行きが数十 cm〜1m 変わるので、
+// 組み立てた点が路面の上へ浮いたり下へ潜ったりする。潜った点は足元のブロックに遮られて影になり、
+// <b>照らされた路面の縁や遠くが毎フレームざわついた</b>（視点を水平にするほどひどい）。
+// 視線を格子で辿って面との交点を取れば、ずれは「どの面が見えているか」の半画素ぶんだけになる。
+// 辿る幅（margin）は隣の画素との奥行きの差から決めるので、正面を向いた面（車体など）ではほとんど
+// 辿らず、手前のブロックを拾わない。格子に無いもの（車・人）は当たらないので元のまま
+bool refineSurface(inout vec3 p, inout vec3 n, float margin) {
+    float dist = length(p);
+    if (dist < 1.0e-3 || margin <= 0.0) {
+        return false;
+    }
+    vec3 dir = p / dist;
+    float t = max(dist - margin, 0.0);
+    float end = dist + margin;
+    vec3 origin = CameraFrac;
+    vec3 start = origin + dir * t;
+    ivec3 cell = ivec3(floor(start));
+    ivec3 stepDir = ivec3(sign(dir));
+    vec3 inv = 1.0 / max(abs(dir), vec3(1.0e-6));
+    vec3 invDir = inverseDir(dir);
+    vec3 next = vec3(
+            (dir.x > 0.0 ? float(cell.x) + 1.0 - start.x : start.x - float(cell.x)) * inv.x,
+            (dir.y > 0.0 ? float(cell.y) + 1.0 - start.y : start.y - float(cell.y)) * inv.y,
+            (dir.z > 0.0 ? float(cell.z) + 1.0 - start.z : start.z - float(cell.z)) * inv.z) + t;
+    for (int i = 0; i < REFINE_STEPS; i++) {
+        float tExit = min(min(next.x, min(next.y, next.z)), end);
+        vec3 lo;
+        vec3 hi;
+        occluderBox(cell, lo, hi);
+        if (hi.y > lo.y) {
+            vec3 a = (vec3(cell) + lo - origin) * invDir;
+            vec3 b = (vec3(cell) + hi - origin) * invDir;
+            vec3 near = min(a, b);
+            vec3 far = max(a, b);
+            float enter = max(near.x, max(near.y, near.z));
+            float exit = min(far.x, min(far.y, far.z));
+            if (enter <= exit && exit >= t && enter <= tExit) {
+                // 辿り始めがもう箱の中なら、どの面か分からないので元のまま
+                if (enter < t) {
+                    return false;
+                }
+                p = dir * enter;
+                n = near.x >= near.y && near.x >= near.z ? vec3(-sign(dir.x), 0.0, 0.0)
+                        : near.y >= near.z ? vec3(0.0, -sign(dir.y), 0.0)
+                        : vec3(0.0, 0.0, -sign(dir.z));
+                return true;
+            }
+        }
+        t = tExit;
+        if (t >= end) {
+            return false;
+        }
+        if (next.x <= next.y && next.x <= next.z) {
+            cell.x += stepDir.x;
+            next.x += inv.x;
+        } else if (next.y <= next.z) {
+            cell.y += stepDir.y;
+            next.y += inv.y;
+        } else {
+            cell.z += stepDir.z;
+            next.z += inv.z;
+        }
+    }
+    return false;
+}
+
+// 隣の画素との奥行きの差（近い方）。半画素のずれでどれだけ奥行きが動きうるかの目安
+float depthSpread(vec3 p, vec2 uv) {
+    vec2 px = 1.0 / ScreenSize;
+    float dist = length(p);
+    float dx = min(abs(length(reconstruct(uv + vec2(px.x, 0.0))) - dist),
+            abs(length(reconstruct(uv - vec2(px.x, 0.0))) - dist));
+    float dy = min(abs(length(reconstruct(uv + vec2(0.0, px.y))) - dist),
+            abs(length(reconstruct(uv - vec2(0.0, px.y))) - dist));
+    return max(dx, dy);
+}
+
 // 面の向き。隣の画素のうち<b>近い方</b>と差を取るので、物の縁で向きが壊れにくい
 vec3 surfaceNormal(vec3 p, vec2 uv) {
     vec2 px = 1.0 / ScreenSize;
@@ -420,6 +506,10 @@ void main() {
     // ---- 路面の照り返し ----
     if (!sky && (PackMode < 1.5 || PackMode > 2.5)) {
         vec3 n = surfaceNormal(surface, texCoord);
+        // パック使用中だけ（TAA のずれ）。パック無しの見た目は変えない
+        if (PackMode > 0.5) {
+            refineSurface(surface, n, REFINE_MARGIN_SCALE * depthSpread(surface, texCoord) + REFINE_MARGIN_MIN);
+        }
         float illuminance = 0.0;
         for (int i = 0; i < LampCount; i++) {
             mat4 L = lamp(i);

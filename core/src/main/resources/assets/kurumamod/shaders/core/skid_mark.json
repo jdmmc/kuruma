@@ -1,0 +1,17 @@
+{
+    "vertex": "kurumamod:skid_mark",
+    "fragment": "kurumamod:skid_mark",
+    "attributes": [
+        "Position",
+        "Color"
+    ],
+    "samplers": [
+        { "name": "FinalDepthSampler" }
+    ],
+    "uniforms": [
+        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ScreenSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] },
+        { "name": "ThroughSmoke", "type": "float", "count": 1, "values": [ 0.3 ] }
+    ]
+}
