@@ -88,7 +88,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         applyRotations(car, pose, partialTick);
 
         CarSpec spec = car.getSpec();
-        int lod = lodLevel(car, partialTick);
+        // シェーダーパックが太陽・月の影を描いている最中は、いちばん粗く間引いた版で描く。
+        // 影の地図は 1 画素が数 cm 以上あるので形はほとんど変わらず、台数が多いときの影の描画が軽くなる
+        int lod = HeadlightVolume.ShaderPacks.renderingShadowPass() ? SHADOW_LOD : lodLevel(car, partialTick);
         renderBody(car, model, spec, pose, buffer, packedLight, lod);
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
         // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
@@ -132,6 +134,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     /** ここより遠い車は頂点を間引いた版で描く [ブロック]（{@link ObjModel#lod}）。 */
     private static final double LOD_NEAR = 24.0;
     private static final double LOD_FAR = 64.0;
+
+    /** シェーダーパックの影を描くときの間引き（{@link ObjModel#lod} のいちばん粗い段）。 */
+    private static final int SHADOW_LOD = 2;
 
     /**
      * 何段階間引くか。カメラからの距離で決める。
