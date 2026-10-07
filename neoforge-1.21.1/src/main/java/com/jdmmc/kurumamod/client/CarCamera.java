@@ -1,11 +1,13 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.CameraMode;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.ComputeFovModifierEvent;
@@ -26,6 +28,10 @@ import net.neoforged.fml.common.EventBusSubscriber;
  * カメラが進行方向側へ振られ、横を向いた車体が見える。</p>
  *
  * <p>マウスを動かしている間は自動追従を止める。勝手に引き戻されると周りを見られないため。</p>
+ *
+ * <p><b>V はカメラモードの切り替え</b>（{@link CameraMode}）。一人称と三人称で別々に覚えていて、
+ * 押したときの視点のほうを次へ送る。視線の追従はここ、カメラの位置と向きは
+ * {@link CarChaseCamera}（三人称）と {@link CarCockpitCamera}（一人称）が受け持つ。</p>
  */
 @EventBusSubscriber(modid = Kurumamod.MODID, value = Dist.CLIENT)
 public final class CarCamera {
@@ -50,9 +56,6 @@ public final class CarCamera {
      */
     private static final double FOV_CURVE = 0.5;
 
-    /** 自動追従を使うか。好みが分かれるので切れるようにしてある。 */
-    private static boolean following = true;
-
     /** 前回こちらが設定した視線。これと違えばプレイヤーがマウスを動かしたと判断する。 */
     private static float appliedYaw;
     private static float appliedPitch;
@@ -62,14 +65,37 @@ public final class CarCamera {
     private CarCamera() {
     }
 
-    /** 視線が車へ自動追従しているか。 */
-    public static boolean isFollowing() {
-        return following;
+    /** いまの視点（一人称／三人称）で選ばれているカメラモード。 */
+    public static CameraMode currentMode() {
+        return Minecraft.getInstance().options.getCameraType().isFirstPerson()
+                ? ClientConfig.firstPersonCamera : ClientConfig.thirdPersonCamera;
     }
 
-    public static void toggle() {
-        following = !following;
+    /**
+     * いまの視点のカメラモードを次へ送り、名前をアクションバーに出す。
+     *
+     * <p>設定ファイルへもそのまま書く。static フィールドも一緒に書くのは、
+     * ファイル監視の {@code ModConfigEvent} を待つと反映が遅れるため。</p>
+     */
+    public static void cycleMode() {
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        if (player == null || !(player.getVehicle() instanceof CarEntity)) {
+            return;
+        }
+        CameraMode mode = currentMode().next();
+        if (mode.isFirstPerson()) {
+            ClientConfig.firstPersonCamera = mode;
+            ClientConfig.FIRST_PERSON_CAMERA.set(mode);
+        } else {
+            ClientConfig.thirdPersonCamera = mode;
+            ClientConfig.THIRD_PERSON_CAMERA.set(mode);
+        }
+        ClientConfig.SPEC.save();
         hasApplied = false;
+        manualLookCooldown = 0;
+        player.displayClientMessage(Component.translatable("hud.kurumamod.camera_mode",
+                Component.translatable(mode.translationKey())), true);
     }
 
     @SubscribeEvent
@@ -82,7 +108,16 @@ public final class CarCamera {
             manualLookCooldown = 0;
             return;
         }
-        if (!following) {
+        CameraMode mode = currentMode();
+        if (!mode.followsView() && mode != CameraMode.HEADING) {
+            return;
+        }
+        if (mode == CameraMode.HEADING) {
+            // 見た目は CarChaseCamera が毎フレーム車の向きで置く。ここでは照準や音の向きが
+            // 画面と食い違わないよう、プレイヤーの向きも車へ揃えておくだけ
+            player.setYRot(car.getYRot());
+            hasApplied = false;
+            manualLookCooldown = 0;
             return;
         }
 
@@ -142,7 +177,7 @@ public final class CarCamera {
      * ローカルプレイヤーが乗っている車。乗っていなければ null。
      *
      * <p><b>運転者に限らない。</b>助手席でも視線が車へ追従した方がよいし、
-     * 追従を止めたければマウスを動かすか V で切れるのは同じ。カメラの位置を置く
+     * 追従を止めたければマウスを動かすか V で自由カメラにできるのは同じ。カメラの位置を置く
      * {@link CarChaseCamera} も乗員かどうかしか見ていない。</p>
      */
     private static CarEntity ridingCar(Minecraft minecraft) {

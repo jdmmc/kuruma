@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.CameraMode;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -205,7 +206,8 @@ public final class CarChaseCamera {
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onComputeCameraAngles(ViewportEvent.ComputeCameraAngles event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (riding(minecraft) == null) {
+        CarEntity car = riding(minecraft);
+        if (car == null) {
             frameLift = 0.0F;
             return;
         }
@@ -213,6 +215,16 @@ public final class CarChaseCamera {
         frameLift = updateShowroom(minecraft);
         frameYaw = event.getYaw();
         framePitch = event.getPitch();
+
+        // 車体向き固定では、左右の向きを車の向きに置き換える。差分で足すので衝突の揺れは残る。
+        // 後方視点の 180 度はこの後 setup が回すので、ここでは足さない。位置はこの向きの
+        // 視線から placement が置く
+        boolean heading = ClientConfig.thirdPersonCamera == CameraMode.HEADING;
+        if (heading) {
+            float partial = (float) event.getPartialTick();
+            frameYaw += car.getRenderYaw(partial) - minecraft.player.getViewYRot(partial);
+            event.setYaw(frameYaw);
+        }
 
         // 回したぶんは位置と同じだけ回し、そのうえで SHOWROOM_PITCH だけ余分に下を向く——
         // 位置は「車が中心に来る」向きのままなので、下げたぶんだけ車が上へずれる

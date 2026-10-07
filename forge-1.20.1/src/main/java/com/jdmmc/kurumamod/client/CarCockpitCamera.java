@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.CameraMode;
+import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Minecraft;
@@ -25,6 +27,9 @@ import net.minecraftforge.fml.common.Mod;
  *   <li><b>向き</b>…プレイヤーの向きを「車体に対する向き」として読み、車体の姿勢を掛けてから
  *       ヨー・ピッチ・ロールに戻す。横を向いていればロールは見上げ／見下ろしとして効く</li>
  * </ul>
+ *
+ * <p>カメラモードが {@link CameraMode#COCKPIT_LEVEL} のときは向きを傾けない。目は席と一緒に動くが
+ * 地平線は水平のままなので、揺れで酔う人はこちらを選ぶ。</p>
  *
  * <p><b>プレイヤーの向きそのものは書き換えない</b>（{@link CarImpact} と同じ理由）。
  * 照準の判定はプレイヤーの向きのままなので、車体が傾いているぶんだけ画面中央からずれる。</p>
@@ -60,6 +65,10 @@ public final class CarCockpitCamera {
             }
         }
 
+        // 水平維持では目の位置だけ車体に乗せ、視線は傾けない（首で水平を取っている状態）
+        if (!ClientConfig.firstPersonCamera.tiltsWithBody()) {
+            return;
+        }
         float[] angles = tilt(car, event.getYaw(), event.getPitch(), partial);
         event.setYaw(angles[0]);
         event.setPitch(angles[1]);

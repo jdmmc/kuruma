@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.CameraMode;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -249,10 +250,16 @@ public final class CarChaseCamera {
         // ずらすためのもので、位置にまで効かせると車が中心へ戻ってしまう
         float orbitYawApplied = orbitYaw * lift;
         float orbitPitchApplied = orbitPitch * lift;
+        // 車体向き固定では、左右の向きを車の向きに置き換える。補間済みの向きを毎フレーム使うので、
+        // プレイヤーの向き（20Hz で揃えているだけ）の階段は出ない。後方視点なら真後ろ向き
+        boolean heading = ClientConfig.thirdPersonCamera == CameraMode.HEADING;
+        float baseYaw = heading
+                ? car.getRenderYaw(partial) + (minecraft.options.getCameraType().isMirrored() ? 180.0F : 0.0F)
+                : camera.getYRot();
         Vec3 back;
-        if (lift > 0.0F) {
+        if (lift > 0.0F || heading) {
             back = Vec3.directionFromRotation(camera.getXRot() + orbitPitchApplied,
-                    camera.getYRot() + orbitYawApplied).scale(-1.0);
+                    baseYaw + orbitYawApplied).scale(-1.0);
         } else {
             Vector3f look = camera.getLookVector();
             back = new Vec3(-look.x(), -look.y(), -look.z());
@@ -276,8 +283,9 @@ public final class CarChaseCamera {
         // SHOWROOM_PITCH だけ余分に下を向く——位置は「車が中心に来る」向きのままなので、
         // 下げたぶんだけ車が上へずれる。どちらも<b>足すだけ</b>にしてあるので、
         // 衝突の揺れ（CarImpact）を打ち消さない
-        if (lift > 0.0F) {
-            event.setYaw(event.getYaw() + orbitYawApplied);
+        if (lift > 0.0F || heading) {
+            // 差分で足すので、衝突の揺れ（CarImpact が先に足した分）は残る
+            event.setYaw(event.getYaw() + (baseYaw - camera.getYRot()) + orbitYawApplied);
             event.setPitch(event.getPitch() + orbitPitchApplied + SHOWROOM_PITCH * lift);
         }
     }

@@ -77,7 +77,7 @@ public final class CarClientDriver {
             }
         }
         while (KurumaKeys.TOGGLE_CAMERA.consumeClick()) {
-            CarCamera.toggle();
+            CarCamera.cycleMode();
         }
         while (KurumaKeys.TOGGLE_HEADLIGHTS.consumeClick()) {
             // ライトは車の状態なので、運転していなければ切り替えない
