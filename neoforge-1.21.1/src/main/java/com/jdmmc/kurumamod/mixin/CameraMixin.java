@@ -1,6 +1,7 @@
 package com.jdmmc.kurumamod.mixin;
 
 import com.jdmmc.kurumamod.client.CarChaseCamera;
+import com.jdmmc.kurumamod.client.CarCockpitCamera;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
@@ -13,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * 三人称のカメラを {@code Camera#setup} の<b>最後</b>で車の後ろへ置き直す（{@link CarChaseCamera#placement}）。
+ * 一人称では目を車体の姿勢に乗せて置く（{@link CarCockpitCamera#placement}）。
  *
  * <p><b>Forge 1.20.1 版には無い。</b>あちらは {@code ViewportEvent.ComputeCameraAngles} が
  * {@code setup} の後に飛ぶので、イベントの中で位置を置けた。NeoForge 1.21.1 ではこのイベントが
@@ -28,6 +30,10 @@ public abstract class CameraMixin {
     private void kurumamod$placeChaseCamera(BlockGetter level, Entity entity, boolean detached,
                                             boolean mirrored, float partialTick, CallbackInfo ci) {
         Vec3 position = CarChaseCamera.placement((Camera) (Object) this, partialTick);
+        if (position == null) {
+            // 一人称は目を車体の姿勢に乗せて置く
+            position = CarCockpitCamera.placement((Camera) (Object) this, partialTick);
+        }
         if (position != null) {
             setPosition(position);
         }
