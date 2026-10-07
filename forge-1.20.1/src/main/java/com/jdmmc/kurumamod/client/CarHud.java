@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.CameraMode;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -123,13 +124,12 @@ public final class CarHud {
         y += LINE_HEIGHT;
 
         // カメラの状態と切り替えキー。キーは変更できるので、割り当てを実際に引いて出す
-        boolean following = CarCamera.isFollowing();
+        CameraMode cameraMode = CarCamera.currentMode();
         graphics.drawString(minecraft.font,
                 Component.translatable("hud.kurumamod.camera",
-                        Component.translatable(following
-                                ? "hud.kurumamod.camera_follow" : "hud.kurumamod.camera_free"),
+                        Component.translatable(cameraMode.translationKey()),
                         KurumaKeys.TOGGLE_CAMERA.getTranslatedKeyMessage()),
-                left + 5, y, following ? COLOR_LABEL : COLOR_SLIDING, false);
+                left + 5, y, !cameraMode.followsView() && cameraMode != CameraMode.HEADING ? COLOR_SLIDING : COLOR_LABEL, false);
 
         // タイヤの図はテレメトリの上
         int diagramTop = top - 4 - DIAGRAM_HEIGHT - 8;

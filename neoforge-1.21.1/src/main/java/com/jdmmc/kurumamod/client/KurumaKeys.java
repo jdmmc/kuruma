@@ -36,7 +36,7 @@ public final class KurumaKeys {
             GLFW.GLFW_KEY_H,
             "key.categories.kurumamod");
 
-    /** 視線の自動追従を切り替える。既定は V。 */
+    /** カメラモードを切り替える（{@code CameraMode}）。既定は V。 */
     public static final KeyMapping TOGGLE_CAMERA = new KeyMapping(
             "key.kurumamod.camera",
             KeyConflictContext.IN_GAME,

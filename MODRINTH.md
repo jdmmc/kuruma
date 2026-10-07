@@ -104,7 +104,7 @@ Fully analog throttle, brake and steering. Plug it in, press **J**, and move the
 | Attack the car | Remove it (drops nothing) |
 | **G** | Setup, presets and parts |
 | **H** | Mod menu (display and camera) |
-| **V** / **PageUp / PageDown** | Camera follow / distance |
+| **V** / **PageUp / PageDown** | Camera mode / distance |
 | **L** | Headlights |
 | **Ctrl+L** | Headlight settings |
 | **J** | Controller setup |
@@ -236,7 +236,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 | 車を殴る | 消す（何も落とさない） |
 | **G** | セッティング・プリセット・パーツ |
 | **H** | MOD メニュー（表示とカメラ） |
-| **V** / **PageUp / PageDown** | カメラ追従 / 距離 |
+| **V** / **PageUp / PageDown** | カメラモード / 距離 |
 | **L** | ヘッドライト |
 | **Ctrl+L** | ヘッドライトの調整 |
 | **J** | コントローラ設定 |

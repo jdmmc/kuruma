@@ -109,6 +109,17 @@ public final class ClientConfig {
                     "長くするほど同時に残る跡が増えて重くなる")
             .defineInRange("skidMarkSeconds", 5.0, 1.0, 300.0);
 
+    public static final ModConfigSpec.EnumValue<CameraMode> FIRST_PERSON_CAMERA = BUILDER
+            .comment("一人称のカメラモード（V で切り替え）。COCKPIT_FOLLOW=追従（車体と一緒に揺れる）、",
+                    "COCKPIT_LEVEL=水平維持（視線は水平を保つ）、COCKPIT_FREE=自由（車体と一緒に揺れ、視線は追従しない）")
+            .defineEnum("firstPersonCamera", CameraMode.COCKPIT_FOLLOW,
+                    CameraMode.COCKPIT_FOLLOW, CameraMode.COCKPIT_LEVEL, CameraMode.COCKPIT_FREE);
+
+    public static final ModConfigSpec.EnumValue<CameraMode> THIRD_PERSON_CAMERA = BUILDER
+            .comment("三人称のカメラモード（V で切り替え）。FOLLOW=追従、HEADING=車体の向きに固定、FREE=自由")
+            .defineEnum("thirdPersonCamera", CameraMode.FOLLOW,
+                    CameraMode.FOLLOW, CameraMode.HEADING, CameraMode.FREE);
+
     public static final ModConfigSpec.EnumValue<GateDisplay> GATE_DISPLAY = BUILDER
             .comment("コースのゲートの見せ方。FULL=面と柱、POSTS=左右のポールのみ、HIDDEN=描かない")
             .defineEnum("gateDisplay", GateDisplay.FULL);
@@ -230,6 +241,11 @@ public final class ClientConfig {
     /** コースのゲートの見せ方。 */
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
+    /** 一人称のカメラモード。 */
+    public static CameraMode firstPersonCamera = CameraMode.COCKPIT_FOLLOW;
+    /** 三人称のカメラモード。 */
+    public static CameraMode thirdPersonCamera = CameraMode.FOLLOW;
+
     /** ヘッドライトの光軸の下向き [度]。 */
     public static double headlightAim = 0.0;
     /** オートレベライザーの効き 0..1。 */
@@ -293,6 +309,8 @@ public final class ClientConfig {
         showOtherSkidMarks = SHOW_OTHER_SKID_MARKS.get();
         skidMarkSeconds = SKID_MARK_SECONDS.get();
         gateDisplay = GATE_DISPLAY.get();
+        firstPersonCamera = FIRST_PERSON_CAMERA.get();
+        thirdPersonCamera = THIRD_PERSON_CAMERA.get();
         headlightAim = HEADLIGHT_AIM.get();
         headlightLeveling = HEADLIGHT_LEVELING.get();
         headlightFog = HEADLIGHT_FOG.get();
