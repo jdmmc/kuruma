@@ -1633,11 +1633,38 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         if (!hasPassenger(passenger)) {
             return;
         }
-        Vec3 seat = seatOffset(passenger).yRot(-getYRot() * Mth.DEG_TO_RAD);
-        move.accept(passenger,
-                getX() + seat.x,
-                getY() + seat.y + passenger.getMyRidingOffset(),
-                getZ() + seat.z);
+        // 席は車体に付いているので、車体と一緒に傾ける。ヨーだけで回していた頃は
+        // 車がロールしても乗員は水平のまま浮いていて、一人称の視点だけが車体から取り残された
+        Vec3 seat = toWorld(seatOffset(passenger).add(0.0, passenger.getMyRidingOffset(), 0.0),
+                getYRot(), getRenderPitch(), getRenderRoll());
+        move.accept(passenger, getX() + seat.x, getY() + seat.y, getZ() + seat.z);
+    }
+
+    /**
+     * 乗員の目の位置（世界座標）。<b>一人称のカメラが毎フレーム置く位置。</b>
+     *
+     * <p>乗員の位置は {@link #positionRider} が 20Hz で置くだけなので、それを目線にすると
+     * 車体の傾きが階段状にしか伝わらない。補間済みの車の位置と姿勢から直接組み立てる。</p>
+     */
+    public Vec3 riderEyePosition(Entity passenger, float partialTick) {
+        Vec3 local = seatOffset(passenger).add(0.0, passenger.getMyRidingOffset() + passenger.getEyeHeight(), 0.0);
+        Vec3 offset = toWorld(local, getRenderYaw(partialTick),
+                getRenderPitch(partialTick), getRenderRoll(partialTick));
+        return new Vec3(Mth.lerp(partialTick, xo, getX()) + offset.x,
+                Mth.lerp(partialTick, yo, getY()) + offset.y,
+                Mth.lerp(partialTick, zo, getZ()) + offset.z);
+    }
+
+    /**
+     * 乗員の座標系（+X 左・+Y 上・+Z 前）のベクトルを、車体の姿勢で世界の向きへ回す。
+     *
+     * <p>{@code CarObjRenderer#applyRotations} と同じ順（ヨー → ピッチ → ロール）。
+     * ピッチは正で鼻上げ、ロールは正で右下がり（＝左が上がる）。</p>
+     *
+     * @param yaw 度。pitch と roll はラジアン
+     */
+    public static Vec3 toWorld(Vec3 local, float yaw, float pitch, float roll) {
+        return local.zRot(-roll).xRot(pitch).yRot(-yaw * Mth.DEG_TO_RAD);
     }
 
     /**

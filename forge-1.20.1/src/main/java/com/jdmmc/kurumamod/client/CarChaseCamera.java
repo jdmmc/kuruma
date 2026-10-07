@@ -51,7 +51,7 @@ public final class CarChaseCamera {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** {@code Camera#setPosition(double, double, double)}。見つからなければ諦めてバニラのままにする。 */
-    private static final Method SET_POSITION = findSetPosition();
+    static final Method SET_POSITION = findSetPosition();
 
     /** 壁に当たったときに手前で止める余裕 [ブロック]。 */
     private static final double WALL_MARGIN = 0.3;
