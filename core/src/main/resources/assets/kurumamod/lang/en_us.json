@@ -495,5 +495,17 @@
   "part_slot.kurumamod.rear_wing": "Rear wing",
   "part_slot.kurumamod.rear_diffuser": "Rear bumper",
   "part.kurumamod.stock_spoiler": "Stock spoiler",
-  "part.kurumamod.gt_wing_low": "GT wing (low)"
+  "part.kurumamod.gt_wing_low": "GT wing (low)",
+  "tuning.kurumamod.detail.downforce_parts": "%s kg at 200 km/h (parts %s kg)",
+  "tuning.kurumamod.detail.downforce_balance_parts": "%s kg at 200 km/h (parts %s kg), %s%% front",
+  "tuning.kurumamod.detail.drag_area_added": "%sG at 100 km/h (+%s m² from downforce)",
+  "screen.kurumamod.part.info.downforce": "This part's downforce (200 km/h)",
+  "screen.kurumamod.part.info.downforce_value": "Front %s kg  Rear %s kg",
+  "screen.kurumamod.part.info.downforce_range": "By angle: %s–%s kg total",
+  "screen.kurumamod.part.info.no_aero": "Looks only (no aero effect)",
+  "screen.kurumamod.part.info.whole_car": "Whole car downforce (200 km/h)",
+  "screen.kurumamod.part.info.balance": "Balance  %s%% front",
+  "screen.kurumamod.part.info.grip_at_speed": "Grip at 200 km/h",
+  "screen.kurumamod.part.info.top_speed": "Estimated top speed",
+  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²"
 }

@@ -514,7 +514,23 @@ public class CarTuningScreen extends Screen {
         @Override
         protected void updateMessage() {
             setMessage(Component.translatable(
-                    parameter.valueKey(), translateArguments(parameter.labelArguments(CarTuning.spec()))));
+                    parameter.valueKey(), translateArguments(parameter.labelArguments(displaySpec()))));
+        }
+
+        /**
+         * 補足を計算する諸元。<b>調整画面の値に、いま乗っている車の部品（ターボ・タイヤ・空力）を載せたもの。</b>
+         *
+         * <p>{@code CarTuning.spec()} は乗ったときに取り込んだ写しなので、乗った後に換装した部品が
+         * 入っていない。ダウンフォースの補足に「うち部品」を出すには、今の部品が要る。</p>
+         */
+        private static com.jdmmc.kurumamod.physics.CarSpec displaySpec() {
+            com.jdmmc.kurumamod.physics.CarSpec tuned = CarTuning.spec();
+            CarEntity car = CarClientDriver.ridingCar(net.minecraft.client.Minecraft.getInstance());
+            if (car == null) {
+                return tuned;
+            }
+            com.jdmmc.kurumamod.physics.CarSpec fitted = car.getSpec();
+            return tuned.toBuilder().turbo(fitted.turbo()).tire(fitted.tire()).partAero(fitted.partAero()).build();
         }
 
         /** 補足のうち {@link TunableParameter.Text} を翻訳つきの部品に直す。入れ子も辿る。 */

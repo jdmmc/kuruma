@@ -936,6 +936,48 @@ public record CarSpec(
      * <p>転がり抵抗と空気抵抗も引いてある（実際に出る加速度と比べられるように）。
      * レブを超える段は使えない。回転がアイドルを割る速度ではアイドルで下支えされる。</p>
      */
+    /**
+     * 平らな舗装路で全開を続けたときの最高速の目安 [m/s]。<b>エンジンの力が抵抗に勝てなくなる速度</b>で、
+     * 最高段でレブまで回した速度（{@link #topGearSpeed}）が上限。
+     *
+     * <p>換装画面で空力部品の最高速への影響を見せるためのもの。ターボは全開で回転を保ったときのブースト
+     * （{@code CarPhysics#updateBoost} が落ち着く先）で数える。ダウンフォースで増える転がり抵抗は入れていない
+     * （空気抵抗に比べて小さい）。</p>
+     */
+    public double estimatedTopSpeed() {
+        double best = 0.0;
+        double limit = topGearSpeed();
+        for (double speed = 0.5; speed <= limit; speed += 0.25) {
+            double resistance = mass * resistanceAccel(speed);
+            boolean ahead = false;
+            for (int gear = 1; gear <= forwardGears() && !ahead; gear++) {
+                double ratio = totalRatio(gear);
+                double rpm = speed / wheelRadius * ratio * 60.0 / (2.0 * Math.PI);
+                if (rpm >= redlineRpm) {
+                    continue;
+                }
+                double force = fullThrottleTorque(Math.max(idleRpm, rpm)) * ratio * drivetrainEfficiency / wheelRadius;
+                ahead = force > resistance;
+            }
+            if (ahead) {
+                best = speed;
+            }
+        }
+        return best;
+    }
+
+    /** 全開で回転を保ったときのトルク [N*m]。ターボはブーストが落ち着いた先で数える。 */
+    private double fullThrottleTorque(double rpm) {
+        double torque = engineTorque(rpm);
+        if (!turbo.present()) {
+            return torque;
+        }
+        double span = Math.max(1.0, redlineRpm - idleRpm);
+        double rev = Math.max(0.0, Math.min(1.0, (rpm - idleRpm) / span));
+        double spool = Math.max(0.0, Math.min(1.0, (rev - turbo.spoolFrom()) / (turbo.spoolFull() - turbo.spoolFrom())));
+        return torque * (1.0 + turbo.boostGain() * spool * spool * (3.0 - 2.0 * spool));
+    }
+
     public double engineLimitAccel(double speed) {
         double best = 0.0;
         for (int gear = 1; gear <= forwardGears(); gear++) {

@@ -423,7 +423,7 @@ public class CarPartScreen extends Screen {
         }
         CarSpec spec = car != null ? car.getSpec() : CarSpec.DEFAULT;
         PartInfoPanel.render(graphics, font, slot, shown.entry.id(), shown.entry.label(), preview,
-                spec, right, INFO_TOP, bottom);
+                spec, car != null ? car.getEffectiveFitment() : PartFitment.EMPTY, right, INFO_TOP, bottom);
     }
 
     /** 列の左右に、まだ先があることを出す。<b>出さないと 1 画面に収まっていると読める。</b> */
