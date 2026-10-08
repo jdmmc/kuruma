@@ -57,10 +57,22 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
                 return;
             }
 
-            ResourceLocation partId = setting.partId();
+            PartFitment.Setting wanted = setting;
+            ResourceLocation partId = wanted.partId();
+            // 「なし」は初期装備のある場所でだけ意味を持つ。外せない初期装備は外させない
+            if (PartFitment.isNone(partId)) {
+                var defaults = com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).defaultPart(slot);
+                if (defaults == null) {
+                    wanted = new PartFitment.Setting(null, wanted.camber(), wanted.offset(),
+                            wanted.width(), wanted.angle());
+                    partId = null;
+                } else if (!defaults.removable()) {
+                    return;
+                }
+            }
             // いま履いている部品のまま角度だけ変える要求は、車種の制限で弾かない。
             // カーパックの更新で付かなくなった部品を履いたままの車でも、調整はできるべきなので
-            if (partId != null && !partId.equals(car.getFitment().getPart(slot))) {
+            if (partId != null && !PartFitment.isNone(partId) && !partId.equals(car.getFitment().getPart(slot))) {
                 CarPart part = CarParts.get(partId);
                 // 知らない部品、場所の合わない部品、その車種に付かない部品は履かせない
                 if (part == null || part.slot() != slot || !part.fits(car.getCarId())) {
@@ -71,7 +83,7 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
             // 部品と違って「無い値」というものが無いので、弾くのではなく丸めるのが正しい
 
             // setFitment がそのまま周囲のクライアントへ配る
-            car.setFitment(car.getFitment().with(slot, setting));
+            car.setFitment(car.getFitment().with(slot, wanted));
         });
         context.setPacketHandled(true);
     }

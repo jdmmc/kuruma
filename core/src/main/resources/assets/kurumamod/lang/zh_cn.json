@@ -481,5 +481,19 @@
   "part.kurumamod.turbo_big": "大涡轮",
   "part.kurumamod.blowoff_atmospheric": "外排式",
   "part.kurumamod.tire_dirt": "泥地胎",
-  "part.kurumamod.tire_offroad": "越野胎"
+  "part.kurumamod.tire_offroad": "越野胎",
+  "screen.kurumamod.part.angle": "角度  %s%%",
+  "screen.kurumamod.part.angle_changed": "角度  %s%%（默认 %s%%）",
+  "screen.kurumamod.part.angle_reset": "恢复为包指定的角度",
+  "part.kurumamod.gt_wing": "GT 尾翼",
+  "part.kurumamod.ducktail": "鸭尾",
+  "part.kurumamod.front_lip": "前唇",
+  "part.kurumamod.front_splitter": "前铲",
+  "part_slot.kurumamod.front_bumper": "前保险杠",
+  "part_slot.kurumamod.side_skirt": "侧裙",
+  "part_slot.kurumamod.fender": "翼子板",
+  "part_slot.kurumamod.rear_wing": "尾翼",
+  "part_slot.kurumamod.rear_diffuser": "后保险杠",
+  "part.kurumamod.stock_spoiler": "原厂扰流板",
+  "part.kurumamod.gt_wing_low": "GT 尾翼（低）"
 }

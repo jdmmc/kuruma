@@ -1,8 +1,14 @@
 package com.jdmmc.kurumamod.car;
 
+import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 車種 1 つ。<b>カーパックが足せる単位。</b>
@@ -27,8 +33,41 @@ import net.minecraft.resources.ResourceLocation;
  * @param id    車種の識別子。名前空間がカーパック、パスが車種名
  * @param spec  諸元。書かれていない項目は {@link CarSpec#DEFAULT} に落ちる
  * @param order 一覧に並べる順。小さいものが先。同じなら id 順
+ * @param defaultParts 初期装備（{@code default_parts}）。<b>何も指定していない場所に付く部品。</b>
+ *                     純正スポイラーのような、その車にもともと付いている形を部品として持つためのもの
  */
-public record CarType(ResourceLocation id, CarSpec spec, int order) {
+public record CarType(ResourceLocation id, CarSpec spec, int order, Map<PartSlot, DefaultPart> defaultParts) {
+
+    /**
+     * 初期装備 1 つ。
+     *
+     * @param part      部品の id
+     * @param removable 外せるか（換装画面に「なし」を出すか）。外すとバンパーに穴が開いたように見える形なら false
+     */
+    public record DefaultPart(ResourceLocation part, boolean removable) {
+    }
+
+    public CarType {
+        defaultParts = defaultParts.isEmpty() ? Map.of() : Map.copyOf(new EnumMap<>(defaultParts));
+    }
+
+    /** 初期装備の無い車種。 */
+    public CarType(ResourceLocation id, CarSpec spec, int order) {
+        this(id, spec, order, Map.of());
+    }
+
+    /** その場所の初期装備。無ければ null。 */
+    @Nullable
+    public DefaultPart defaultPart(PartSlot slot) {
+        return defaultParts.get(slot);
+    }
+
+    /** 場所 → 初期装備の部品 id。{@code PartFitment#resolve} に渡す形。 */
+    public Map<PartSlot, ResourceLocation> defaultPartIds() {
+        Map<PartSlot, ResourceLocation> ids = new HashMap<>();
+        defaultParts.forEach((slot, part) -> ids.put(slot, part.part()));
+        return ids;
+    }
 
     /** 並び順を書かなかった車種の位置。 */
     public static final int DEFAULT_ORDER = 100;

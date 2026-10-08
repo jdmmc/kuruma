@@ -167,6 +167,18 @@ public final class ObjModel {
     public static final String MIRROR_PREFIX = "mirror_";
 
     /**
+     * 部品の形の名前の頭。<b>この名前で始まるオブジェクトはふだん描かず、その部品を付けたときだけ描く</b>
+     * （どの部品で出すかは {@code CarModel#partObjects} と、名前の決まり {@code part_<部品のパス>}）。
+     *
+     * <p>ウイングやリップのような車体に固定された部品は、車体と一緒に Blender で作れば
+     * 位置も大きさも最初から合う。取り付け位置を JSON に書く必要がない。</p>
+     *
+     * <p><b>純正の形（純正スポイラーなど）も部品として作る。</b>車の諸元側の {@code default_parts} で
+     * 初期装備にしておけば、何も付けていないときに出て、別の部品に付け替えると消える。</p>
+     */
+    public static final String PART_PREFIX = "part_";
+
+    /**
      * 面 1 つあたりの float 数。<b>どの面も 4 頂点で持つ</b>——四角形はそのまま、
      * 三角形は 3 番目の頂点を 2 回（縮退四角形）。描くときに形で分岐しなくて済む。
      */
@@ -205,6 +217,11 @@ public final class ObjModel {
     private final Map<String, int[]> facesByName;
     /** 鏡面。読み込みのときに 1 度だけ measure しておく。 */
     private final List<MirrorFace> mirrors;
+    /**
+     * 部品の形（{@link #PART_PREFIX}）の名前 → {不透明な面, 透ける面}。
+     * 本体の面（{@link #opaqueFaces} など）からは外してある。
+     */
+    private final Map<String, int[][]> optionalFaces;
 
     /**
      * GPU に置いた不透明な面（{@link CarMeshes}）。添字は {@code (タイヤ抜き ? 2 : 0) | (左右反転 ? 1 : 0)}。
@@ -287,6 +304,28 @@ public final class ObjModel {
             }
         }
 
+        // 部品の形も本体から外し、名前ごとに持つ（renderOptional が描く）。
+        // 本体を車ごとに違う形にしないため（GPU に置いたメッシュを使い回せなくなる）
+        Map<String, List<Integer>[]> optional = new HashMap<>();
+        for (Group group : groups) {
+            if (!isOptionalName(group.name())) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            List<Integer>[] lists = optional.computeIfAbsent(group.name(),
+                    name -> new List[]{new ArrayList<Integer>(), new ArrayList<Integer>()});
+            for (int face = group.from(); face < group.to(); face++) {
+                if (excluded[face]) {
+                    continue;
+                }
+                excluded[face] = true;
+                boolean transparent = vertices[face * FACE_FLOATS + ALPHA_OFFSET] < OPAQUE_THRESHOLD;
+                lists[transparent ? 1 : 0].add(face);
+            }
+        }
+        this.optionalFaces = new HashMap<>();
+        optional.forEach((name, lists) -> optionalFaces.put(name, new int[][]{toArray(lists[0]), toArray(lists[1])}));
+
         // 残りは<b>頂点の不透明度</b>で振り分ける。透ける面は車体のパスから外れ、半透明のパスが拾う
         List<Integer> opaque = new ArrayList<>();
         List<Integer> translucent = new ArrayList<>();
@@ -336,6 +375,41 @@ public final class ObjModel {
         this.tireRadialRange = anyTire ? tireRange : null;
         this.rimOuterRadius = rimOuter;
         this.radialRange = faceCount > 0 ? allRange : new double[]{0.0, 0.0};
+    }
+
+    /** 部品の形の名前か。 */
+    private static boolean isOptionalName(String name) {
+        return name.startsWith(PART_PREFIX);
+    }
+
+    /** このモデルが持っている、部品の形の名前（{@link #PART_PREFIX}）。 */
+    public java.util.Set<String> optionalNames() {
+        return optionalFaces.keySet();
+    }
+
+    /**
+     * 部品の形のうち、見せる名前に入っているものを描く。
+     *
+     * @param shown 見せる部品の形の名前
+     */
+    public void renderOptional(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay,
+                               java.util.Set<String> shown, Pass pass) {
+        if (optionalFaces.isEmpty()) {
+            return;
+        }
+        int index = pass == Pass.TRANSLUCENT ? 1 : 0;
+        for (Map.Entry<String, int[][]> entry : optionalFaces.entrySet()) {
+            if (shown.contains(entry.getKey()) && entry.getValue()[index].length > 0) {
+                renderFaces(entry.getValue()[index], pose.pose(), pose.normal(), 1.0F, consumer,
+                        packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+            }
+        }
+    }
+
+    /** 出し入れする形に、そのパスの面が 1 つでもあるか。半透明のパスを呼ぶかの判断に使う。 */
+    public boolean hasOptional(Pass pass) {
+        int index = pass == Pass.TRANSLUCENT ? 1 : 0;
+        return optionalFaces.values().stream().anyMatch(faces -> faces[index].length > 0);
     }
 
     /** タイヤのオブジェクト名か。Blender の既定の大文字（{@code Tire}）も拾う。 */

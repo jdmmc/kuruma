@@ -481,5 +481,19 @@
   "part.kurumamod.turbo_big": "ビッグタービン",
   "part.kurumamod.blowoff_atmospheric": "大気開放",
   "part.kurumamod.tire_dirt": "ダート",
-  "part.kurumamod.tire_offroad": "オフロード"
+  "part.kurumamod.tire_offroad": "オフロード",
+  "screen.kurumamod.part.angle": "角度  %s%%",
+  "screen.kurumamod.part.angle_changed": "角度  %s%%（既定 %s%%）",
+  "screen.kurumamod.part.angle_reset": "パックが指定した角度に戻す",
+  "part.kurumamod.gt_wing": "GT ウイング",
+  "part.kurumamod.ducktail": "ダックテール",
+  "part.kurumamod.front_lip": "フロントリップ",
+  "part.kurumamod.front_splitter": "スプリッター",
+  "part_slot.kurumamod.front_bumper": "フロント",
+  "part_slot.kurumamod.side_skirt": "サイド",
+  "part_slot.kurumamod.fender": "フェンダー",
+  "part_slot.kurumamod.rear_wing": "ウイング",
+  "part_slot.kurumamod.rear_diffuser": "リア",
+  "part.kurumamod.stock_spoiler": "純正スポイラー",
+  "part.kurumamod.gt_wing_low": "GT ウイング（ロー）"
 }

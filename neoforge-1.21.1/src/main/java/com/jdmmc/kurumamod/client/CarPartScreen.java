@@ -1,6 +1,8 @@
 package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.Kurumamod;
+import com.jdmmc.kurumamod.car.CarType;
+import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
@@ -69,6 +71,11 @@ public class CarPartScreen extends Screen {
     private static final int TAB_WIDTH = 68;
     /** 調整値 1 行ぶんの高さ。 */
     private static final int ROW_STEP = 24;
+    /**
+     * 調整値の行がいちばん多い場所（ホイール）の行数。タブはこの高さの上に置く。
+     * <b>場所ごとの行数で動かすと、タブを押すたびにタブが上下に跳ねる。</b>
+     */
+    private static final int MAX_ROWS = 3;
     private static final int TEXT_LEFT = 24;
     private static final int TITLE_Y = 18;
 
@@ -130,17 +137,16 @@ public class CarPartScreen extends Screen {
      * <p>履かせた結果を見ながら決めるものなので、別の画面へ持っていくと
      * 履き替えるたびに画面を行き来することになる。</p>
      *
-     * <p>いじれるのはホイールだけ。他の場所には角度もオフセットも無いので置かない。</p>
+     * <p>ホイールはキャンバー・オフセット・太さ、空力部品は角度（調整できる部品を付けているときだけ）。
+     * 他の場所には置かない。</p>
      */
     private void addAdjustmentRows() {
-        if (slot != PartSlot.WHEEL) {
-            return;
-        }
+        lastAdjustments = adjustments();
         int left = (width - (SLIDER_WIDTH + TILE_GAP + RESET_WIDTH)) / 2;
-        Adjustment[] all = Adjustment.VALUES;
-        for (int i = 0; i < all.length; i++) {
-            Adjustment adjustment = all[i];
-            int y = rowTop - ROW_STEP * (all.length - i);
+        List<Adjustment> all = lastAdjustments;
+        for (int i = 0; i < all.size(); i++) {
+            Adjustment adjustment = all.get(i);
+            int y = rowTop - ROW_STEP * (all.size() - i);
             LookSlider slider = addRenderableWidget(new LookSlider(adjustment, left, y, SLIDER_WIDTH));
             sliders.add(slider);
             addRenderableWidget(Button.builder(Component.literal("R"), button -> {
@@ -155,6 +161,36 @@ public class CarPartScreen extends Screen {
         }
     }
 
+    /** いまの場所で出す調整値。 */
+    private List<Adjustment> adjustments() {
+        if (slot == PartSlot.WHEEL) {
+            return List.of(Adjustment.CAMBER, Adjustment.OFFSET, Adjustment.WIDTH);
+        }
+        if (slot.isBodyPart()) {
+            // 角度は範囲を持つ部品だけ。固定の部品（ダックテールなど）に出しても何も変わらない。
+            // 初期装備のウイングでも変えられるよう、初期装備を足した状態で見る
+            CarEntity driving = CarClientDriver.driving();
+            ResourceLocation id = driving == null ? null : driving.getEffectiveFitment().getPart(slot);
+            CarPart part = id == null ? null : CarParts.get(id);
+            if (part != null && part.aero() != null && part.aero().adjustable()) {
+                return List.of(Adjustment.ANGLE);
+            }
+        }
+        return List.of();
+    }
+
+    /** 前のフレームで出していた調整値。角度を調整できる部品に付け替えたら作り直す。 */
+    private List<Adjustment> lastAdjustments = List.of();
+
+    /**
+     * タブ 1 枚の幅。<b>場所が増えても画面に収まるよう、入りきらなければ縮める。</b>
+     * 性能の表がタブとかぶるかの判定も同じ幅で見る。
+     */
+    private int tabWidth(int count) {
+        int fit = (width - SIDE_MARGIN * 2 + TILE_GAP) / Math.max(1, count) - TILE_GAP;
+        return Math.max(40, Math.min(TAB_WIDTH, fit));
+    }
+
     /**
      * 場所の切り替え。<b>2 つ以上あるときだけ出す。</b>
      *
@@ -165,8 +201,8 @@ public class CarPartScreen extends Screen {
         if (shown.size() < 2) {
             return;
         }
-        int tabWidth = TAB_WIDTH;
-        int y = rowTop - ROW_STEP * (Adjustment.VALUES.length + 1);
+        int tabWidth = tabWidth(shown.size());
+        int y = rowTop - ROW_STEP * (MAX_ROWS + 1);
         int totalWidth = shown.size() * (tabWidth + TILE_GAP) - TILE_GAP;
         int left = (width - totalWidth) / 2;
         for (int i = 0; i < shown.size(); i++) {
@@ -191,11 +227,32 @@ public class CarPartScreen extends Screen {
         List<PartSlot> shown = new ArrayList<>();
         for (PartSlot value : PartSlot.VALUES) {
             PartSlot required = value.requires();
-            if (required == null || (car != null && car.getFitment().getPart(required) != null)) {
-                shown.add(value);
+            if (required != null && (car == null || car.getEffectiveFitment().getPart(required) == null)) {
+                continue;
             }
+            // 車体の部品は、その車に形のある部品か初期装備が 1 つも無ければタブごと出さない
+            // （軽自動車にディフューザーのタブが並ばないように）
+            if (value.isBodyPart() && (car == null || !hasBodyChoices(value, car))) {
+                continue;
+            }
+            shown.add(value);
         }
         return shown;
+    }
+
+    /** その車のその場所に、選べる部品（形のあるもの）か初期装備があるか。 */
+    private static boolean hasBodyChoices(PartSlot value, CarEntity car) {
+        if (CarTypes.get(car.getCarId()).defaultPart(value) != null) {
+            return true;
+        }
+        CarModel model = CarModel.get(car.getCarId());
+        java.util.Set<String> available = ObjModel.get(model.bodyModel()).optionalNames();
+        for (CarPart part : CarParts.forSlot(value, car.getCarId())) {
+            if (model.hasPartObjects(part.id(), part.slot(), available)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** タブの並びが変わったか（ターボを付けた・外した）を見るための、前のフレームの並び。 */
@@ -210,9 +267,22 @@ public class CarPartScreen extends Screen {
         List<Entry> entries = new ArrayList<>();
         // ホイールは「純正」、ターボとブローオフは「なし」（付いていないのが素の状態）
         entries.add(new Entry(null, Component.translatable(slot.emptyKey()), null));
-        // その車種に付かない部品は並べない。乗っていなければ絞らない（どうせ選べない）
         CarEntity car = CarClientDriver.driving();
+        // 外せる初期装備のある場所だけ「なし」を足す（純正＝初期装備、なし＝何も付けない）
+        CarType.DefaultPart defaults = car == null ? null : CarTypes.get(car.getCarId()).defaultPart(slot);
+        if (defaults != null && defaults.removable()) {
+            entries.add(new Entry(PartFitment.NONE_PART, Component.translatable("screen.kurumamod.part.none"), null));
+        }
+        // その車種に付かない部品は並べない。乗っていなければ絞らない（どうせ選べない）
+        // 車体の形で見せる部品は、その形を車体の OBJ に持っている車にしか並べない。
+        // 見た目の無い部品を履けると、何も見えないのにグリップだけ上がった車になる
+        CarModel model = car == null ? null : CarModel.get(car.getCarId());
+        java.util.Set<String> available = model == null ? java.util.Set.of()
+                : ObjModel.get(model.bodyModel()).optionalNames();
         for (CarPart part : CarParts.forSlot(slot, car == null ? null : car.getCarId())) {
+            if (slot.isBodyPart() && model != null && !model.hasPartObjects(part.id(), part.slot(), available)) {
+                continue;
+            }
             // どのカーパックのものかを小さく出す。同梱のぶんは名前空間を出さない
             String namespace = part.id().getNamespace();
             entries.add(new Entry(part.id(), part.displayName(),
@@ -288,7 +358,7 @@ public class CarPartScreen extends Screen {
 
         // タブの並びが変わったら作り直す。<b>クリックの伝播中ではなく描画の頭で</b>
         // （ウィジェット一覧を入れ替えるので）。ターボを付けた返事が届くとブローオフのタブが現れる
-        if (!shownSlots().equals(lastShown)) {
+        if (!shownSlots().equals(lastShown) || !adjustments().equals(lastAdjustments)) {
             rebuildWidgets();
         }
 
@@ -359,9 +429,9 @@ public class CarPartScreen extends Screen {
         int bottom = rowTop - 6;
         int tabCount = shownSlots().size();
         if (tabCount >= 2) {
-            int tabsRight = width / 2 + (tabCount * (TAB_WIDTH + TILE_GAP) - TILE_GAP) / 2;
+            int tabsRight = width / 2 + (tabCount * (tabWidth(tabCount) + TILE_GAP) - TILE_GAP) / 2;
             if (right - PartInfoPanel.WIDTH < tabsRight + 4) {
-                bottom = rowTop - ROW_STEP * (Adjustment.VALUES.length + 1) - 4;
+                bottom = rowTop - ROW_STEP * (MAX_ROWS + 1) - 4;
             }
         }
         CarSpec spec = car != null ? car.getSpec() : CarSpec.DEFAULT;
@@ -480,7 +550,7 @@ public class CarPartScreen extends Screen {
         /** キャンバー角 [度]。負で「上が内側」。 */
         CAMBER(PartFitment.CAMBER_MIN, PartFitment.CAMBER_MAX, 0.5, 1.0, "camber", "%.1f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment) {
+            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
                 return CarPartModel.defaultCamber(model, fitment);
             }
 
@@ -499,7 +569,7 @@ public class CarPartScreen extends Screen {
         /** ホイールオフセット [mm]。<b>実車と同じ向きで、小さいほど外へ出る。</b> */
         OFFSET(PartFitment.OFFSET_MIN, PartFitment.OFFSET_MAX, 1.0, 1.0, "offset", "%.0f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment) {
+            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
                 return CarPartModel.defaultOffset(model, fitment);
             }
 
@@ -524,7 +594,7 @@ public class CarPartScreen extends Screen {
         WIDTH(PartFitment.WIDTH_MIN * 100.0, PartFitment.WIDTH_MAX * 100.0, 5.0, 0.01,
                 "width", "%.0f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment) {
+            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
                 return CarPartModel.defaultWidth(model, fitment);
             }
 
@@ -537,6 +607,31 @@ public class CarPartScreen extends Screen {
             @Override
             PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
                 return fitment.withWidth(slot, value);
+            }
+        },
+
+        /**
+         * 空力部品の角度 [%]。<b>部品が持つダウンフォースの範囲の中の位置</b>で、0% で最小、100% で最大。
+         *
+         * <p>変わるのは性能だけで、見た目（車体のメッシュ）は動かない。</p>
+         */
+        ANGLE(PartFitment.ANGLE_MIN * 100.0, PartFitment.ANGLE_MAX * 100.0, 5.0, 0.01, "angle", "%.0f") {
+            @Override
+            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
+                ResourceLocation id = fitment.getPart(slot);
+                CarPart part = id == null ? null : CarParts.get(id);
+                return part == null || part.aero() == null ? 0.5 : part.aero().defaultAngle();
+            }
+
+            @Override
+            @Nullable
+            Double override(PartFitment fitment, PartSlot slot) {
+                return fitment.getAngle(slot);
+            }
+
+            @Override
+            PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
+                return fitment.withAngle(slot, value);
             }
         };
 
@@ -567,7 +662,7 @@ public class CarPartScreen extends Screen {
         }
 
         /** 部品（カーパック）が指定している値。<b>内部の単位</b>。 */
-        abstract double packDefault(CarModel model, PartFitment fitment);
+        abstract double packDefault(CarModel model, PartFitment fitment, PartSlot slot);
 
         /** プレイヤーの上書き。<b>内部の単位</b>。していなければ null。 */
         @Nullable
@@ -637,7 +732,7 @@ public class CarPartScreen extends Screen {
         private double defaultValue() {
             CarEntity car = CarClientDriver.driving();
             return car == null ? 0.0 : adjustment.toDisplay(
-                    adjustment.packDefault(CarModel.get(car.getCarId()), car.getFitment()));
+                    adjustment.packDefault(CarModel.get(car.getCarId()), car.getEffectiveFitment(), slot));
         }
 
         @Override
@@ -710,6 +805,8 @@ public class CarPartScreen extends Screen {
                 case TIRE -> renderTireIcon(graphics, iconX, iconY);
                 case TURBO -> renderTurboIcon(graphics, iconX, iconY);
                 case BLOWOFF -> renderBlowoffIcon(graphics, iconX, iconY);
+                case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER ->
+                        renderBodyPartIcon(graphics, iconX, iconY);
                 default -> renderWheelIcon(graphics, iconX, iconY);
             }
 
@@ -807,6 +904,54 @@ public class CarPartScreen extends Screen {
                 float reach = size * (0.9F + 0.25F * (i % 2));
                 GaugePainter.rect(graphics, centerX + size * 0.7F, y, centerX + size * 0.7F + reach, y + 1.6F, accent);
                 GaugePainter.rect(graphics, centerX - size * 0.7F - reach, y, centerX - size * 0.7F, y + 1.6F, accent);
+            }
+        }
+
+        /**
+         * 車体の部品の絵。<b>横から見た車（前が左）を描き、その場所だけを色で示す。</b>
+         * 「純正」のタイルは車だけにして、付いていないことが絵でも分かるようにする。
+         */
+        private void renderBodyPartIcon(GuiGraphics graphics, float centerX, float centerY) {
+            float u = 6.0F;
+            int accent = fitted ? COLOR_RIM_FITTED : COLOR_RIM;
+            float left = centerX - u * 3.0F;
+            float right = centerX + u * 3.0F;
+            float floor = centerY + u * 0.9F;
+            // 車体の下半分、キャビン、タイヤ 2 本
+            GaugePainter.rect(graphics, left, centerY - u * 0.3F, right, floor, COLOR_TIRE);
+            GaugePainter.rect(graphics, centerX - u * 1.4F, centerY - u * 1.3F, centerX + u * 1.2F,
+                    centerY - u * 0.3F, COLOR_TIRE);
+            float frontWheel = left + u * 1.3F;
+            float rearWheel = right - u * 1.3F;
+            GaugePainter.arc(graphics, frontWheel, floor, 0.0F, u * 0.7F, 0.0F, 360.0F, 0xFF3C3C3C);
+            GaugePainter.arc(graphics, rearWheel, floor, 0.0F, u * 0.7F, 0.0F, 360.0F, 0xFF3C3C3C);
+            if (entry.id() == null) {
+                return;
+            }
+            switch (slot) {
+                // バンパーの下から前へ張り出すリップ
+                case FRONT_BUMPER -> GaugePainter.rect(graphics, left - u * 0.5F, floor - u * 0.35F,
+                        left + u * 0.6F, floor, accent);
+                // 前後のタイヤの間の下縁
+                case SIDE_SKIRT -> GaugePainter.rect(graphics, frontWheel + u * 0.8F, floor - u * 0.35F,
+                        rearWheel - u * 0.8F, floor, accent);
+                // タイヤの上の張り出し
+                case FENDER -> {
+                    GaugePainter.arc(graphics, frontWheel, floor, u * 0.8F, u * 1.1F, 180.0F, 360.0F, accent);
+                    GaugePainter.arc(graphics, rearWheel, floor, u * 0.8F, u * 1.1F, 180.0F, 360.0F, accent);
+                }
+                // トランクの上に立つ翼
+                case REAR_WING -> {
+                    GaugePainter.rect(graphics, right - u * 1.6F, centerY - u * 1.0F, right - u * 1.3F,
+                            centerY - u * 0.3F, accent);
+                    GaugePainter.rect(graphics, right - u * 2.2F, centerY - u * 1.4F, right + u * 0.3F,
+                            centerY - u * 1.0F, accent);
+                }
+                // 後ろの下から抜けるフィン
+                case REAR_DIFFUSER -> GaugePainter.rect(graphics, right - u * 0.6F, floor - u * 0.5F,
+                        right + u * 0.5F, floor, accent);
+                default -> {
+                }
             }
         }
 

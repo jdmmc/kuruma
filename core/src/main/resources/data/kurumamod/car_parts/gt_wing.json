@@ -1,0 +1,13 @@
+{
+  "_comment": "GT ウイング。角度で 0.6〜1.6m² の範囲を動かせる。既定は 40%（1.0m²）",
+  "_comment_look": "見た目は車体の OBJ の part_gt_wing（車の vehicles/<car>.json の parts で別の名前も指定できる）",
+  "slot": "rear_wing",
+  "order": 20,
+  "aero": {
+    "rear": [
+      0.6,
+      1.6
+    ],
+    "angle": 0.4
+  }
+}

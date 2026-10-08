@@ -58,7 +58,14 @@ public final class PresetParts {
             if (wanted.equals(car.getFitment().get(slot))) {
                 continue;
             }
-            if (wanted.partId() != null) {
+            if (PartFitment.isNone(wanted.partId())) {
+                // 「なし」は外せる初期装備のある場所でだけ通る。それ以外ではサーバーが弾くか純正に読み替える
+                var defaults = com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).defaultPart(slot);
+                if (defaults != null && !defaults.removable()) {
+                    skipped++;
+                    continue;
+                }
+            } else if (wanted.partId() != null) {
                 CarPart part = CarParts.get(wanted.partId());
                 if (part == null || part.slot() != slot || !part.fits(car.getCarId())) {
                     skipped++;

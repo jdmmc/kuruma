@@ -481,5 +481,19 @@
   "part.kurumamod.turbo_big": "Big turbo",
   "part.kurumamod.blowoff_atmospheric": "Atmospheric",
   "part.kurumamod.tire_dirt": "Gravel",
-  "part.kurumamod.tire_offroad": "Mud terrain"
+  "part.kurumamod.tire_offroad": "Mud terrain",
+  "screen.kurumamod.part.angle": "Angle  %s%%",
+  "screen.kurumamod.part.angle_changed": "Angle  %s%% (default %s%%)",
+  "screen.kurumamod.part.angle_reset": "Back to the angle the pack sets",
+  "part.kurumamod.gt_wing": "GT wing",
+  "part.kurumamod.ducktail": "Duck tail",
+  "part.kurumamod.front_lip": "Front lip",
+  "part.kurumamod.front_splitter": "Splitter",
+  "part_slot.kurumamod.front_bumper": "Front bumper",
+  "part_slot.kurumamod.side_skirt": "Side skirts",
+  "part_slot.kurumamod.fender": "Fenders",
+  "part_slot.kurumamod.rear_wing": "Rear wing",
+  "part_slot.kurumamod.rear_diffuser": "Rear bumper",
+  "part.kurumamod.stock_spoiler": "Stock spoiler",
+  "part.kurumamod.gt_wing_low": "GT wing (low)"
 }
