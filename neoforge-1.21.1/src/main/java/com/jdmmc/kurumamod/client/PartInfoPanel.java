@@ -2,8 +2,11 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
+import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
+import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.CarSpec;
+import com.jdmmc.kurumamod.physics.PartAero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.surface.RoadSurface;
@@ -48,9 +51,9 @@ final class PartInfoPanel {
     private PartInfoPanel() {
     }
 
-    /** この場所に表を出すか。 */
+    /** この場所に表を出すか。車体の部品は空力が効くものがあるので出す（見た目だけの部品はそう書く）。 */
     static boolean covers(PartSlot slot) {
-        return slot == PartSlot.TIRE || slot == PartSlot.TURBO;
+        return slot == PartSlot.TIRE || slot == PartSlot.TURBO || slot.isBodyPart();
     }
 
     /**
@@ -58,14 +61,16 @@ final class PartInfoPanel {
      *
      * @param partId  出す部品。null は「ノーマル」「なし」（何も付けていない状態）
      * @param preview マウスを乗せて見比べているか（装着中ではない）
-     * @param spec    いま乗っている車の諸元。タービンのトルクと回転数を出すのに使う
+     * @param spec    いま乗っている車の諸元（部品込み）。タービンのトルクと回転数、空力の比較に使う
+     * @param fitment いま実際に付いている状態（初期装備込み）。空力部品の角度と、付け替える前の部品を見る
      * @param bottom  使ってよい下端。入りきらなければ縮める
      */
     static void render(GuiGraphics graphics, Font font, PartSlot slot, @Nullable ResourceLocation partId,
-                       Component label, boolean preview, CarSpec spec, int right, int top, int bottom) {
-        List<Row> rows = slot == PartSlot.TIRE
-                ? tireRows(tireOf(partId))
-                : turboRows(turboOf(partId), spec);
+                       Component label, boolean preview, CarSpec spec, PartFitment fitment,
+                       int right, int top, int bottom) {
+        List<Row> rows = slot == PartSlot.TIRE ? tireRows(tireOf(partId))
+                : slot == PartSlot.TURBO ? turboRows(turboOf(partId), spec)
+                : aeroRows(slot, partId, spec, fitment);
         int height = PADDING * 2 + LINE * 2 + rows.stream().mapToInt(Row::height).sum();
         float scale = Math.min(1.0F, (bottom - top) / (float) height);
         if (scale < 0.5F) {
@@ -138,6 +143,90 @@ final class PartInfoPanel {
                 ? Component.translatable("screen.kurumamod.part.info.same_as_normal")
                 : Component.literal(String.join("  ", rolling)), ScreenStyle.LABEL));
         return rows;
+    }
+
+    // ------------------------------------------------------------------
+    // 空力（車体の部品）
+    // ------------------------------------------------------------------
+
+    /** ダウンフォースと最高速を比べる速度 [m/s]。調整画面の補足と同じ 200km/h。 */
+    private static final double AERO_SPEED = 200.0 / 3.6;
+
+    /**
+     * 空力部品の表。<b>その部品だけのダウンフォース</b>と、<b>付け替えたら車全体がどう変わるか</b>。
+     *
+     * <p>車全体は「この場所の今の部品を外して、この部品を付けた」状態と今を比べる。ほかの場所の部品と
+     * 調整画面のダウンフォースはそのまま。角度は今の設定（上書きが無ければその部品の既定）。</p>
+     */
+    private static List<Row> aeroRows(PartSlot slot, @Nullable ResourceLocation partId, CarSpec spec,
+                                      PartFitment fitment) {
+        List<Row> rows = new ArrayList<>();
+        Aero aero = aeroOf(partId);
+        Double angle = fitment.getAngle(slot);
+        PartAero candidate = aero == null ? PartAero.NONE : aero.at(angle != null ? angle : aero.defaultAngle());
+        Aero fittedAero = aeroOf(fitment.getPart(slot));
+        PartAero fitted = fittedAero == null ? PartAero.NONE
+                : fittedAero.at(angle != null ? angle : fittedAero.defaultAngle());
+        PartAero others = new PartAero(spec.partAero().front() - fitted.front(), spec.partAero().rear() - fitted.rear());
+        CarSpec now = spec;
+        CarSpec after = spec.toBuilder().partAero(others.plus(candidate)).build();
+
+        rows.add(heading("screen.kurumamod.part.info.downforce"));
+        if (aero == null || (candidate.front() <= 0.0 && candidate.rear() <= 0.0 && !aero.adjustable())) {
+            rows.add(text(Component.translatable("screen.kurumamod.part.info.no_aero"), ScreenStyle.SUB));
+        } else {
+            rows.add(text(Component.translatable("screen.kurumamod.part.info.downforce_value",
+                    kg(candidate.front()), kg(candidate.rear())), COLOR_BETTER));
+            if (aero.adjustable()) {
+                PartAero low = aero.at(0.0);
+                PartAero high = aero.at(1.0);
+                rows.add(text(Component.translatable("screen.kurumamod.part.info.downforce_range",
+                        kg(low.front() + low.rear()), kg(high.front() + high.rear())), ScreenStyle.SUB));
+            }
+        }
+
+        rows.add(heading("screen.kurumamod.part.info.whole_car"));
+        rows.add(text(Component.literal(String.format("%s → %s kg",
+                kgForce(now.totalDownforce(AERO_SPEED)), kgForce(after.totalDownforce(AERO_SPEED)))),
+                compare(after.totalDownforce(AERO_SPEED), now.totalDownforce(AERO_SPEED))));
+        if (after.totalDownforce(1.0) > 0.0) {
+            rows.add(text(Component.translatable("screen.kurumamod.part.info.balance",
+                    String.format("%.0f", after.downforceFrontShare() * 100.0)), ScreenStyle.LABEL));
+        }
+        rows.add(heading("screen.kurumamod.part.info.grip_at_speed"));
+        rows.add(text(Component.literal(String.format("×%.2f → ×%.2f",
+                now.aeroGripFactor(AERO_SPEED), after.aeroGripFactor(AERO_SPEED))),
+                compare(after.aeroGripFactor(AERO_SPEED), now.aeroGripFactor(AERO_SPEED))));
+        rows.add(heading("screen.kurumamod.part.info.top_speed"));
+        double nowTop = now.estimatedTopSpeed() * 3.6;
+        double afterTop = after.estimatedTopSpeed() * 3.6;
+        // 最高速は下がるほど悪い。比べる向きが逆なので入れ替えて渡す
+        rows.add(text(Component.literal(String.format("%.0f → %.0f km/h", nowTop, afterTop)),
+                compare(afterTop, nowTop)));
+        rows.add(text(Component.translatable("screen.kurumamod.part.info.drag_area",
+                String.format("%.2f", now.effectiveDragArea()), String.format("%.2f", after.effectiveDragArea())),
+                ScreenStyle.SUB));
+        return rows;
+    }
+
+    @Nullable
+    private static Aero aeroOf(@Nullable ResourceLocation id) {
+        CarPart part = id == null ? null : CarParts.get(id);
+        return part == null ? null : part.aero();
+    }
+
+    /** ダウンフォースの面積 [m²] を、比べる速度で何 kg 押し付けるかに直す。 */
+    private static String kg(double area) {
+        return kgForce(0.5 * CarSpec.AIR_DENSITY * area * AERO_SPEED * AERO_SPEED);
+    }
+
+    private static String kgForce(double newtons) {
+        return String.format("%.0f", newtons / 9.81);
+    }
+
+    /** 増えたら緑、減ったら赤、変わらなければ控えめに。 */
+    private static int compare(double after, double now) {
+        return Math.abs(after - now) < 1e-6 ? ScreenStyle.SUB : after > now ? COLOR_BETTER : COLOR_WORSE;
     }
 
     /** ノーマルに対する倍率の文字。良くなるなら緑、悪くなるなら赤。 */

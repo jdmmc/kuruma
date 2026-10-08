@@ -391,16 +391,27 @@ public final class Tunables {
      * （前が多いとオーバー、後ろが多いとアンダー。配分が分からないと決められない）。
      */
     private static Object downforceAt200(CarSpec spec, boolean front) {
-        String kg = String.format("%.0f", spec.downforce(front, 200.0 / 3.6) / 9.81);
+        double speed = 200.0 / 3.6;
+        String kg = String.format("%.0f", spec.downforce(front, speed) / 9.81);
+        // 空力部品が足しているぶん。スライダーの値（車体そのもの）とは別に効いていることを見せる
+        double partArea = front ? spec.partAero().front() : spec.partAero().rear();
+        String partKg = String.format("%.0f", 0.5 * CarSpec.AIR_DENSITY * partArea * speed * speed / 9.81);
+        boolean parts = partArea > 0.0;
         if (front || spec.totalDownforce(1.0) <= 0.0) {
-            return detail("downforce", kg);
+            return parts ? detail("downforce_parts", kg, partKg) : detail("downforce", kg);
         }
-        return detail("downforce_balance", kg, String.format("%.0f", spec.downforceFrontShare() * 100.0));
+        String share = String.format("%.0f", spec.downforceFrontShare() * 100.0);
+        return parts ? detail("downforce_balance_parts", kg, partKg, share) : detail("downforce_balance", kg, share);
     }
 
     /** 100km/h での空気抵抗が何 G の減速になるか。CdA だけでは車重に対してどれほどか読めない。 */
     private static Object dragAt100(CarSpec spec) {
         double accel = spec.dragForce(100.0 / 3.6) / spec.mass();
+        // ダウンフォースを作るのに増えたぶん（調整画面のぶんと部品のぶん）。補足の G はこれも込み
+        double added = spec.effectiveDragArea() - spec.dragArea();
+        if (added > 1e-6) {
+            return detail("drag_area_added", String.format("%.3f", accel / 9.81), String.format("%.2f", added));
+        }
         return detail("drag_area", String.format("%.3f", accel / 9.81));
     }
 

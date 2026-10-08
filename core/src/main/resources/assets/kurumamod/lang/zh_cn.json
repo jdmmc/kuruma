@@ -495,5 +495,17 @@
   "part_slot.kurumamod.rear_wing": "尾翼",
   "part_slot.kurumamod.rear_diffuser": "后保险杠",
   "part.kurumamod.stock_spoiler": "原厂扰流板",
-  "part.kurumamod.gt_wing_low": "GT 尾翼（低）"
+  "part.kurumamod.gt_wing_low": "GT 尾翼（低）",
+  "tuning.kurumamod.detail.downforce_parts": "200 km/h 时 %s kg（其中部件 %s kg）",
+  "tuning.kurumamod.detail.downforce_balance_parts": "200 km/h 时 %s kg（其中部件 %s kg）前 %s%%",
+  "tuning.kurumamod.detail.drag_area_added": "100 km/h 时 %sG（下压力 +%s m²）",
+  "screen.kurumamod.part.info.downforce": "此部件的下压力（200 km/h）",
+  "screen.kurumamod.part.info.downforce_value": "前 %s kg  后 %s kg",
+  "screen.kurumamod.part.info.downforce_range": "按角度 合计 %s–%s kg",
+  "screen.kurumamod.part.info.no_aero": "仅外观（不影响空气动力）",
+  "screen.kurumamod.part.info.whole_car": "整车下压力（200 km/h）",
+  "screen.kurumamod.part.info.balance": "前后分配  前 %s%%",
+  "screen.kurumamod.part.info.grip_at_speed": "200 km/h 时的抓地力",
+  "screen.kurumamod.part.info.top_speed": "极速估算",
+  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²"
 }

@@ -495,5 +495,17 @@
   "part_slot.kurumamod.rear_wing": "ウイング",
   "part_slot.kurumamod.rear_diffuser": "リア",
   "part.kurumamod.stock_spoiler": "純正スポイラー",
-  "part.kurumamod.gt_wing_low": "GT ウイング（ロー）"
+  "part.kurumamod.gt_wing_low": "GT ウイング（ロー）",
+  "tuning.kurumamod.detail.downforce_parts": "200km/h で %skg（うち部品 %skg）",
+  "tuning.kurumamod.detail.downforce_balance_parts": "200km/h で %skg（うち部品 %skg）前%s%%",
+  "tuning.kurumamod.detail.drag_area_added": "100km/h で %sG（ダウンフォースで +%s m²）",
+  "screen.kurumamod.part.info.downforce": "この部品のダウンフォース（200km/h）",
+  "screen.kurumamod.part.info.downforce_value": "前 %skg  後 %skg",
+  "screen.kurumamod.part.info.downforce_range": "角度で 合計 %s〜%skg",
+  "screen.kurumamod.part.info.no_aero": "見た目だけ（空力は変わらない）",
+  "screen.kurumamod.part.info.whole_car": "車全体のダウンフォース（200km/h）",
+  "screen.kurumamod.part.info.balance": "前後の配分  前 %s%%",
+  "screen.kurumamod.part.info.grip_at_speed": "200km/h でのグリップ",
+  "screen.kurumamod.part.info.top_speed": "最高速の目安",
+  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²"
 }
