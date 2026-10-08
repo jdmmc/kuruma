@@ -146,7 +146,21 @@ public class CarSound extends AbstractTickableSoundInstance {
     private int lastGear;
 
     public CarSound(CarEntity car, Role role) {
-        this(car, role, CarModel.get(car.getCarId()).sounds());
+        this(car, role, soundsOf(car));
+    }
+
+    /**
+     * その車で鳴らす音の組。車種の差し替えに、付けているマフラーの音源を重ねたもの。
+     *
+     * <p>{@link CarSounds} も同じものを見て、マフラーの音源が変わったら排気音を鳴らし直す。</p>
+     */
+    static CarSoundSet soundsOf(CarEntity car) {
+        return CarModel.get(car.getCarId()).sounds().withExhaust(CarPartModel.exhaustOf(car.getEffectiveFitment()));
+    }
+
+    /** 排気音か（マフラーで音程・音量・音源が変わる）。 */
+    static boolean isExhaust(Role role) {
+        return role == Role.EXHAUST || role == Role.EXHAUST_HIGH;
     }
 
     private CarSound(CarEntity car, Role role, CarSoundSet sounds) {
@@ -247,6 +261,13 @@ public class CarSound extends AbstractTickableSoundInstance {
         }
         updatePosition();
 
+        // マフラーを付け替えて音源が変わったら、この音は止める。新しい音源で鳴らし直すのは CarSounds
+        // （鳴っている音の中から別の音を始めると、音響エンジンが一覧を回している最中に書き換えることになる）
+        if (isExhaust(role) && !soundsOf(car).equals(sounds)) {
+            stop();
+            return;
+        }
+
         float targetVolume;
         float targetPitch;
         switch (role) {
@@ -263,9 +284,15 @@ public class CarSound extends AbstractTickableSoundInstance {
                 // 高回転側が 1 オクターブ上の音源でなければ（パックが排気音だけ差し替えた）、
                 // 同じ音程で鳴らす。2.0 の壁で頭打ちになるが、別の車の音に化けるよりよい
                 boolean halve = high && sounds.exhaustHighIsOctaveUp();
-                targetPitch = (float) Mth.clamp(halve ? wanted / 2.0 : wanted, 0.5, 2.0);
-                // アイドルでも鳴っているが、踏むと前に出る
-                float loudness = 0.30F + 0.50F * (float) car.getRenderThrottle();
+                // マフラーの音程。下げるのは効くが、上げるのは 2.0 の壁ですぐ頭打ちになる
+                var fitment = car.getEffectiveFitment();
+                double muffler = CarPartModel.exhaustPitch(fitment);
+                targetPitch = (float) Mth.clamp((halve ? wanted / 2.0 : wanted) * muffler, 0.5, 2.0);
+                // アイドルでも鳴っているが、踏むと前に出る。マフラーの音量を掛けるが 1 を超えない
+                // （1 を超えると音の届く距離まで伸びる）
+                CarPartModel.Exhaust exhaust = CarPartModel.exhaustOf(fitment);
+                float gain = exhaust == null ? 1.0F : (float) exhaust.volume();
+                float loudness = Math.min(1.0F, (0.30F + 0.50F * (float) car.getRenderThrottle()) * gain);
                 double blend = Mth.clamp((ratio - CROSSFADE_FROM) / (CROSSFADE_TO - CROSSFADE_FROM),
                         0.0, 1.0);
                 targetVolume = loudness * (float) (high ? blend : 1.0 - blend);

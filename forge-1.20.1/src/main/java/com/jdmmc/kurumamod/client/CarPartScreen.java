@@ -166,6 +166,13 @@ public class CarPartScreen extends Screen {
         if (slot == PartSlot.WHEEL) {
             return List.of(Adjustment.CAMBER, Adjustment.OFFSET, Adjustment.WIDTH);
         }
+        if (slot == PartSlot.EXHAUST) {
+            // 音の低さは音程の範囲を持つマフラーだけ
+            CarEntity driving = CarClientDriver.driving();
+            CarPartModel.Exhaust exhaust = driving == null ? null
+                    : CarPartModel.exhaustOf(driving.getEffectiveFitment());
+            return exhaust != null && exhaust.adjustable() ? List.of(Adjustment.TONE) : List.of();
+        }
         if (slot.isBodyPart()) {
             // 角度は範囲を持つ部品だけ。固定の部品（ダックテールなど）に出しても何も変わらない。
             // 初期装備のウイングでも変えられるよう、初期装備を足した状態で見る
@@ -620,6 +627,29 @@ public class CarPartScreen extends Screen {
             PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
                 return fitment.withAngle(slot, value);
             }
+        },
+
+        /**
+         * マフラーの音の低さ [%]。<b>部品が持つ音程の範囲の中の位置</b>で、0% でいちばん高く、100% でいちばん低い。
+         * 走りは変わらない。
+         */
+        TONE(PartFitment.TONE_MIN * 100.0, PartFitment.TONE_MAX * 100.0, 5.0, 0.01, "tone", "%.0f") {
+            @Override
+            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
+                CarPartModel.Exhaust exhaust = CarPartModel.exhaustOf(fitment);
+                return exhaust == null ? 0.0 : exhaust.defaultTone();
+            }
+
+            @Override
+            @Nullable
+            Double override(PartFitment fitment, PartSlot slot) {
+                return fitment.getTone(slot);
+            }
+
+            @Override
+            PartFitment apply(PartFitment fitment, PartSlot slot, @Nullable Double value) {
+                return fitment.withTone(slot, value);
+            }
         };
 
         static final Adjustment[] VALUES = values();
@@ -792,7 +822,7 @@ public class CarPartScreen extends Screen {
                 case TIRE -> renderTireIcon(graphics, iconX, iconY);
                 case TURBO -> renderTurboIcon(graphics, iconX, iconY);
                 case BLOWOFF -> renderBlowoffIcon(graphics, iconX, iconY);
-                case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER ->
+                case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER, EXHAUST ->
                         renderBodyPartIcon(graphics, iconX, iconY);
                 default -> renderWheelIcon(graphics, iconX, iconY);
             }
@@ -937,6 +967,15 @@ public class CarPartScreen extends Screen {
                 // 後ろの下から抜けるフィン
                 case REAR_DIFFUSER -> GaugePainter.rect(graphics, right - u * 0.6F, floor - u * 0.5F,
                         right + u * 0.5F, floor, accent);
+                // 後ろの下から突き出す出口と、吐き出す排気
+                case EXHAUST -> {
+                    GaugePainter.rect(graphics, right - u * 0.4F, floor - u * 0.25F, right + u * 0.6F,
+                            floor + u * 0.1F, accent);
+                    GaugePainter.rect(graphics, right + u * 0.9F, floor - u * 0.4F, right + u * 1.1F,
+                            floor - u * 0.25F, accent);
+                    GaugePainter.rect(graphics, right + u * 0.9F, floor + u * 0.1F, right + u * 1.1F,
+                            floor + u * 0.25F, accent);
+                }
                 default -> {
                 }
             }

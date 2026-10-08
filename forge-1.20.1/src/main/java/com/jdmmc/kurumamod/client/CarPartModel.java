@@ -59,7 +59,8 @@ public record CarPartModel(
         @Nullable Double camber,
         @Nullable Double designRadius,
         @Nullable Double rimRadius,
-        @Nullable Tire tire) {
+        @Nullable Tire tire,
+        @Nullable Exhaust exhaust) {
 
     /**
      * リムの外縁に対して、タイヤの内径（ビード）をどこに置くか。
@@ -90,7 +91,62 @@ public record CarPartModel(
 
     /** 何も書かれていない定義。＝すべて車種の既定のまま。 */
     private static final CarPartModel EMPTY =
-            new CarPartModel(null, null, null, null, null, null, null, null);
+            new CarPartModel(null, null, null, null, null, null, null, null, null);
+
+    /**
+     * マフラーの音。{@code assets/<ns>/car_parts/<id>.json} の {@code exhaust} ブロック。
+     *
+     * <pre>
+     * "exhaust": {
+     *   "pitch": [0.80, 1.00],               // 音程の倍率。範囲なら換装画面の「音の低さ」で動かせる
+     *   "volume": 1.3,                        // 音量の倍率
+     *   "sound": "mypack:titanium_exhaust",   // 排気音の差し替え（省略でその車の音のまま）
+     *   "sound_high": "mypack:titanium_high", // 高回転側（1 オクターブ上）。省略すると sound を同じ音程で鳴らす
+     *   "tone": 0.3                           // 調整していないときの低さ（0 で高い、1 で低い）。省略で 0
+     * }
+     * </pre>
+     *
+     * <p><b>上げられる音程は少しだけ。</b>Minecraft の音程は 0.5〜2.0 の壁があり、排気音はレブ付近で
+     * もう 1.95 を使っている。下げるのは 0.77 倍くらいまで効く（アイドルが壁に当たるところ）。
+     * 甲高いマフラーにしたいなら、高い音の音源を {@code sound} で差し替える。</p>
+     *
+     * <p><b>走りは変わらない。</b>音は各クライアントが鳴らすので、ここ（{@code assets/}）にあってよい。</p>
+     */
+    public record Exhaust(double pitchMin, double pitchMax, double volume,
+                          @Nullable ResourceLocation sound, @Nullable ResourceLocation soundHigh,
+                          double defaultTone) {
+
+        /** 範囲で書かれていて、音の低さを動かせるか。 */
+        public boolean adjustable() {
+            return pitchMin != pitchMax;
+        }
+
+        /** その低さ（0 で高い、1 で低い）での音程の倍率。 */
+        public double pitchAt(double tone) {
+            double t = Math.max(0.0, Math.min(1.0, tone));
+            return pitchMax - (pitchMax - pitchMin) * t;
+        }
+    }
+
+    /**
+     * いま付けているマフラーの音。付けていない・見た目の定義が無い・音を書いていなければ null
+     * （＝その車の排気音のまま）。<b>初期装備を足した状態（{@code CarEntity#getEffectiveFitment}）を渡すこと。</b>
+     */
+    @Nullable
+    public static Exhaust exhaustOf(PartFitment parts) {
+        ResourceLocation partId = parts.getPart(PartSlot.EXHAUST);
+        return partId == null ? null : get(partId).exhaust;
+    }
+
+    /** いまのマフラーの音程の倍率。音の低さの上書きが無ければ部品の既定。マフラーが無ければ 1。 */
+    public static double exhaustPitch(PartFitment parts) {
+        Exhaust exhaust = exhaustOf(parts);
+        if (exhaust == null) {
+            return 1.0;
+        }
+        Double tone = parts.getTone(PartSlot.EXHAUST);
+        return exhaust.pitchAt(tone != null ? tone : exhaust.defaultTone());
+    }
 
     /** 部品ごとに読んだ定義。リソースの再読み込み（F3+T）で捨てる。 */
     private static final Map<ResourceLocation, CarPartModel> CACHE = new HashMap<>();
@@ -288,7 +344,13 @@ public record CarPartModel(
                     CarModel.location(block, "texture", DEFAULT_TIRE.texture()),
                     block.has("innerRadius") ? CarModel.number(block, "innerRadius", 0.0) : null,
                     block.has("outerRadius") ? CarModel.number(block, "outerRadius", 0.0) : null);
-            return new CarPartModel(null, null, null, null, null, null, null, tire);
+            return new CarPartModel(null, null, null, null, null, null, null, tire, null);
+        }
+        // マフラーは exhaust ブロックに書く（タイヤと同じく根には書けない）
+        JsonObject exhaustBlock = CarModel.child(root, PartSlot.EXHAUST.getSerializedName());
+        if (exhaustBlock.size() > 0) {
+            return new CarPartModel(null, null, null, null, null, null, null, null,
+                    parseExhaust(exhaustBlock, location));
         }
         JsonObject wheel = CarModel.child(root, PartSlot.WHEEL.getSerializedName());
         JsonObject block = wheel.size() > 0 ? wheel : root;
@@ -308,7 +370,42 @@ public record CarPartModel(
                         : null,
                 block.has("designRadius") ? CarModel.number(block, "designRadius", 0.0) : null,
                 block.has("rimRadius") ? CarModel.number(block, "rimRadius", 0.0) : null,
-                null);
+                null, null);
+    }
+
+    /** 音程の倍率として読める範囲。外は丸めてログに残す。 */
+    private static final double PITCH_MIN = 0.5;
+    private static final double PITCH_MAX = 1.5;
+
+    private static Exhaust parseExhaust(JsonObject block, ResourceLocation location) {
+        double low = 1.0;
+        double high = 1.0;
+        if (block.has("pitch")) {
+            var element = block.get("pitch");
+            if (element.isJsonArray() && element.getAsJsonArray().size() == 2) {
+                low = element.getAsJsonArray().get(0).getAsDouble();
+                high = element.getAsJsonArray().get(1).getAsDouble();
+            } else if (element.isJsonPrimitive()) {
+                low = high = element.getAsDouble();
+            } else {
+                LOGGER.warn("{} の exhaust.pitch は数字か [最小, 最大] で書いてください（1 にします）", location);
+            }
+        }
+        double min = clampPitch(location, Math.min(low, high));
+        double max = clampPitch(location, Math.max(low, high));
+        double volume = Math.max(0.0, Math.min(2.0, CarModel.number(block, "volume", 1.0)));
+        double tone = Math.max(0.0, Math.min(1.0, CarModel.number(block, "tone", 0.0)));
+        return new Exhaust(min, max, volume,
+                CarModel.location(block, "sound", null), CarModel.location(block, "sound_high", null), tone);
+    }
+
+    private static double clampPitch(ResourceLocation location, double pitch) {
+        double clamped = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch));
+        if (clamped != pitch) {
+            LOGGER.warn("{} の exhaust.pitch = {} は範囲（{} 〜 {}）の外なので {} に丸めました",
+                    location, pitch, PITCH_MIN, PITCH_MAX, clamped);
+        }
+        return clamped;
     }
 
 }

@@ -46,7 +46,12 @@ public enum PartSlot {
     /** リアスポイラー、ウイング、ダックテール。ふつう後軸に効く。 */
     REAR_WING("rear_wing", null),
     /** リアバンパー、ディフューザー。ふつう後軸に効く。 */
-    REAR_DIFFUSER("rear_diffuser", null);
+    REAR_DIFFUSER("rear_diffuser", null),
+    /**
+     * マフラー。<b>音と見た目だけ</b>（走りは変わらない）。音の性格（音程・音量・音源）は部品の見た目の定義
+     * （{@code assets/<ns>/car_parts/<id>.json} の {@code exhaust}）に書く。
+     */
+    EXHAUST("exhaust", null);
 
     public static final PartSlot[] VALUES = values();
 
@@ -75,7 +80,8 @@ public enum PartSlot {
     public String emptyKey() {
         return switch (this) {
             // 車体の部品は、外すと純正の形（初期装備があればそれ）に戻る
-            case WHEEL, FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER -> "screen.kurumamod.part.stock";
+            case WHEEL, FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER, EXHAUST ->
+                    "screen.kurumamod.part.stock";
             case TIRE -> "screen.kurumamod.part.tire_normal";
             default -> "screen.kurumamod.part.none";
         };
@@ -84,7 +90,7 @@ public enum PartSlot {
     /** 見た目を車体の OBJ の中のオブジェクトで持つ場所か（別のメッシュを持たない）。 */
     public boolean isBodyPart() {
         return switch (this) {
-            case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER -> true;
+            case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER, EXHAUST -> true;
             default -> false;
         };
     }

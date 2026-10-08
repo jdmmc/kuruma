@@ -70,6 +70,7 @@ final class PartInfoPanel {
                        int right, int top, int bottom) {
         List<Row> rows = slot == PartSlot.TIRE ? tireRows(tireOf(partId))
                 : slot == PartSlot.TURBO ? turboRows(turboOf(partId), spec)
+                : slot == PartSlot.EXHAUST ? exhaustRows(partId, fitment)
                 : aeroRows(slot, partId, spec, fitment);
         int height = PADDING * 2 + LINE * 2 + rows.stream().mapToInt(Row::height).sum();
         float scale = Math.min(1.0F, (bottom - top) / (float) height);
@@ -206,6 +207,37 @@ final class PartInfoPanel {
         rows.add(text(Component.translatable("screen.kurumamod.part.info.drag_area",
                 String.format("%.2f", now.effectiveDragArea()), String.format("%.2f", after.effectiveDragArea())),
                 ScreenStyle.SUB));
+        return rows;
+    }
+
+    /**
+     * マフラーの表。<b>音だけ</b>なので、音程と音量と音源。走りが変わらないことも書いておく
+     * （性能の表が出ているのに何も変わらないと、効いていないのかと迷う）。
+     */
+    private static List<Row> exhaustRows(@Nullable ResourceLocation partId, PartFitment fitment) {
+        List<Row> rows = new ArrayList<>();
+        CarPartModel.Exhaust exhaust = partId == null || PartFitment.isNone(partId)
+                ? null : CarPartModel.get(partId).exhaust();
+        rows.add(heading("screen.kurumamod.part.info.exhaust_sound"));
+        if (exhaust == null) {
+            rows.add(text(Component.translatable("screen.kurumamod.part.info.exhaust_stock"), ScreenStyle.SUB));
+        } else {
+            Double tone = fitment.getTone(PartSlot.EXHAUST);
+            double now = exhaust.pitchAt(tone != null ? tone : exhaust.defaultTone());
+            rows.add(text(Component.translatable("screen.kurumamod.part.info.exhaust_pitch",
+                    String.format("%.2f", now)), now < 1.0 ? COLOR_BETTER : ScreenStyle.LABEL));
+            if (exhaust.adjustable()) {
+                rows.add(text(Component.translatable("screen.kurumamod.part.info.exhaust_range",
+                        String.format("%.2f", exhaust.pitchMax()), String.format("%.2f", exhaust.pitchMin())),
+                        ScreenStyle.SUB));
+            }
+            rows.add(text(Component.translatable("screen.kurumamod.part.info.exhaust_volume",
+                    String.format("%.2f", exhaust.volume())), ScreenStyle.LABEL));
+            rows.add(text(Component.translatable(exhaust.sound() != null
+                    ? "screen.kurumamod.part.info.exhaust_own_sound"
+                    : "screen.kurumamod.part.info.exhaust_car_sound"), ScreenStyle.SUB));
+        }
+        rows.add(text(Component.translatable("screen.kurumamod.part.info.exhaust_no_performance"), ScreenStyle.SUB));
         return rows;
     }
 
