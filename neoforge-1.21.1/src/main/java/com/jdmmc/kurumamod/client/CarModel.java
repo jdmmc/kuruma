@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.part.PartFitment;
+import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -14,9 +15,13 @@ import org.slf4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 車の<b>見た目</b>の定義。{@code assets/kurumamod/vehicles/car.json} に書く。
@@ -80,6 +85,8 @@ import java.util.Optional;
  * @param camber            キャンバー角 [度]。自動車の慣習どおり<b>負で「上が内側」</b>（ネガティブキャンバー）
  * @param shadowRadius      影の大きさ。車の大きさを変えたら一緒に見直す
  * @param sounds            音の差し替え（{@code sounds}）。書かなかった音は KurumaMod の音のまま
+ * @param partObjects       部品 id → 付けたときに車体の OBJ で出す・消すオブジェクト（{@code parts}）。
+ *                          書かなかった部品は名前の決まり {@code part_<部品のパス>} で探す
  */
 public record CarModel(
         ResourceLocation bodyModel,
@@ -109,12 +116,99 @@ public record CarModel(
          */
         Vec3 seatOffset,
         float shadowRadius,
-        CarSoundSet sounds) {
+        CarSoundSet sounds,
+        Map<ResourceLocation, PartObjects> partObjects) {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** 車種ごとに読んだ定義。リソースの再読み込み（F3+T）で捨てる。 */
     private static final Map<ResourceLocation, CarModel> CACHE = new HashMap<>();
+
+    /**
+     * 部品を付けたときに出す・消す車体のオブジェクト。{@code vehicles/<car>.json} の {@code parts}。
+     *
+     * <pre>
+     * "parts": {
+     *   "kurumamod:gt_wing": { "show": ["part_gt_wing", "part_gt_wing_stay"] }
+     * }
+     * </pre>
+     *
+     * <p>名前の決まり（{@code part_<部品のパス>}）と違う名前にしたいとき、1 つの部品で複数の
+     * オブジェクトを出したいときに書く。出せるのは {@code part_} で始まるオブジェクトだけ
+     * （{@link ObjModel#PART_PREFIX}）。</p>
+     */
+    public record PartObjects(List<String> show) {
+
+        public PartObjects {
+            show = List.copyOf(show);
+        }
+    }
+
+    /** いま出す部品の形。 */
+    public record BodyParts(Set<String> shown) {
+
+        public static final BodyParts NONE = new BodyParts(Set.of());
+    }
+
+    /**
+     * 装着状態から、出す部品の形を決める。<b>初期装備を足した状態（{@code CarEntity#getEffectiveFitment}）を渡すこと。</b>
+     *
+     * <p>{@code parts} に書かれた部品はその指定どおり。書かれていなければ名前の決まり
+     * （{@link #conventionalNames}）で探し、車体の OBJ にあればそれを出す。どの場所の部品でも効く
+     * （空力部品に限らない）。</p>
+     *
+     * @param available 車体の OBJ が持っている、出し入れする形の名前（{@link ObjModel#optionalNames}）
+     */
+    public BodyParts bodyParts(PartFitment fitment, Set<String> available) {
+        if (fitment.isEmpty() || available.isEmpty()) {
+            return BodyParts.NONE;
+        }
+        Set<String> shown = new HashSet<>();
+        for (PartSlot slot : PartSlot.VALUES) {
+            ResourceLocation id = fitment.getPart(slot);
+            if (id == null) {
+                continue;
+            }
+            PartObjects objects = partObjects.get(id);
+            if (objects != null) {
+                shown.addAll(objects.show());
+            } else {
+                for (String name : conventionalNames(id, slot)) {
+                    if (available.contains(name)) {
+                        shown.add(name);
+                    }
+                }
+            }
+        }
+        return new BodyParts(shown);
+    }
+
+    /**
+     * その部品の形をこの車が持っているか。<b>車体の形で見せる部品（空力部品）は、持っている車にしか並べない。</b>
+     *
+     * <p>見た目の無い部品を履けると、他の人には何も見えないのにグリップだけ上がった車が走ることになる。</p>
+     */
+    public boolean hasPartObjects(ResourceLocation partId, PartSlot slot, Set<String> available) {
+        PartObjects objects = partObjects.get(partId);
+        if (objects != null) {
+            return objects.show().stream().anyMatch(available::contains);
+        }
+        return conventionalNames(partId, slot).stream().anyMatch(available::contains);
+    }
+
+    /**
+     * {@code parts} に書かなかった部品の形の名前。<b>どちらで作ってもよい。</b>
+     *
+     * <ul>
+     *   <li>{@code part_<部品のパス>} … {@code part_gt_wing}</li>
+     *   <li>{@code part_<場所>-<部品のパス>} … {@code part_rear_wing-gt_wing}。Blender の一覧で
+     *       どの場所の部品か分かるように、場所の名前を前に付けた形</li>
+     * </ul>
+     */
+    static List<String> conventionalNames(ResourceLocation partId, PartSlot slot) {
+        return List.of(ObjModel.PART_PREFIX + partId.getPath(),
+                ObjModel.PART_PREFIX + slot.getSerializedName() + "-" + partId.getPath());
+    }
 
     /** 3 つ組。平行移動にも拡大率にも使う。 */
     public record Vec3(double x, double y, double z) {
@@ -173,7 +267,8 @@ public record CarModel(
                 null,
                 new Vec3(0.5, -0.55, 0.2),
                 1.4F,
-                CarSoundSet.NONE);
+                CarSoundSet.NONE,
+                Map.of());
     }
 
     // ------------------------------------------------------------------
@@ -219,7 +314,40 @@ public record CarModel(
                 wheel.has("rimRadius") ? number(wheel, "rimRadius", 0.0) : null,
                 vector(root, "seat", base.seatOffset()),
                 (float) number(root, "shadowRadius", base.shadowRadius()),
-                CarSoundSet.parse(child(root, "sounds")));
+                CarSoundSet.parse(child(root, "sounds")),
+                parsePartObjects(child(root, "parts"), location));
+    }
+
+    /** {@code parts}。読めない id・名前の頭が違うオブジェクトは、その値だけ捨ててログに残す。 */
+    private static Map<ResourceLocation, PartObjects> parsePartObjects(JsonObject json, ResourceLocation location) {
+        Map<ResourceLocation, PartObjects> result = new HashMap<>();
+        for (String key : json.keySet()) {
+            ResourceLocation id = ResourceLocation.tryParse(key);
+            if (id == null || !json.get(key).isJsonObject()) {
+                LOGGER.warn("{} の parts.{} を読めません（その部品だけ無視します）", location, key);
+                continue;
+            }
+            JsonObject entry = json.getAsJsonObject(key);
+            result.put(id, new PartObjects(names(entry, "show", ObjModel.PART_PREFIX, location, key)));
+        }
+        return result;
+    }
+
+    private static List<String> names(JsonObject entry, String key, String prefix, ResourceLocation location, String part) {
+        List<String> names = new ArrayList<>();
+        if (!entry.has(key) || !entry.get(key).isJsonArray()) {
+            return names;
+        }
+        for (var element : entry.getAsJsonArray(key)) {
+            String name = element.getAsString();
+            if (!name.startsWith(prefix)) {
+                LOGGER.warn("{} の parts.{}.{} に書けるのは {} で始まる名前だけです（無視します）: {}",
+                        location, part, key, prefix, name);
+                continue;
+            }
+            names.add(name);
+        }
+        return names;
     }
 
     /*

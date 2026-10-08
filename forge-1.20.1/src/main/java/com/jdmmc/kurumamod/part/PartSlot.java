@@ -30,7 +30,23 @@ public enum PartSlot {
      * ブローオフバルブ。<b>音だけ</b>（アクセルを抜いたときの「プシュッ」）。
      * ターボが付いているときだけ意味があるので、換装画面もそのときだけ出す。
      */
-    BLOWOFF("blowoff", TURBO);
+    BLOWOFF("blowoff", TURBO),
+    /*
+     * ここから下は<b>車体の形を変える部品</b>（{@link #isBodyPart()}）。見た目は別のメッシュではなく
+     * 車体の OBJ の中のオブジェクト（{@code part_<部品のパス>}）を出し入れするので、
+     * <b>その形を持っている車にしか並ばない</b>（タブごと出ない）。部品の {@code aero} を書けば
+     * ダウンフォースが足され、書かなければ見た目だけの部品になる。
+     */
+    /** フロントバンパー、リップ、スプリッター、カナード。ふつう前軸に効く。 */
+    FRONT_BUMPER("front_bumper", null),
+    /** サイドスカート。 */
+    SIDE_SKIRT("side_skirt", null),
+    /** オーバーフェンダー、ワイドフェンダー。ふつうは見た目だけ。 */
+    FENDER("fender", null),
+    /** リアスポイラー、ウイング、ダックテール。ふつう後軸に効く。 */
+    REAR_WING("rear_wing", null),
+    /** リアバンパー、ディフューザー。ふつう後軸に効く。 */
+    REAR_DIFFUSER("rear_diffuser", null);
 
     public static final PartSlot[] VALUES = values();
 
@@ -58,9 +74,18 @@ public enum PartSlot {
      */
     public String emptyKey() {
         return switch (this) {
-            case WHEEL -> "screen.kurumamod.part.stock";
+            // 車体の部品は、外すと純正の形（初期装備があればそれ）に戻る
+            case WHEEL, FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER -> "screen.kurumamod.part.stock";
             case TIRE -> "screen.kurumamod.part.tire_normal";
             default -> "screen.kurumamod.part.none";
+        };
+    }
+
+    /** 見た目を車体の OBJ の中のオブジェクトで持つ場所か（別のメッシュを持たない）。 */
+    public boolean isBodyPart() {
+        return switch (this) {
+            case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER -> true;
+            default -> false;
         };
     }
 

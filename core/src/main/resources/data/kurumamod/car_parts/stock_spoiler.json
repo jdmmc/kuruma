@@ -1,0 +1,12 @@
+{
+  "_comment": "S15 の純正リアスポイラー。トランクの縁に付く小さな翼で、後ろの揚力を少し打ち消す程度",
+  "_comment_look": "見た目は S15 の OBJ の part_stock_spoiler（名前の決まり part_<部品のパス> で結び付くので JSON は要らない）",
+  "slot": "rear_wing",
+  "order": 5,
+  "cars": [
+    "kurumamod:car"
+  ],
+  "aero": {
+    "rear": 0.1
+  }
+}

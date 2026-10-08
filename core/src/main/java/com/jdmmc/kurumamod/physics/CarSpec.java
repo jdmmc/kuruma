@@ -154,7 +154,9 @@ public record CarSpec(
         // CarEntity が装着している部品から毎回載せ直す）。既定は無し
         Turbo turbo,
         // タイヤ。ターボと同じく部品から来る。既定はノーマル（すべて 1 倍）
-        Tire tire) {
+        Tire tire,
+        // 空力部品が足すダウンフォース。ターボと同じく部品から来る。既定は無し
+        PartAero partAero) {
 
     /**
      * 基準の摩擦係数。<b>調整画面の「グリップ」1.00 がこの値</b>で、既定の車もここに置いてある。
@@ -980,13 +982,20 @@ public record CarSpec(
      * 増えるぶん（{@link #DOWNFORCE_PER_DRAG}）を足したもの。
      */
     public double effectiveDragArea() {
-        return dragArea + (frontDownforceArea + rearDownforceArea) / DOWNFORCE_PER_DRAG;
+        return dragArea + (effectiveDownforceArea(true) + effectiveDownforceArea(false)) / DOWNFORCE_PER_DRAG;
+    }
+
+    /**
+     * 実際に効いている前軸（または後軸）のダウンフォースの面積 [m^2]。
+     * 調整画面のぶん（車体そのもの）に、付けている空力部品のぶん（{@link #partAero}）を足したもの。
+     */
+    public double effectiveDownforceArea(boolean front) {
+        return front ? frontDownforceArea + partAero.front() : rearDownforceArea + partAero.rear();
     }
 
     /** その速度で前軸（または後軸）に掛かるダウンフォース [N]。½ρ・ClA・v²。 */
     public double downforce(boolean front, double speed) {
-        double area = front ? frontDownforceArea : rearDownforceArea;
-        return 0.5 * AIR_DENSITY * area * speed * speed;
+        return 0.5 * AIR_DENSITY * effectiveDownforceArea(front) * speed * speed;
     }
 
     /** 前軸と後軸を合わせたダウンフォース [N]。 */
@@ -996,8 +1005,9 @@ public record CarSpec(
 
     /** ダウンフォースのうち前軸が受け持つ割合。ダウンフォースが無ければ 0。 */
     public double downforceFrontShare() {
-        double total = frontDownforceArea + rearDownforceArea;
-        return total > 0.0 ? frontDownforceArea / total : 0.0;
+        double front = effectiveDownforceArea(true);
+        double total = front + effectiveDownforceArea(false);
+        return total > 0.0 ? front / total : 0.0;
     }
 
     /**
@@ -1076,6 +1086,7 @@ public record CarSpec(
     public static final class Builder {
 
         private Turbo turbo = Turbo.NONE;
+        private PartAero partAero = PartAero.NONE;
         private Tire tire = Tire.NORMAL;
 
         // 実車の 1.2 倍。Minecraft のプレイヤーはずんぐりしているので、実寸どおり
@@ -1210,6 +1221,7 @@ public record CarSpec(
 
         private Builder(CarSpec spec) {
             turbo = spec.turbo;
+            partAero = spec.partAero;
             tire = spec.tire;
             wheelBase = spec.wheelBase;
             trackWidth = spec.trackWidth;
@@ -1594,6 +1606,11 @@ public record CarSpec(
             return this;
         }
 
+        public Builder partAero(PartAero value) {
+            partAero = value == null ? PartAero.NONE : value;
+            return this;
+        }
+
         public Builder turbo(Turbo value) {
             turbo = value == null ? Turbo.NONE : value;
             return this;
@@ -1625,7 +1642,7 @@ public record CarSpec(
                     diffPreload, diffLockRatio, diffCoastRatio,
                     centerDiffLock,
                     manualTransmission, rollingResistance, dragArea,
-                    frontDownforceArea, rearDownforceArea, turbo, tire);
+                    frontDownforceArea, rearDownforceArea, turbo, tire, partAero);
         }
     }
 }

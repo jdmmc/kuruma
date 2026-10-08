@@ -86,6 +86,29 @@ public final class PartFitment {
     public static final double WIDTH_MIN = 0.5;
     public static final double WIDTH_MAX = 2.5;
 
+    /**
+     * 空力部品の角度の範囲。<b>部品が持つ ClA の範囲（{@code Aero}）の中の位置</b>で、0 で最小、1 で最大。
+     *
+     * <p>度で持たないのは、<b>何度で何 m² なのかは部品次第</b>だから。位置で持っておけば、
+     * 部品を履き替えても「その部品の範囲のどこに置いたか」の意味が変わらない。
+     * 角度が変えるのは性能だけで、見た目（車体のメッシュ）は動かない。</p>
+     */
+    public static final double ANGLE_MIN = 0.0;
+    public static final double ANGLE_MAX = 1.0;
+
+    /**
+     * 「なし」の印。<b>初期装備（{@code default_parts}）のある場所で、それを外したことを表す。</b>
+     *
+     * <p>何も指定していない（id が null）のは「初期装備のまま」なので、外したことは別の印で持つ。
+     * 部品としては存在しない id。{@link #resolve} で null（何も付いていない）に読み替える。</p>
+     */
+    public static final ResourceLocation NONE_PART = ResourceLocation.tryParse("kurumamod:none");
+
+    /** 「なし」の印か。 */
+    public static boolean isNone(@Nullable ResourceLocation partId) {
+        return NONE_PART.equals(partId);
+    }
+
     /** 何も付けていない状態。<b>＝車種の既定の見た目。</b> */
     public static final PartFitment EMPTY = new PartFitment(new EnumMap<>(PartSlot.class));
 
@@ -93,6 +116,7 @@ public final class PartFitment {
     private static final String KEY_CAMBER = "Camber";
     private static final String KEY_OFFSET = "Offset";
     private static final String KEY_WIDTH = "Width";
+    private static final String KEY_ANGLE = "Angle";
 
     /**
      * その場所の状態。
@@ -107,14 +131,16 @@ public final class PartFitment {
      *               null なら部品ないし車種の指定に従う
      * @param width  タイヤの太さの倍率の上書き。メッシュのままが 1.0。
      *               null なら部品ないし車種の指定に従う
+     * @param angle  空力部品の角度（{@link #ANGLE_MIN}〜{@link #ANGLE_MAX}）の上書き。
+     *               null なら部品の指定に従う
      */
     public record Setting(@Nullable ResourceLocation partId, @Nullable Double camber,
-                          @Nullable Double offset, @Nullable Double width) {
+                          @Nullable Double offset, @Nullable Double width, @Nullable Double angle) {
 
-        public static final Setting NONE = new Setting(null, null, null, null);
+        public static final Setting NONE = new Setting(null, null, null, null, null);
 
         public boolean isEmpty() {
-            return partId == null && camber == null && offset == null && width == null;
+            return partId == null && camber == null && offset == null && width == null && angle == null;
         }
     }
 
@@ -158,8 +184,45 @@ public final class PartFitment {
         return get(slot).width();
     }
 
+    /** その場所の空力部品の角度の上書き。していなければ null（＝部品の指定）。 */
+    @Nullable
+    public Double getAngle(PartSlot slot) {
+        return get(slot).angle();
+    }
+
     public boolean isEmpty() {
         return parts.isEmpty();
+    }
+
+    /**
+     * 初期装備を足した、<b>実際に付いている状態</b>。描画・諸元・音はこちらを読む。
+     *
+     * <p>何も指定していない場所には初期装備の id を入れ、「なし」の印は null（何も付いていない）にする。
+     * 角度などの調整値はそのまま残す。<b>保存・通信するのは元の状態のほう</b>——初期装備を書き込んで
+     * しまうと、カーパックを更新して初期装備を変えても、置いてある車に反映されなくなる。</p>
+     */
+    public PartFitment resolve(Map<PartSlot, ResourceLocation> defaults) {
+        boolean anyNone = parts.values().stream().anyMatch(setting -> isNone(setting.partId()));
+        if (defaults.isEmpty() && !anyNone) {
+            return this;
+        }
+        EnumMap<PartSlot, Setting> next = new EnumMap<>(PartSlot.class);
+        next.putAll(parts);
+        for (PartSlot slot : PartSlot.VALUES) {
+            Setting setting = get(slot);
+            ResourceLocation id = setting.partId();
+            ResourceLocation resolved = isNone(id) ? null : id != null ? id : defaults.get(slot);
+            if (resolved == id) {
+                continue;
+            }
+            Setting changed = new Setting(resolved, setting.camber(), setting.offset(), setting.width(), setting.angle());
+            if (changed.isEmpty()) {
+                next.remove(slot);
+            } else {
+                next.put(slot, changed);
+            }
+        }
+        return next.isEmpty() ? EMPTY : new PartFitment(next);
     }
 
     /** 1 か所だけ入れ替えた装着状態。 */
@@ -192,7 +255,7 @@ public final class PartFitment {
      * @param partId 付ける部品。<b>null で「外す」</b>（車種の既定に戻る）
      */
     public PartFitment withPart(PartSlot slot, @Nullable ResourceLocation partId) {
-        return with(slot, new Setting(partId, getCamber(slot), getOffset(slot), getWidth(slot)));
+        return with(slot, new Setting(partId, getCamber(slot), getOffset(slot), getWidth(slot), getAngle(slot)));
     }
 
     /**
@@ -203,7 +266,7 @@ public final class PartFitment {
     public PartFitment withCamber(PartSlot slot, @Nullable Double camber) {
         return with(slot, new Setting(getPart(slot),
                 camber == null ? null : Mth.clamp(camber, CAMBER_MIN, CAMBER_MAX),
-                getOffset(slot), getWidth(slot)));
+                getOffset(slot), getWidth(slot), getAngle(slot)));
     }
 
     /**
@@ -214,7 +277,7 @@ public final class PartFitment {
     public PartFitment withOffset(PartSlot slot, @Nullable Double offset) {
         return with(slot, new Setting(getPart(slot), getCamber(slot),
                 offset == null ? null : Mth.clamp(offset, OFFSET_MIN, OFFSET_MAX),
-                getWidth(slot)));
+                getWidth(slot), getAngle(slot)));
     }
 
     /**
@@ -224,7 +287,17 @@ public final class PartFitment {
      */
     public PartFitment withWidth(PartSlot slot, @Nullable Double width) {
         return with(slot, new Setting(getPart(slot), getCamber(slot), getOffset(slot),
-                width == null ? null : Mth.clamp(width, WIDTH_MIN, WIDTH_MAX)));
+                width == null ? null : Mth.clamp(width, WIDTH_MIN, WIDTH_MAX), getAngle(slot)));
+    }
+
+    /**
+     * 空力部品の角度だけ入れ替える。
+     *
+     * @param angle 範囲の中の位置（0〜1）。<b>null で「上書きをやめる」</b>（部品の指定へ戻る）
+     */
+    public PartFitment withAngle(PartSlot slot, @Nullable Double angle) {
+        return with(slot, new Setting(getPart(slot), getCamber(slot), getOffset(slot), getWidth(slot),
+                angle == null ? null : Mth.clamp(angle, ANGLE_MIN, ANGLE_MAX)));
     }
 
     // ------------------------------------------------------------------
@@ -247,6 +320,9 @@ public final class PartFitment {
             }
             if (setting.width() != null) {
                 slot.putDouble(KEY_WIDTH, setting.width());
+            }
+            if (setting.angle() != null) {
+                slot.putDouble(KEY_ANGLE, setting.angle());
             }
             tag.put(entry.getKey().getSerializedName(), slot);
         }
@@ -277,7 +353,7 @@ public final class PartFitment {
      */
     private static Setting readSetting(CompoundTag tag, String key) {
         if (tag.getTagType(key) == Tag.TAG_STRING) {
-            return new Setting(parseId(tag.getString(key), key), null, null, null);
+            return new Setting(parseId(tag.getString(key), key), null, null, null, null);
         }
         CompoundTag slot = tag.getCompound(key);
         ResourceLocation id = slot.contains(KEY_ID) ? parseId(slot.getString(KEY_ID), key) : null;
@@ -287,7 +363,9 @@ public final class PartFitment {
                 ? Mth.clamp(slot.getDouble(KEY_OFFSET), OFFSET_MIN, OFFSET_MAX) : null;
         Double width = slot.contains(KEY_WIDTH)
                 ? Mth.clamp(slot.getDouble(KEY_WIDTH), WIDTH_MIN, WIDTH_MAX) : null;
-        return new Setting(id, camber, offset, width);
+        Double angle = slot.contains(KEY_ANGLE)
+                ? Mth.clamp(slot.getDouble(KEY_ANGLE), ANGLE_MIN, ANGLE_MAX) : null;
+        return new Setting(id, camber, offset, width, angle);
     }
 
     @Nullable
@@ -322,6 +400,9 @@ public final class PartFitment {
             if (setting.width() != null) {
                 slot.addProperty("width", setting.width());
             }
+            if (setting.angle() != null) {
+                slot.addProperty("angle", setting.angle());
+            }
             root.add(entry.getKey().getSerializedName(), slot);
         }
         return root;
@@ -340,7 +421,8 @@ public final class PartFitment {
             Double camber = jsonNumber(entry, "camber", CAMBER_MIN, CAMBER_MAX);
             Double offset = jsonNumber(entry, "offset", OFFSET_MIN, OFFSET_MAX);
             Double width = jsonNumber(entry, "width", WIDTH_MIN, WIDTH_MAX);
-            Setting setting = new Setting(id, camber, offset, width);
+            Double angle = jsonNumber(entry, "angle", ANGLE_MIN, ANGLE_MAX);
+            Setting setting = new Setting(id, camber, offset, width, angle);
             if (!setting.isEmpty()) {
                 parts.put(slot, setting);
             }
@@ -399,6 +481,10 @@ public final class PartFitment {
         if (setting.width() != null) {
             buf.writeDouble(setting.width());
         }
+        buf.writeBoolean(setting.angle() != null);
+        if (setting.angle() != null) {
+            buf.writeDouble(setting.angle());
+        }
     }
 
     public static Setting readSetting(FriendlyByteBuf buf) {
@@ -410,7 +496,9 @@ public final class PartFitment {
                 ? Mth.clamp(buf.readDouble(), OFFSET_MIN, OFFSET_MAX) : null;
         Double width = buf.readBoolean()
                 ? Mth.clamp(buf.readDouble(), WIDTH_MIN, WIDTH_MAX) : null;
-        return new Setting(id, camber, offset, width);
+        Double angle = buf.readBoolean()
+                ? Mth.clamp(buf.readDouble(), ANGLE_MIN, ANGLE_MAX) : null;
+        return new Setting(id, camber, offset, width, angle);
     }
 
     @Override

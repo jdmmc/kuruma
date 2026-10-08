@@ -95,7 +95,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
         // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
         // 車体とタイヤを描き終えてから重ねる（理由は KurumaRenderTypes#glass）
-        renderGlass(model, spec, pose, buffer, packedLight);
+        renderGlass(car, model, spec, pose, buffer, packedLight);
 
         pose.popPose();
         // 光（路面の照り返し・光の筋・光芒）は<b>車体もタイヤも描き終えてから</b>。
@@ -169,9 +169,15 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                     ObjModel.Pass.OPAQUE);
         }
 
+        // 部品の形（part_）。本体の面からは外してあるので、ここが描かないと穴が開く。
+        // 数が少ないので間引かず、GPU にも置かない（車ごとに出すものが違う）
+        ObjModel body = ObjModel.get(model.bodyModel());
+        CarModel.BodyParts parts = model.bodyParts(car.getEffectiveFitment(), body.optionalNames());
+        body.renderOptional(pose.last(), buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+                packedLight, OverlayTexture.NO_OVERLAY, parts.shown(), ObjModel.Pass.OPAQUE);
+
         // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
-        ObjModel body = ObjModel.get(model.bodyModel());
         CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
 
         // 鏡面も同じ変換の中で描く。<b>車体のパスから外してあるので、ここが描かないと穴が開く</b>
@@ -186,17 +192,25 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      * <p>ガラスは深度を書かない（{@link KurumaRenderTypes#glass}）ので、<b>後から描いたものは
      * ガラスの色を通らない</b>。先に描いてしまうと、窓越しのタイヤにガラスの色が乗らない。</p>
      */
-    private void renderGlass(CarModel model, CarSpec spec, PoseStack pose,
+    private void renderGlass(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
                              MultiBufferSource buffer, int packedLight) {
         ObjModel body = ObjModel.get(model.bodyModel());
-        if (!body.hasTranslucent()) {
+        boolean optional = body.hasOptional(ObjModel.Pass.TRANSLUCENT);
+        if (!body.hasTranslucent() && !optional) {
             return;
         }
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
-        body.render(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(model.bodyTexture())),
+        var consumer = buffer.getBuffer(KurumaRenderTypes.glass(model.bodyTexture()));
+        body.render(pose.last(), consumer,
                 packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
                 ObjModel.Pass.TRANSLUCENT);
+        if (optional) {
+            // 部品の形の透ける面（ウイングの透明な翼端板など）
+            CarModel.BodyParts parts = model.bodyParts(car.getEffectiveFitment(), body.optionalNames());
+            body.renderOptional(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                    parts.shown(), ObjModel.Pass.TRANSLUCENT);
+        }
         pose.popPose();
     }
 
@@ -241,7 +255,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
 
         // 履いている部品と車種の定義を重ねた結果。何も履いていなければ車種の値がそのまま返る。
         // 重ね合わせは CarPartModel に寄せてあるので、ここは「部品があれば／無ければ」を知らない
-        CarPartModel.Wheel look = CarPartModel.wheelOf(model, car.getFitment());
+        CarPartModel.Wheel look = CarPartModel.wheelOf(model, car.getEffectiveFitment());
         CarModel.Vec3 offset = look.offset();
 
         // 拡大率は 2 段構え。メッシュが作られた半径から諸元の半径へ正規化したうえで、
@@ -260,7 +274,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // タイヤ（選んだもの、無ければ MOD 標準）を、内径がリムへ・外径がメッシュのタイヤ半径へ来るよう
         // 半径方向に合わせ直して描く。拡大はホイールと同じ pose が受け持つので、物理のタイヤ半径に接地する
         ObjModel wheelMesh = ObjModel.get(look.model());
-        CarPartModel.Tire tire = CarPartModel.tireOf(car.getFitment());
+        CarPartModel.Tire tire = CarPartModel.tireOf(car.getEffectiveFitment());
         boolean attachedTire = tire == null && wheelMesh.hasTire();
         ObjModel tireMesh = null;
         ResourceLocation tireTexture = null;

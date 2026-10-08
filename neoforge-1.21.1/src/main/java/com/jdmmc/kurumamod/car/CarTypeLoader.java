@@ -102,8 +102,8 @@ public final class CarTypeLoader extends SimpleJsonResourceReloadListener {
             if (key.startsWith("_")) {
                 continue;
             }
-            // order を values と同じ階層に書ける形にしてあるので、値として拾わないよう避ける
-            if (values == root && key.equals("order")) {
+            // order と default_parts を values と同じ階層に書ける形にしてあるので、値として拾わないよう避ける
+            if (values == root && (key.equals("order") || key.equals("default_parts"))) {
                 continue;
             }
             Double value = inRange(id, key, values.get(key).getAsDouble());
@@ -112,7 +112,57 @@ public final class CarTypeLoader extends SimpleJsonResourceReloadListener {
             }
         }
         CarSpec spec = CarSpecCodec.fromMap(parsed);
-        return new CarType(id, spec, order);
+        return new CarType(id, spec, order, parseDefaultParts(id, root));
+    }
+
+    /**
+     * 初期装備。場所 → 部品 id。外せないものは {@code {"part": ..., "removable": false}} で書く。
+     *
+     * <pre>
+     * "default_parts": {
+     *   "rear_wing": "mypack:s15_spoiler",
+     *   "front_bumper": { "part": "mypack:s15_bumper", "removable": false }
+     * }
+     * </pre>
+     *
+     * <p>部品があるかはここでは見ない（部品の読み込みとどちらが先か決まっていない）。
+     * 知らない部品なら、その場所は何も付いていないのと同じに描かれる。</p>
+     */
+    private static java.util.Map<com.jdmmc.kurumamod.part.PartSlot, CarType.DefaultPart> parseDefaultParts(
+            ResourceLocation id, JsonObject root) {
+        java.util.Map<com.jdmmc.kurumamod.part.PartSlot, CarType.DefaultPart> result =
+                new java.util.EnumMap<>(com.jdmmc.kurumamod.part.PartSlot.class);
+        if (!root.has("default_parts") || !root.get("default_parts").isJsonObject()) {
+            return result;
+        }
+        JsonObject json = root.getAsJsonObject("default_parts");
+        for (String key : json.keySet()) {
+            var slot = com.jdmmc.kurumamod.part.PartSlot.byName(key);
+            if (slot == null) {
+                LOGGER.warn("default_parts に知らない場所があります（無視します）: {} の \"{}\"", id, key);
+                continue;
+            }
+            var element = json.get(key);
+            String part;
+            boolean removable = true;
+            if (element.isJsonPrimitive()) {
+                part = element.getAsString();
+            } else if (element.isJsonObject() && element.getAsJsonObject().has("part")) {
+                part = element.getAsJsonObject().get("part").getAsString();
+                removable = GsonHelper.getAsBoolean(element.getAsJsonObject(), "removable", true);
+            } else {
+                LOGGER.warn("default_parts.{} は部品の id か {{\"part\": ..., \"removable\": ...}} で書いてください（無視します）: {}",
+                        key, id);
+                continue;
+            }
+            ResourceLocation partId = ResourceLocation.tryParse(part);
+            if (partId == null) {
+                LOGGER.warn("default_parts.{} の部品の id を読めません（無視します）: {} の \"{}\"", key, id, part);
+                continue;
+            }
+            result.put(slot, new CarType.DefaultPart(partId, removable));
+        }
+        return result;
     }
 
     /**

@@ -57,7 +57,21 @@ public record CarTypesPacket(List<CarType> types) implements CustomPacketPayload
         int count = buf.readVarInt();
         List<CarType> types = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            types.add(new CarType(buf.readResourceLocation(), CarSpecCodec.read(buf), buf.readVarInt()));
+            var id = buf.readResourceLocation();
+            var spec = CarSpecCodec.read(buf);
+            int order = buf.readVarInt();
+            var defaults = new java.util.EnumMap<com.jdmmc.kurumamod.part.PartSlot, CarType.DefaultPart>(
+                    com.jdmmc.kurumamod.part.PartSlot.class);
+            int count2 = buf.readVarInt();
+            for (int j = 0; j < count2; j++) {
+                // 知らない場所でも最後まで読む。途中で止めると後ろがずれる
+                var slot = com.jdmmc.kurumamod.part.PartSlot.byName(buf.readUtf());
+                var part = new CarType.DefaultPart(buf.readResourceLocation(), buf.readBoolean());
+                if (slot != null) {
+                    defaults.put(slot, part);
+                }
+            }
+            types.add(new CarType(id, spec, order, defaults));
         }
         return types;
     }
@@ -68,6 +82,13 @@ public record CarTypesPacket(List<CarType> types) implements CustomPacketPayload
             buf.writeResourceLocation(type.id());
             CarSpecCodec.write(buf, type.spec());
             buf.writeVarInt(type.order());
+            // 初期装備。描くのも諸元を組むのもクライアントがするので、同じものを持っていなければならない
+            buf.writeVarInt(type.defaultParts().size());
+            type.defaultParts().forEach((slot, part) -> {
+                buf.writeUtf(slot.getSerializedName());
+                buf.writeResourceLocation(part.part());
+                buf.writeBoolean(part.removable());
+            });
         }
     }
 

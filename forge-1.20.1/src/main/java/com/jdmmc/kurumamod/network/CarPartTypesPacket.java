@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.client.CarClientPackets;
@@ -51,9 +52,12 @@ public record CarPartTypesPacket(List<CarPart> parts) {
             Tire tire = buf.readBoolean()
                     ? new Tire(buf.readDouble(), readScales(buf), readScales(buf))
                     : null;
+            Aero aero = buf.readBoolean()
+                    ? new Aero(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
+                    : null;
             PartSlot slot = PartSlot.byName(name);
             if (slot != null) {
-                parts.add(new CarPart(id, slot, order, cars, turbo, tire));
+                parts.add(new CarPart(id, slot, order, cars, turbo, tire, aero));
             }
             // 知らない場所の部品は落とす。並べようがないので、黙って無視してよい
         }
@@ -84,6 +88,16 @@ public record CarPartTypesPacket(List<CarPart> parts) {
                 buf.writeDouble(tire.stiffness());
                 writeScales(buf, tire.grip());
                 writeScales(buf, tire.rolling());
+            }
+            // 空力部品の性能も物理が使う
+            Aero aero = part.aero();
+            buf.writeBoolean(aero != null);
+            if (aero != null) {
+                buf.writeDouble(aero.frontMin());
+                buf.writeDouble(aero.frontMax());
+                buf.writeDouble(aero.rearMin());
+                buf.writeDouble(aero.rearMax());
+                buf.writeDouble(aero.defaultAngle());
             }
         }
     }

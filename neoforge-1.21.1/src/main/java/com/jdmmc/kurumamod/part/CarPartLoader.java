@@ -3,6 +3,7 @@ package com.jdmmc.kurumamod.part;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.mojang.logging.LogUtils;
@@ -132,7 +133,56 @@ public final class CarPartLoader extends SimpleJsonResourceReloadListener {
             LOGGER.warn("タイヤの部品に tire が書かれていません（ノーマルと同じ性能にします）: {}", id);
             tire = Tire.NORMAL;
         }
-        return new CarPart(id, slot, order, cars, turbo, tire);
+        // 空力の性能は車体の部品（バンパー・スカート・フェンダー・ウイング・ディフューザー）なら書ける。
+        // 書かなければ見た目だけの部品（フェンダーなど）
+        Aero aero = null;
+        if (root.has("aero")) {
+            if (!slot.isBodyPart()) {
+                LOGGER.warn("aero は車体の部品（front_bumper / side_skirt / fender / rear_wing / rear_diffuser）"
+                        + "にしか書けません（無視します）: {}", id);
+            } else {
+                aero = parseAero(id, GsonHelper.getAsJsonObject(root, "aero"));
+            }
+        }
+        return new CarPart(id, slot, order, cars, turbo, tire, aero);
+    }
+
+    /**
+     * 空力部品の性能。値はダウンフォースの面積 −Cl×面積 [m²] を軸ごとに。
+     *
+     * <pre>
+     * "aero": {
+     *   "front": 0.2,          // 数字 1 つなら固定（角度の無い部品）
+     *   "rear": [0.6, 1.6],    // [最小, 最大] なら換装画面の角度で、その範囲を動かせる
+     *   "angle": 0.4           // 調整していないときの角度（0〜1）。省略で 0.5
+     * }
+     * </pre>
+     *
+     * <p><b>空気抵抗は書けない。</b>ダウンフォースから決まる（{@code CarSpec#DOWNFORCE_PER_DRAG}）。
+     * 範囲の外（0〜3）は {@link Aero} が丸める。</p>
+     */
+    private static Aero parseAero(ResourceLocation id, JsonObject json) {
+        double[] front = aeroRange(id, json, "front");
+        double[] rear = aeroRange(id, json, "rear");
+        return new Aero(front[0], front[1], rear[0], rear[1], GsonHelper.getAsDouble(json, "angle", 0.5));
+    }
+
+    private static double[] aeroRange(ResourceLocation id, JsonObject json, String key) {
+        if (!json.has(key)) {
+            return new double[]{0.0, 0.0};
+        }
+        JsonElement element = json.get(key);
+        if (element.isJsonArray() && element.getAsJsonArray().size() == 2) {
+            double min = element.getAsJsonArray().get(0).getAsDouble();
+            double max = element.getAsJsonArray().get(1).getAsDouble();
+            return new double[]{min, max};
+        }
+        if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+            double value = element.getAsDouble();
+            return new double[]{value, value};
+        }
+        LOGGER.warn("aero.{} は数字か [最小, 最大] で書いてください（0 にします）: {}", key, id);
+        return new double[]{0.0, 0.0};
     }
 
     /** 路面の名前。{@code RoadSurface#surfaceName} と同じ並び。知らない名前はログに残して捨てる。 */

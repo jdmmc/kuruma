@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.part;
 
+import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import net.minecraft.network.chat.Component;
@@ -38,7 +39,7 @@ import java.util.Set;
  * @param cars  付けられる車種。空ならすべて
  */
 public record CarPart(ResourceLocation id, PartSlot slot, int order, Set<ResourceLocation> cars,
-                      @Nullable Turbo turbo, @Nullable Tire tire) {
+                      @Nullable Turbo turbo, @Nullable Tire tire, @Nullable Aero aero) {
 
     /** 並び順を書かなかった部品の位置。 */
     public static final int DEFAULT_ORDER = 100;

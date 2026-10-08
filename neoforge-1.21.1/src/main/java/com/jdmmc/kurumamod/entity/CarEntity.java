@@ -12,6 +12,7 @@ import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
+import com.jdmmc.kurumamod.physics.PartAero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
@@ -429,14 +430,37 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * どちらの側でも同じものが組み上がる。</p>
      */
     public CarSpec getSpec() {
-        if (effectiveBase != spec || effectiveParts != parts || effectiveGeneration != CarParts.generation()) {
-            effectiveSpec = spec.toBuilder().turbo(turboOf(parts)).tire(tireOf(parts)).build();
+        PartFitment fitted = getEffectiveFitment();
+        if (effectiveBase != spec || effectiveParts != fitted || effectiveGeneration != CarParts.generation()) {
+            effectiveSpec = spec.toBuilder().turbo(turboOf(fitted)).tire(tireOf(fitted))
+                    .partAero(totalAero(fitted))
+                    .build();
             effectiveBase = spec;
-            effectiveParts = parts;
+            effectiveParts = fitted;
             effectiveGeneration = CarParts.generation();
         }
         return effectiveSpec;
     }
+
+    /**
+     * 初期装備（車種の {@code default_parts}）を足した、<b>実際に付いている状態</b>。
+     * 描画・諸元・音はこちらを読む。保存・通信・換装画面の「装着中」の印は {@link #getFitment()}（元の状態）。
+     *
+     * <p>装着状態と車種（読み直すと別のインスタンスになる）が変わったときだけ組み直す。</p>
+     */
+    public PartFitment getEffectiveFitment() {
+        CarType type = CarTypes.get(carId);
+        if (resolvedFrom != parts || resolvedType != type) {
+            resolvedFitment = parts.resolve(type.defaultPartIds());
+            resolvedFrom = parts;
+            resolvedType = type;
+        }
+        return resolvedFitment;
+    }
+
+    private PartFitment resolvedFitment = PartFitment.EMPTY;
+    private PartFitment resolvedFrom;
+    private CarType resolvedType;
 
     private CarSpec effectiveSpec = CarSpec.DEFAULT;
     private CarSpec effectiveBase;
@@ -457,6 +481,32 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         return part == null || part.tire() == null ? Tire.NORMAL : part.tire();
     }
 
+    /** 車体の部品すべて（バンパー・スカート・フェンダー・ウイング・ディフューザー）が足すダウンフォース。 */
+    private static PartAero totalAero(PartFitment parts) {
+        PartAero total = PartAero.NONE;
+        for (PartSlot slot : PartSlot.VALUES) {
+            if (slot.isBodyPart()) {
+                total = total.plus(aeroOf(parts, slot));
+            }
+        }
+        return total;
+    }
+
+    /**
+     * その場所の空力部品が足すダウンフォース。付いていない・知らない部品なら無し。
+     *
+     * <p>角度は装着状態の上書き、無ければ部品の既定。範囲は部品が持ち、角度はその中の位置。</p>
+     */
+    private static PartAero aeroOf(PartFitment parts, PartSlot slot) {
+        ResourceLocation id = parts.getPart(slot);
+        CarPart part = id == null ? null : CarParts.get(id);
+        if (part == null || part.aero() == null) {
+            return PartAero.NONE;
+        }
+        Double angle = parts.getAngle(slot);
+        return part.aero().at(angle != null ? angle : part.aero().defaultAngle());
+    }
+
     /** ターボが付いているか。 */
     public boolean hasTurbo() {
         return getSpec().turbo().present();
@@ -467,7 +517,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 知らない部品（カーパックを外した）なら付いていないものとする。
      */
     public boolean hasBlowoff() {
-        ResourceLocation id = parts.getPart(PartSlot.BLOWOFF);
+        ResourceLocation id = getEffectiveFitment().getPart(PartSlot.BLOWOFF);
         return id != null && CarParts.get(id) != null && hasTurbo();
     }
 
