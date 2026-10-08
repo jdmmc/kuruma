@@ -507,5 +507,21 @@
   "screen.kurumamod.part.info.balance": "前後の配分  前 %s%%",
   "screen.kurumamod.part.info.grip_at_speed": "200km/h でのグリップ",
   "screen.kurumamod.part.info.top_speed": "最高速の目安",
-  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²"
+  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²",
+  "part_slot.kurumamod.exhaust": "マフラー",
+  "screen.kurumamod.part.tone": "音の低さ  %s%%",
+  "screen.kurumamod.part.tone_changed": "音の低さ  %s%%（既定 %s%%）",
+  "screen.kurumamod.part.tone_reset": "パックが指定した低さに戻す",
+  "part.kurumamod.sport_muffler": "スポーツマフラー",
+  "part.kurumamod.straight_pipe": "ストレートパイプ",
+  "screen.kurumamod.part.info.exhaust_sound": "排気音",
+  "screen.kurumamod.part.info.exhaust_stock": "その車の排気音のまま",
+  "screen.kurumamod.part.info.exhaust_pitch": "音程 ×%s",
+  "screen.kurumamod.part.info.exhaust_range": "音の低さで ×%s〜×%s",
+  "screen.kurumamod.part.info.exhaust_volume": "音量 ×%s",
+  "screen.kurumamod.part.info.exhaust_own_sound": "音源: このマフラーの音",
+  "screen.kurumamod.part.info.exhaust_car_sound": "音源: その車の音を変える",
+  "screen.kurumamod.part.info.exhaust_no_performance": "走りは変わりません",
+  "part.kurumamod.stock_muffler": "純正マフラー",
+  "part.kurumamod.twin_muffler": "2 本出しマフラー"
 }

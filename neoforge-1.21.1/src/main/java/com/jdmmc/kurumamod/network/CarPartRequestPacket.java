@@ -77,7 +77,7 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
                 var defaults = com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).defaultPart(slot);
                 if (defaults == null) {
                     wanted = new PartFitment.Setting(null, wanted.camber(), wanted.offset(),
-                            wanted.width(), wanted.angle());
+                            wanted.width(), wanted.angle(), wanted.tone());
                     partId = null;
                 } else if (!defaults.removable()) {
                     return;

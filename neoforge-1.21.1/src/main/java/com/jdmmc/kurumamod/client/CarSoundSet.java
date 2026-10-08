@@ -107,6 +107,27 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
         return SoundEvent.createVariableRangeEvent(location);
     }
 
+    /**
+     * マフラーの音源を重ねた音の組。マフラーが音源を差し替えていなければ自分のまま。
+     *
+     * <p>高回転側だけ書かれていない場合は、高回転側の差し替えを消す（{@link #exhaustHighIsOctaveUp()} が
+     * false になり、低回転側の音源を同じ音程で鳴らす）。車の高回転側が残ると、回したときに別の車の
+     * 音に化ける。</p>
+     */
+    public CarSoundSet withExhaust(@org.jetbrains.annotations.Nullable CarPartModel.Exhaust exhaust) {
+        if (exhaust == null || exhaust.sound() == null) {
+            return this;
+        }
+        Map<String, ResourceLocation> merged = new java.util.HashMap<>(overrides);
+        merged.put(EXHAUST, exhaust.sound());
+        if (exhaust.soundHigh() != null) {
+            merged.put(EXHAUST_HIGH, exhaust.soundHigh());
+        } else {
+            merged.remove(EXHAUST_HIGH);
+        }
+        return new CarSoundSet(merged);
+    }
+
     /** 変速音。段が変わった瞬間に 1 回。 */
     public SoundEvent shift() {
         return resolve(SHIFT, KurumaSounds.CAR_SHIFT);

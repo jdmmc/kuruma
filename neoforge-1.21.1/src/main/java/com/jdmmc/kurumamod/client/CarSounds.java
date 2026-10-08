@@ -47,6 +47,10 @@ public final class CarSounds {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
+        ClientLevel current = Minecraft.getInstance().level;
+        if (current != null) {
+            replayChangedExhausts(current);
+        }
         if (!replayPending) {
             return;
         }
@@ -67,6 +71,32 @@ public final class CarSounds {
     private static void play(CarEntity car) {
         for (CarSound.Role role : CarSound.Role.values()) {
             Minecraft.getInstance().getSoundManager().play(new CarSound(car, role));
+        }
+        EXHAUST_SOUNDS.put(car, CarSound.soundsOf(car));
+    }
+
+    /**
+     * 車ごとの、排気音を鳴らし始めたときの音の組。マフラーを付け替えて音源が変わったら、古い排気音は
+     * 自分で止まる（{@link CarSound#tick()}）ので、こちらで新しい音源の排気音を鳴らす。
+     */
+    private static final java.util.Map<CarEntity, CarSoundSet> EXHAUST_SOUNDS = new java.util.WeakHashMap<>();
+
+    /** マフラーの音源が変わった車に、排気音だけ鳴らし直す。 */
+    private static void replayChangedExhausts(ClientLevel level) {
+        for (Entity entity : level.entitiesForRendering()) {
+            if (!(entity instanceof CarEntity car) || car.isRemoved()) {
+                continue;
+            }
+            CarSoundSet before = EXHAUST_SOUNDS.get(car);
+            if (before == null) {
+                continue; // まだ鳴らしていない車。現れたときに鳴らす
+            }
+            CarSoundSet now = CarSound.soundsOf(car);
+            if (!now.equals(before)) {
+                EXHAUST_SOUNDS.put(car, now);
+                Minecraft.getInstance().getSoundManager().play(new CarSound(car, CarSound.Role.EXHAUST));
+                Minecraft.getInstance().getSoundManager().play(new CarSound(car, CarSound.Role.EXHAUST_HIGH));
+            }
         }
     }
 

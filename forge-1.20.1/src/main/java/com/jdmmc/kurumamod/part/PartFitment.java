@@ -97,6 +97,14 @@ public final class PartFitment {
     public static final double ANGLE_MAX = 1.0;
 
     /**
+     * マフラーの音の低さの範囲。<b>部品が持つ音程の範囲（{@code CarPartModel.Exhaust}）の中の位置</b>で、
+     * 0 でいちばん高く、1 でいちばん低い。音程の倍率で持たないのは、部品ごとに範囲が違うため
+     * （角度と同じ考え方）。サーバーは範囲へ丸めて覚えるだけで、音は各クライアントが鳴らす。
+     */
+    public static final double TONE_MIN = 0.0;
+    public static final double TONE_MAX = 1.0;
+
+    /**
      * 「なし」の印。<b>初期装備（{@code default_parts}）のある場所で、それを外したことを表す。</b>
      *
      * <p>何も指定していない（id が null）のは「初期装備のまま」なので、外したことは別の印で持つ。
@@ -117,6 +125,7 @@ public final class PartFitment {
     private static final String KEY_OFFSET = "Offset";
     private static final String KEY_WIDTH = "Width";
     private static final String KEY_ANGLE = "Angle";
+    private static final String KEY_TONE = "Tone";
 
     /**
      * その場所の状態。
@@ -133,14 +142,24 @@ public final class PartFitment {
      *               null なら部品ないし車種の指定に従う
      * @param angle  空力部品の角度（{@link #ANGLE_MIN}〜{@link #ANGLE_MAX}）の上書き。
      *               null なら部品の指定に従う
+     * @param tone   マフラーの音の低さ（{@link #TONE_MIN}〜{@link #TONE_MAX}）の上書き。
+     *               null なら部品の指定に従う
      */
     public record Setting(@Nullable ResourceLocation partId, @Nullable Double camber,
-                          @Nullable Double offset, @Nullable Double width, @Nullable Double angle) {
+                          @Nullable Double offset, @Nullable Double width, @Nullable Double angle,
+                          @Nullable Double tone) {
 
-        public static final Setting NONE = new Setting(null, null, null, null, null);
+        public static final Setting NONE = new Setting(null, null, null, null, null, null);
+
+        /** 音の低さを持たない形。角度までしか無かった頃の呼び出しのため。 */
+        public Setting(@Nullable ResourceLocation partId, @Nullable Double camber,
+                       @Nullable Double offset, @Nullable Double width, @Nullable Double angle) {
+            this(partId, camber, offset, width, angle, null);
+        }
 
         public boolean isEmpty() {
-            return partId == null && camber == null && offset == null && width == null && angle == null;
+            return partId == null && camber == null && offset == null && width == null && angle == null
+                    && tone == null;
         }
     }
 
@@ -190,6 +209,12 @@ public final class PartFitment {
         return get(slot).angle();
     }
 
+    /** その場所のマフラーの音の低さの上書き。していなければ null（＝部品の指定）。 */
+    @Nullable
+    public Double getTone(PartSlot slot) {
+        return get(slot).tone();
+    }
+
     public boolean isEmpty() {
         return parts.isEmpty();
     }
@@ -215,7 +240,8 @@ public final class PartFitment {
             if (resolved == id) {
                 continue;
             }
-            Setting changed = new Setting(resolved, setting.camber(), setting.offset(), setting.width(), setting.angle());
+            Setting changed = new Setting(resolved, setting.camber(), setting.offset(), setting.width(),
+                    setting.angle(), setting.tone());
             if (changed.isEmpty()) {
                 next.remove(slot);
             } else {
@@ -255,7 +281,8 @@ public final class PartFitment {
      * @param partId 付ける部品。<b>null で「外す」</b>（車種の既定に戻る）
      */
     public PartFitment withPart(PartSlot slot, @Nullable ResourceLocation partId) {
-        return with(slot, new Setting(partId, getCamber(slot), getOffset(slot), getWidth(slot), getAngle(slot)));
+        return with(slot, new Setting(partId, getCamber(slot), getOffset(slot), getWidth(slot), getAngle(slot),
+                getTone(slot)));
     }
 
     /**
@@ -266,7 +293,7 @@ public final class PartFitment {
     public PartFitment withCamber(PartSlot slot, @Nullable Double camber) {
         return with(slot, new Setting(getPart(slot),
                 camber == null ? null : Mth.clamp(camber, CAMBER_MIN, CAMBER_MAX),
-                getOffset(slot), getWidth(slot), getAngle(slot)));
+                getOffset(slot), getWidth(slot), getAngle(slot), getTone(slot)));
     }
 
     /**
@@ -277,7 +304,7 @@ public final class PartFitment {
     public PartFitment withOffset(PartSlot slot, @Nullable Double offset) {
         return with(slot, new Setting(getPart(slot), getCamber(slot),
                 offset == null ? null : Mth.clamp(offset, OFFSET_MIN, OFFSET_MAX),
-                getWidth(slot), getAngle(slot)));
+                getWidth(slot), getAngle(slot), getTone(slot)));
     }
 
     /**
@@ -287,7 +314,7 @@ public final class PartFitment {
      */
     public PartFitment withWidth(PartSlot slot, @Nullable Double width) {
         return with(slot, new Setting(getPart(slot), getCamber(slot), getOffset(slot),
-                width == null ? null : Mth.clamp(width, WIDTH_MIN, WIDTH_MAX), getAngle(slot)));
+                width == null ? null : Mth.clamp(width, WIDTH_MIN, WIDTH_MAX), getAngle(slot), getTone(slot)));
     }
 
     /**
@@ -297,7 +324,17 @@ public final class PartFitment {
      */
     public PartFitment withAngle(PartSlot slot, @Nullable Double angle) {
         return with(slot, new Setting(getPart(slot), getCamber(slot), getOffset(slot), getWidth(slot),
-                angle == null ? null : Mth.clamp(angle, ANGLE_MIN, ANGLE_MAX)));
+                angle == null ? null : Mth.clamp(angle, ANGLE_MIN, ANGLE_MAX), getTone(slot)));
+    }
+
+    /**
+     * マフラーの音の低さだけ入れ替える。
+     *
+     * @param tone 範囲の中の位置（0 で高い、1 で低い）。<b>null で「上書きをやめる」</b>（部品の指定へ戻る）
+     */
+    public PartFitment withTone(PartSlot slot, @Nullable Double tone) {
+        return with(slot, new Setting(getPart(slot), getCamber(slot), getOffset(slot), getWidth(slot),
+                getAngle(slot), tone == null ? null : Mth.clamp(tone, TONE_MIN, TONE_MAX)));
     }
 
     // ------------------------------------------------------------------
@@ -323,6 +360,9 @@ public final class PartFitment {
             }
             if (setting.angle() != null) {
                 slot.putDouble(KEY_ANGLE, setting.angle());
+            }
+            if (setting.tone() != null) {
+                slot.putDouble(KEY_TONE, setting.tone());
             }
             tag.put(entry.getKey().getSerializedName(), slot);
         }
@@ -365,7 +405,9 @@ public final class PartFitment {
                 ? Mth.clamp(slot.getDouble(KEY_WIDTH), WIDTH_MIN, WIDTH_MAX) : null;
         Double angle = slot.contains(KEY_ANGLE)
                 ? Mth.clamp(slot.getDouble(KEY_ANGLE), ANGLE_MIN, ANGLE_MAX) : null;
-        return new Setting(id, camber, offset, width, angle);
+        Double tone = slot.contains(KEY_TONE)
+                ? Mth.clamp(slot.getDouble(KEY_TONE), TONE_MIN, TONE_MAX) : null;
+        return new Setting(id, camber, offset, width, angle, tone);
     }
 
     @Nullable
@@ -403,6 +445,9 @@ public final class PartFitment {
             if (setting.angle() != null) {
                 slot.addProperty("angle", setting.angle());
             }
+            if (setting.tone() != null) {
+                slot.addProperty("tone", setting.tone());
+            }
             root.add(entry.getKey().getSerializedName(), slot);
         }
         return root;
@@ -422,7 +467,8 @@ public final class PartFitment {
             Double offset = jsonNumber(entry, "offset", OFFSET_MIN, OFFSET_MAX);
             Double width = jsonNumber(entry, "width", WIDTH_MIN, WIDTH_MAX);
             Double angle = jsonNumber(entry, "angle", ANGLE_MIN, ANGLE_MAX);
-            Setting setting = new Setting(id, camber, offset, width, angle);
+            Double tone = jsonNumber(entry, "tone", TONE_MIN, TONE_MAX);
+            Setting setting = new Setting(id, camber, offset, width, angle, tone);
             if (!setting.isEmpty()) {
                 parts.put(slot, setting);
             }
@@ -485,6 +531,10 @@ public final class PartFitment {
         if (setting.angle() != null) {
             buf.writeDouble(setting.angle());
         }
+        buf.writeBoolean(setting.tone() != null);
+        if (setting.tone() != null) {
+            buf.writeDouble(setting.tone());
+        }
     }
 
     public static Setting readSetting(FriendlyByteBuf buf) {
@@ -498,7 +548,9 @@ public final class PartFitment {
                 ? Mth.clamp(buf.readDouble(), WIDTH_MIN, WIDTH_MAX) : null;
         Double angle = buf.readBoolean()
                 ? Mth.clamp(buf.readDouble(), ANGLE_MIN, ANGLE_MAX) : null;
-        return new Setting(id, camber, offset, width, angle);
+        Double tone = buf.readBoolean()
+                ? Mth.clamp(buf.readDouble(), TONE_MIN, TONE_MAX) : null;
+        return new Setting(id, camber, offset, width, angle, tone);
     }
 
     @Override

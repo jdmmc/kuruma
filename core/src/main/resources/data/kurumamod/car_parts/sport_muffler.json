@@ -1,0 +1,5 @@
+{
+  "_comment": "スポーツマフラー。音と見た目だけで、走りは変わらない。音の性格は assets 側の exhaust に書く",
+  "slot": "exhaust",
+  "order": 10
+}

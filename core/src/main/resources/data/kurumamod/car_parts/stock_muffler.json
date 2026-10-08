@@ -1,0 +1,8 @@
+{
+  "_comment": "S15 の純正マフラー。S15 の初期装備（cars/car.json の default_parts）で、外せない",
+  "slot": "exhaust",
+  "order": 0,
+  "cars": [
+    "kurumamod:car"
+  ]
+}

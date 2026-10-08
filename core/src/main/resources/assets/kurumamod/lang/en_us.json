@@ -507,5 +507,21 @@
   "screen.kurumamod.part.info.balance": "Balance  %s%% front",
   "screen.kurumamod.part.info.grip_at_speed": "Grip at 200 km/h",
   "screen.kurumamod.part.info.top_speed": "Estimated top speed",
-  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²"
+  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²",
+  "part_slot.kurumamod.exhaust": "Exhaust",
+  "screen.kurumamod.part.tone": "Deepness  %s%%",
+  "screen.kurumamod.part.tone_changed": "Deepness  %s%% (default %s%%)",
+  "screen.kurumamod.part.tone_reset": "Back to the deepness the pack sets",
+  "part.kurumamod.sport_muffler": "Sport muffler",
+  "part.kurumamod.straight_pipe": "Straight pipe",
+  "screen.kurumamod.part.info.exhaust_sound": "Exhaust note",
+  "screen.kurumamod.part.info.exhaust_stock": "The car's own exhaust note",
+  "screen.kurumamod.part.info.exhaust_pitch": "Pitch ×%s",
+  "screen.kurumamod.part.info.exhaust_range": "Deepness: ×%s to ×%s",
+  "screen.kurumamod.part.info.exhaust_volume": "Volume ×%s",
+  "screen.kurumamod.part.info.exhaust_own_sound": "Sound: this exhaust's own",
+  "screen.kurumamod.part.info.exhaust_car_sound": "Sound: the car's, retuned",
+  "screen.kurumamod.part.info.exhaust_no_performance": "Does not change performance",
+  "part.kurumamod.stock_muffler": "Stock muffler",
+  "part.kurumamod.twin_muffler": "Twin muffler"
 }

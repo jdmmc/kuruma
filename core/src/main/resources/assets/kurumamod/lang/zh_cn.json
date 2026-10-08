@@ -507,5 +507,21 @@
   "screen.kurumamod.part.info.balance": "前后分配  前 %s%%",
   "screen.kurumamod.part.info.grip_at_speed": "200 km/h 时的抓地力",
   "screen.kurumamod.part.info.top_speed": "极速估算",
-  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²"
+  "screen.kurumamod.part.info.drag_area": "CdA %s → %s m²",
+  "part_slot.kurumamod.exhaust": "排气管",
+  "screen.kurumamod.part.tone": "低沉度  %s%%",
+  "screen.kurumamod.part.tone_changed": "低沉度  %s%%（默认 %s%%）",
+  "screen.kurumamod.part.tone_reset": "恢复为包指定的低沉度",
+  "part.kurumamod.sport_muffler": "运动排气",
+  "part.kurumamod.straight_pipe": "直通排气",
+  "screen.kurumamod.part.info.exhaust_sound": "排气声",
+  "screen.kurumamod.part.info.exhaust_stock": "保持车辆原有排气声",
+  "screen.kurumamod.part.info.exhaust_pitch": "音调 ×%s",
+  "screen.kurumamod.part.info.exhaust_range": "低沉度 ×%s 至 ×%s",
+  "screen.kurumamod.part.info.exhaust_volume": "音量 ×%s",
+  "screen.kurumamod.part.info.exhaust_own_sound": "音源：此排气的声音",
+  "screen.kurumamod.part.info.exhaust_car_sound": "音源：调整车辆原声",
+  "screen.kurumamod.part.info.exhaust_no_performance": "不影响性能",
+  "part.kurumamod.stock_muffler": "原厂排气",
+  "part.kurumamod.twin_muffler": "双出排气"
 }
