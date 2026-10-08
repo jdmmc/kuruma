@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -243,8 +245,74 @@ public final class ObjModel {
     /** {@link #isUvMapped} の答え。同上。 */
     private final Map<String, Boolean> uvMapped = new HashMap<>();
 
-    /** OBJ の {@code o} / {@code g} ひと区切り。 */
-    private record Group(String name, int from, int to) {
+    /**
+     * OBJ の {@code o} / {@code g} ひと区切り。<b>同じオブジェクトの中でもマテリアルが変われば区切る。</b>
+     *
+     * <p>面の意味は 2 つの軸で決まる。</p>
+     * <ul>
+     *   <li><b>役目</b>（{@link #role()}）… ライト・ガラス・ミラー・タイヤのどれか、またはふつうの面。
+     *       <b>マテリアル名が役目の名前ならそれが優先</b>で、そうでなければオブジェクト名の役目を引き継ぐ。
+     *       面ごとにマテリアルを割り当てれば、1 つのオブジェクトの一部だけをライトにできる</li>
+     *   <li><b>持ち主</b>（{@link #owner()}）… {@link #PART_PREFIX} で始まるオブジェクトの中の面は、
+     *       その部品を付けているときだけ出る。役目とは別の軸なので、部品の中のライトも作れる
+     *       （ウイングに付いたハイマウントのブレーキランプ）</li>
+     * </ul>
+     *
+     * @param material その面のマテリアル名。usemtl が無ければ null
+     */
+    private record Group(String name, @Nullable String material, int from, int to) {
+
+        /** この区切りの面の役目の名前。マテリアル名が役目の名前ならそれ、そうでなければオブジェクト名。 */
+        String role() {
+            String fromMaterial = roleName(material);
+            return fromMaterial != null ? fromMaterial : withoutCopySuffix(name);
+        }
+
+        /** 持ち主の部品の形の名前。部品の形（{@link #PART_PREFIX}）の中の面でなければ null。 */
+        @Nullable
+        String owner() {
+            return name.startsWith(PART_PREFIX) ? name : null;
+        }
+    }
+
+    /** 部品の中の面を名前で引くときの区切り。{@code light_tail@part_rear_wing-gt_wing}。 */
+    private static final String OWNED = "@";
+
+    /**
+     * 役目を持つ名前か（ライト・ガラス・ミラー・タイヤ）。
+     *
+     * <p>{@link #PART_PREFIX} は役目ではない（出し入れの軸）ので入れない。</p>
+     */
+    private static boolean isRoleName(String name) {
+        return name.startsWith(LIGHT_PREFIX) || name.startsWith(MIRROR_PREFIX)
+                || isGlassName(name) || isTireName(name);
+    }
+
+    /** マテリアル名が役目の名前なら、その役目（複製の印を外したもの）。そうでなければ null。 */
+    @Nullable
+    private static String roleName(@Nullable String material) {
+        if (material == null) {
+            return null;
+        }
+        String name = withoutCopySuffix(material);
+        return isRoleName(name) ? name : null;
+    }
+
+    /**
+     * Blender が複製のときに付ける印（{@code .001}）を外す。<b>マテリアルを複製すると付きやすい</b>ので、
+     * {@code light_tail.001} もテールランプとして読む。
+     */
+    static String withoutCopySuffix(String name) {
+        int dot = name.lastIndexOf('.');
+        if (dot <= 0 || dot == name.length() - 1) {
+            return name;
+        }
+        for (int i = dot + 1; i < name.length(); i++) {
+            if (!Character.isDigit(name.charAt(i))) {
+                return name;
+            }
+        }
+        return name.substring(0, dot);
     }
 
     /**
@@ -262,29 +330,37 @@ public final class ObjModel {
         this.faceCount = vertices.length / FACE_FLOATS;
         this.groups = groups;
 
-        Map<String, List<Integer>> byName = new HashMap<>();
+        // 名前で引く表は<b>役目の名前</b>で作る（マテリアルが役目の名前ならそれ、無ければオブジェクト名）。
+        // 部品の中の面は「役目@部品の形」で入れる。部品を付けているときだけ使う
+        Map<String, List<Integer>> byName = new java.util.LinkedHashMap<>();
         for (Group group : groups) {
-            List<Integer> list = byName.computeIfAbsent(group.name(), name -> new ArrayList<>());
+            String key = group.owner() == null ? group.role() : group.role() + OWNED + group.owner();
+            List<Integer> list = byName.computeIfAbsent(key, name -> new ArrayList<>());
             for (int face = group.from(); face < group.to(); face++) {
                 list.add(face);
             }
+            warnConflictingRoles(group);
         }
-        this.facesByName = new HashMap<>();
+        this.facesByName = new java.util.LinkedHashMap<>();
         byName.forEach((name, list) -> facesByName.put(name, toArray(list)));
 
         // 鏡を先に測る。反射面はどちらのパスからも外すので、振り分けより前に要る
         boolean[] excluded = new boolean[faceCount];
         List<MirrorFace> found = new ArrayList<>();
-        for (Group group : groups) {
-            if (!group.name().startsWith(MIRROR_PREFIX)) {
+        for (String name : facesByName.keySet()) {
+            if (!name.startsWith(MIRROR_PREFIX)) {
                 continue;
             }
-            MirrorFace face = measureMirror(group.name());
+            if (name.contains(OWNED)) {
+                // 部品の中の鏡は映さない（部品と一緒に出し入れする仕組みが無い）。ふつうの面として描く
+                LOGGER.warn("部品の形の中の鏡は映りません（ふつうの面として描きます）: {}", name);
+                continue;
+            }
+            MirrorFace face = measureMirror(name);
             if (face == null) {
                 // 反射面が見つからなくても描画は続く（ぜんぶ車体として描かれる）。
                 // 黙って映らないと原因を探すことになるので、理由をログに残す
-                LOGGER.warn("{} から鏡にできる平面が見つからない（面が無いか、大きさが 0）",
-                        group.name());
+                LOGGER.warn("{} から鏡にできる平面が見つからない（面が無いか、大きさが 0）", name);
                 continue;
             }
             found.add(face);
@@ -297,7 +373,7 @@ public final class ObjModel {
 
         // 灯火は車体とは別に描く。呼ぶ側（CarLights）が名指しで必ず描くので穴は開かない
         for (Group group : groups) {
-            if (group.name().startsWith(LIGHT_PREFIX)) {
+            if (group.role().startsWith(LIGHT_PREFIX)) {
                 for (int face = group.from(); face < group.to(); face++) {
                     excluded[face] = true;
                 }
@@ -308,11 +384,12 @@ public final class ObjModel {
         // 本体を車ごとに違う形にしないため（GPU に置いたメッシュを使い回せなくなる）
         Map<String, List<Integer>[]> optional = new HashMap<>();
         for (Group group : groups) {
-            if (!isOptionalName(group.name())) {
+            if (group.owner() == null) {
                 continue;
             }
+            // ライトだけの部品でも名前は持つ（換装画面に並べるため）。ライトの面は上で外してあるので入らない
             @SuppressWarnings("unchecked")
-            List<Integer>[] lists = optional.computeIfAbsent(group.name(),
+            List<Integer>[] lists = optional.computeIfAbsent(group.owner(),
                     name -> new List[]{new ArrayList<Integer>(), new ArrayList<Integer>()});
             for (int face = group.from(); face < group.to(); face++) {
                 if (excluded[face]) {
@@ -344,7 +421,7 @@ public final class ObjModel {
         boolean[] tire = new boolean[faceCount];
         boolean anyTire = false;
         for (Group group : groups) {
-            if (isTireName(group.name())) {
+            if (isTireName(group.role())) {
                 for (int face = group.from(); face < group.to(); face++) {
                     tire[face] = true;
                     anyTire = true;
@@ -377,9 +454,37 @@ public final class ObjModel {
         this.radialRange = faceCount > 0 ? allRange : new double[]{0.0, 0.0};
     }
 
-    /** 部品の形の名前か。 */
-    private static boolean isOptionalName(String name) {
-        return name.startsWith(PART_PREFIX);
+    /**
+     * オブジェクト名とマテリアル名で違う役目が付いた区切り。意図しない指定のことが多いのでログに残す
+     * （マテリアルが優先される）。
+     */
+    private static void warnConflictingRoles(Group group) {
+        String fromName = withoutCopySuffix(group.name());
+        String fromMaterial = roleName(group.material());
+        if (fromMaterial != null && isRoleName(fromName) && !fromMaterial.equals(fromName)) {
+            LOGGER.info("オブジェクト {} の役目（{}）より、マテリアル {} の役目（{}）を優先します",
+                    group.name(), fromName, group.material(), fromMaterial);
+        }
+    }
+
+    /**
+     * その役目の面を持つ名前（{@link #hasGroup} などに渡すもの）。<b>いつも出ている面に、見せている部品の中の
+     * 面を足す。</b>ウイングに付いたブレーキランプは、ウイングを付けているときだけ光る。
+     *
+     * @param shown 見せている部品の形の名前（{@code CarModel#bodyParts}）
+     */
+    public List<String> roleNames(String role, java.util.Set<String> shown) {
+        List<String> names = new ArrayList<>(1);
+        if (facesByName.containsKey(role)) {
+            names.add(role);
+        }
+        for (String owner : shown) {
+            String key = role + OWNED + owner;
+            if (facesByName.containsKey(key)) {
+                names.add(key);
+            }
+        }
+        return names;
     }
 
     /** このモデルが持っている、部品の形の名前（{@link #PART_PREFIX}）。 */
@@ -964,7 +1069,7 @@ public final class ObjModel {
 
         List<Group> simplified = new ArrayList<>(groups.size());
         for (Group group : groups) {
-            simplified.add(new Group(group.name(), kept[Math.min(group.from(), faceCount)],
+            simplified.add(new Group(group.name(), group.material(), kept[Math.min(group.from(), faceCount)],
                     kept[Math.min(group.to(), faceCount)]));
         }
         return new ObjModel(java.util.Arrays.copyOf(out, outFaces * FACE_FLOATS), simplified);
@@ -1149,11 +1254,15 @@ public final class ObjModel {
      * <p>MTL が {@code d} を書いていればそれが正。書いていないガラスにだけ既定値を当てる
      * （マテリアルを割り当てていないメッシュでも名前だけで透けるように）。</p>
      */
-    private static float faceAlpha(float materialAlpha, String groupName) {
+    private static float faceAlpha(float materialAlpha, String groupName, @Nullable String materialName) {
         if (materialAlpha < OPAQUE_THRESHOLD) {
             return materialAlpha;
         }
-        return isGlassName(groupName) ? GLASS_DEFAULT_ALPHA : 1.0F;
+        // マテリアル名がガラスならそれだけで透ける。オブジェクト名がガラスでも、
+        // マテリアルが別の役目（ライトなど）を指していればそちらが優先
+        String fromMaterial = roleName(materialName);
+        boolean glass = fromMaterial != null ? isGlassName(fromMaterial) : isGlassName(withoutCopySuffix(groupName));
+        return glass ? GLASS_DEFAULT_ALPHA : 1.0F;
     }
 
     // ------------------------------------------------------------------
@@ -1197,6 +1306,7 @@ public final class ObjModel {
 
         List<Group> groups = new ArrayList<>();
         String groupName = null;
+        String materialName = null;
         int groupStart = 0;
 
         String line;
@@ -1215,15 +1325,26 @@ public final class ObjModel {
                 // OBJ の V は下が 0、Minecraft は上が 0
                 case "vt" -> uvs.add(new float[]{parseFloat(token[1]), 1.0F - parseFloat(token[2])});
                 case "mtllib" -> materials.putAll(loadMaterials(location, line.substring(7).trim(), resources));
-                case "usemtl" -> color = materials.getOrDefault(line.substring(7).trim(),
-                        new float[]{1.0F, 1.0F, 1.0F, 1.0F});
+                case "usemtl" -> {
+                    String next = line.substring(7).trim();
+                    // 同じオブジェクトの中でもマテリアルが変われば区切る。マテリアル名が役目を持てるので
+                    if (groupName != null && out.size() > groupStart && !next.equals(materialName)) {
+                        groups.add(new Group(groupName, materialName, groupStart / FACE_FLOATS,
+                                out.size() / FACE_FLOATS));
+                        groupStart = out.size();
+                    }
+                    materialName = next;
+                    color = materials.getOrDefault(next, new float[]{1.0F, 1.0F, 1.0F, 1.0F});
+                }
                 case "o", "g" -> {
                     // 直前のオブジェクトをここで閉じる。面は名前の後ろに並ぶので、
                     // 区切りが来た時点までが 1 つ
                     if (groupName != null && out.size() > groupStart) {
-                        groups.add(new Group(groupName, groupStart / FACE_FLOATS, out.size() / FACE_FLOATS));
+                        groups.add(new Group(groupName, materialName, groupStart / FACE_FLOATS,
+                                out.size() / FACE_FLOATS));
                     }
                     groupName = token.length > 1 ? token[1] : "";
+                    materialName = null;
                     groupStart = out.size();
                     // マテリアルは前のオブジェクトから引き継がない。Blender はマテリアルを持つ
                     // オブジェクトには必ず usemtl を書くので、書かれていないのは「無し」の意味。
@@ -1236,7 +1357,7 @@ public final class ObjModel {
                         // 不透明度は「マテリアルの d、無ければガラスの既定値」。
                         // 名前を見るのはここだけで、描画中は頂点の α しか見ない
                         appendFace(out, token, positions, normals, uvs, color,
-                                faceAlpha(color[3], groupName));
+                                faceAlpha(color[3], groupName == null ? "" : groupName, materialName));
                     }
                 }
                 default -> {
@@ -1246,7 +1367,7 @@ public final class ObjModel {
         }
 
         if (groupName != null && out.size() > groupStart) {
-            groups.add(new Group(groupName, groupStart / FACE_FLOATS, out.size() / FACE_FLOATS));
+            groups.add(new Group(groupName, materialName, groupStart / FACE_FLOATS, out.size() / FACE_FLOATS));
         }
 
         float[] vertices = new float[out.size()];
