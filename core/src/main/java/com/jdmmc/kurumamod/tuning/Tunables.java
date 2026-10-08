@@ -267,9 +267,22 @@ public final class Tunables {
                                     CarSpec::abs, CarSpec.Builder::abs)
                             .detail(spec -> spec.abs() <= 0.0 ? "OFF" : "ON"),
                     TunableParameter.linear("rolling_resistance", 0.0, 1.0, "%.2f",
-                            CarSpec::rollingResistance, CarSpec.Builder::rollingResistance),
-                    TunableParameter.log("drag", 0.0001, 0.005, "%.5f",
-                            CarSpec::dragCoefficient, CarSpec.Builder::dragCoefficient))),
+                            CarSpec::rollingResistance, CarSpec.Builder::rollingResistance))),
+
+            new Group("aero", List.of(
+                    // Cd×前面投影面積。スポーツカー 0.5、乗用車 0.7、SUV 1.0、トラック 3 前後。
+                    // 補足の G はダウンフォースで増えた抵抗も込み
+                    TunableParameter.log("drag_area", 0.2, 5.0, "%.2f",
+                                    CarSpec::dragArea, CarSpec.Builder::dragArea)
+                            .detail(Tunables::dragAt100),
+                    // −Cl×面積を軸ごとに。前を強くするとオーバー、後ろを強くするとアンダー。
+                    // GT 系のレーシングカーで前後合わせて 2〜3、ウイング付きの市販車で 0.3〜0.6
+                    TunableParameter.linear("front_downforce", 0.0, 3.0, "%.2f",
+                                    CarSpec::frontDownforceArea, CarSpec.Builder::frontDownforceArea)
+                            .detail(spec -> downforceAt200(spec, true)),
+                    TunableParameter.linear("rear_downforce", 0.0, 3.0, "%.2f",
+                                    CarSpec::rearDownforceArea, CarSpec.Builder::rearDownforceArea)
+                            .detail(spec -> downforceAt200(spec, false)))),
 
             new Group("controls", List.of(
                     // 上限はドリフト車の切れ角キット（55〜65 度）まで。深い角度を保ったまま
@@ -362,7 +375,33 @@ public final class Tunables {
                 builder.torqueSplit(Math.max(0.1, Math.min(0.9, bias)));
             }
         }
+        // 空気抵抗は、かつて減速度の係数 drag（減速度 = drag × v²）で持っていた。
+        // 力が同じになるよう、その車の車重で CdA へ換算する（½ρ・CdA = 車重 × drag）。
+        // 車重で割り戻すので、換算した車は速度ごとの減速がまったく変わらない
+        Double drag = stored.apply("drag");
+        if (drag != null && stored.apply("drag_area") == null && Double.isFinite(drag)) {
+            double area = 2.0 * spec.mass() * drag / CarSpec.AIR_DENSITY;
+            builder.dragArea(Math.max(0.2, Math.min(5.0, area)));
+        }
         return builder.build();
+    }
+
+    /**
+     * 200km/h でその軸を何 kg ぶん押し付けるか。後軸の行には前後の配分も出す
+     * （前が多いとオーバー、後ろが多いとアンダー。配分が分からないと決められない）。
+     */
+    private static Object downforceAt200(CarSpec spec, boolean front) {
+        String kg = String.format("%.0f", spec.downforce(front, 200.0 / 3.6) / 9.81);
+        if (front || spec.totalDownforce(1.0) <= 0.0) {
+            return detail("downforce", kg);
+        }
+        return detail("downforce_balance", kg, String.format("%.0f", spec.downforceFrontShare() * 100.0));
+    }
+
+    /** 100km/h での空気抵抗が何 G の減速になるか。CdA だけでは車重に対してどれほどか読めない。 */
+    private static Object dragAt100(CarSpec spec) {
+        double accel = spec.dragForce(100.0 / 3.6) / spec.mass();
+        return detail("drag_area", String.format("%.3f", accel / 9.81));
     }
 
     /**

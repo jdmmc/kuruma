@@ -1995,9 +1995,17 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
 <tr><td><code>abs</code></td><td>ABS</td><td>強さ（0 で無効）</td><td>0.7</td><td>0 – 1</td></tr>
 <tr><td><code>rolling_resistance</code></td><td>転がり抵抗</td><td>—</td><td>0.15</td><td>0 – 1</td></tr>
-<tr><td><code>drag</code></td><td>空気抵抗係数</td><td>—</td><td>0.0004</td><td>0.0001 – 0.005</td></tr>
 </table>
 <p class="ja">最高速の項目はありません。<b>実際の最高速はトルクと抵抗から決まり</b>、最高段でレブまで回した速度より速くは走れません。</p>
+<h4 class="ja">空力</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>drag_area</code></td><td>空気抵抗（CdA）</td><td>m²（Cd×前面投影面積）</td><td>0.78</td><td>0.2 – 5</td></tr>
+<tr><td><code>front_downforce</code></td><td>ダウンフォース（前）</td><td>m²（−Cl×面積）</td><td>0</td><td>0 – 3</td></tr>
+<tr><td><code>rear_downforce</code></td><td>ダウンフォース（後）</td><td>m²（−Cl×面積）</td><td>0</td><td>0 – 3</td></tr>
+</table>
+<p class="ja">空気抵抗は力として掛かるので、<b>同じ値でも重い車ほど減速しにくくなります</b>。目安はスポーツカー 0.5、乗用車 0.7、SUV 1.0。以前の <code>drag</code>（減速度の係数）を書いたパックは、その車の車重で自動的に換算され、走りは変わりません。</p>
+<p class="ja">ダウンフォースは前軸・後軸の位置で車体を下へ押し、速度の 2 乗で増えます。<b>前を強くするとオーバー、後ろを強くするとアンダー</b>。押し付けるぶん空気抵抗も増える（ダウンフォースの 1/6 が CdA に足される）ので、付けるほど最高速は落ちます。目安はウイング付きの市販車で前後合わせて 0.3〜0.6、GT 系のレーシングカーで 2〜3。</p>
 <h4 class="ja">操作と補助</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -2098,9 +2106,17 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre>
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
 <tr><td><code>abs</code></td><td>ABS</td><td>strength (0 = off)</td><td>0.7</td><td>0 – 1</td></tr>
 <tr><td><code>rolling_resistance</code></td><td>Rolling resistance</td><td>—</td><td>0.15</td><td>0 – 1</td></tr>
-<tr><td><code>drag</code></td><td>Drag coefficient</td><td>—</td><td>0.0004</td><td>0.0001 – 0.005</td></tr>
 </table>
 <p class="en">There is no top-speed field. <b>The real top speed comes out of torque versus resistance</b>, and the car can never go faster than top gear at the redline.</p>
+<h4 class="en">Aerodynamics</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>drag_area</code></td><td>Drag area (CdA)</td><td>m² (Cd × frontal area)</td><td>0.78</td><td>0.2 – 5</td></tr>
+<tr><td><code>front_downforce</code></td><td>Front downforce</td><td>m² (−Cl × area)</td><td>0</td><td>0 – 3</td></tr>
+<tr><td><code>rear_downforce</code></td><td>Rear downforce</td><td>m² (−Cl × area)</td><td>0</td><td>0 – 3</td></tr>
+</table>
+<p class="en">Drag is applied as a force, so <b>the same value slows a heavier car less</b>. Rough guide: sports car 0.5, saloon 0.7, SUV 1.0. Packs that still write the old <code>drag</code> (a deceleration coefficient) are converted using that car's mass, so they drive exactly as before.</p>
+<p class="en">Downforce pushes the body down at the front and rear axles and grows with the square of speed. <b>More at the front gives oversteer, more at the rear gives understeer.</b> It costs drag too (one sixth of the downforce is added to CdA), so the more you add, the lower the top speed. Rough guide: 0.3–0.6 in total for a road car with a wing, 2–3 for a GT-class race car.</p>
 <h4 class="en">Controls & Aids</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>

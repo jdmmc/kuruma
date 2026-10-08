@@ -19,7 +19,7 @@
     "redline_rpm": 5600.0,
 
     "_comment_resistance": "箱形なので空気抵抗が大きい（既定 0.0004）。重い足まわりで転がり抵抗も少し高い（既定 0.15）",
-    "drag": 0.0008,
+    "drag_area": 1.9592,
     "rolling_resistance": 0.18
   }
 }

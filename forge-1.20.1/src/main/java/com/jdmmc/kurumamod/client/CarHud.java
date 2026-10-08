@@ -91,7 +91,7 @@ public final class CarHud {
         // メーターに重なるときだけ上へ逃がす。画面が広くて横に並べられるなら下端のままでよい
         int bottom = screenHeight - MARGIN
                 - (left + PANEL_WIDTH > CarGaugeHud.gaugeLeftEdge() ? CarGaugeHud.reservedBottomHeight() : 0);
-        int panelHeight = LINE_HEIGHT * 4 + 8;
+        int panelHeight = LINE_HEIGHT * 6 + 8;
         int top = bottom - panelHeight;
         graphics.fill(left, top, left + PANEL_WIDTH, bottom, COLOR_BACKGROUND);
 
@@ -99,6 +99,25 @@ public final class CarHud {
         double lateralG = car.getRenderLateralAcceleration() / CarPhysics.GRAVITY;
         graphics.drawString(minecraft.font,
                 Component.translatable("hud.kurumamod.lateral_g", String.format("%.2f", Math.abs(lateralG))),
+                left + 5, y, COLOR_LABEL, false);
+        y += LINE_HEIGHT;
+
+        // 空気抵抗。力と、それが車重に対して何 G の減速になるか。
+        // 速度も諸元も同期されているので同乗者にも正しく出る
+        double speed = car.getRenderSpeed();
+        double drag = car.getSpec().dragForce(speed);
+        graphics.drawString(minecraft.font,
+                Component.translatable("hud.kurumamod.drag",
+                        String.format("%.0f", drag),
+                        String.format("%.3f", drag / car.getSpec().mass() / CarPhysics.GRAVITY)),
+                left + 5, y, COLOR_LABEL, false);
+        y += LINE_HEIGHT;
+
+        // ダウンフォース。前後それぞれ何 kg ぶん押し付けているか。物理と同じく前後方向の速度で見る
+        graphics.drawString(minecraft.font,
+                Component.translatable("hud.kurumamod.downforce",
+                        String.format("%.0f", car.getSpec().downforce(true, speed) / CarPhysics.GRAVITY),
+                        String.format("%.0f", car.getSpec().downforce(false, speed) / CarPhysics.GRAVITY)),
                 left + 5, y, COLOR_LABEL, false);
         y += LINE_HEIGHT;
 

@@ -395,7 +395,8 @@ public final class CarPhysics {
      */
     private static double turnInLimit(CarSpec spec, CarState state, GroundContact contact,
                                       double speed, double steady) {
-        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY;
+        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY
+                * spec.aeroGripFactor(speed);
         if (gripAccel <= 0.0) {
             return steady;
         }
@@ -424,11 +425,14 @@ public final class CarPhysics {
      * コーナリングパワー係数で割ったもの。{@link #steerForMaxCornering} と同じ摩擦円を使う。</p>
      */
     private static double peakFrontSlipAngle(CarSpec spec, CarState state, GroundContact contact) {
-        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY;
+        // 縦に使っているぶんはダウンフォース込みのグリップと比べるが、ピークの角度そのものは
+        // 荷重に依らない（グリップも横剛性も同じ荷重に比例する）ので、最後にそのぶん割り戻す
+        double aero = spec.aeroGripFactor(Math.abs(state.forwardSpeed));
+        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY * aero;
         double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
         double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
         double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
-        return lateral / (GRAVITY * spec.effectiveCorneringStiffness());
+        return lateral / (GRAVITY * spec.effectiveCorneringStiffness() * aero);
     }
 
     /**
@@ -511,7 +515,10 @@ public final class CarPhysics {
         // 横へ回すぶんは必ず一定割合を確保する（ABS の目的は制動しながら操舵できること）
         // 路面のグリップを織り込む。舗装路のμのまま上限を決めると、
         // 砂の上でも舗装前提の角度まで切れてしまい、切った瞬間にスピンする
-        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY;
+        // ダウンフォースで増えたグリップも織り込む。入れないと高速で舵が車重ぶんの横 G で止まり、
+        // ウイングを付けても曲がれる速さが変わらない
+        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY
+                * spec.aeroGripFactor(speed);
         double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
         double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
         double targetAccel = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
@@ -1251,7 +1258,7 @@ public final class CarPhysics {
         // 片輪だけ砂に落ちたときの左右差がそのままヨーモーメントになる
         double wheelBrakeForce = brakeForce * spec.brakeShare(wheel) * state.brakeRelease[index]
                 + rollingResistanceForce(spec, contact, wheel, load)
-                + handbrakeForce(spec, input, wheel);
+                + handbrakeForce(spec, state, input, wheel);
         double brakeTorque = brakeTorque(spec, state, wheel, dt, inertia, wheelBrakeForce);
 
 
@@ -1528,7 +1535,9 @@ public final class CarPhysics {
      * 輪ごとに {@link #rollingResistanceForce} で足す。</p>
      */
     private static double commandedBrakeForce(CarSpec spec, CarState state, CarInput input) {
-        double full = spec.brakeDecel() * spec.mass();
+        // ダウンフォースで増えたグリップのぶん強く踏む。踏力が車重ぶんのままだと、
+        // 高速ではタイヤの限界まで踏めない（ABS も介入しないまま制動距離が伸びる）
+        double full = spec.brakeDecel() * spec.mass() * spec.aeroGripFactor(Math.abs(state.forwardSpeed));
 
         if (spec.isManual()) {
             // 段を自分で入れるので、S は前進中でも後退中でも純粋にブレーキ。
@@ -1551,11 +1560,13 @@ public final class CarPhysics {
      * <p><b>後輪だけに掛かり、ABS を通さない。</b>後輪をロックさせて車を回すための装置なので、
      * ロックを防ぐ ABS を通してしまっては意味がない。</p>
      */
-    private static double handbrakeForce(CarSpec spec, CarInput input, Wheel wheel) {
+    private static double handbrakeForce(CarSpec spec, CarState state, CarInput input, Wheel wheel) {
         if (!input.handbrake() || wheel.isFront()) {
             return 0.0;
         }
-        return spec.handbrakeDecel() * spec.mass() / 2.0;
+        // 後軸のダウンフォースのぶん強くする。でないと高速では後輪をロックできない
+        return spec.handbrakeDecel() * spec.mass() / 2.0
+                * spec.axleAeroGripFactor(false, Math.abs(state.forwardSpeed));
     }
 
     /**
@@ -1641,6 +1652,15 @@ public final class CarPhysics {
         // 腕を（重心高 − ロール軸の高さ）へ縮める
         pitchMoment += forces.longitudinal() * spec.cgHeight();
         rollMoment -= state.lateralAcceleration * spec.mass() * spec.cgHeight();
+
+        // ダウンフォース。前軸と後軸の位置で車体を下へ押す。輪の荷重へは直接足さない——
+        // 車体が沈んでサスが縮むことで荷重が増える（バネを通る）ので、ピッチもそこから出る。
+        // 速度は前後方向だけを見る。横を向いて滑っている車ではウイングに風が当たらない
+        double frontDown = spec.downforce(true, state.forwardSpeed);
+        double rearDown = spec.downforce(false, state.forwardSpeed);
+        totalLoad -= frontDown + rearDown;
+        pitchMoment -= frontDown * spec.wheelForwardOffset(Wheel.FRONT_LEFT)
+                + rearDown * spec.wheelForwardOffset(Wheel.REAR_LEFT);
 
         state.verticalSpeed += (totalLoad / spec.mass() - GRAVITY) * dt;
         state.height += state.verticalSpeed * dt;
@@ -1810,7 +1830,8 @@ public final class CarPhysics {
     private static void updateVelocities(CarSpec spec, CarState state, GroundContact contact,
                                          TireForces forces, double dt, CarInput input) {
         // 空気抵抗はタイヤと無関係にかかるので、グリップの上限とは別に足す
-        double dragAccel = -spec.dragCoefficient() * state.forwardSpeed * Math.abs(state.forwardSpeed);
+        // 力なので車重で割る。重い車ほど空気に負けにくい
+        double dragAccel = -Math.signum(state.forwardSpeed) * spec.dragForce(state.forwardSpeed) / spec.mass();
 
         double forwardAccel = forces.longitudinal() / spec.mass() + state.lateralSpeed * state.yawRate + dragAccel;
         double lateralAccel = forces.lateral() / spec.mass() - state.forwardSpeed * state.yawRate;
