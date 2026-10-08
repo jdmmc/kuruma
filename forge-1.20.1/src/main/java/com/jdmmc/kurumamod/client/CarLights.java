@@ -222,12 +222,35 @@ public final class CarLights {
                                     MultiBufferSource buffer, int packedLight,
                                     net.minecraft.resources.ResourceLocation texture) {
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
-        lens(model, pose, consumer, packedLight, HEAD, HEAD_COLOR,
-                car.isHeadlightOn() ? 1.0F : 0.0F);
-        lens(model, pose, consumer, packedLight, TAIL, TAIL_COLOR,
-                car.isBrakeLightOn() ? 1.0F : (car.isHeadlightOn() ? TAIL_IDLE : 0.0F));
-        lens(model, pose, consumer, packedLight, REVERSE, REVERSE_COLOR,
-                car.isReverseLightOn() ? 1.0F : 0.0F);
+        java.util.Set<String> shown = shownParts(car, model);
+        for (String name : model.roleNames(HEAD, shown)) {
+            lens(model, pose, consumer, packedLight, name, HEAD_COLOR, car.isHeadlightOn() ? 1.0F : 0.0F);
+        }
+        for (String name : model.roleNames(TAIL, shown)) {
+            lens(model, pose, consumer, packedLight, name, TAIL_COLOR,
+                    car.isBrakeLightOn() ? 1.0F : (car.isHeadlightOn() ? TAIL_IDLE : 0.0F));
+        }
+        for (String name : model.roleNames(REVERSE, shown)) {
+            lens(model, pose, consumer, packedLight, name, REVERSE_COLOR, car.isReverseLightOn() ? 1.0F : 0.0F);
+        }
+    }
+
+    /** いま見せている部品の形。部品の中のライトは、その部品を付けているときだけ光る。 */
+    private static java.util.Set<String> shownParts(CarEntity car, ObjModel body) {
+        return CarModel.get(car.getCarId()).bodyParts(car.getEffectiveFitment(), body.optionalNames()).shown();
+    }
+
+    /** その役目のライトの位置（いつものライトと、見せている部品の中のライト）。 */
+    private static java.util.List<Vec3> lampCenters(ObjModel body, String role, java.util.Set<String> shown) {
+        java.util.List<String> names = body.roleNames(role, shown);
+        if (names.size() == 1) {
+            return body.groupSideCenters(names.get(0));
+        }
+        java.util.List<Vec3> centers = new java.util.ArrayList<>();
+        for (String name : names) {
+            centers.addAll(body.groupSideCenters(name));
+        }
+        return centers;
     }
 
     /**
@@ -265,9 +288,10 @@ public final class CarLights {
     public static void renderEffects(CarEntity car, CarModel carModel, float partialTick,
                                      PoseStack pose, MultiBufferSource buffer) {
         ObjModel body = ObjModel.get(carModel.bodyModel());
-        boolean head = car.isHeadlightOn() && body.hasGroup(HEAD);
-        boolean tail = (car.isHeadlightOn() || car.isBrakeLightOn()) && body.hasGroup(TAIL);
-        boolean reverse = car.isReverseLightOn() && body.hasGroup(REVERSE);
+        java.util.Set<String> shown = shownParts(car, body);
+        boolean head = car.isHeadlightOn() && !body.roleNames(HEAD, shown).isEmpty();
+        boolean tail = (car.isHeadlightOn() || car.isBrakeLightOn()) && !body.roleNames(TAIL, shown).isEmpty();
+        boolean reverse = car.isReverseLightOn() && !body.roleNames(REVERSE, shown).isEmpty();
         if (!head && !tail && !reverse) {
             return;
         }
@@ -300,7 +324,7 @@ public final class CarLights {
 
         Beam beam = null;
         if (head) {
-            beam = Beam.of(transform(bodyMatrix, body.groupSideCenters(HEAD)), forward, bodyUp,
+            beam = Beam.of(transform(bodyMatrix, lampCenters(body, HEAD, shown)), forward, bodyUp,
                     suspensionPitch(car, partialTick));
         }
 
@@ -353,13 +377,13 @@ public final class CarLights {
             boolean braking = car.isBrakeLightOn();
             // ブレーキは昼間でもはっきり見えないと困る。テールだけのときは夜だけ
             float power = braking ? Math.max(0.55F, glow) : glow * 0.55F;
-            for (Vec3 lamp : transform(bodyMatrix, body.groupSideCenters(TAIL))) {
+            for (Vec3 lamp : transform(bodyMatrix, lampCenters(body, TAIL, shown))) {
                 renderGlows(matrix, additive, camera, lamp, forward.scale(-1.0), eye,
                         braking ? BRAKE_GLOW_RADIUS : TAIL_GLOW_RADIUS, TAIL_COLOR, power, false);
             }
         }
         if (reverse) {
-            for (Vec3 lamp : transform(bodyMatrix, body.groupSideCenters(REVERSE))) {
+            for (Vec3 lamp : transform(bodyMatrix, lampCenters(body, REVERSE, shown))) {
                 renderGlows(matrix, additive, camera, lamp, forward.scale(-1.0), eye,
                         REVERSE_GLOW_RADIUS, REVERSE_COLOR, glow * 0.8F, false);
             }
@@ -379,14 +403,15 @@ public final class CarLights {
     static int collectLamps(CarEntity car, float partialTick, Vec3 camera, Matrix4f[] out, int start) {
         CarModel carModel = CarModel.get(car.getCarId());
         ObjModel body = ObjModel.get(carModel.bodyModel());
-        if (!car.isHeadlightOn() || !body.hasGroup(HEAD)) {
+        java.util.Set<String> shown = shownParts(car, body);
+        if (!car.isHeadlightOn() || body.roleNames(HEAD, shown).isEmpty()) {
             return 0;
         }
         PoseStack rig = new PoseStack();
         CarObjRenderer.applyRotations(car, rig, partialTick);
         CarObjRenderer.applyBodyTransform(carModel, car.getSpec(), rig);
         Matrix4f bodyMatrix = rig.last().pose();
-        Beam beam = Beam.of(transform(bodyMatrix, body.groupSideCenters(HEAD)),
+        Beam beam = Beam.of(transform(bodyMatrix, lampCenters(body, HEAD, shown)),
                 direction(bodyMatrix, 0.0F, 0.0F, -1.0F), direction(bodyMatrix, 0.0F, 1.0F, 0.0F),
                 suspensionPitch(car, partialTick));
         Vec3 origin = car.getPosition(partialTick);
