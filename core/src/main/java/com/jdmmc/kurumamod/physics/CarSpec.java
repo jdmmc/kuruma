@@ -86,7 +86,9 @@ package com.jdmmc.kurumamod.physics;
  *                             1 で前後の回転を毎回揃えきる（直結）。{@link #centerDiffLockFraction} を参照
  * @param manualTransmission   0 でオートマ、1 でマニュアル
  * @param rollingResistance    転がり抵抗による減速度 [m/s^2]
- * @param dragCoefficient      空気抵抗の係数（速度の 2 乗に比例する減速度を作る）
+ * @param dragArea             空気抵抗の面積 Cd×前面投影面積 [m^2]。空気抵抗の力は {@link #dragForce}
+ * @param frontDownforceArea   前軸のダウンフォースの面積 −Cl×面積 [m^2]。前軸の位置に下向きに掛かる
+ * @param rearDownforceArea    後軸のダウンフォースの面積 [m^2]。後軸の位置に下向きに掛かる
  */
 public record CarSpec(
         double wheelBase,
@@ -145,7 +147,9 @@ public record CarSpec(
         double centerDiffLock,
         double manualTransmission,
         double rollingResistance,
-        double dragCoefficient,
+        double dragArea,
+        double frontDownforceArea,
+        double rearDownforceArea,
         // ターボ。<b>調整画面の項目ではなく部品から来る</b>（Tunables には無いので保存も同期もされず、
         // CarEntity が装着している部品から毎回載せ直す）。既定は無し
         Turbo turbo,
@@ -167,6 +171,21 @@ public record CarSpec(
      * 実車の乗用車用タイヤとしても 1.0 のほうが素直な値。</p>
      */
     public static final double REFERENCE_FRICTION = 1.0;
+
+    /** 空気の密度 [kg/m^3]。海面・15 度。高度や気温では変えない。 */
+    public static final double AIR_DENSITY = 1.225;
+
+    /**
+     * ダウンフォースと、それを作るのに増える空気抵抗の比（揚抗比）。
+     *
+     * <p>ダウンフォースはタダでは出ない。ウイングは翼端渦で誘導抗力を生み、
+     * 押し付ける力を作るほど空気抵抗も増える（GT の「空気抵抗を減らすと揚力が増し、
+     * 揚力を減らすと空気抵抗が増す」）。ウイング単体は 4 前後だが、床下とディフューザーは
+     * ずっと効率がよく、GT3 クラスの車が ClA 3 前後で CdA 0.9〜1.0 に収まっているのに合わせて 6。
+     * 4 にすると前後合わせて 1.6m² で最高速が 255→216km/h まで落ち、ウイングが罰にしか見えなかった。
+     * <b>諸元にしない。</b>独立に持つと「抵抗の増えないダウンフォース」が作れてしまう。</p>
+     */
+    public static final double DOWNFORCE_PER_DRAG = 6.0;
 
     /** 補助がいちばん緩いときに許す滑り率。 */
     private static final double LOOSEST_AID_SLIP = 0.35;
@@ -943,7 +962,68 @@ public record CarSpec(
 
     /** 転がり抵抗と空気抵抗による減速度 [m/s^2]（舗装路・直進）。 */
     private double resistanceAccel(double speed) {
-        return rollingResistance + dragCoefficient * speed * speed;
+        return rollingResistance + dragForce(speed) / mass;
+    }
+
+    /**
+     * その速度での空気抵抗 [N]。½ρ・CdA・v²。
+     *
+     * <p><b>力で持つこと。</b>減速度で持つと、車重を変えても空気抵抗による減速が同じになり、
+     * 重い車ほど空気に負けにくいという当たり前の性質が消える。</p>
+     */
+    public double dragForce(double speed) {
+        return 0.5 * AIR_DENSITY * effectiveDragArea() * speed * speed;
+    }
+
+    /**
+     * 実際に効いている空気抵抗の面積 [m^2]。車体のぶんに、ダウンフォースを作るために
+     * 増えるぶん（{@link #DOWNFORCE_PER_DRAG}）を足したもの。
+     */
+    public double effectiveDragArea() {
+        return dragArea + (frontDownforceArea + rearDownforceArea) / DOWNFORCE_PER_DRAG;
+    }
+
+    /** その速度で前軸（または後軸）に掛かるダウンフォース [N]。½ρ・ClA・v²。 */
+    public double downforce(boolean front, double speed) {
+        double area = front ? frontDownforceArea : rearDownforceArea;
+        return 0.5 * AIR_DENSITY * area * speed * speed;
+    }
+
+    /** 前軸と後軸を合わせたダウンフォース [N]。 */
+    public double totalDownforce(double speed) {
+        return downforce(true, speed) + downforce(false, speed);
+    }
+
+    /** ダウンフォースのうち前軸が受け持つ割合。ダウンフォースが無ければ 0。 */
+    public double downforceFrontShare() {
+        double total = frontDownforceArea + rearDownforceArea;
+        return total > 0.0 ? frontDownforceArea / total : 0.0;
+    }
+
+    /**
+     * ダウンフォースでグリップが何倍になるか（車全体）。ダウンフォースが無ければ 1。
+     *
+     * <p>グリップは荷重に比例しない（{@link #tireLoadFactor}）ので、荷重が増えたぶんを
+     * 同じ荷重感度で割り引く。μg を前提にしている運転補助とブレーキの効きは、
+     * これを掛けないと<b>グリップが増えたのに舵とブレーキだけ車重ぶんのまま</b>になる。</p>
+     */
+    public double aeroGripFactor(double speed) {
+        double weight = mass * CarPhysics.GRAVITY;
+        return loadGain((weight + totalDownforce(speed)) / weight);
+    }
+
+    /** 前軸（または後軸）だけで見た {@link #aeroGripFactor}。 */
+    public double axleAeroGripFactor(boolean front, double speed) {
+        double weight = mass * CarPhysics.GRAVITY * (front ? weightBias : 1.0 - weightBias);
+        if (weight <= 0.0) {
+            return 1.0;
+        }
+        return loadGain((weight + downforce(front, speed)) / weight);
+    }
+
+    /** 荷重が {@code ratio} 倍になったとき、タイヤの力が何倍になるか。 */
+    private double loadGain(double ratio) {
+        return tireLoadSensitivity <= 0.0 ? ratio : Math.pow(ratio, 1.0 - tireLoadSensitivity);
     }
 
     /**
@@ -1117,7 +1197,13 @@ public record CarSpec(
         // 抽象モデル時代の値（1.2 と 0.0035）は 10 倍ほど過大で、
         // 実トルクを入れると最高速に届かなくなる
         private double rollingResistance = 0.15;
-        private double dragCoefficient = 0.0004;
+        // Cd 0.30 × 前面投影面積 2.6m²（実車の 1.2 倍の車格）。1200kg なら 100km/h で 0.03G。
+        // 減速度で持っていた頃の 0.0004 [1/m] とほぼ同じ（換算すると 0.784）
+        private double dragArea = 0.78;
+        // ダウンフォース。既定は無し（入れる前と同じ）。量産車の多くは実際には揚力が出ているが、
+        // ここでは負にできない（浮く向きの力は扱わない）
+        private double frontDownforceArea = 0.0;
+        private double rearDownforceArea = 0.0;
 
         private Builder() {
         }
@@ -1181,7 +1267,9 @@ public record CarSpec(
             centerDiffLock = spec.centerDiffLock;
             manualTransmission = spec.manualTransmission;
             rollingResistance = spec.rollingResistance;
-            dragCoefficient = spec.dragCoefficient;
+            dragArea = spec.dragArea;
+            frontDownforceArea = spec.frontDownforceArea;
+            rearDownforceArea = spec.rearDownforceArea;
         }
 
         public Builder wheelBase(double value) {
@@ -1491,8 +1579,18 @@ public record CarSpec(
             return this;
         }
 
-        public Builder dragCoefficient(double value) {
-            dragCoefficient = value;
+        public Builder dragArea(double value) {
+            dragArea = value;
+            return this;
+        }
+
+        public Builder frontDownforceArea(double value) {
+            frontDownforceArea = value;
+            return this;
+        }
+
+        public Builder rearDownforceArea(double value) {
+            rearDownforceArea = value;
             return this;
         }
 
@@ -1526,7 +1624,8 @@ public record CarSpec(
                     tractionControl, abs,
                     diffPreload, diffLockRatio, diffCoastRatio,
                     centerDiffLock,
-                    manualTransmission, rollingResistance, dragCoefficient, turbo, tire);
+                    manualTransmission, rollingResistance, dragArea,
+                    frontDownforceArea, rearDownforceArea, turbo, tire);
         }
     }
 }
