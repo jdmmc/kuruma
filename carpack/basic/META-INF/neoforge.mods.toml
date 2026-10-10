@@ -7,7 +7,7 @@ license = "All Rights Reserved"
 
 [[mods]]
 modId = "kurumamod_basic_carpack"
-version = "1.1.0"
+version = "1.2.0"
 displayName = "KurumaMod Basic Car Pack"
 # MOD 一覧に出る画像。jar の直下からの名前で書く
 logoFile = "kurumamod_basic_carpack.png"
@@ -18,7 +18,7 @@ description = '''The official car pack for KurumaMod.'''
 [[dependencies.kurumamod_basic_carpack]]
 modId = "kurumamod"
 type = "required"
-versionRange = "[1.6.0,)"
+versionRange = "[1.7.0,)"
 ordering = "NONE"
 side = "BOTH"
 
