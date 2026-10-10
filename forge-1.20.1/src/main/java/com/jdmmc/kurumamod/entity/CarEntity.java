@@ -1697,7 +1697,19 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 車体の傾きが階段状にしか伝わらない。補間済みの車の位置と姿勢から直接組み立てる。</p>
      */
     public Vec3 riderEyePosition(Entity passenger, float partialTick) {
-        Vec3 local = seatOffset(passenger).add(0.0, passenger.getMyRidingOffset() + passenger.getEyeHeight(), 0.0);
+        return riderPosition(passenger, partialTick, passenger.getEyeHeight());
+    }
+
+    /**
+     * 乗員の足元（{@link #positionRider} が置く位置）を、補間済みの車の位置と姿勢から組んだもの。
+     * <b>三人称で乗員を描くときに、足元をここへ合わせ直す</b>（{@code RiderPoseRenderer}）。
+     */
+    public Vec3 riderFeetPosition(Entity passenger, float partialTick) {
+        return riderPosition(passenger, partialTick, 0.0);
+    }
+
+    private Vec3 riderPosition(Entity passenger, float partialTick, double height) {
+        Vec3 local = seatOffset(passenger).add(0.0, passenger.getMyRidingOffset() + height, 0.0);
         Vec3 offset = toWorld(local, getRenderYaw(partialTick),
                 getRenderPitch(partialTick), getRenderRoll(partialTick));
         return new Vec3(Mth.lerp(partialTick, xo, getX()) + offset.x,
