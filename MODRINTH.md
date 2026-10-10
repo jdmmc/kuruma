@@ -17,7 +17,7 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 **KurumaMod is about the driving itself — born from an obsession with how a car should drive.**
 
 - **Real physics simulation** — suspension, weight transfer, tyre grip, engine and gearbox, differential. You can feel the limit coming before you reach it
-- **A huge range of setup options** — springs, anti-roll bars, tyres, the torque curve, gear ratios, the diff, brakes and more. Press **G** mid-drive, move a slider, and the car changes from the next corner on
+- **A huge range of setup options** — springs, anti-roll bars, tyres, the torque curve, gear ratios, the diff, brakes, downforce and more. Press **G** mid-drive, move a slider, and the car changes from the next corner on
 - **Race your friends** — lap timing, split times and leaderboards, in multiplayer
 - **Just drop it in** — no other mods required. Add cars with a single jar
 
@@ -29,7 +29,7 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 
 You can't throw it into a tight corner at full speed. Brake properly before the turn, scrub off the speed, and it goes round cleanly.
 
-Grip fades gradually rather than vanishing at once, so you'll feel the front start to run wide, and when the rear steps out you can catch it with countersteer. Pull the handbrake and the clutch disengages for you — the rear locks, the car swings round, and you can hold it in a drift.
+Grip fades gradually rather than vanishing at once, so you'll feel the front start to run wide, and when the rear steps out you can catch it with countersteer. Pull the handbrake and the clutch disengages for you — the rear locks, the car swings round, and you can hold it in a drift. Steering follows the slide, so there's always enough opposite lock to catch it.
 
 Your first car is a **Nissan Silvia S15** on TE37s. Automatic for a relaxed cruise, **manual when you want to shift for yourself**.
 
@@ -37,13 +37,15 @@ Your first car is a **Nissan Silvia S15** on TE37s. Automatic for a relaxed crui
 
 ![kuruma mod customize image](https://cdn.modrinth.com/data/ghlgwxFS/images/d3a6615dd3ffb7cf80b07d67cbab796326016f8c.jpeg)
 
-Press **G** and the setup screen opens without pausing the game. Springs, anti-roll bars, tyres, torque curve, gear ratios, LSD, brakes, weight distribution — move a slider and the car responds right away. Start from the built-in **Drift** or **Off-road** preset, and **save your own setups to share with friends.**
+Press **G** and the setup screen opens without pausing the game. Springs, anti-roll bars, tyres, torque curve, gear ratios, LSD, brakes, weight distribution, front and rear downforce — move a slider and the car responds right away. Start from the built-in **Drift** or **Off-road** preset, and **save your own setups to share with friends.**
 
 ## ✨ Make it yours
 
 ![kuruma mod parts image](https://cdn.modrinth.com/data/ghlgwxFS/images/2175a7a133f5cd2eca77c7c19d663425bc5201a3.jpeg)
 
-Set **camber, offset and wheel width** until it sits just right — flush, poke, or full oni-kyan. Fit wheels from car packs and check the look on your own car on the spot. The gauges come in two styles: **90s JDM factory** or modern.
+Set **camber, offset and wheel width** until it sits just right — flush, poke, or full oni-kyan. Fit wheels from car packs and check the look on your own car on the spot.
+
+Bolt on **aero parts** — bumpers, side skirts, fenders, a rear wing, a diffuser. Wings and diffusers make real downforce, and you can set the wing angle yourself. **Mufflers** change the exhaust note, and everyone nearby hears it. The gauges come in two styles: **90s JDM factory** or modern.
 
 ## 🌧️ Road and weather
 
@@ -71,7 +73,7 @@ Load the **Off-road** preset for four-wheel drive, a locking diff, long suspensi
 
 ## 🎮 Wheel and gamepad support
 
-Fully analog throttle, brake and steering. Plug it in, press **J**, and move the axis you want to assign.
+Fully analog throttle, brake and steering — and the handbrake too: map a wheel's handbrake lever and how far you pull sets how hard it bites. Plug it in, press **J**, and move the axis you want to assign.
 
 ***
 
@@ -79,7 +81,7 @@ Fully analog throttle, brake and steering. Plug it in, press **J**, and move the
 
 **A car pack is a single jar. Put it in `mods/` and the cars are there.**
 
-- **[Basic Car Pack](https://modrinth.com/mod/kurumabasiccarpack)** — adds the Toyota Land Cruiser Prado, a heavy off-road 4x4
+- **[Basic Car Pack](https://modrinth.com/mod/kurumabasiccarpack)** — adds the Toyota Land Cruiser Prado, a heavy off-road 4x4, and the Porsche 911, a rear-engined sports car
 - **Make your own:** follow the **[Car Pack Creation Guide](https://static.jdm-mc.com/manual/PACK_CREATE_GUIDE.html)** (no Blender experience needed) and use the **[Example Car Pack](https://modrinth.com/mod/kurumaexamplecarpack)** as your template. No coding, and no credit required
 
 ***
@@ -149,7 +151,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 **KurumaMod が作り込んだのは、運転そのものです。走りへの徹底したこだわりから生まれました。**
 
 - **本格的な物理演算** — サスペンション、荷重移動、タイヤのグリップ、エンジンとギア、デフ。限界が近づいてくるのが手に取るように分かる
-- **多種多様なセッティング** — バネ、スタビ、タイヤ、トルクカーブ、ギア比、デフ、ブレーキまで。走りながら **G** を押してスライダーを動かせば、次のコーナーから挙動が変わる
+- **多種多様なセッティング** — バネ、スタビ、タイヤ、トルクカーブ、ギア比、デフ、ブレーキ、ダウンフォースまで。走りながら **G** を押してスライダーを動かせば、次のコーナーから挙動が変わる
 - **友達とレース** — ラップ計測、区間タイム、ランキングをマルチプレイで
 - **入れるだけ** — 前提 MOD は不要。車は jar ひとつで追加できる
 
@@ -161,7 +163,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 スピードを出したまま急なカーブに飛び込んでも曲がりきれません。手前でしっかりブレーキを踏んで速度を落とせば、きれいに曲がれます。
 
-グリップはいきなり消えず少しずつ抜けていくので、フロントが外へ逃げ始めればそれが分かり、リアが出てもカウンターで立て直せる。サイドブレーキを引けばクラッチが自動で切れてリアがロックし、車がくるりと向きを変えて、そのままドリフトに持ち込めます。
+グリップはいきなり消えず少しずつ抜けていくので、フロントが外へ逃げ始めればそれが分かり、リアが出てもカウンターで立て直せる。サイドブレーキを引けばクラッチが自動で切れてリアがロックし、車がくるりと向きを変えて、そのままドリフトに持ち込めます。ハンドルは滑りに合わせて切れるので、流れた分だけカウンターを当てられます。
 
 最初の 1 台は TE37 を履いた **日産 シルビア S15**。気楽に流すなら AT、**自分で変速したいなら MT** で。
 
@@ -169,13 +171,15 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 ![kuruma mod customize image](https://cdn.modrinth.com/data/ghlgwxFS/images/d3a6615dd3ffb7cf80b07d67cbab796326016f8c.jpeg)
 
-**G** を押すと、ゲームを止めずにセッティング画面が開きます。バネ、スタビ、タイヤ、トルクカーブ、ギア比、LSD、ブレーキ、重量配分——スライダーを動かせば、その場で挙動が変わります。組み込みの **ドリフト** / **オフロード** プリセットから始められ、**自分のセッティングを保存して友達と共有**することもできます。
+**G** を押すと、ゲームを止めずにセッティング画面が開きます。バネ、スタビ、タイヤ、トルクカーブ、ギア比、LSD、ブレーキ、重量配分、前後のダウンフォース——スライダーを動かせば、その場で挙動が変わります。組み込みの **ドリフト** / **オフロード** プリセットから始められ、**自分のセッティングを保存して友達と共有**することもできます。
 
 ## ✨ 見た目を自分好みに
 
 ![kuruma mod parts image](https://cdn.modrinth.com/data/ghlgwxFS/images/2175a7a133f5cd2eca77c7c19d663425bc5201a3.jpeg)
 
-**キャンバー・オフセット・ホイールの太さ**を調整して、好きな姿に仕上げられます——ツライチも、ハミタイも、鬼キャンも。カーパックのホイールに履き替えて、その場で見た目を確かめられます。メーターは **90 年代の国産純正風**とモダンの 2 種類から選べます。
+**キャンバー・オフセット・ホイールの太さ**を調整して、好きな姿に仕上げられます——ツライチも、ハミタイも、鬼キャンも。カーパックのホイールに履き替えて、その場で見た目を確かめられます。
+
+バンパー、サイドスカート、フェンダー、リアウイング、ディフューザーといった**エアロパーツ**も付けられます。ウイングとディフューザーは本当にダウンフォースを生み、ウイングの角度も自分で決められます。**マフラー**を替えれば排気音が変わり、周りの人にも同じ音で聞こえます。メーターは **90 年代の国産純正風**とモダンの 2 種類から選べます。
 
 ## 🌧️ 路面と天候
 
@@ -203,7 +207,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 ## 🎮 ハンコン・パッド対応
 
-アクセル・ブレーキ・ステアリングはフルアナログ。つないで **J** を押し、割り当てたい軸を動かすだけです。
+アクセル・ブレーキ・ステアリングはフルアナログ。サイドブレーキも、ハンコンのサイドレバーを割り当てれば引いた量だけ効きます。つないで **J** を押し、割り当てたい軸を動かすだけです。
 
 ***
 
@@ -211,7 +215,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 **カーパックは jar ひとつ。`mods/` に入れるだけで車が増えます。**
 
-- **[ベーシックカーパック](https://modrinth.com/mod/kurumabasiccarpack)** — トヨタ ランドクルーザー プラド（重量級のオフロード 4x4）を追加
+- **[ベーシックカーパック](https://modrinth.com/mod/kurumabasiccarpack)** — トヨタ ランドクルーザー プラド（重量級のオフロード 4x4）と、ポルシェ 911（エンジンを後ろに積んだスポーツカー）を追加
 - **自分で作るなら:** **[カーパック作成ガイド](https://static.jdm-mc.com/manual/PACK_CREATE_GUIDE.html)**（Blender 未経験でも大丈夫）を見ながら、**[エグザンプルカーパック](https://modrinth.com/mod/kurumaexamplecarpack)** をひな型に。コードは不要、クレジット表記も不要です
 
 ***
