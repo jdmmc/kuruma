@@ -1,0 +1,28 @@
+{
+  "_comment": "ポルシェ 911。エンジンを後軸より後ろに積んだ RR。後ろが重いので、踏めば蹴り出しが強く、抜けば尻が回り込む",
+  "order": 30,
+  "values": {
+    "_comment_size": "ホイールベースはメッシュのアーチ間隔そのまま。ストロークとタイヤ半径は既定のまま（車体の高さがメッシュの地面と一致する）",
+    "wheel_base": 3.13,
+    "mass": 1450.0,
+
+    "_comment_weight": "前 40：後 60。下限は 35%",
+    "weight_distribution": 0.40,
+
+    "_comment_drive": "0 = FF、1 = FR（後輪駆動）、2 = 4WD。RR も駆動輪は後ろなので 1",
+    "drive_layout": 1.0,
+
+    "_comment_antiroll": "後ろが重いぶん前を厚くして、限界での巻き込みを和らげる",
+    "front_anti_roll": 4500.0,
+    "rear_anti_roll": 1500.0,
+
+    "_comment_engine": "自然吸気の水平対向 6 気筒。高回転まで回る",
+    "peak_torque": 420.0,
+    "peak_torque_rpm": 4400.0,
+    "peak_power_rpm": 6500.0,
+    "redline_rpm": 7400.0,
+
+    "_comment_resistance": "既定の車より背が低く、空気抵抗が小さい",
+    "drag_area": 0.72
+  }
+}
