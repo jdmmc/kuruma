@@ -92,34 +92,6 @@ public final class CarPhysics {
     private static final double MIN_STEERING_GRIP = 0.45;
 
     /**
-     * 切り込みの上乗せ。まだグリップを使っていないうちだけ、切れ角の上限をこの割合だけ広げる。
-     * 効き方と必要なガードは {@link #turnInLimit}。
-     *
-     * <p>2.0 は「まだ何もしていない状態でだけ定常角度の 3 倍まで許す」という上限で、
-     * <b>実際に切り込む量はその半分ほど</b>——定常角度の 1.46 倍（72km/h）・1.81 倍（100km/h）・
-     * 2.33 倍（220km/h）で、実車のドライバーの切り込み量と同じ帯に収まる。</p>
-     *
-     * <p>これ以上上げても<b>割に合わない</b>（定速スキッドパッドの実測。spin は切り返し
-     * 560 条件のうちスピンした数で、上乗せ無しでも 18 件ある）:</p>
-     *
-     * <table>
-     *   <tr><th>強さ</th><th>spin</th><th>t90 72km/h</th><th>t90 100km/h</th><th>t90 220km/h</th><th>切り込み/定常 (220km/h)</th></tr>
-     *   <tr><td>0（無し）</td><td>18</td><td>0.65s</td><td>0.88s</td><td>2.06s</td><td>1.13</td></tr>
-     *   <tr><td><b>2.0</b></td><td>28</td><td>0.53s</td><td>0.66s</td><td>1.50s</td><td>2.33</td></tr>
-     *   <tr><td>4.0</td><td>29</td><td>0.51s</td><td>0.63s</td><td>1.34s</td><td>3.38</td></tr>
-     *   <tr><td>6.0</td><td>30</td><td>0.51s</td><td>0.61s</td><td>1.26s</td><td>4.22</td></tr>
-     * </table>
-     *
-     * <p>低中速では 2.0 で頭打ちになり（前輪のピークで蓋をされるため）、高速では伸び続けるが、
-     * 切り込みが定常の 4 倍を超えて<b>ドライバーの操作としては不自然</b>になる。</p>
-     *
-     * <p><b>調整画面には出さない。</b>車の性格ではなく「人はハンドルをこう回す」という話で、
-     * しかも {@code steerGripMargin} という同じ向きのつまみが既にある——2 つ並べると
-     * どちらが効いているのか分からなくなる。</p>
-     */
-    private static final double TURN_IN_BONUS = 2.0;
-
-    /**
      * 舵の変化率の基準にする範囲の下限。最大切れ角に対する割合。
      *
      * <p>変化率は「いま使える切れ角の範囲」を基準にするので、範囲が 0 に近づくと
@@ -249,11 +221,15 @@ public final class CarPhysics {
     /**
      * 前輪の切れ角。入力が 0/100 なので即座に上限まで振り切る。
      *
-     * <p>上限は最大切れ角そのものではなく、<b>グリップを使いきる旋回に必要な切れ角</b>で
-     * 頭打ちにする。100km/h で 35 度も切れば必要な横 G がグリップの 20 倍を超え、
-     * 即スピンして走れたものではないため。実際のドライバーがグリップを超えて
-     * ハンドルを切らないのと同じ意味の運転補助で、物理のごまかしではない。
-     * アナログ入力を入れる段になったら外してよい。</p>
+     * <p>上限は最大切れ角そのものではなく、<b>前輪のスリップ角がピーク × 余裕を越えない角度</b>で
+     * 頭打ちにする。100km/h で 35 度も切れば前輪が滑るだけになり、走れたものではないため。
+     * 実際のドライバーが、ハンドルが軽くなる（セルフアライニングトルクが抜ける）ところより
+     * 先へは切らないのと同じ意味の運転補助。<b>前輪の角度で測るので、基準は前軸の進行方向</b>——
+     * 振り出した車ではカウンターが自然に深く切れる。アナログ入力を入れる段になったら外してよい。</p>
+     *
+     * <p>以前は「グリップを使いきる定常旋回の切れ角」を車体の真正面から測り、
+     * 立ち上がりの遅さを切り込みの上乗せ（{@code turnInLimit}）で補っていた。カウンター側まで
+     * 同じ幅に閉じ込められ、振り出した車で当て舵が間に合わなかったので置き換えた。</p>
      */
     private static void updateSteering(CarSpec spec, CarState state, GroundContact contact,
                                        double dt, CarInput input) {
@@ -261,20 +237,34 @@ public final class CarPhysics {
                 ? input.steerAxis()
                 : (input.right() ? 1 : 0) - (input.left() ? 1 : 0);
 
-        double limit = spec.maxSteerAngle();
+        // 切れる範囲は「前輪のスリップ角がピーク × 余裕を越えない」ところまで。
+        // <b>基準は車体の真正面ではなく、前軸が進んでいる方向</b>。実車のドライバーが切りすぎないのは、
+        // 前輪がピークを越えるとセルフアライニングトルクが抜けてハンドルが軽くなるのを手で感じるからで、
+        // その加減は車の向きではなく前輪が滑っている角度で決まる。
+        // 車体基準にしていた頃は、振り出した車では<b>カウンターまで同じ幅に閉じ込められて回った</b>
+        double max = spec.maxSteerAngle();
+        double travel = selfAligningAngle(spec, state);
+        double low = -max;
+        double high = max;
         double speed = Math.abs(state.forwardSpeed);
         if (speed > 1.0) {
-            double required = steerForMaxCornering(spec, state, contact, speed);
-            if (Double.isFinite(required)) {
-                double steady = Math.min(limit, required * spec.steerGripMargin());
-                limit = Math.min(limit, turnInLimit(spec, state, contact, speed, steady));
-            }
+            // ロールステアとコンプライアンスステアで前輪がハンドルよりずれているぶん（前のステップの値）。
+            // 蓋をするのは<b>タイヤの</b>角度なので、ハンドル側へ足し戻す
+            Wheel probe = Wheel.FRONT_LEFT;
+            double dynamic = state.wheelSteerAngle[probe.ordinal()] - spec.staticSteer(probe, state.steerAngle);
+            double center = travel - dynamic;
+            double width = peakFrontSlipAngle(spec, state, contact) * spec.steerGripMargin();
+            // 低速では、滑らずに回れる幾何の角度のほうが大きい（車庫入れの小回り）。
+            // 前軸の向きは車が回り出すまで付いてこないので、こちらは車体基準で下支えする
+            double floor = Math.min(max, geometricSteer(spec, state, contact, speed));
+            high = Math.min(max, Math.max(floor, center + width));
+            low = Math.max(-max, Math.min(-floor, center - width));
         }
 
         // 舵を放している間は、前輪が自分から進行方向を向こうとする（セルフアライニングトルク）。
         // 直進していれば中立へ戻るだけだが、滑っているときはこれがそのままカウンターになる
-        double target = dir != 0.0 ? limit * dir : selfAligningAngle(spec, state) * spec.selfAligning();
-        target = Math.max(-limit, Math.min(limit, target));
+        double target = dir > 0.0 ? high * dir : dir < 0.0 ? -low * dir : travel * spec.selfAligning();
+        target = Math.max(low, Math.min(high, target));
 
         // 変化率の制限はアナログでもそのまま掛ける。<b>外すと横Gの立ち上がりが 41 G/s に達し、
         // 0/100 を直結していた頃と同じ「入れた瞬間にダートする」挙動に戻る</b>。
@@ -289,11 +279,11 @@ public final class CarPhysics {
         // まったく効かなくなる</b>（100km/h で 1 ティック 4.38 度に対し上限 4.41 度）。
         // 押している長さでアナログに操作できるという肝心の性質が、80km/h あたりから
         // 上では死んでいた。範囲を基準にすれば、どの速度でも同じだけ刻める
-        double span = Math.max(limit, spec.maxSteerAngle() * MIN_STEER_SPAN);
+        double span = Math.max(high - low, 2.0 * max * MIN_STEER_SPAN) / 2.0;
         state.steerAngle = approach(state.steerAngle, target, span, seconds, dt);
 
-        // 速度が上がって上限が下がったときは、そちらには即座に従う
-        state.steerAngle = Math.max(-limit, Math.min(limit, state.steerAngle));
+        // 速度が上がって範囲が狭まったときは、そちらには即座に従う
+        state.steerAngle = Math.max(low, Math.min(high, state.steerAngle));
 
         updateWheelSteer(spec, state);
     }
@@ -357,72 +347,10 @@ public final class CarPhysics {
     }
 
     /**
-     * 切れ角の上限 [rad]。定常旋回に必要な角度を、<b>まだタイヤが仕事をしていないうちだけ</b>広げる。
-     *
-     * <p>実車のドライバーの「切り込んでから戻す」を、上限の側で成立させるためのもの。
-     * 使っているグリップが増えるほど上乗せは減り、限界で {@code steady} に戻るので、
-     * <b>定常旋回の切れ角も旋回半径も最大横 G も変わらない</b>
-     * （定速スキッドパッドの実測で 100km/h の定常舵 2.40→2.43 度・半径 73.9→76.7m・1.00G のまま）。</p>
-     *
-     * <p>広げるぶんの上限が {@link #TURN_IN_BONUS}。効き方:</p>
-     *
-     * <table>
-     *   <tr><th>速度</th><th>横 G が 90% に立つまで</th><th>0.5 秒後の横 G</th></tr>
-     *   <tr><td>36km/h</td><td>0.50 → 0.50s</td><td>0.85 → 0.85G</td></tr>
-     *   <tr><td>72km/h</td><td>0.65 → 0.53s</td><td>0.79 → 0.88G</td></tr>
-     *   <tr><td>100km/h</td><td>0.88 → 0.66s</td><td>0.64 → 0.79G</td></tr>
-     *   <tr><td>150km/h</td><td>1.29 → 0.90s</td><td>0.42 → 0.61G</td></tr>
-     *   <tr><td>220km/h</td><td>2.06 → 1.50s</td><td>0.20 → 0.33G</td></tr>
-     * </table>
-     *
-     * <p><b>ガードが 4 つ要る。どれを外しても壊れる</b>（いずれも実測）:</p>
-     * <ul>
-     *   <li><b>回っていることも見る</b>（{@code speed * yawRate}）。横 G だけで見ると、
-     *       切り返しの途中で横 G が 0 を通る瞬間に上乗せが満タンへ復活し、まだ前の向きへ
-     *       回っている車にフルの切れ角を許して<b>振り回す</b>。切り返しのスピンが
-     *       28 件から <b>179 件</b>（560 条件中）へ増える</li>
-     *   <li><b>縦も含めて合成で見る</b>。横 G だけだと、転がり抵抗がグリップ枠の大半を
-     *       占める路面で上乗せが素通りする。<b>氷で車体スリップ角が 0.5 度から 17.3 度</b>になった</li>
-     *   <li><b>制動中は上乗せしない</b>。ABS が操舵性のためにわざと絞った上限を広げることになる。
-     *       フルブレーキ＋フルロックで停止まで、<b>33.5 度から 89.8 度＝スピン</b>になった</li>
-     *   <li><b>前輪をピークより深く切らせない</b>（下の {@code peak}）。低速では定常角度そのものが
-     *       ピークを越えているので、そこで上乗せすると<b>前輪が逃げるだけで逆に遅くなる</b>。
-     *       36km/h で切り込みが 17.5→27.7 度になり、t90 が 0.50→0.58 秒と<b>悪化</b>した。
-     *       蓋をすると低速では上乗せが丸ごと消え（27.7→17.5 度）、悪化しなくなる</li>
-     * </ul>
-     *
-     * @param steady この速度で定常旋回するのに要る切れ角（＝これまでの上限）。下回らせない
-     */
-    private static double turnInLimit(CarSpec spec, CarState state, GroundContact contact,
-                                      double speed, double steady) {
-        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY
-                * spec.aeroGripFactor(speed);
-        if (gripAccel <= 0.0) {
-            return steady;
-        }
-        // すでに使っているぶん。タイヤが出している力（縦横の合成）と、車が回っていることの
-        // 大きい方を見る。旋回中は speed*yawRate が横 G と一致し、切り返しの最中はこちらが残る
-        double committed = Math.max(
-                Math.hypot(state.lateralAcceleration, state.longitudinalAcceleration),
-                Math.abs(speed * state.yawRate));
-        double headroom = Math.max(0.0, 1.0 - committed / gripAccel);
-        double widened = steady
-                * (1.0 + TURN_IN_BONUS * headroom * Math.max(0.0, 1.0 - state.brake));
-
-        // 上乗せで前輪をピークより深く切らせない。蓋をするのは<b>タイヤの</b>角度なので、
-        // ロールや横力で前輪がハンドルより浅くなっているぶんはハンドル側へ足す
-        double peak = Math.abs(selfAligningAngle(spec, state))
-                + peakFrontSlipAngle(spec, state, contact)
-                + Math.max(0.0, spec.frontSteerUndersteerGradient()
-                        * Math.abs(state.lateralAcceleration) / GRAVITY);
-        return Math.max(steady, Math.min(widened, peak));
-    }
-
-    /**
      * 前輪が横力のピークを出すスリップ角 [rad]。
      *
      * <p>横へ回せるグリップ（摩擦円で縦に使っているぶんを引いた残り）を
-     * コーナリングパワー係数で割ったもの。{@link #steerForMaxCornering} と同じ摩擦円を使う。</p>
+     * コーナリングパワー係数で割ったもの。</p>
      */
     private static double peakFrontSlipAngle(CarSpec spec, CarState state, GroundContact contact) {
         // 縦に使っているぶんはダウンフォース込みのグリップと比べるが、ピークの角度そのものは
@@ -433,6 +361,20 @@ public final class CarPhysics {
         double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
         double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
         return lateral / (GRAVITY * spec.effectiveCorneringStiffness() * aero);
+    }
+
+    /**
+     * タイヤが滑らずに（幾何だけで）グリップを使いきる旋回の切れ角 [rad]。{@code atan(L·a/v²)}。
+     *
+     * <p>低速の下支えにだけ使う。高速では前輪のスリップ角のほうが大きいので効かない。</p>
+     */
+    private static double geometricSteer(CarSpec spec, CarState state, GroundContact contact, double speed) {
+        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY
+                * spec.aeroGripFactor(speed);
+        double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
+        double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
+        double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
+        return Math.atan(spec.wheelBase() * lateral / (speed * speed));
     }
 
     /**
@@ -487,62 +429,6 @@ public final class CarPhysics {
         double step = span / seconds * dt;
         double delta = target - current;
         return current + Math.max(-step, Math.min(step, delta));
-    }
-
-    /**
-     * グリップを使いきって定常円旋回するのに必要な前輪の切れ角 [rad]。
-     *
-     * <p>線形 2 輪モデルの定常旋回では、必要な切れ角は</p>
-     * <pre>  δ = L/R + (前輪スリップ角 - 後輪スリップ角)</pre>
-     * <p>になる。第 1 項はタイヤが滑らない理想の幾何、第 2 項が
-     * <b>タイヤは力を出すために滑る必要がある</b>ぶんの上乗せ。第 1 項だけで上限を決めると、
-     * 高速域では実際の半径が幾何値の 2 倍以上にふくらんで、ほとんど曲がらない車になる。</p>
-     *
-     * <p>接地荷重が抜けている（ジャンプ中など）と値が定まらないので、
-     * 有限でなければ呼び出し側で最大切れ角に戻す。</p>
-     */
-    private static double steerForMaxCornering(CarSpec spec, CarState state, GroundContact contact,
-                                               double speed) {
-        double frontLoad = state.wheelLoad[Wheel.FRONT_LEFT.ordinal()]
-                + state.wheelLoad[Wheel.FRONT_RIGHT.ordinal()];
-        double rearLoad = state.wheelLoad[Wheel.REAR_LEFT.ordinal()]
-                + state.wheelLoad[Wheel.REAR_RIGHT.ordinal()];
-
-        // 摩擦円。縦に使っているぶんを引いた残りが、横に回せるグリップ。
-        // これを見ないと、フルブレーキ中でも「グリップを全部横に使える」前提で
-        // 切れ角を許してしまい、後輪が耐えられずに尻から出る。
-        // ただし残りが 0 になるまで絞ると制動中に一切曲がれなくなるので、
-        // 横へ回すぶんは必ず一定割合を確保する（ABS の目的は制動しながら操舵できること）
-        // 路面のグリップを織り込む。舗装路のμのまま上限を決めると、
-        // 砂の上でも舗装前提の角度まで切れてしまい、切った瞬間にスピンする
-        // ダウンフォースで増えたグリップも織り込む。入れないと高速で舵が車重ぶんの横 G で止まり、
-        // ウイングを付けても曲がれる速さが変わらない
-        double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY
-                * spec.aeroGripFactor(speed);
-        double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
-        double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
-        double targetAccel = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
-        // ヨーモーメントが釣り合う配分。重心が前後中央なので前後で等分になる
-        double axleForce = spec.mass() * targetAccel / 2.0;
-
-        double frontSlip = axleForce / (spec.effectiveCorneringStiffness() * frontLoad);
-        double rearSlip = axleForce / (spec.effectiveCorneringStiffness() * rearLoad);
-
-        // タイヤが滑らない理想の幾何。ここを下回らせてはいけない
-        double geometric = spec.wheelBase() * targetAccel / (speed * speed);
-        // タイヤが力を出すのに要るスリップ角ぶんの上乗せ。制動中は後軸の荷重が抜けて
-        // オーバーステア傾向になり、この差が負になる。そのまま足すと上限が負に転じ、
-        // 押した向きと逆にタイヤが向いてしまう（ブレーキ中に舵が効かない症状）。
-        //
-        // ロールステアとコンプライアンスステアでタイヤがハンドルより浅くなるぶんも、
-        // ハンドル側で余計に切っておく必要がある。入れないと上限がそのぶん足りず、
-        // <b>グリップを使いきる手前でハンドルが止まる</b>（前 0.5・後 0.2°/G ほかの組み合わせで、
-        // 150km/h の定常横 G が 0.97→0.76G に落ちた）。
-        // <b>上の max の中へ入れてはいけない。</b>軸力を前後等分にしているぶん、前 56% の車では
-        // frontSlip − rearSlip が常に 1 度ほど負に出ていて（荷重配分を入れる前の名残）、
-        // 中へ入れると上乗せがまるごとそこへ食われる。外に置いて、負にはしない
-        double understeer = Math.max(0.0, spec.steerUndersteerGradient()) * targetAccel / GRAVITY;
-        return geometric + Math.max(0.0, frontSlip - rearSlip) + understeer;
     }
 
     // ------------------------------------------------------------------
