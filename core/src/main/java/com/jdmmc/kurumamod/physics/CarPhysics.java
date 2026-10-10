@@ -405,6 +405,16 @@ public final class CarPhysics {
      * <b>踏んだぶんだけ遅れて効く</b>ことになり、かえって操作しづらくなる。</p>
      */
     private static void updatePedals(CarSpec spec, CarState state, double dt, CarInput input) {
+        // サイドブレーキ。アナログ（ハンコンのサイドレバー）は位置をそのまま、キーボードは
+        // 効ききるまでの時間をかけて上げる。<b>放したら即座に抜く</b>——ロックした後輪を
+        // 戻すのに遅れがあると、当て舵より先に車が回りきってしまう
+        if (input.analog()) {
+            state.handbrake = input.handbrakeAxis();
+        } else {
+            state.handbrake = input.handbrake()
+                    ? approach(state.handbrake, 1.0, 1.0, spec.handbrakePressSeconds(), dt)
+                    : 0.0;
+        }
         if (input.analog()) {
             state.throttle = input.throttleAxis();
             state.brake = input.brakeAxis();
@@ -850,7 +860,8 @@ public final class CarPhysics {
      * それでよい。</p>
      */
     private static void updateClutch(CarSpec spec, CarState state, double dt, CarInput input) {
-        double target = input.handbrake() && spec.driveBias() > 0.0 ? 0.0 : 1.0;
+        // 少しでも引いていれば切る（引き量でクラッチを半分にはしない）
+        double target = state.handbrake > 0.0 && spec.driveBias() > 0.0 ? 0.0 : 1.0;
         if (target > state.clutch) {
             state.clutch = Math.min(target, state.clutch + dt / CLUTCH_ENGAGE_SECONDS);
         } else {
@@ -1221,7 +1232,7 @@ public final class CarPhysics {
     private static void lockCenter(CarSpec spec, CarState state, WheelContact[] contacts,
                                    CarInput input, double dt) {
         double fraction = spec.centerDiffLockFraction();
-        if (!spec.isAwd() || fraction <= 0.0 || input.handbrake()) {
+        if (!spec.isAwd() || fraction <= 0.0 || state.handbrake > 0.0) {
             return;
         }
         double[] torque = state.wheelDriveTorque;
@@ -1447,11 +1458,11 @@ public final class CarPhysics {
      * ロックを防ぐ ABS を通してしまっては意味がない。</p>
      */
     private static double handbrakeForce(CarSpec spec, CarState state, CarInput input, Wheel wheel) {
-        if (!input.handbrake() || wheel.isFront()) {
+        if (state.handbrake <= 0.0 || wheel.isFront()) {
             return 0.0;
         }
-        // 後軸のダウンフォースのぶん強くする。でないと高速では後輪をロックできない
-        return spec.handbrakeDecel() * spec.mass() / 2.0
+        // 引き量に比例。後軸のダウンフォースのぶん強くする。でないと高速では後輪をロックできない
+        return state.handbrake * spec.handbrakeDecel() * spec.mass() / 2.0
                 * spec.axleAeroGripFactor(false, Math.abs(state.forwardSpeed));
     }
 

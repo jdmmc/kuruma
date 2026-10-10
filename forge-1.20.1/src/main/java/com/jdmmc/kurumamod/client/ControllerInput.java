@@ -301,7 +301,8 @@ public final class ControllerInput {
         double throttle = Math.abs(value(ControllerAction.THROTTLE));
         double brake = Math.abs(value(ControllerAction.BRAKE));
         double steer = value(ControllerAction.STEER);
-        boolean handbrake = value(ControllerAction.HANDBRAKE) > CarInput.AXIS_THRESHOLD;
+        // 軸（ハンコンのサイドレバー）に割り当てれば引き量がそのまま効きになる。ボタンなら 0 か 1
+        double handbrake = Math.abs(value(ControllerAction.HANDBRAKE));
         return CarInput.analog(throttle, brake, steer,
                 consumePress(ControllerAction.SHIFT_UP),
                 consumePress(ControllerAction.SHIFT_DOWN),

@@ -147,6 +147,8 @@
   "tuning.kurumamod.pedal_press.value": "%s s",
   "tuning.kurumamod.pedal_release": "踏板松开时间",
   "tuning.kurumamod.pedal_release.value": "%s s",
+  "tuning.kurumamod.handbrake_press": "手刹拉满时间",
+  "tuning.kurumamod.handbrake_press.value": "%s s",
   "tuning.kurumamod.self_aligning": "回正力矩",
   "tuning.kurumamod.self_aligning.value": "%s  %s",
   "tuning.kurumamod.detail.instant": "立即",
