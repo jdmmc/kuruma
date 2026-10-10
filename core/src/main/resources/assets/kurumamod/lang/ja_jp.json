@@ -147,6 +147,8 @@
   "tuning.kurumamod.pedal_press.value": "%s 秒",
   "tuning.kurumamod.pedal_release": "ペダルを戻しきる時間",
   "tuning.kurumamod.pedal_release.value": "%s 秒",
+  "tuning.kurumamod.handbrake_press": "サイドブレーキが効ききる時間",
+  "tuning.kurumamod.handbrake_press.value": "%s 秒",
   "tuning.kurumamod.self_aligning": "舵の自己復元",
   "tuning.kurumamod.self_aligning.value": "%s  %s",
   "tuning.kurumamod.detail.instant": "即座",

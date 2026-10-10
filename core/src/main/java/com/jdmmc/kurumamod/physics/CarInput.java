@@ -29,11 +29,13 @@ package com.jdmmc.kurumamod.physics;
  * @param throttleAxis アクセルの踏み込み量 0..1。{@code analog} のときだけ意味を持つ
  * @param brakeAxis    ブレーキの踏み込み量 0..1。同上
  * @param steerAxis    ステアの位置 -1..1。正で右。同上
+ * @param handbrakeAxis サイドブレーキの引き量 0..1。同上。ハンコンのサイドレバーのように無段階に引ける入力
  * @param analog       コントローラなど、位置をそのまま渡せる入力か
  */
 public record CarInput(boolean throttle, boolean brake, boolean left, boolean right,
                        boolean shiftUp, boolean shiftDown, boolean handbrake,
-                       double throttleAxis, double brakeAxis, double steerAxis, boolean analog) {
+                       double throttleAxis, double brakeAxis, double steerAxis, double handbrakeAxis,
+                       boolean analog) {
 
     /** 軸がこの値を超えたら「踏んでいる」と見なす。 */
     public static final double AXIS_THRESHOLD = 0.05;
@@ -48,7 +50,7 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
                     boolean shiftUp, boolean shiftDown, boolean handbrake) {
         this(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
                 throttle ? 1.0 : 0.0, brake ? 1.0 : 0.0,
-                (right ? 1.0 : 0.0) - (left ? 1.0 : 0.0), false);
+                (right ? 1.0 : 0.0) - (left ? 1.0 : 0.0), handbrake ? 1.0 : 0.0, false);
     }
 
     /**
@@ -60,12 +62,23 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
      */
     public static CarInput analog(double throttleAxis, double brakeAxis, double steerAxis,
                                   boolean shiftUp, boolean shiftDown, boolean handbrake) {
+        return analog(throttleAxis, brakeAxis, steerAxis, shiftUp, shiftDown, handbrake ? 1.0 : 0.0);
+    }
+
+    /**
+     * コントローラ相当で、サイドブレーキも軸で渡す。
+     *
+     * @param handbrakeAxis 0..1。ボタンに割り当てていれば 0 か 1
+     */
+    public static CarInput analog(double throttleAxis, double brakeAxis, double steerAxis,
+                                  boolean shiftUp, boolean shiftDown, double handbrakeAxis) {
         double th = clamp01(throttleAxis);
         double br = clamp01(brakeAxis);
         double st = Math.max(-1.0, Math.min(1.0, steerAxis));
+        double hb = clamp01(handbrakeAxis);
         return new CarInput(th > AXIS_THRESHOLD, br > AXIS_THRESHOLD,
                 st < -AXIS_THRESHOLD, st > AXIS_THRESHOLD,
-                shiftUp, shiftDown, handbrake, th, br, st, true);
+                shiftUp, shiftDown, hb > AXIS_THRESHOLD, th, br, st, hb, true);
     }
 
     private static double clamp01(double value) {

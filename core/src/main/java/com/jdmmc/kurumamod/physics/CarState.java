@@ -37,6 +37,13 @@ public final class CarState {
     public double throttle;
     /** ブレーキの踏み込み量。0〜1。 */
     public double brake;
+    /**
+     * サイドブレーキの引き量。0〜1。効きはこれに比例する。
+     *
+     * <p>ハンコンのサイドレバーなら軸の値そのまま、キーボードは押している間
+     * {@code handbrakePressSeconds} かけて 1 まで上がり、放すと即座に 0 へ戻る。</p>
+     */
+    public double handbrake;
 
     // ---- 上下方向と姿勢（サスペンション） ----
 

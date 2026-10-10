@@ -312,6 +312,8 @@ public final class Tunables {
                             CarSpec::pedalPressSeconds, CarSpec.Builder::pedalPressSeconds),
                     TunableParameter.linear("pedal_release", 0.0, 1.0, "%.2f",
                             CarSpec::pedalReleaseSeconds, CarSpec.Builder::pedalReleaseSeconds),
+                    TunableParameter.linear("handbrake_press", 0.0, 1.0, "%.2f",
+                            CarSpec::handbrakePressSeconds, CarSpec.Builder::handbrakePressSeconds),
                     TunableParameter.linear("traction_control", 0.0, 1.0, "%.2f",
                                     CarSpec::tractionControl, CarSpec.Builder::tractionControl)
                             .detail(spec -> spec.tractionControl() <= 0.0 ? "OFF" : "ON"))));

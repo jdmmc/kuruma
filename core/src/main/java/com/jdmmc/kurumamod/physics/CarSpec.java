@@ -65,6 +65,7 @@ package com.jdmmc.kurumamod.physics;
  * @param selfAligning         セルフアライニングの強さ。1 で放すと前輪が完全に進行方向を向く。0 で中立へ戻る
  * @param pedalPressSeconds    アクセル／ブレーキを踏みきるまでの時間 [s]
  * @param pedalReleaseSeconds  アクセル／ブレーキを戻しきるまでの時間 [s]
+ * @param handbrakePressSeconds キーボードでサイドブレーキが効ききるまでの時間 [s]。0 で即座。放すと即座に抜ける
  * @param peakTorque           最大トルク [N*m]
  * @param peakTorqueRpm        最大トルクが出る回転数 [rpm]
  * @param peakPowerRpm         最高出力が出る回転数 [rpm]。最大トルク回転数との比でトルク曲線の形が決まる
@@ -127,6 +128,7 @@ public record CarSpec(
         double selfAligning,
         double pedalPressSeconds,
         double pedalReleaseSeconds,
+        double handbrakePressSeconds,
         double peakTorque,
         double peakTorqueRpm,
         double peakPowerRpm,
@@ -1203,6 +1205,9 @@ public record CarSpec(
         private double selfAligning = 0.0;
         private double pedalPressSeconds = 0.25;
         private double pedalReleaseSeconds = 0.12;
+        // 既定は即座（入れる前と同じ）。キーボードでサイドを「少しだけ」掛けたい人が伸ばす。
+        // アナログ入力（ハンコンのサイドレバー）は位置をそのまま使うので読まない
+        private double handbrakePressSeconds = 0.0;
         // 281ps 相当。四駆（driveBias 0.5）なので駆動輪のグリップから決まる上限は
         // mu*g = 約 10.6m/s^2 あり、350N·m でも最大加速 0.80G と 26% 余る
         // （実測で滑り率 0.05・TCS は一度も介入しない）。0-100km/h は 5.63 秒。
@@ -1296,6 +1301,7 @@ public record CarSpec(
             selfAligning = spec.selfAligning;
             pedalPressSeconds = spec.pedalPressSeconds;
             pedalReleaseSeconds = spec.pedalReleaseSeconds;
+            handbrakePressSeconds = spec.handbrakePressSeconds;
             peakTorque = spec.peakTorque;
             peakTorqueRpm = spec.peakTorqueRpm;
             peakPowerRpm = spec.peakPowerRpm;
@@ -1520,6 +1526,11 @@ public record CarSpec(
             return this;
         }
 
+        public Builder handbrakePressSeconds(double value) {
+            handbrakePressSeconds = value;
+            return this;
+        }
+
         /** 切れ角は度で指定した方が読みやすいことが多いので、度で渡す口も用意しておく。 */
         public Builder maxSteerAngleDegrees(double degrees) {
             maxSteerAngle = Math.toRadians(degrees);
@@ -1671,7 +1682,7 @@ public record CarSpec(
                     driveLayout, torqueSplit, tireFriction, tireFalloff, tireLoadSensitivity,
                     steerGripMargin, visualSlipLimit,
                     maxSteerAngle, steerRateSeconds, steerReturnSeconds, selfAligning,
-                    pedalPressSeconds, pedalReleaseSeconds,
+                    pedalPressSeconds, pedalReleaseSeconds, handbrakePressSeconds,
                     peakTorque, peakTorqueRpm, peakPowerRpm, idleRpm, redlineRpm,
                     engineBrakeTorque, engineInertia,
                     gearCount, firstGearRatio, topGearRatio, drivetrainEfficiency, shiftSeconds,
