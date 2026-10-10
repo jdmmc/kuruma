@@ -157,6 +157,12 @@ public final class ObjModel {
     public static final String TIRE_PREFIX = "tire";
 
     /**
+     * サスペンションのオブジェクト名の頭（大文字小文字を問わない）。
+     * シェーダーパックの影には落とさない（ホイールのリムと同じ扱い。地面にアームやバネの模様が出ない）。
+     */
+    public static final String SUSPENSION_PREFIX = "susp";
+
+    /**
      * 鏡面の名前の頭。{@code mirror_rear}（ルームミラー）/ {@code mirror_left} /
      * {@code mirror_right}。
      *
@@ -208,6 +214,8 @@ public final class ObjModel {
     private final int[] translucentRimFaces;
     /** 付属のタイヤ（{@link #TIRE_PREFIX}）の不透明な面だけ。シェーダーパックの影にタイヤだけ落とすときに使う。 */
     private final int[] opaqueTireFaces;
+    /** サスペンション（{@link #SUSPENSION_PREFIX}）を除いた不透明な面。シェーダーパックの影を描くときに使う。 */
+    private final int[] opaqueShadowFaces;
     /** タイヤの面が 1 つでもあるか。 */
     private final boolean hasTire;
     /** タイヤの面の半径の範囲 {内径, 外径}。タイヤが無ければ null。 */
@@ -432,6 +440,15 @@ public final class ObjModel {
         this.opaqueRimFaces = without(opaqueFaces, tire);
         this.translucentRimFaces = without(translucentFaces, tire);
         this.opaqueTireFaces = java.util.Arrays.stream(opaqueFaces).filter(face -> tire[face]).toArray();
+        boolean[] suspension = new boolean[faceCount];
+        for (Group group : groups) {
+            if (group.role().toLowerCase(java.util.Locale.ROOT).startsWith(SUSPENSION_PREFIX)) {
+                for (int face = group.from(); face < group.to(); face++) {
+                    suspension[face] = true;
+                }
+            }
+        }
+        this.opaqueShadowFaces = without(opaqueFaces, suspension);
         double[] tireRange = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
         double[] allRange = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
         double rimOuter = 0.0;
@@ -1170,6 +1187,12 @@ public final class ObjModel {
         renderFaces(pass == Pass.TRANSLUCENT ? translucentRimFaces : opaqueRimFaces,
                 pose.pose(), pose.normal(), mirrorX ? -1.0F : 1.0F, consumer, packedLight, packedOverlay,
                 1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    /** 不透明な面を、サスペンション（{@link #SUSPENSION_PREFIX}）を除いて描く。シェーダーパックの影を描くときに使う。 */
+    public void renderShadowCaster(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay) {
+        renderFaces(opaqueShadowFaces, pose.pose(), pose.normal(), 1.0F, consumer,
+                packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     /** 付属のタイヤ（{@link #TIRE_PREFIX}）の不透明な面だけを描く。シェーダーパックの影を描くときに使う。 */

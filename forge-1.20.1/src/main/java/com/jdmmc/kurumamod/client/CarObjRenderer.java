@@ -160,7 +160,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // GPU に置いたまま描けるならそうする（CarMeshes。シェーダーパック中などは以前の描き方）
         // 遠ければ間引いた版。灯火・鏡・ガラスは元のメッシュのまま（数が少なく、位置を測るのにも使うため）
         ObjModel bodyMesh = ObjModel.get(model.bodyModel()).lod(lod);
-        if (CarMeshes.enabled()) {
+        if (HeadlightVolume.ShaderPacks.renderingShadowPass()) {
+            // シェーダーパックが太陽・月の影を描いている最中は、サスペンション（susp*）を落とさない
+            bodyMesh.renderShadowCaster(pose.last(),
+                    buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+                    packedLight, OverlayTexture.NO_OVERLAY);
+        } else if (CarMeshes.enabled()) {
             CarMeshes.draw(bodyMesh, false, false, model.bodyTexture(), pose.last(), packedLight);
         } else {
             bodyMesh.render(pose.last(),
