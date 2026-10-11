@@ -63,11 +63,14 @@ HEAD = """<!doctype html>
 HEADER = f"""<header class="bar">
   <div class="wrap">
     <nav class="menu" aria-label="Main">
-      <a href="index.html#cars">{T("Cars", "車種")}</a>
-      <a href="features.html">{T("Features", "特徴")}</a>
-      <a href="compare.html">{T("Compare", "比較")}</a>
-      <a href="start.html">{T("Get started", "はじめかた")}</a>
-      <a href="guide.html">{T("Car Pack Guide", "作成ガイド")}</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
+      <div class="menu-links" id="menu-links">
+        <a href="index.html#cars">{T("Cars", "車種")}</a>
+        <a href="features.html">{T("Features", "特徴")}</a>
+        <a href="compare.html">{T("Compare", "比較")}</a>
+        <a href="start.html">{T("Get started", "はじめかた")}</a>
+        <a href="guide.html">{T("Car Pack Guide", "作成ガイド")}</a>
+      </div>
     </nav>
     <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
     <div class="tools">
@@ -909,18 +912,20 @@ import base64
 GUIDE_SRC = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "guide-src" / "PACK_CREATE_GUIDE.html"
 GPAGES = [
     ("home", "guide.html", ("Home", "入口")),
+    ("prep", "guide-prep.html", ("Setup", "準備")),
     ("car", "guide-car.html", ("Car", "車")),
     ("wheel", "guide-wheel.html", ("Wheel", "ホイール")),
     ("parts", "guide-parts.html", ("Parts", "パーツ")),
-    ("common", "guide-common.html", ("Common", "共通")),
+    ("ship", "guide-ship.html", ("Shipping", "配布")),
 ]
 GFILE = {k: f for k, f, _ in GPAGES}
 GTITLE = {
     "home": (("Car Pack Guide", "カーパック作成ガイド"), ("From a mesh in Blender to a car you can drive in Minecraft. No Java, and no Blender experience needed.", "Blender で作った車を、Minecraft の中で走らせるまで。Java も Blender の経験も要りません。")),
+    "prep": (("Get set up", "制作の準備"), ("Copy the example pack and set up your own car pack folder.", "見本のパックをコピーして、自分のカーパックフォルダを用意する。")),
     "car": (("Make a car", "車を作る"), ("Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.", "車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）。")),
     "wheel": (("Make a wheel", "ホイールを作る"), ("The wheel model, and turning wheels and tyres into parts players can pick.", "ホイールのモデルと、換装画面で選べるホイール・タイヤの部品にする方法。")),
     "parts": (("Make parts", "パーツを作る"), ("Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.", "ターボとブローオフバルブ、エアロやフェンダーなどの外装パーツ、マフラー。")),
-    "common": (("Common", "共通"), ("Blender basics, packing a jar, checking in game, troubleshooting, checklists and glossary.", "Blender の基本、jar に固めて配る、確かめかた、症状別の直しかた、チェックリスト、用語。")),
+    "ship": (("Ship it", "配布する"), ("Pack your car pack folder into a jar and share it, and fix what does not work.", "カーパックフォルダを jar に固めて配る。うまく動かないときの直しかた。")),
 }
 
 
