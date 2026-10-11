@@ -7,6 +7,7 @@ import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -18,9 +19,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 地面を右クリックすると車を出すアイテム。
@@ -135,6 +138,22 @@ public class CarSpawnItem extends Item {
             lines.add(Component.translatable("item.kurumamod.car.saved")
                     .withStyle(ChatFormatting.GRAY));
         }
+    }
+
+    /**
+     * 見た目は車のモデルから作る（{@code CarItemRenderer}）。カーパックがアイコンの絵を
+     * 用意しなくても、どの車種も自分の形で並ぶ。
+     *
+     * <p>クライアント側のクラスはこの中でしか触らない（サーバーでは呼ばれない）。</p>
+     */
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return com.jdmmc.kurumamod.client.CarItemRenderer.get();
+            }
+        });
     }
 
     @Override

@@ -87,6 +87,8 @@ import java.util.Set;
  * @param sounds            音の差し替え（{@code sounds}）。書かなかった音は KurumaMod の音のまま
  * @param partObjects       部品 id → 付けたときに車体の OBJ で出す・消すオブジェクト（{@code parts}）。
  *                          書かなかった部品は名前の決まり {@code part_<部品のパス>} で探す
+ * @param icon              アイテムのアイコンの画像（{@code icon}。テクスチャのパスを拡張子込みで書く）。
+ *                          null なら車のモデルから焼いた絵を使う（{@code CarIcons}）
  */
 public record CarModel(
         ResourceLocation bodyModel,
@@ -117,7 +119,8 @@ public record CarModel(
         Vec3 seatOffset,
         float shadowRadius,
         CarSoundSet sounds,
-        Map<ResourceLocation, PartObjects> partObjects) {
+        Map<ResourceLocation, PartObjects> partObjects,
+        @org.jetbrains.annotations.Nullable ResourceLocation icon) {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -268,7 +271,8 @@ public record CarModel(
                 new Vec3(0.5, -0.55, 0.2),
                 1.4F,
                 CarSoundSet.NONE,
-                Map.of());
+                Map.of(),
+                null);
     }
 
     // ------------------------------------------------------------------
@@ -315,7 +319,25 @@ public record CarModel(
                 vector(root, "seat", base.seatOffset()),
                 (float) number(root, "shadowRadius", base.shadowRadius()),
                 CarSoundSet.parse(child(root, "sounds")),
-                parsePartObjects(child(root, "parts"), location));
+                parsePartObjects(child(root, "parts"), location),
+                icon(root, location));
+    }
+
+    /**
+     * {@code icon}。読めない値はアイコンだけ捨ててログに残す（車の見た目まで既定へ落とさない）。
+     * 画像が実際にあるかは、使うときに {@code CarIcons} が確かめる。
+     */
+    @org.jetbrains.annotations.Nullable
+    private static ResourceLocation icon(JsonObject root, ResourceLocation location) {
+        if (!root.has("icon")) {
+            return null;
+        }
+        ResourceLocation icon = root.get("icon").isJsonPrimitive()
+                ? ResourceLocation.tryParse(root.get("icon").getAsString()) : null;
+        if (icon == null) {
+            LOGGER.warn("{} の icon を読めません（車のモデルから作ったアイコンを使います）: {}", location, root.get("icon"));
+        }
+        return icon;
     }
 
     /** {@code parts}。読めない id・名前の頭が違うオブジェクトは、その値だけ捨ててログに残す。 */

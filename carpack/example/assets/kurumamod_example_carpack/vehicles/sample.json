@@ -12,6 +12,8 @@
   "designWheelBase": 3.12,
   "designWheelRadius": 0.45,
 
+  "icon": "kurumamod_example_carpack:textures/item/sample.png",
+
   "seat": [0.5, -0.25, 0.2],
   "shadowRadius": 1.5
 }

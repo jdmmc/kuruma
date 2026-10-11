@@ -1,6 +1,8 @@
 package com.jdmmc.kurumamod;
 
 import net.neoforged.neoforge.network.PacketDistributor;
+import com.jdmmc.kurumamod.client.CarIcons;
+import com.jdmmc.kurumamod.client.CarItemRenderer;
 import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
 import com.jdmmc.kurumamod.client.CarPartModel;
@@ -26,6 +28,9 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
@@ -223,7 +228,23 @@ public class Kurumamod {
                 CarSoundSet.clearReports();
                 CarPartModel.clearCache();
                 CarPresets.clearCache();
+                CarIcons.clearCache();
             });
+        }
+
+        /**
+         * 車のアイテムの見た目は車のモデルから作る（{@link CarItemRenderer}）。カーパックがアイコンの
+         * 絵を用意しなくても、どの車種も自分の形で並ぶ。1.20.1 版はアイテムの {@code initializeClient} だが、
+         * NeoForge 1.21 ではこのイベントで結びつける。
+         */
+        @SubscribeEvent
+        public static void onRegisterClientExtensions(RegisterClientExtensionsEvent event) {
+            event.registerItem(new IClientItemExtensions() {
+                @Override
+                public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                    return CarItemRenderer.get();
+                }
+            }, CAR_ITEM.get());
         }
     }
 }

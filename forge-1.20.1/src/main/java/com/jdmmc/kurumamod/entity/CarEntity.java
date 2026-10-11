@@ -1401,6 +1401,21 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     }
 
     /**
+     * アイテムのアイコンに描く車にする。<b>クライアントでだけ、ワールドへは足さずに使う。</b>
+     *
+     * <p>車種・諸元・装着を入れた後に呼ぶ。サスペンションの長さはふだん同期された値から
+     * 描くが、その初期値は既定の車の停車時の長さなので、この車の停車時の長さを入れ直す
+     * （入れないと、車高の違う車ではタイヤが車体から浮くか車体に埋まる）。</p>
+     */
+    public void becomeIcon() {
+        CarSpec current = getSpec();
+        for (int i = 0; i < Wheel.COUNT; i++) {
+            entityData.set(DATA_SUSPENSION.get(i), (float) current.staticSuspensionLength(Wheel.VALUES[i]));
+        }
+        updateRenderSnapshot();
+    }
+
+    /**
      * 記録の 1 ティックぶんを流し込む。他人の車がサーバーから受け取るのと同じ道
      * （位置は {@link #lerpTo}、姿勢と車輪は同期値）なので、描き方も補間も同じになる。
      */

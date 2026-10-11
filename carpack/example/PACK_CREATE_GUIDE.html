@@ -2025,9 +2025,11 @@ Anything not written stays as on the default car → <a href="#s-spec">chapter 8
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
+<tr><td><code>icon</code></td><td>車のモデルから作る</td><td>アイテムのアイコンの画像。テクスチャのパスを <code>.png</code> まで書く（例 <code>mypack:textures/item/kei.png</code>）</td></tr>
 <tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">7 章</a>）</td></tr>
 <tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="#s-body">パーツの 2 章</a>）</td></tr>
 </table>
+<p><b>アイコンは用意しなくても構いません。</b><code>icon</code> を書かなければ、車のモデルを斜め前から写した絵が自動で作られます。自分で描いた絵にしたいときだけ、PNG を <code>assets/&lt;パック&gt;/textures/item/</code> に置いて <code>icon</code> に書きます。正方形で、32×32 か 64×64 がおすすめ。持ち物・手に持ったとき・地面に落ちたときのどれにもこの絵が出ます。パスを間違えると、自動で作った絵に戻ってログに残ります。</p>
 <p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">8 章</a>）。</p>
 </div>
 </details>
@@ -2051,9 +2053,11 @@ Anything not written stays as on the default car → <a href="#s-spec">chapter 8
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
+<tr><td><code>icon</code></td><td>made from the car model</td><td>Image for the item icon. Write the texture path including <code>.png</code> (e.g. <code>mypack:textures/item/kei.png</code>)</td></tr>
 <tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 7</a>)</td></tr>
 <tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
 </table>
+<p><b>You do not have to make an icon.</b> Without <code>icon</code>, a picture of your car model seen from the front corner is made automatically. Only if you want your own drawing, put a PNG under <code>assets/&lt;pack&gt;/textures/item/</code> and name it in <code>icon</code>. Make it square; 32×32 or 64×64 works well. The same picture is used in the inventory, in the hand and when dropped on the ground. If the path is wrong, the automatic picture is used and the log says so.</p>
 <p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>).</p>
 </div>
 </details>
