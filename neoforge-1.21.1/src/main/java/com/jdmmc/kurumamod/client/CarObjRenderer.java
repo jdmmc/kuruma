@@ -17,6 +17,9 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 車の描画。Blender で作った OBJ を、車体 1 つ ＋ タイヤ 4 つとして組み立てる。
  *
@@ -504,34 +507,48 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     }
 
     /**
-     * F3+B のときに、本当の当たり判定（{@link com.jdmmc.kurumamod.physics.CarHull}）を描く。
-     * 地形用を橙、車同士用を水色で。
+     * F3+B のときに、本当の当たり判定を描く。地形と当たる車体（{@link com.jdmmc.kurumamod.physics.CarBody}）を橙、
+     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色で。
      *
      * <p><b>バニラが白で描く箱は当たり判定ではない。</b>サーバーの移動の検査に弾かれないよう、
      * 車体の箱の内側に収まる小さな板にしてある（{@code CarEntity#makeBoundingBox}）。</p>
      */
     private static void renderHull(CarEntity car, float partialTick, PoseStack pose, MultiBufferSource buffer) {
         // 地形用は橙、車同士用は水色
-        renderHull(car, car.currentHull(), 1.0F, 0.75F, 0.0F, partialTick, pose, buffer);
-        renderHull(car, car.currentBody(), 0.2F, 0.85F, 1.0F, partialTick, pose, buffer);
+        double[][] body = car.bodyCorners();
+        int half = body.length / 2;
+        List<int[]> edges = new ArrayList<>();
+        for (int i = 0; i < half; i++) {
+            edges.add(new int[]{i, (i + 1) % half});
+            edges.add(new int[]{i + half, (i + 1) % half + half});
+            edges.add(new int[]{i, i + half});
+        }
+        renderEdges(car, body, edges, 1.0F, 0.75F, 0.0F, partialTick, pose, buffer);
+        double[][] box = car.currentBody().corners();
+        List<int[]> boxEdges = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            for (int bit = 1; bit <= 4; bit <<= 1) {
+                if ((i | bit) != i) {
+                    boxEdges.add(new int[]{i, i | bit});
+                }
+            }
+        }
+        renderEdges(car, box, boxEdges, 0.2F, 0.85F, 1.0F, partialTick, pose, buffer);
     }
 
-    private static void renderHull(CarEntity car, com.jdmmc.kurumamod.physics.CarHull hull,
-                                   float red, float green, float blue,
-                                   float partialTick, PoseStack pose, MultiBufferSource buffer) {
-        double[][] corners = hull.corners();
+    private static void renderEdges(CarEntity car, double[][] corners, List<int[]> edges,
+                                    float red, float green, float blue,
+                                    float partialTick, PoseStack pose, MultiBufferSource buffer) {
         // 箱はティックの位置で組んであり、描画の原点は補間した位置
         double originX = Mth.lerp(partialTick, car.xo, car.getX());
         double originY = Mth.lerp(partialTick, car.yo, car.getY());
         double originZ = Mth.lerp(partialTick, car.zo, car.getZ());
         VertexConsumer consumer = buffer.getBuffer(RenderType.lines());
         PoseStack.Pose entry = pose.last();
-        for (int i = 0; i < 8; i++) {
-            for (int bit = 1; bit <= 4; bit <<= 1) {
-                int j = i | bit;
-                if (j == i) {
-                    continue;
-                }
+        for (int[] edge : edges) {
+            int i = edge[0];
+            int j = edge[1];
+            {
                 float[] a = {(float) (corners[i][0] - originX), (float) (corners[i][1] - originY),
                         (float) (corners[i][2] - originZ)};
                 float[] b = {(float) (corners[j][0] - originX), (float) (corners[j][1] - originY),
