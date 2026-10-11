@@ -1,4 +1,4 @@
-/* カーパック作成ガイド。中身はリポジトリの PACK_CREATE_GUIDE.html をそのまま使い、見た目だけサイトに合わせる。
+/* カーパック作成ガイド。中身は guide-src/PACK_CREATE_GUIDE.html をそのまま使い、見た目だけサイトに合わせる。
    ガイドのクラス名（steps・note・card など）はサイトのものと重なるので、すべて .gdoc の下に閉じ込める */
 
 /* ガイドは class="ja" / class="en" で言語を持っている */
