@@ -1,8 +1,8 @@
 """KurumaMod の紹介サイトを書き出す。全ページのヘッダー・フッター・言語切り替えを揃えるため。
 
 使い方: python website/gen.py
-書き出し先はこのスクリプトのあるフォルダ（website/）。カーパック作成ガイドはリポジトリの
-carpack/example/PACK_CREATE_GUIDE.html を読む。どちらも引数で差し替えられる（gen.py <出力> <ガイド>）。
+書き出し先はこのスクリプトのあるフォルダ（website/）。カーパック作成ガイドは
+website/guide-src/PACK_CREATE_GUIDE.html を読む（ガイドはサイトにだけ置く。見本パックには入れない）。どちらも引数で差し替えられる（gen.py <出力> <ガイド>）。
 英語が既定。日本語は <span data-l="ja"> で並べて持ち、site.js が切り替える。
 """
 import re
@@ -902,11 +902,11 @@ print("ok")
 
 
 # ---------- カーパック作成ガイド ----------
-# リポジトリの PACK_CREATE_GUIDE.html を正として、章をページごとに振り分けてサイトの見た目で書き出す。
+# guide-src/PACK_CREATE_GUIDE.html を正として、章をページごとに振り分けてサイトの見た目で書き出す。
 # ガイドを直したら、こちらは作り直すだけでよい。
 import base64
 
-GUIDE_SRC = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE.parent / "carpack" / "example" / "PACK_CREATE_GUIDE.html"
+GUIDE_SRC = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "guide-src" / "PACK_CREATE_GUIDE.html"
 GPAGES = [
     ("home", "guide.html", ("Home", "入口")),
     ("car", "guide-car.html", ("Car", "車")),
