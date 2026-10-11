@@ -8,10 +8,12 @@
 .bar .tools { align-items: center; }
 .bar .lang { background: transparent; border: 1px solid rgba(255,255,255,.5); border-radius: 4px; color: var(--white); font: 500 13px var(--f-ja); padding: 6px 12px; cursor: pointer; }
 .bar .lang:hover { background: var(--white); color: var(--black); }
+.bar .lang { display: inline-flex; align-items: center; gap: 6px; }
+.bar .lang svg { width: 16px; height: 16px; flex: none; }
 .bar .dl { background: var(--white); color: var(--black); border-radius: 4px; padding: 7px 14px; font-weight: 500; }
 .bar .dl:hover { background: var(--line); }
-@media (max-width: 860px) { .bar .tools a:not(:last-child) { display: inline; } .bar .tools { gap: 10px; } .bar .dl { padding: 6px 10px; font-size: 13px; } }
-@media (max-width: 480px) { .wordmark { display: none; } .bar .wrap { grid-template-columns: 1fr auto; } }
+.bar .dl svg { display: none; }
+@media (max-width: 860px) { .bar .tools a:not(:last-child) { display: inline; } .bar .tools { gap: 10px; } .bar .dl { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; } .bar .dl svg { display: block; width: 18px; height: 18px; } .bar .dl .dl-t { display: none; } .bar .lang { width: 36px; height: 36px; padding: 0; justify-content: center; } .bar .lang svg { width: 18px; height: 18px; } .bar .lang .lang-t { display: none; } }
 
 /* 対応状況の帯 */
 .badges { border-bottom: 1px solid var(--line); }
@@ -184,3 +186,4 @@ tr.same { display: none; }
 
 /* トップのヒーローの KURUMA はヘッダーのロゴと同じ書体 */
 .hero h1.brand { font-family: var(--f-latin); font-weight: 600; font-stretch: 125%; letter-spacing: .42em; font-size: clamp(44px, 9vw, 132px); line-height: 1; margin: 14px 0 22px; }
+@media (max-width: 480px) { .bar .wordmark { font-size: 13px; letter-spacing: .26em; padding-left: .26em; } .bar .tools { gap: 8px; } }
