@@ -47,6 +47,7 @@
   "steer_rate": 0.3015463917525773,
   "steer_return": 0.30412371134020616,
   "stroke": 0.8,
+  "static_sag": 0.5,
   "tire_falloff": 0.0,
   "tire_load_sensitivity": 0.15,
   "top_gear": 0.8110824742268041,
