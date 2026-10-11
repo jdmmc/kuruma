@@ -40,6 +40,7 @@ public final class CarClientPackets {
     /** ラップ計測とスタート信号の合図を受け取る。 */
     public static void applyRaceEvent(RaceEventPacket packet) {
         RaceHud.accept(packet);
+        CarGhosts.onRaceEvent(packet);
     }
 
     /**

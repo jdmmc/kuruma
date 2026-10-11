@@ -446,7 +446,7 @@ public final class RaceManager {
         state.gateTimes.clear();
         state.gateTimes.put(0, crossedAt);
         send(player, RaceEventPacket.lapStarted(state.lap, lapTarget(session, player, state.course),
-                course.checkpointCount() + 1));
+                course.checkpointCount() + 1, course.name()));
     }
 
     private static void completeLap(ServerLevel level, Session session, Map<UUID, LapState> states,
@@ -487,7 +487,7 @@ public final class RaceManager {
 
         state.lap++;
         send(player, RaceEventPacket.lapCompleted(state.lap, racing ? session.laps : 0,
-                lapMillis, bestMillis, best, delta, hasDelta));
+                lapMillis, bestMillis, best, delta, hasDelta, course.name()));
     }
 
     /**
@@ -555,6 +555,16 @@ public final class RaceManager {
         toEntrants(level, session,
                 new RaceStandingsPacket(RaceStandingsPacket.Phase.ENTRY, "", 0, List.of()));
         RaceSync.sendToAll(level.getServer());
+    }
+
+    /**
+     * ベストを消したことを本人に知らせる。タイムアタックのゴーストはクライアントが持っているので、
+     * 知らせないと<b>消したはずのベストの走りがゴーストとして走り続ける</b>。
+     *
+     * @param course 消したコース。空なら全コース
+     */
+    public static void notifyBestCleared(ServerPlayer player, String course) {
+        send(player, RaceEventPacket.bestCleared(course));
     }
 
     private static void send(ServerPlayer player, RaceEventPacket packet) {

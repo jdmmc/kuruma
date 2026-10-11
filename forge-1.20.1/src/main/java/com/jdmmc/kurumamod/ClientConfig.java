@@ -85,6 +85,11 @@ public final class ClientConfig {
                     "シェーダーパックを使っている間は、この設定に関係なく以前の描き方になる")
             .define("gpuCarMeshes", true);
 
+    public static final ForgeConfigSpec.BooleanValue TIME_ATTACK_GHOST = BUILDER
+            .comment("タイムアタックで、そのコースの自己ベストのゴーストを一緒に走らせるかどうか。",
+                    "ゴーストは周回ごとに自動で記録され、速い周が出たら置き換わる（自分のパソコンにだけ保存）")
+            .define("timeAttackGhost", true);
+
     public static final ForgeConfigSpec.BooleanValue SHOW_DUST = BUILDER
             .comment("タイヤの煙と土煙を出すかどうか。",
                     "舗装路で滑ったときの白煙と、未舗装路（土・砂・砂利・雪）で舞い上げる土煙の両方")
@@ -223,6 +228,9 @@ public final class ClientConfig {
     /** 車のメッシュを GPU に置いたまま描くか（{@code CarMeshes}）。 */
     public static boolean gpuCarMeshes = true;
 
+    /** タイムアタックで自己ベストのゴーストを走らせるか。 */
+    public static boolean timeAttackGhost = true;
+
     /** タイヤの煙と土煙を出すか。キーの名前（showDust）は保存済みの設定のために据え置いている。 */
     public static boolean showDust = true;
 
@@ -303,6 +311,7 @@ public final class ClientConfig {
         gaugeTheme = GAUGE_THEME.get();
         liveMirrors = LIVE_MIRRORS.get();
         gpuCarMeshes = GPU_CAR_MESHES.get();
+        timeAttackGhost = TIME_ATTACK_GHOST.get();
         showDust = SHOW_DUST.get();
         dustDensity = DUST_DENSITY.get();
         showOwnSkidMarks = SHOW_OWN_SKID_MARKS.get();

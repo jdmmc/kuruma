@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
@@ -80,6 +81,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     @Override
     public void render(CarEntity car, float entityYaw, float partialTick, PoseStack pose,
                        MultiBufferSource buffer, int packedLight) {
+        if (car.isGhost()) {
+            renderGhost(car, partialTick, pose, buffer, packedLight);
+            return;
+        }
         CarModel model = CarModel.get(car.getCarId());
         // 影の大きさは描画より前に読まれるので、JSON を書き換えた直後の 1 フレームだけ古い値で出る
         this.shadowRadius = model.shadowRadius();
@@ -104,6 +109,68 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         CarLights.renderEffects(car, model, partialTick, pose, buffer);
         // 名前タグなどはバニラに任せる
         super.render(car, entityYaw, partialTick, pose, buffer, packedLight);
+    }
+
+    /** ゴーストの不透明度。追いかけていて前が見えなくならない濃さ。 */
+    private static final float GHOST_ALPHA = 0.42F;
+
+    /** ゴーストを描いている最中なら、いまどちらの回か。普通の車なら null。 */
+    private enum GhostPass { DEPTH, COLOR }
+
+    @Nullable
+    private GhostPass ghostPass;
+
+    /**
+     * 記録を再生している車（ゴースト）。<b>同じ形を 2 回描く。</b>
+     *
+     * <p>1 回目は深度だけ、2 回目は色を半透明で（{@link KurumaRenderTypes#ghostDepth}）。
+     * 形を組む処理は普通の車と共通で、どの {@code RenderType} に積むかだけを
+     * {@link #ghostPass} で切り替える。</p>
+     *
+     * <p>描かないもの: シェーダーパックの影（地面に影が落ちると実在の車に見える）、
+     * 灯火の光（レンズはただの面として描く）、ミラーの映り込み、名前タグ。</p>
+     */
+    private void renderGhost(CarEntity car, float partialTick, PoseStack pose,
+                             MultiBufferSource buffer, int packedLight) {
+        if (HeadlightVolume.ShaderPacks.renderingShadowPass()) {
+            return;
+        }
+        CarModel model = CarModel.get(car.getCarId());
+        this.shadowRadius = 0.0F;
+        CarSpec spec = car.getSpec();
+        try {
+            for (GhostPass pass : GhostPass.values()) {
+                ghostPass = pass;
+                ObjModel.alphaScale = pass == GhostPass.COLOR ? GHOST_ALPHA : 1.0F;
+                pose.pushPose();
+                applyRotations(car, pose, partialTick);
+                renderBody(car, model, spec, pose, buffer, packedLight, 0);
+                renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, 0);
+                renderGlass(car, model, spec, pose, buffer, packedLight);
+                pose.popPose();
+            }
+        } finally {
+            ghostPass = null;
+            ObjModel.alphaScale = 1.0F;
+        }
+    }
+
+    /** 不透明な面を積む先。ゴーストのときは回に応じたものへ差し替える。 */
+    private RenderType solid(ResourceLocation texture) {
+        if (ghostPass == null) {
+            return RenderType.entityCutoutNoCull(texture);
+        }
+        return ghostPass == GhostPass.DEPTH ? KurumaRenderTypes.ghostDepth(texture) : KurumaRenderTypes.ghostColor(texture);
+    }
+
+    /** 透ける面（ガラス）を積む先。ゴーストのときは不透明な面と同じ扱いにする。 */
+    private RenderType clear(ResourceLocation texture) {
+        return ghostPass == null ? KurumaRenderTypes.glass(texture) : solid(texture);
+    }
+
+    /** GPU に置いたメッシュで描くか。ゴーストは頂点を積んで描く（α を掛けられるのはそちらだけ）。 */
+    private boolean meshes() {
+        return ghostPass == null && CarMeshes.enabled();
     }
 
     /**
@@ -165,11 +232,11 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             bodyMesh.renderShadowCaster(pose.last(),
                     buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
                     packedLight, OverlayTexture.NO_OVERLAY);
-        } else if (CarMeshes.enabled()) {
+        } else if (meshes()) {
             CarMeshes.draw(bodyMesh, false, false, model.bodyTexture(), pose.last(), packedLight);
         } else {
             bodyMesh.render(pose.last(),
-                    buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+                    buffer.getBuffer(solid(model.bodyTexture())),
                     packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
                     ObjModel.Pass.OPAQUE);
         }
@@ -178,11 +245,18 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // 数が少ないので間引かず、GPU にも置かない（車ごとに出すものが違う）
         ObjModel body = ObjModel.get(model.bodyModel());
         CarModel.BodyParts parts = model.bodyParts(car.getEffectiveFitment(), body.optionalNames());
-        body.renderOptional(pose.last(), buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+        body.renderOptional(pose.last(), buffer.getBuffer(solid(model.bodyTexture())),
                 packedLight, OverlayTexture.NO_OVERLAY, parts.shown(), ObjModel.Pass.OPAQUE);
 
         // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
+        if (ghostPass != null) {
+            // ゴーストは光らせない。レンズは車体のパスから外してあるので、ただの面として埋める
+            body.renderLightsPlain(pose.last(), buffer.getBuffer(solid(model.bodyTexture())),
+                    packedLight, OverlayTexture.NO_OVERLAY);
+            pose.popPose();
+            return;
+        }
         CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
 
         // 鏡面も同じ変換の中で描く。<b>車体のパスから外してあるので、ここが描かないと穴が開く</b>
@@ -206,7 +280,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
-        var consumer = buffer.getBuffer(KurumaRenderTypes.glass(model.bodyTexture()));
+        var consumer = buffer.getBuffer(clear(model.bodyTexture()));
         body.render(pose.last(), consumer,
                 packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
                 ObjModel.Pass.TRANSLUCENT);
@@ -375,14 +449,14 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     /** ホイールを、付属のタイヤを除いて描く。 */
     private void drawRim(ObjModel obj, ResourceLocation texture, PoseStack pose,
                          MultiBufferSource buffer, int packedLight, boolean mirrorX) {
-        if (CarMeshes.enabled()) {
+        if (meshes()) {
             CarMeshes.draw(obj, true, mirrorX, texture, pose.last(), packedLight);
         } else {
-            obj.renderWithoutTire(pose.last(), buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
+            obj.renderWithoutTire(pose.last(), buffer.getBuffer(solid(texture)),
                     packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.OPAQUE);
         }
         if (obj.hasTranslucentRim()) {
-            obj.renderWithoutTire(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(texture)),
+            obj.renderWithoutTire(pose.last(), buffer.getBuffer(clear(texture)),
                     packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.TRANSLUCENT);
         }
     }
@@ -408,10 +482,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      */
     private void drawMesh(ObjModel obj, ResourceLocation texture, PoseStack pose,
                           MultiBufferSource buffer, int packedLight, boolean mirrorX) {
-        if (CarMeshes.enabled()) {
+        if (meshes()) {
             CarMeshes.draw(obj, false, mirrorX, texture, pose.last(), packedLight);
         } else {
-            VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
+            VertexConsumer consumer = buffer.getBuffer(solid(texture));
             obj.render(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
                     1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE);
         }
@@ -421,7 +495,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
         // タイヤや部品にも透ける面があれば、そのメッシュの直後に重ねる。車体のガラスだけは
         // 全部を描き終えた最後へ回してある（{@link #renderGlass}）
-        obj.render(pose.last(), buffer.getBuffer(KurumaRenderTypes.glass(texture)),
+        obj.render(pose.last(), buffer.getBuffer(clear(texture)),
                 packedLight, OverlayTexture.NO_OVERLAY,
                 1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.TRANSLUCENT);
     }

@@ -113,7 +113,7 @@ public final class CarSmoke {
         }
         Vec3 eye = camera.getPosition();
         for (Entity entity : level.entitiesForRendering()) {
-            if (entity instanceof CarEntity car
+            if (entity instanceof CarEntity car && !car.isGhost()
                     && car.shouldRender(eye.x, eye.y, eye.z)) {
                 spawn(car, level);
             }

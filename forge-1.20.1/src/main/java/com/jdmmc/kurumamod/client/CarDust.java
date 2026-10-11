@@ -103,7 +103,7 @@ public final class CarDust {
         }
         Vec3 eye = camera.getPosition();
         for (Entity entity : level.entitiesForRendering()) {
-            if (entity instanceof CarEntity car && car.shouldRender(eye.x, eye.y, eye.z)) {
+            if (entity instanceof CarEntity car && !car.isGhost() && car.shouldRender(eye.x, eye.y, eye.z)) {
                 spawn(car, level);
             }
         }
