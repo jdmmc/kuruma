@@ -42,6 +42,8 @@
   "tuning.kurumamod.stroke.value": "%s см  %s",
   "tuning.kurumamod.static_sag": "Просадка пружин",
   "tuning.kurumamod.static_sag.value": "%s%%  %s",
+  "tuning.kurumamod.body_clearance": "Клиренс кузова",
+  "tuning.kurumamod.body_clearance.value": "%s см",
   "tuning.kurumamod.front_anti_roll": "Передний стабилизатор",
   "tuning.kurumamod.front_anti_roll.value": "%s Н/м  перед %s%%",
   "tuning.kurumamod.rear_anti_roll": "Задний стабилизатор",

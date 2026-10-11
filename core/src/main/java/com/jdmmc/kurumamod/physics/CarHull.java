@@ -17,12 +17,12 @@ import java.util.List;
  * 止まるかを決めている。箱が低いところまで覆うと、タイヤが登れる 1 ブロックの段差に
  * 先に車体が当たって止まる。箱は「タイヤが登れない高さのもの」だけを止める。</p>
  *
- * <p><b>上下に押すのは、ものが箱の上か下に収まっているときだけ</b>（車が立っている間）。
- * 天面が箱の中心より下にあるもの（腹の下の出っ張り）は上へ押して腹を乗せ、底面が中心より
- * 上にあるもの（天井）は下へ押す。中心の高さをまたぐもの（壁）は横にしか押さない——
+ * <p><b>車が立っている間、押すのは壁（箱の中心の高さをまたぐもの）を横へと、天井を下へだけ。</b>
  * 上へも押せると、壁の天面に車体の角が掛かった瞬間に押し上げられて壁をよじ登る。
- * 以前は腹の下のものも横へ押していたので、底にブロックが来ると車が横や後ろへ弾かれ、
- * 向きがティックごとに入れ替わって震えた。
+ * <b>腹の下のもの（天面が箱の中心より下）は押さない</b>——地面に乗るのはタイヤの仕事。
+ * 横へ押すと向きがティックごとに入れ替わって震え、上へ押すと車を平行に持ち上げるだけで
+ * 傾きを止める力にならず、1 輪を穴へ落としたときに穴の縁に掛かった角を支点に車が回って
+ * 立ち上がった。
  * 大きく傾いた（横転した）車は向きを問わず押し出す——横倒しや裏返しの車を
  * 支えるのはこの箱しかない。</p>
  *
@@ -66,6 +66,8 @@ public final class CarHull {
 
     /** 中心（ワールド座標）。 */
     private final double[] center = new double[3];
+    /** 作ったときのエンティティの位置（重心のシャシー基準面）。{@link #worldPoint} の原点。 */
+    private final double[] origin = new double[3];
     /** 軸。0 前、1 上、2 右（ワールド座標の単位ベクトル）。 */
     private final double[][] axes = new double[3][3];
     /** 半分の大きさ。前後・上下・左右。 */
@@ -87,9 +89,23 @@ public final class CarHull {
         // 車体基準の範囲。前後は前後輪の外周から張り出しぶん、上下は登れる高さから上
         double front = spec.wheelForwardOffset(Wheel.FRONT_LEFT) + spec.wheelRadius() + OVERHANG;
         double rear = spec.wheelForwardOffset(Wheel.REAR_LEFT) - spec.wheelRadius() - OVERHANG;
-        double bottom = spec.maxClimbStep() - spec.staticRideHeight();
+        double bottom = bottom(spec);
         double top = Math.max(bottom + MIN_THICKNESS, MIN_TOP);
         return build(x, y, z, yaw, pitch, roll, front, rear, bottom, top, halfWidth(spec));
+    }
+
+    /** 地形用の箱の底の、シャシー基準面からの高さ [m]。停車時の接地面からタイヤが登れる高さ。 */
+    public static double bottom(CarSpec spec) {
+        return spec.maxClimbStep() - spec.staticRideHeight();
+    }
+
+    /** 車体基準の点（前後・上下・左右）のワールド座標。 */
+    public double[] worldPoint(double forward, double up, double right) {
+        double[] p = new double[3];
+        for (int k = 0; k < 3; k++) {
+            p[k] = origin[k] + axes[0][k] * forward + axes[1][k] * up + axes[2][k] * right;
+        }
+        return p;
     }
 
     /**
@@ -98,11 +114,20 @@ public final class CarHull {
      */
     public static CarHull body(CarSpec spec, double x, double y, double z,
                                double yaw, double pitch, double roll) {
-        double front = spec.wheelForwardOffset(Wheel.FRONT_LEFT) + spec.wheelRadius() + BODY_OVERHANG;
-        double rear = spec.wheelForwardOffset(Wheel.REAR_LEFT) - spec.wheelRadius() - BODY_OVERHANG;
-        double bottom = BODY_CLEARANCE - spec.staticRideHeight();
-        double top = Math.max(spec.maxClimbStep() - spec.staticRideHeight() + MIN_THICKNESS, MIN_TOP);
-        return build(x, y, z, yaw, pitch, roll, front, rear, bottom, top, halfWidth(spec));
+        return body(spec, spec, x, y, z, yaw, pitch, roll);
+    }
+
+    /**
+     * 車同士の箱。大きさは車種の元の諸元（{@code shape}）で決め、前後の位置だけいまの諸元に合わせる
+     * （{@link CarBody} と同じ。調整画面でタイヤ半径などを動かしても見た目の車体は変わらないため）。
+     */
+    public static CarHull body(CarSpec spec, CarSpec shape, double x, double y, double z,
+                               double yaw, double pitch, double roll) {
+        double middle = spec.axleMidpointOffset();
+        double half = shape.wheelBase() / 2.0 + shape.wheelRadius() + BODY_OVERHANG;
+        double bottom = BODY_CLEARANCE - shape.staticRideHeight();
+        double top = bottom + CarBody.HEIGHT;
+        return build(x, y, z, yaw, pitch, roll, middle + half, middle - half, bottom, top, halfWidth(shape));
     }
 
     private static double halfWidth(CarSpec spec) {
@@ -132,6 +157,9 @@ public final class CarHull {
         hull.half[2] = halfWidth;
         double cf = (front + rear) / 2.0;
         double cu = (top + bottom) / 2.0;
+        hull.origin[0] = x;
+        hull.origin[1] = y;
+        hull.origin[2] = z;
         hull.center[0] = x + f[0] * cf + u[0] * cu;
         hull.center[1] = y + f[1] * cf + u[1] * cu;
         hull.center[2] = z + f[2] * cf + u[2] * cu;
@@ -233,10 +261,17 @@ public final class CarHull {
         double[] otherHalf = {
                 (box[3] - box[0]) / 2.0, (box[4] - box[1]) / 2.0, (box[5] - box[2]) / 2.0};
         double[][] otherAxes = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-        // 立っていても、天井（箱の中心より上にあるもの）は下へ、腹の下の出っ張り（天面が
-        // 箱の中心より下）は上へ押す。どちらでもないもの（中心の高さをまたぐ＝壁）は横だけ
-        int lift = box[1] > center[1] ? -1 : box[4] < center[1] ? 1 : 0;
-        return push(otherCenter, otherAxes, otherHalf, tumbled(), lift);
+        boolean tumbled = tumbled();
+        if (!tumbled && box[4] < center[1]) {
+            // 腹の下のもの（天面が箱の中心より下）は、立っている間は押さない。地面に乗るのは
+            // タイヤの仕事。押し上げても車を平行に持ち上げるだけで傾きを止める力にならず、
+            // 1 輪を穴へ落としたとき、穴の縁に掛かった箱の角を支点に車が回って立ち上がった。
+            // 横へ押すと、向きがティックごとに入れ替わって震える
+            return null;
+        }
+        // 天井（箱の中心より上にあるもの）は下へ押す。中心の高さをまたぐもの（壁）は横だけ
+        int lift = box[1] > center[1] ? -1 : 0;
+        return push(otherCenter, otherAxes, otherHalf, tumbled, lift);
     }
 
     /** 他の車の箱との押し出し。水平方向だけ。離れていれば null。 */
@@ -362,6 +397,10 @@ public final class CarHull {
          */
         public double wallNormalX;
         public double wallNormalZ;
+        /** 地形に横から当たった点（水平、ワールド座標）。押し出しの量で重み付けした平均。 */
+        public double wallContactX;
+        public double wallContactZ;
+        private double wallWeight;
         /** 当たった車の番号（{@code cars} の）。当たっていなければ -1。いちばん深く当たったもの。 */
         public int car = -1;
         /** 当たった車へ向かう水平の単位ベクトル。 */
@@ -412,6 +451,10 @@ public final class CarHull {
                         motion.horizontal = true;
                         motion.wallNormalX += push.x();
                         motion.wallNormalZ += push.z();
+                        double[] contact = contact(box);
+                        motion.wallContactX += contact[0] * push.depth();
+                        motion.wallContactZ += contact[1] * push.depth();
+                        motion.wallWeight += push.depth();
                     }
                 }
                 for (int n = 0; n < cars.size(); n++) {
@@ -438,6 +481,10 @@ public final class CarHull {
                     break;
                 }
             }
+        }
+        if (motion.wallWeight > 0.0) {
+            motion.wallContactX /= motion.wallWeight;
+            motion.wallContactZ /= motion.wallWeight;
         }
         double wall = Math.hypot(motion.wallNormalX, motion.wallNormalZ);
         if (wall > EPSILON) {
@@ -477,6 +524,40 @@ public final class CarHull {
         }
         if (count == 0) {
             return new double[]{(center[0] + other.center[0]) / 2.0, (center[2] + other.center[2]) / 2.0};
+        }
+        return new double[]{sumX / count, sumZ / count};
+    }
+
+    /**
+     * ブロックとの接触点（水平）。この箱の角のうちブロックに入っているものと、ブロックの角のうち
+     * この箱に入っているものの平均。どれも入っていなければ、ブロックの中でこの箱の中心に最も近い点。
+     */
+    private double[] contact(double[] box) {
+        double sumX = 0.0;
+        double sumZ = 0.0;
+        int count = 0;
+        for (double[] corner : corners()) {
+            if (corner[0] >= box[0] && corner[0] <= box[3] && corner[1] >= box[1] && corner[1] <= box[4]
+                    && corner[2] >= box[2] && corner[2] <= box[5]) {
+                sumX += corner[0];
+                sumZ += corner[2];
+                count++;
+            }
+        }
+        for (int a = 0; a < 2; a++) {
+            for (int b = 0; b < 2; b++) {
+                for (int c = 0; c < 2; c++) {
+                    double[] corner = {a == 0 ? box[0] : box[3], b == 0 ? box[1] : box[4], c == 0 ? box[2] : box[5]};
+                    if (contains(corner)) {
+                        sumX += corner[0];
+                        sumZ += corner[2];
+                        count++;
+                    }
+                }
+            }
+        }
+        if (count == 0) {
+            return new double[]{Math.max(box[0], Math.min(box[3], center[0])), Math.max(box[2], Math.min(box[5], center[2]))};
         }
         return new double[]{sumX / count, sumZ / count};
     }

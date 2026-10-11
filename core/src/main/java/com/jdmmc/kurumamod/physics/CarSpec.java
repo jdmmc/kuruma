@@ -33,6 +33,8 @@ package com.jdmmc.kurumamod.physics;
  * @param wheelRadius          タイヤ半径 [m]
  * @param suspensionMaxLength  サスペンションの伸びきり長（ハードポイントから車軸まで） [m]
  * @param staticSag            停車時の沈み込みがストロークの何割か（沈み込み率）。バネの硬さはここから決まる。
+ * @param bodyClearance        車体の当たり判定の地上高 [m]（車種の元の車高で）。上げるほど段差で腹を擦らない。
+ *                             見た目の車体は変わらない（{@link CarBody}）
  *                             大きいほど柔らかく、伸び側（タイヤが下へ追いかける量）が増える
  * @param frontAntiRollStiffness 前輪のスタビライザー [N/m]。左右のサス変位の差に掛ける
  * @param rearAntiRollStiffness  後輪のスタビライザー [N/m]。同上
@@ -101,6 +103,7 @@ public record CarSpec(
         double wheelRadius,
         double suspensionMaxLength,
         double staticSag,
+        double bodyClearance,
         double frontAntiRollStiffness,
         double rearAntiRollStiffness,
         double frontRollCenter,
@@ -1145,6 +1148,8 @@ public record CarSpec(
         // 乗ったまま走ることになり、硬いと伸び側が足りずに段差でタイヤが浮く。
         // 車重にも荷重配分にも依らないので、車重を変えても沈み込みと固有振動数は前後で揃う
         private double staticSag = 0.3924;
+        // 車体の当たり判定の地上高。見た目の車体どおり低い。上げると段差で腹を擦らなくなる
+        private double bodyClearance = 0.25;
         // スタビライザー。左右のサス変位の差に掛ける（左右が同じだけ沈む動きには効かない）。
         // バネを緩めた状態でロール量と前後バランスを別々に決めるための装置で、
         // 前を強くするとアンダー、後ろを強くするとオーバーになる
@@ -1270,6 +1275,7 @@ public record CarSpec(
             wheelRadius = spec.wheelRadius;
             suspensionMaxLength = spec.suspensionMaxLength;
             staticSag = spec.staticSag;
+            bodyClearance = spec.bodyClearance;
             frontAntiRollStiffness = spec.frontAntiRollStiffness;
             rearAntiRollStiffness = spec.rearAntiRollStiffness;
             frontRollCenter = spec.frontRollCenter;
@@ -1358,6 +1364,11 @@ public record CarSpec(
 
         public Builder staticSag(double value) {
             staticSag = value;
+            return this;
+        }
+
+        public Builder bodyClearance(double value) {
+            bodyClearance = value;
             return this;
         }
 
@@ -1676,7 +1687,7 @@ public record CarSpec(
 
         public CarSpec build() {
             return new CarSpec(
-                    wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength, staticSag,
+                    wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength, staticSag, bodyClearance,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     frontRollCenter, rearRollCenter,
                     frontBumpDamping, frontReboundDamping, rearBumpDamping, rearReboundDamping,

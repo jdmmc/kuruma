@@ -31,6 +31,7 @@ public final class GroundContact {
     /** 転がり抵抗に掛ける倍率。1.0 が舗装路。砂や雪では大きくなる。 */
     public final double[] rollingScale = new double[Wheel.COUNT];
 
+
     public GroundContact() {
         clear();
     }

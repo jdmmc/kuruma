@@ -42,6 +42,8 @@
   "tuning.kurumamod.stroke.value": "%s cm  %s",
   "tuning.kurumamod.static_sag": "Spring sag",
   "tuning.kurumamod.static_sag.value": "%s%%  %s",
+  "tuning.kurumamod.body_clearance": "Body clearance",
+  "tuning.kurumamod.body_clearance.value": "%s cm",
   "tuning.kurumamod.front_anti_roll": "Front anti-roll bar",
   "tuning.kurumamod.front_anti_roll.value": "%s N/m  front %s%%",
   "tuning.kurumamod.rear_anti_roll": "Rear anti-roll bar",

@@ -42,6 +42,8 @@
   "tuning.kurumamod.stroke.value": "%s cm  %s",
   "tuning.kurumamod.static_sag": "沈み込み率（バネの硬さ）",
   "tuning.kurumamod.static_sag.value": "%s%%  %s",
+  "tuning.kurumamod.body_clearance": "ボディの地上高",
+  "tuning.kurumamod.body_clearance.value": "%s cm",
   "tuning.kurumamod.front_anti_roll": "フロント スタビライザー",
   "tuning.kurumamod.front_anti_roll.value": "%s N/m  前%s%%",
   "tuning.kurumamod.rear_anti_roll": "リア スタビライザー",
