@@ -72,8 +72,8 @@ public class Kurumamod {
     // 車両エンティティ "kurumamod:car"
     public static final RegistryObject<EntityType<CarEntity>> CAR = ENTITY_TYPES.register("car",
             () -> EntityType.Builder.<CarEntity>of(CarEntity::new, MobCategory.MISC)
-                    // AABB はシャシー基準面から上、つまり車体だけを覆う。
-                    // タイヤは下にぶら下がっていて、地面との接触はサスペンションが受け持つ
+                    // 最初の大きさだけ。実際の箱は CarEntity#makeBoundingBox が車体の箱
+                    // （CarHull）の内側に作り直す。地形との衝突は車体の箱が受け持つ
                     .sized(1.8F, 0.7F)
                     .clientTrackingRange(10)
                     .updateInterval(1) // 運転中は毎ティック位置を配る

@@ -107,6 +107,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // どれも深度を書かないので、先に描くと後から描いた車体に塗りつぶされる。
         // 姿勢は CarLights が自分で組み直すので、姿勢を掛ける前の pose を渡す
         CarLights.renderEffects(car, model, partialTick, pose, buffer);
+        if (entityRenderDispatcher.shouldRenderHitBoxes() && !car.isInvisible()) {
+            renderHull(car, partialTick, pose, buffer);
+        }
         // 名前タグなどはバニラに任せる
         super.render(car, entityYaw, partialTick, pose, buffer, packedLight);
     }
@@ -498,5 +501,53 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         obj.render(pose.last(), buffer.getBuffer(clear(texture)),
                 packedLight, OverlayTexture.NO_OVERLAY,
                 1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.TRANSLUCENT);
+    }
+
+    /**
+     * F3+B のときに、本当の当たり判定（{@link com.jdmmc.kurumamod.physics.CarHull}）を描く。
+     * 地形用を橙、車同士用を水色で。
+     *
+     * <p><b>バニラが白で描く箱は当たり判定ではない。</b>サーバーの移動の検査に弾かれないよう、
+     * 車体の箱の内側に収まる小さな板にしてある（{@code CarEntity#makeBoundingBox}）。</p>
+     */
+    private static void renderHull(CarEntity car, float partialTick, PoseStack pose, MultiBufferSource buffer) {
+        // 地形用は橙、車同士用は水色
+        renderHull(car, car.currentHull(), 1.0F, 0.75F, 0.0F, partialTick, pose, buffer);
+        renderHull(car, car.currentBody(), 0.2F, 0.85F, 1.0F, partialTick, pose, buffer);
+    }
+
+    private static void renderHull(CarEntity car, com.jdmmc.kurumamod.physics.CarHull hull,
+                                   float red, float green, float blue,
+                                   float partialTick, PoseStack pose, MultiBufferSource buffer) {
+        double[][] corners = hull.corners();
+        // 箱はティックの位置で組んであり、描画の原点は補間した位置
+        double originX = Mth.lerp(partialTick, car.xo, car.getX());
+        double originY = Mth.lerp(partialTick, car.yo, car.getY());
+        double originZ = Mth.lerp(partialTick, car.zo, car.getZ());
+        VertexConsumer consumer = buffer.getBuffer(RenderType.lines());
+        PoseStack.Pose entry = pose.last();
+        for (int i = 0; i < 8; i++) {
+            for (int bit = 1; bit <= 4; bit <<= 1) {
+                int j = i | bit;
+                if (j == i) {
+                    continue;
+                }
+                float[] a = {(float) (corners[i][0] - originX), (float) (corners[i][1] - originY),
+                        (float) (corners[i][2] - originZ)};
+                float[] b = {(float) (corners[j][0] - originX), (float) (corners[j][1] - originY),
+                        (float) (corners[j][2] - originZ)};
+                float dx = b[0] - a[0];
+                float dy = b[1] - a[1];
+                float dz = b[2] - a[2];
+                float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+                float nx = dx / length;
+                float ny = dy / length;
+                float nz = dz / length;
+            consumer.addVertex(entry.pose(), a[0], a[1], a[2]).setColor(red, green, blue, 1.0F)
+                    .setNormal(entry, nx, ny, nz);
+            consumer.addVertex(entry.pose(), b[0], b[1], b[2]).setColor(red, green, blue, 1.0F)
+                    .setNormal(entry, nx, ny, nz);
+            }
+        }
     }
 }

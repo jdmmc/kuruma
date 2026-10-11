@@ -21,6 +21,7 @@ import com.jdmmc.kurumamod.network.CarPushPacket;
 import com.jdmmc.kurumamod.network.CarSpecPacket;
 import com.jdmmc.kurumamod.network.CarStatePacket;
 import com.jdmmc.kurumamod.physics.CarCollision;
+import com.jdmmc.kurumamod.physics.CarHull;
 import com.jdmmc.kurumamod.physics.CarInput;
 import com.jdmmc.kurumamod.physics.CarPhysics;
 import com.jdmmc.kurumamod.physics.CarSpec;
@@ -52,12 +53,14 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -225,8 +228,18 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 一致するので、<b>速度が落ちた理由が必ず見て分かる</b>）。</p>
      */
     private static final double IMPACT_SPEED_LOSS = 0.50;
-    /** ぶつかった相手の車を探すときに当たり判定の箱を膨らませる量 [m]。 */
-    private static final double CAR_CONTACT_MARGIN = 0.15;
+    /**
+     * バニラの当たり判定の箱を、車体の箱（{@link CarHull}）の内側へさらに余らせる量 [m]。
+     * サーバーが知っている姿勢は少し遅れて届くので、そのぶん小さくしておく。
+     */
+    private static final double VANILLA_BOX_MARGIN = 0.05;
+    /** 登録している大きさ（1.8 × 0.7 × 1.8）の {@code AABB#getSize()}。描画の距離打ち切りの基準。 */
+    private static final double REGISTERED_BOX_SIZE = (1.8 + 0.7 + 1.8) / 3.0;
+    /**
+     * クリックや攻撃の当たりを広げる量 [m]。バニラの箱は車体の箱の内側の細い板なので、
+     * そのままでは車の下半分をクリックしても乗れない。
+     */
+    private static final float PICK_RADIUS = 0.6F;
     /**
      * 描画の距離打ち切りに掛ける倍率。約 92m → 約 160m
      * （＝ {@code EntityType.Builder#clientTrackingRange(10)} で要求している距離）。
@@ -404,8 +417,78 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      */
     @Override
     public boolean shouldRenderAtSqrDistance(double distanceSq) {
-        return super.shouldRenderAtSqrDistance(
-                distanceSq / (RENDER_DISTANCE_SCALE * RENDER_DISTANCE_SCALE));
+        // バニラの箱は傾きで大きさが変わる（車体の箱の内側に収めているため）ので、
+        // 登録している大きさの箱だったときと同じ距離になるよう割り戻す
+        double size = getBoundingBox().getSize();
+        if (!(size > 0.0)) {
+            size = REGISTERED_BOX_SIZE;
+        }
+        double scale = RENDER_DISTANCE_SCALE * REGISTERED_BOX_SIZE / size;
+        return super.shouldRenderAtSqrDistance(distanceSq / (scale * scale));
+    }
+
+    /**
+     * バニラの当たり判定の箱。<b>車体の箱（{@link CarHull}）の内側に収まる水平な箱</b>。
+     *
+     * <p>地形と他の車との衝突は車体の箱で自分で解いている（{@link #moveHull}）。バニラの箱が
+     * まだ使われるのは、サーバーの {@code handleMoveVehicle} が「動いた先が塞がっていないか」を
+     * 見るとき、他の車を探すとき、クリックの当たり。<b>内側に収めてあれば、車体の箱が
+     * 通した位置をサーバーが弾くことはない</b>（外にはみ出していると、傾いた車の箱の角が
+     * 段に刺さったと見なされて引き戻される）。</p>
+     */
+    @Override
+    protected AABB makeBoundingBox() {
+        if (state == null) {
+            // Entity のコンストラクタから呼ばれた。まだ姿勢が無い
+            return super.makeBoundingBox();
+        }
+        double[] box = currentHull().inscribedBox(VANILLA_BOX_MARGIN);
+        return new AABB(box[0], box[1], box[2], box[3], box[4], box[5]);
+    }
+
+    /**
+     * いまの姿勢の車体の箱。手元で解いていれば物理の値、そうでなければ同期された値で組む。
+     */
+    public CarHull currentHull() {
+        return hull(false);
+    }
+
+    /** いまの姿勢の、車同士の当たりに使う箱（{@link CarHull#body}）。 */
+    public CarHull currentBody() {
+        return hull(true);
+    }
+
+    private CarHull hull(boolean body) {
+        boolean local = isControlledByLocalInstance();
+        double yaw = local ? state.yaw : remoteYaw();
+        double pitch = local ? state.pitch : entityData.get(DATA_PITCH);
+        double roll = local ? state.roll : entityData.get(DATA_ROLL);
+        return body
+                ? CarHull.body(getSpec(), getX(), getY(), getZ(), yaw, pitch, roll)
+                : CarHull.of(getSpec(), getX(), getY(), getZ(), yaw, pitch, roll);
+    }
+
+    @Override
+    public float getPickRadius() {
+        return PICK_RADIUS;
+    }
+
+    /**
+     * サーバーが運転者から届いた位置へ車を動かすとき（{@code MoverType.PLAYER}）は、
+     * 地形を見ずにそのまま動かす。
+     *
+     * <p>{@code handleMoveVehicle} は届いた移動量でいったん {@code move()} を呼び、結果が
+     * 届いた位置と 0.0625 以上ずれると「moved wrongly」として扱う。バニラの {@code move()}
+     * は回らない箱で地形を見るので、車体の箱で通した段々の地形でずれが出る。
+     * 物理を解いているのは運転者（クライアント権威）なので、ここで検算しないのが正しい。</p>
+     */
+    @Override
+    public void move(MoverType type, Vec3 delta) {
+        if (type == MoverType.PLAYER) {
+            setPos(getX() + delta.x, getY() + delta.y, getZ() + delta.z);
+            return;
+        }
+        super.move(type, delta);
     }
 
     @Override
@@ -638,6 +721,8 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             tickAbandoned();
         }
 
+        // 位置が変わらなくても姿勢が変われば箱の形が変わる
+        setBoundingBox(makeBoundingBox());
         updateRenderSnapshot();
     }
 
@@ -822,42 +907,28 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         setRot(getYRot(), getXRot());
 
         // 水平方向は物理から、上下はサスペンションが決めた高さへの差分として渡す。
-        // move() に通すのは、壁や天井との衝突をバニラに任せるため
+        // 壁や天井との衝突は車体の箱で解く（moveHull）
         Vec3 velocity = new Vec3(
                 state.velocityX() * TICK_SECONDS,
                 state.height - getY(),
                 state.velocityZ() * TICK_SECONDS);
         setDeltaMovement(velocity);
-        double beforeX = getX();
-        double beforeZ = getZ();
-        move(MoverType.SELF, velocity);
+        HullMove hullMove = moveHull(velocity);
 
         double impact = 0.0;
         if (horizontalCollision) {
-            // 実際に動けたぶんから速度を取り直す。前後だけ 0 にすると、横滑り中に
-            // 壁を擦ったときに横速度だけが残って挙動がおかしくなる
-            double movedForward = ((getX() - beforeX) * state.forwardX()
-                    + (getZ() - beforeZ) * state.forwardZ()) / TICK_SECONDS;
-            double movedRight = ((getX() - beforeX) * state.rightX()
-                    + (getZ() - beforeZ) * state.rightZ()) / TICK_SECONDS;
-            // 衝撃の大きさは「出そうとした速度」と「実際に出た速度」の差。
-            // 速度を書き換える前に取ること
-            impact = Math.hypot(movedForward - state.forwardSpeed, movedRight - state.lateralSpeed);
-
-            CarEntity hit = findHitCar();
-            if (hit != null) {
+            CarHull.Motion motion = hullMove.motion();
+            if (hullMove.car() != null) {
+                // 衝撃は相手へ近づいていた速さ
+                CarEntity other = hullMove.car();
+                double closing = (state.velocityX() - other.worldVelocityX()) * motion.carNormalX
+                        + (state.velocityZ() - other.worldVelocityZ()) * motion.carNormalZ;
+                impact = Math.max(0.0, closing);
                 // 相手が車なら運動量のやりとりで決める（壁と違って相手も動く）
-                resolveCarImpact(hit);
-            } else {
-                state.forwardSpeed = movedForward;
-                state.lateralSpeed = movedRight;
-                // ぶつかったと分かる強さなら、壁に沿って残った勢いも削る。
-                // 正面から当たれば動けた量が 0 なので上の行だけで止まるが、掠めただけだと
-                // 壁と平行な成分がまるごと残り、擦りながら同じ速度で走り抜けられてしまう
-                if (impact >= IMPACT_MIN_SPEED) {
-                    state.forwardSpeed *= 1.0 - IMPACT_SPEED_LOSS;
-                    state.lateralSpeed *= 1.0 - IMPACT_SPEED_LOSS;
-                }
+                resolveCarImpact(other, motion);
+            }
+            if (motion.wallNormalX != 0.0 || motion.wallNormalZ != 0.0) {
+                impact = Math.max(impact, hitWall(motion.wallNormalX, motion.wallNormalZ));
             }
         }
         if (verticalCollision) {
@@ -881,29 +952,83 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
     }
 
     /**
-     * ぶつかった相手の車を探す。壁や地形なら null。
+     * 壁に当たった。<b>壁へ向かう速度だけを消す。</b>衝撃はその消した速さ。
      *
-     * <p>{@code move()} は「何に当たったか」を教えてくれないので、当たり判定の箱を少し
-     * 膨らませて重なっている車を拾う。<b>いちばん深く重なっているものを選ぶ</b>——3 台が
-     * 絡んだときに、掠めただけの相手を主たる衝突相手と取り違えないため。</p>
+     * <p><b>「実際に動けた距離 ÷ 時間」で速度を取り直してはいけない。</b>車体の箱は
+     * 傾いたり向きを変えたりした拍子に壁へめり込み、押し出されて戻る。その押し出しの距離まで
+     * 速度にすると、0.3m 押し戻されただけで 6m/s で弾かれたことになり、その勢いでまた
+     * 壁へ向かって押し出される——を毎ティック繰り返して、<b>衝突音が鳴りっぱなしになった</b>。
+     * 押し出しは位置の手直しであって、速度は壁の向きから決める。</p>
+     *
+     * <p>ぶつかったと分かる強さなら、壁に沿って残った勢いも削る。掠めただけだと
+     * 壁と平行な成分がまるごと残り、擦りながら同じ速度で走り抜けられてしまう。</p>
+     *
+     * @param nx 壁からこちらへ向かう水平の単位ベクトル
+     * @return 衝撃の大きさ [m/s]
      */
-    private CarEntity findHitCar() {
-        if (!CarRules.carCollision()) {
-            return null;
+    private double hitWall(double nx, double nz) {
+        double vx = state.velocityX();
+        double vz = state.velocityZ();
+        double into = vx * nx + vz * nz;
+        if (into >= 0.0) {
+            // 離れる向きに動いている（押し出されただけ）。速度は触らない
+            return 0.0;
         }
-        AABB box = getBoundingBox().inflate(CAR_CONTACT_MARGIN);
-        CarEntity best = null;
-        double deepest = 0.0;
-        for (CarEntity other : level().getEntitiesOfClass(CarEntity.class, box,
-                car -> car != this && !car.isRemoved() && !car.ghost)) {
-            AABB overlap = box.intersect(other.getBoundingBox());
-            double depth = Math.min(overlap.getXsize(), overlap.getZsize());
-            if (best == null || depth > deepest) {
-                best = other;
-                deepest = depth;
+        vx -= into * nx;
+        vz -= into * nz;
+        state.forwardSpeed = vx * state.forwardX() + vz * state.forwardZ();
+        state.lateralSpeed = vx * state.rightX() + vz * state.rightZ();
+        double impact = -into;
+        if (impact >= IMPACT_MIN_SPEED) {
+            state.forwardSpeed *= 1.0 - IMPACT_SPEED_LOSS;
+            state.lateralSpeed *= 1.0 - IMPACT_SPEED_LOSS;
+        }
+        return impact;
+    }
+
+    /** {@link #moveHull} の結果。当たった車（無ければ null）と、押し出しの中身。 */
+    private record HullMove(@Nullable CarEntity car, CarHull.Motion motion) {
+    }
+
+    /**
+     * 車体の箱（{@link CarHull}）で動かし、地形と他の車から押し出す。
+     *
+     * <p><b>バニラの {@code move()} は使わない。</b>あちらの箱は回らないので、傾いた車の
+     * 箱の角が段々の地形に刺さって止まる。車体の箱は車と一緒に傾き、下端がタイヤの
+     * 登れる高さにあるので、タイヤが登れる段差には当たらない。</p>
+     *
+     * <p>他の車は当たり判定のルール（{@link CarRules#carCollision()}）が許すときだけ見る。
+     * いちばん深く当たった車を返す——3 台が絡んだときに、掠めただけの相手を
+     * 主たる衝突相手と取り違えないため。</p>
+     */
+    private HullMove moveHull(Vec3 delta) {
+        CarHull hull = currentHull();
+        double[] from = hull.bounds();
+        AABB area = new AABB(from[0], from[1], from[2], from[3], from[4], from[5])
+                .expandTowards(delta).inflate(0.5);
+        List<double[]> blocks = new ArrayList<>();
+        for (VoxelShape shape : level().getBlockCollisions(this, area)) {
+            for (AABB box : shape.toAabbs()) {
+                blocks.add(new double[]{box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ});
             }
         }
-        return best;
+        List<CarEntity> cars = new ArrayList<>();
+        List<CarHull> hulls = new ArrayList<>();
+        if (CarRules.carCollision()) {
+            // 相手のバニラの箱は車体の箱より小さいので、広めに探す
+            for (CarEntity other : level().getEntitiesOfClass(CarEntity.class, area.inflate(3.0),
+                    car -> car != this && !car.isRemoved() && !car.ghost)) {
+                cars.add(other);
+                hulls.add(other.currentBody());
+            }
+        }
+        CarHull.Motion motion = hull.move(delta.x, delta.y, delta.z, blocks, currentBody(), hulls);
+        setPos(getX() + motion.x, getY() + motion.y, getZ() + motion.z);
+        horizontalCollision = motion.horizontal;
+        verticalCollision = motion.vertical;
+        // バニラの move() がしていた、踏んだブロックへの通知（感圧板・ポータルなど）
+        checkInsideBlocks();
+        return new HullMove(motion.car >= 0 ? cars.get(motion.car) : null, motion);
     }
 
     /**
@@ -915,35 +1040,18 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * いるのはそれぞれの運転クライアントなので、ここで相手を動かしても次のティックに
      * 上書きされてしまう。</p>
      *
-     * <p>当たった向きは<b>重なりの浅い軸</b>で決める。箱は回らないので世界軸のどちらかになるが、
-     * {@code move()} が実際に止めた軸と一致する。接触点が相手の重心から離れていれば
-     * その腕の長さぶんヨーのモーメントになるので、<b>側面に当てれば相手は回る</b>。</p>
+     * <p>当たった向きと接触点は車体の箱が押し出したときのもの（{@link CarHull.Motion}）。
+     * 接触点が相手の重心から離れていればその腕の長さぶんヨーのモーメントになるので、
+     * <b>側面に当てれば相手は回る</b>。</p>
      *
-     * <p>速度は「出そうとした速度」から解く。{@code move()} が既に壁と同じように
+     * <p>速度は「出そうとした速度」から解く。{@link #moveHull} が既に壁と同じように
      * 止めてしまっているが、車同士では止まるのが正しいとは限らない（弾かれる）。</p>
      */
-    private void resolveCarImpact(CarEntity other) {
-        AABB a = getBoundingBox();
-        AABB b = other.getBoundingBox();
-        // 重なりの浅い軸が衝突の向き。深く食い込んでいる軸ではない
-        double overlapX = Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX);
-        double overlapZ = Math.min(a.maxZ, b.maxZ) - Math.max(a.minZ, b.minZ);
-        double nx;
-        double nz;
-        if (overlapX <= overlapZ) {
-            nx = Math.signum(other.getX() - getX());
-            nz = 0.0;
-        } else {
-            nx = 0.0;
-            nz = Math.signum(other.getZ() - getZ());
-        }
-        if (nx == 0.0 && nz == 0.0) {
-            return;
-        }
-
-        // 接触点は重なっている範囲の中心。相手の重心から外れていればヨーも動く
-        double contactX = (Math.max(a.minX, b.minX) + Math.min(a.maxX, b.maxX)) / 2.0;
-        double contactZ = (Math.max(a.minZ, b.minZ) + Math.min(a.maxZ, b.maxZ)) / 2.0;
+    private void resolveCarImpact(CarEntity other, CarHull.Motion motion) {
+        double nx = motion.carNormalX;
+        double nz = motion.carNormalZ;
+        double contactX = motion.contactX;
+        double contactZ = motion.contactZ;
 
         // state はまだ「出そうとした速度」のまま（車が相手のときは move() の結果で
         // 上書きしていない）。壁と違って、止まるのが正しいとは限らないため
