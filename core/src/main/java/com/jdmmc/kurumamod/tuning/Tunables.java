@@ -68,14 +68,21 @@ public final class Tunables {
 
     public static final List<Group> GROUPS = List.of(
             new Group("suspension", List.of(
-                    // バネとバンプストップは荷重とストロークから決まるので、ここには無い
+                    // バネとバンプストップは荷重・ストローク・沈み込み率から決まるので、N/m の項目は無い
                     // （ダンパーは減衰比を次のタブで持ち、係数はバネに追従する）。
-                    // 硬さを変えたいときはストロークを動かす（沈み込みの割合が一定なので、
-                    // 短くすればそのぶん硬く、長くすれば柔らかくなる）
-                    TunableParameter.linear("stroke", 15, 80, "%.0f",
+                    // ストロークを短くすれば沈み込み率のぶんだけ硬く、長くすれば柔らかくなる
+                    TunableParameter.linear("stroke", 15, 100, "%.0f",
                                     CarSpec::suspensionMaxLength, CarSpec.Builder::suspensionMaxLength)
                             .unit(0.01)
                             .detail(Tunables::springs),
+                    // 沈み込み率。停車時にストロークの何 % 沈むか。<b>N/m で持たない</b>のは、
+                    // 車重を変えると沈み込みがストロークを超える組み合わせが作れてしまうため。
+                    // 大きいほど柔らかく、伸び側（段差でタイヤが下へ追いかける量）が増えて車高は下がる。
+                    // オフロードは大きく、舗装路は小さく
+                    TunableParameter.linear("static_sag", 20, 70, "%.0f",
+                                    CarSpec::staticSag, CarSpec.Builder::staticSag)
+                            .unit(0.01)
+                            .detail(Tunables::sagTravel),
                     // スタビはバネと違って左右逆に動くときだけ効くので、沈み込みも
                     // ノーズダイブも変えずにロールだけ締められる。0 で無し。
                     // 見せる補足がロール剛性の前後配分なのは、ロール量より
@@ -540,6 +547,15 @@ public final class Tunables {
                 String.format("%.0f", spec.frontSuspensionStiffness()),
                 String.format("%.0f", spec.rearSuspensionStiffness()),
                 String.format("%.1f", spec.staticWheelLoad(Wheel.FRONT_LEFT) / spec.frontSuspensionStiffness() * 100.0));
+    }
+
+    /** 沈み込み率から決まる、伸び側と縮み側の残りと車高。 */
+    private static Object sagTravel(CarSpec spec) {
+        double sag = spec.staticSag() * spec.suspensionMaxLength();
+        return detail("sag_travel",
+                String.format("%.0f", sag * 100.0),
+                String.format("%.0f", (spec.suspensionMaxLength() - sag) * 100.0),
+                String.format("%.0f", spec.staticRideHeight() * 100.0));
     }
 
     /** 車重と寸法から決まる慣性モーメント（ヨー／ピッチ／ロール）。 */

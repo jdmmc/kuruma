@@ -32,6 +32,8 @@ package com.jdmmc.kurumamod.physics;
  * @param weightBias           前軸が受け持つ静的荷重の割合。0.5 で前後中央、大きいほど前が重い
  * @param wheelRadius          タイヤ半径 [m]
  * @param suspensionMaxLength  サスペンションの伸びきり長（ハードポイントから車軸まで） [m]
+ * @param staticSag            停車時の沈み込みがストロークの何割か（沈み込み率）。バネの硬さはここから決まる。
+ *                             大きいほど柔らかく、伸び側（タイヤが下へ追いかける量）が増える
  * @param frontAntiRollStiffness 前輪のスタビライザー [N/m]。左右のサス変位の差に掛ける
  * @param rearAntiRollStiffness  後輪のスタビライザー [N/m]。同上
  * @param frontRollCenter      前軸のロールセンター高。<b>重心高に対する割合</b>。0 で地面（すべての荷重移動がバネを通る）。
@@ -98,6 +100,7 @@ public record CarSpec(
         double weightBias,
         double wheelRadius,
         double suspensionMaxLength,
+        double staticSag,
         double frontAntiRollStiffness,
         double rearAntiRollStiffness,
         double frontRollCenter,
@@ -202,15 +205,6 @@ public record CarSpec(
     // ここから下は「他の諸元が決まれば決まる値」を作るための比。どれも
     // 単位を持たない（あるいは 1 つの寸法あたりの量）ので、車の大小に依らない。
     // ------------------------------------------------------------------
-
-    /**
-     * 停車時の沈み込みがストロークの何割か。バネ定数はここから決まる。
-     *
-     * <p>4 割弱。これより柔らかいとバンプストップに乗ったまま走ることになり、
-     * 硬いとストロークを使いきれない。<b>車重にも荷重配分にも依らない</b>ので、
-     * 車重を変えてもバネが追従し、沈み込みと固有振動数は前後で揃ったままになる。</p>
-     */
-    private static final double STATIC_SAG_RATIO = 0.3924;
 
     /** バンプストップが停車時荷重ぶんを受け止めるまでの縮み [m]。 */
     private static final double BUMP_STOP_TRAVEL = 0.015;
@@ -628,14 +622,14 @@ public record CarSpec(
     /**
      * その輪のバネ定数 [N/m]。
      *
-     * <p><b>停車時の沈み込みがストロークの一定割合になる硬さ</b>として決まる。バネは
+     * <p><b>停車時の沈み込みがストロークの一定割合（{@link #staticSag}）になる硬さ</b>として決まる。バネは
      * 「何 N/m か」より「どれだけ沈むか」で性格が決まるうえ、独立に持つと
      * <b>車重や荷重配分を変えたときに追従せず、前下がりになったり底付きしたりする</b>。
      * この形にしておくと、荷重に比例して硬さが動くので沈み込みも固有振動数も前後で揃い、
      * 車重を 2 倍にしても姿勢が変わらない。</p>
      */
     public double suspensionStiffness(Wheel wheel) {
-        return staticWheelLoad(wheel) / (STATIC_SAG_RATIO * suspensionMaxLength);
+        return staticWheelLoad(wheel) / (staticSag * suspensionMaxLength);
     }
 
     /** 前輪のバネ定数 [N/m]。 */
@@ -707,7 +701,7 @@ public record CarSpec(
      * 停車時に落ち着くサスペンションの長さ [m]。
      *
      * <p>バネを荷重から決めているので、沈み込みは常にストロークの
-     * {@link #STATIC_SAG_RATIO} 倍。前後で揃うので停車中に車体は傾かない。</p>
+     * {@link #staticSag} 倍。前後で揃うので停車中に車体は傾かない。</p>
      */
     public double staticSuspensionLength(Wheel wheel) {
         return suspensionMaxLength - staticWheelLoad(wheel) / suspensionStiffness(wheel);
@@ -1147,6 +1141,10 @@ public record CarSpec(
         // バネを決めているので、短くすればバネもダンパーも比例して硬くなる
         // （30cm で 28,000/22,000N/m・固有振動数 1.45Hz。ここを 15cm にすると 56,000N/m 相当）
         private double suspensionMaxLength = 0.30;
+        // 停車時の沈み込みがストロークの何割か。4 割弱。これより柔らかいとバンプストップに
+        // 乗ったまま走ることになり、硬いと伸び側が足りずに段差でタイヤが浮く。
+        // 車重にも荷重配分にも依らないので、車重を変えても沈み込みと固有振動数は前後で揃う
+        private double staticSag = 0.3924;
         // スタビライザー。左右のサス変位の差に掛ける（左右が同じだけ沈む動きには効かない）。
         // バネを緩めた状態でロール量と前後バランスを別々に決めるための装置で、
         // 前を強くするとアンダー、後ろを強くするとオーバーになる
@@ -1271,6 +1269,7 @@ public record CarSpec(
             weightBias = spec.weightBias;
             wheelRadius = spec.wheelRadius;
             suspensionMaxLength = spec.suspensionMaxLength;
+            staticSag = spec.staticSag;
             frontAntiRollStiffness = spec.frontAntiRollStiffness;
             rearAntiRollStiffness = spec.rearAntiRollStiffness;
             frontRollCenter = spec.frontRollCenter;
@@ -1354,6 +1353,11 @@ public record CarSpec(
 
         public Builder suspensionMaxLength(double value) {
             suspensionMaxLength = value;
+            return this;
+        }
+
+        public Builder staticSag(double value) {
+            staticSag = value;
             return this;
         }
 
@@ -1672,7 +1676,7 @@ public record CarSpec(
 
         public CarSpec build() {
             return new CarSpec(
-                    wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength,
+                    wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength, staticSag,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     frontRollCenter, rearRollCenter,
                     frontBumpDamping, frontReboundDamping, rearBumpDamping, rearReboundDamping,

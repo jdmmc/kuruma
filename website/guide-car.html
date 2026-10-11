@@ -1870,13 +1870,14 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
-<tr><td><code>stroke</code></td><td>ストローク</td><td>m</td><td>0.3</td><td>0.15 – 0.8</td></tr>
+<tr><td><code>stroke</code></td><td>ストローク</td><td>m</td><td>0.3</td><td>0.15 – 1.0</td></tr>
+<tr><td><code>static_sag</code></td><td>沈み込み率（バネの硬さ）</td><td>割合</td><td>0.3924</td><td>0.2 – 0.7</td></tr>
 <tr><td><code>front_anti_roll</code></td><td>フロント スタビライザー</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
 <tr><td><code>rear_anti_roll</code></td><td>リア スタビライザー</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
 <tr><td><code>front_roll_center</code></td><td>フロント ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
 <tr><td><code>rear_roll_center</code></td><td>リア ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
 </table>
-<p class="ja"><b>足を硬くしたいときは <code>stroke</code> を短くします。</b>沈み込みがストロークの 39.2% で固定なので、短いほどバネが硬くなり、ダンパーの係数もそれに合わせて上がります。</p>
+<p class="ja"><b>バネの硬さは N/m ではなく <code>static_sag</code>（停車時にストロークの何割沈むか）で書きます。</b>バネ定数は車重とストロークからこの割合になるよう KurumaMod が計算するので、<code>mass</code> を変えても車高は変わりません。大きいほど柔らかく、段差でタイヤが下へ伸びる余裕が増えて車高が下がります（オフロード車は 0.5 前後）。小さいほど硬くなります。<code>stroke</code> を短くしてもバネは硬くなり、ダンパーの係数もそれに合わせて上がります。</p>
 <h4 class="ja">ダンパー</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -1982,13 +1983,14 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h4 class="en">Suspension</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
-<tr><td><code>stroke</code></td><td>Travel</td><td>m</td><td>0.3</td><td>0.15 – 0.8</td></tr>
+<tr><td><code>stroke</code></td><td>Travel</td><td>m</td><td>0.3</td><td>0.15 – 1.0</td></tr>
+<tr><td><code>static_sag</code></td><td>Spring sag</td><td>fraction</td><td>0.3924</td><td>0.2 – 0.7</td></tr>
 <tr><td><code>front_anti_roll</code></td><td>Front anti-roll bar</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
 <tr><td><code>rear_anti_roll</code></td><td>Rear anti-roll bar</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
 <tr><td><code>front_roll_center</code></td><td>Front roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
 <tr><td><code>rear_roll_center</code></td><td>Rear roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
 </table>
-<p class="en"><b>To stiffen the suspension, shorten <code>stroke</code>.</b> Static sag is fixed at 39.2% of the stroke, so a shorter stroke means stiffer springs, and the damper coefficients rise with them.</p>
+<p class="en"><b>Set spring stiffness with <code>static_sag</code> (the fraction of the stroke the car sinks at rest), not N/m.</b> KurumaMod works out the spring rate from the mass and stroke to hit that fraction, so changing <code>mass</code> keeps the ride height. Higher is softer: more droop to follow the ground over steps, and a lower ride (off-roaders sit around 0.5). Lower is stiffer. A shorter <code>stroke</code> also stiffens the springs, and the damper coefficients rise with them.</p>
 <h4 class="en">Dampers</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
@@ -2098,7 +2100,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <p class="en"><b>Values that follow from other values are silently dropped.</b> KurumaMod computes them.</p>
 <table class="ja">
 <tr><th>決まるもの</th><th>何から</th></tr>
-<tr><td>バネ・バンプストップ・ダンパーの係数（減衰比は付録 A）</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>バネ・バンプストップ・ダンパーの係数（減衰比は付録 A）</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code> / <code>static_sag</code></td></tr>
 <tr><td>重心高</td><td>停車時の車高</td></tr>
 <tr><td>慣性モーメント 3 つ</td><td><code>mass</code> と <code>wheel_base</code> / <code>track_width</code></td></tr>
 <tr><td>車輪の慣性・登坂できる段差・終減速比</td><td><code>wheel_radius</code></td></tr>
@@ -2108,7 +2110,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </table>
 <table class="en">
 <tr><th>Derived</th><th>From</th></tr>
-<tr><td>Springs, bump stops, damper coefficients (the ratios are in Appendix A)</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>Springs, bump stops, damper coefficients (the ratios are in Appendix A)</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code> / <code>static_sag</code></td></tr>
 <tr><td>Centre of gravity height</td><td>Static ride height</td></tr>
 <tr><td>All three moments of inertia</td><td><code>mass</code> with <code>wheel_base</code> / <code>track_width</code></td></tr>
 <tr><td>Wheel inertia, climbable step, final drive</td><td><code>wheel_radius</code></td></tr>
