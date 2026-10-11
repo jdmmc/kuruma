@@ -92,3 +92,10 @@ if (menuBtn) {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
   document.addEventListener('click', e => { if (!bar.contains(e.target)) setOpen(false); });
 }
+
+// スクロールしたらヘッダーに黒い帯を敷く（写真の上では透明）
+if (bar) {
+  const onScroll = () => bar.classList.toggle('scrolled', window.scrollY > 8);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}

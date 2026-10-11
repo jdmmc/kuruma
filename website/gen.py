@@ -65,19 +65,20 @@ HEADER = f"""<header class="bar">
     <nav class="menu" aria-label="Main">
       <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
       <div class="menu-links" id="menu-links">
-        <a href="index.html#cars">{T("Cars", "車種")}</a>
+        <a href="index.html">{T("Home", "トップ")}</a>
+        <a href="start.html">{T("Get started", "はじめかた")}</a>
         <a href="features.html">{T("Features", "特徴")}</a>
         <a href="compare.html">{T("Compare", "比較")}</a>
-        <a href="start.html">{T("Get started", "はじめかた")}</a>
         <a href="guide.html">{T("Car Pack Guide", "作成ガイド")}</a>
       </div>
     </nav>
     <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
     <div class="tools">
       <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
-        <span data-l="en">日本語</span><span data-l="ja">English</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9s1.3-6.4 3.9-9z"/></svg>
+        <span class="lang-t" data-l="en">日本語</span><span class="lang-t" data-l="ja">English</span>
       </button>
-      <a class="dl" href="start.html#download">{T("Download", "ダウンロード")}</a>
+      <a class="dl" href="start.html#download" aria-label="Download / ダウンロード"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="dl-t">{T("Download", "ダウンロード")}</span></a>
     </div>
   </div>
 </header>
