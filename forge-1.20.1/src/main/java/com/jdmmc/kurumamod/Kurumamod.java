@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod;
 
+import com.jdmmc.kurumamod.client.CarIcons;
 import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
 import com.jdmmc.kurumamod.client.CarPartModel;
@@ -231,6 +232,7 @@ public class Kurumamod {
                 CarSoundSet.clearReports();
                 CarPartModel.clearCache();
                 CarPresets.clearCache();
+                CarIcons.clearCache();
             });
         }
     }

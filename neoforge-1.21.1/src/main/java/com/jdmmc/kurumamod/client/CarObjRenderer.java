@@ -171,9 +171,82 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         return ghostPass == null ? KurumaRenderTypes.glass(texture) : solid(texture);
     }
 
-    /** GPU に置いたメッシュで描くか。ゴーストは頂点を積んで描く（α を掛けられるのはそちらだけ）。 */
+    /**
+     * GPU に置いたメッシュで描くか。ゴーストは頂点を積んで描く（α を掛けられるのはそちらだけ）。
+     * アイコンも頂点を積む（{@link CarMeshes} はその場で描いてしまい、積む先の束と順番が揃わないため）。
+     */
     private boolean meshes() {
-        return ghostPass == null && CarMeshes.enabled();
+        return ghostPass == null && !icon && CarMeshes.enabled();
+    }
+
+    /** アイテムのアイコンとして描いている最中か（{@link #renderIcon}）。 */
+    private boolean icon;
+
+    /**
+     * アイテムのアイコンとして描く（{@link CarIcons} が画像に焼く）。姿勢は掛けず、エンティティの
+     * 原点（重心・シャシー基準面）を中心に「+X 右・+Y 上・-Z 前」の向きのまま描く。
+     *
+     * <p>車は {@link CarEntity#becomeIcon} で用意したもの。描くのは車体・タイヤ・ガラスだけで、
+     * 路面の照り返しや光の筋、当たり判定の箱、名前タグは描かない。</p>
+     */
+    public void renderIcon(CarEntity car, PoseStack pose, MultiBufferSource buffer, int packedLight) {
+        CarModel model = CarModel.get(car.getCarId());
+        CarSpec spec = car.getSpec();
+        icon = true;
+        try {
+            renderBody(car, model, spec, pose, buffer, packedLight, 0);
+            renderWheels(car, model, spec, pose, buffer, packedLight, 1.0F, 0);
+            renderGlass(car, model, spec, pose, buffer, packedLight);
+        } finally {
+            icon = false;
+        }
+    }
+
+    /**
+     * {@link #renderIcon} で描くものを囲む箱 {minX, minY, minZ, maxX, maxY, maxZ}（同じ座標系）。
+     * 車体のメッシュの箱と、4 本のタイヤの位置と大きさを合わせたもの。
+     */
+    public static double[] iconBounds(CarEntity car) {
+        CarModel model = CarModel.get(car.getCarId());
+        CarSpec spec = car.getSpec();
+        double[] box = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
+                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+
+        // 車体。描くときと同じ変換（applyBodyTransform）を 8 隅に掛ける
+        double[] mesh = ObjModel.get(model.bodyModel()).bounds();
+        PoseStack pose = new PoseStack();
+        applyBodyTransform(model, spec, pose);
+        org.joml.Matrix4f matrix = pose.last().pose();
+        for (int corner = 0; corner < 8; corner++) {
+            org.joml.Vector3f point = matrix.transformPosition(new org.joml.Vector3f(
+                    (float) mesh[(corner & 1) == 0 ? 0 : 3],
+                    (float) mesh[(corner & 2) == 0 ? 1 : 4],
+                    (float) mesh[(corner & 4) == 0 ? 2 : 5]));
+            include(box, point.x(), point.y(), point.z());
+        }
+
+        // タイヤ。太さは半径の半分を見込む（車体からはみ出すのは外側だけ）
+        CarModel.Vec3 offset = CarPartModel.wheelOf(model, car.getEffectiveFitment()).offset();
+        double radius = spec.wheelRadius();
+        for (Wheel wheel : Wheel.VALUES) {
+            double outward = wheel.isLeft() ? -offset.x() : offset.x();
+            double x = spec.wheelRightOffset(wheel) + outward;
+            double y = -car.getRenderSuspensionLength(wheel, 1.0F) + offset.y();
+            double z = -spec.wheelForwardOffset(wheel) + offset.z();
+            double side = Math.signum(x) * radius * 0.5;
+            include(box, x + side, y - radius, z - radius);
+            include(box, x, y + radius, z + radius);
+        }
+        return box;
+    }
+
+    private static void include(double[] box, double x, double y, double z) {
+        box[0] = Math.min(box[0], x);
+        box[1] = Math.min(box[1], y);
+        box[2] = Math.min(box[2], z);
+        box[3] = Math.max(box[3], x);
+        box[4] = Math.max(box[4], y);
+        box[5] = Math.max(box[5], z);
     }
 
     /**

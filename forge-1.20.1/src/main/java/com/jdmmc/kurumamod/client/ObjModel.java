@@ -564,6 +564,28 @@ public final class ObjModel {
         return radialRange.clone();
     }
 
+    /**
+     * メッシュ全体を囲む箱 {minX, minY, minZ, maxX, maxY, maxZ}（メッシュの座標のまま）。
+     * 面が無ければすべて 0。アイテムのアイコンで車を枠へ収めるのに使う。
+     */
+    public double[] bounds() {
+        if (bounds == null) {
+            double[] box = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
+                    Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+            for (int offset = 0; offset < faceCount * FACE_FLOATS; offset += STRIDE) {
+                for (int axis = 0; axis < 3; axis++) {
+                    box[axis] = Math.min(box[axis], vertices[offset + axis]);
+                    box[axis + 3] = Math.max(box[axis + 3], vertices[offset + axis]);
+                }
+            }
+            bounds = faceCount > 0 ? box : new double[6];
+        }
+        return bounds.clone();
+    }
+
+    /** {@link #bounds} の答え。メッシュから決まるので 1 度だけ測る。 */
+    private double[] bounds;
+
     /** タイヤ以外に透ける面があるか。 */
     public boolean hasTranslucentRim() {
         return translucentRimFaces.length > 0;
