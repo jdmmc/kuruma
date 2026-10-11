@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Car Pack Guide | KurumaMod</title>
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="Car Pack Guide | KurumaMod" data-title-ja="カーパック作成ガイド | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <span data-l="en">日本語</span><span data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+    </div>
+  </div>
+</header>
+
+<section class="ghero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span></div>
+    <h1><span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span></h1>
+    <p><span data-l="en">From a mesh in Blender to a car you can drive in Minecraft. No Java, and no Blender experience needed.</span><span data-l="ja">Blender で作った車を、Minecraft の中で走らせるまで。Java も Blender の経験も要りません。</span></p>
+    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html" aria-current="page"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-common.html"><span data-l="en">Common</span><span data-l="ja">共通</span></a></nav>
+  </div>
+</section>
+
+<div class="wrap glayout solo">
+  
+  <div class="gdoc"><section class="gsec" id="home">
+<h2 class="ja">何を作りますか？</h2>
+<h2 class="en">What are you making?</h2>
+<p class="ja">作りたいものを選んでください。どのページにも出てくる手順（Blender の基本、jar に固めて配る、確かめかた）は「共通」にまとめてあります。</p>
+<p class="en">Pick what you want to make. Steps that every page needs (Blender basics, packing a jar, checking it in game) live under "Common".</p>
+<div class="cards">
+  <a class="card" href="guide-car.html">
+    <span class="card-t ja">車を作る</span><span class="card-t en">Make a car</span>
+    <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
+    <span class="card-d en">Body model, lights, glass and mirrors, file layout and JSON, sounds, the spec (how it drives)</span>
+  </a>
+  <a class="card" href="guide-wheel.html">
+    <span class="card-t ja">ホイールを作る</span><span class="card-t en">Make a wheel</span>
+    <span class="card-d ja">タイヤのモデルと、換装画面で選べるホイール部品にする方法</span>
+    <span class="card-d en">The wheel model, and turning it into a wheel part players can pick in the parts screen</span>
+  </a>
+  <a class="card" href="guide-parts.html">
+    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
+    <span class="card-d ja">ターボとブローオフバルブ（モデルは要りません）、外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）</span>
+    <span class="card-d en">Turbos and blow-off valves (no model needed), body parts such as aero and fenders, and exhausts (added as objects inside the car model)</span>
+  </a>
+  <a class="card card-common" href="guide-common.html">
+    <span class="card-t ja">共通</span><span class="card-t en">Common</span>
+    <span class="card-d ja">このガイドについて、全体像、Blender の基本、jar に固めて配る、確認、症状別の直しかた、チェックリスト、座標系と用語</span>
+    <span class="card-d en">About this guide, the whole picture, Blender basics, packing and shipping a jar, checking, troubleshooting, checklists, axes and glossary</span>
+  </a>
+</div>
+</section></div>
+</div>
+
+<section class="mist">
+  <div class="wrap">
+    <h2 class="title"><span data-l="en">Start from the example</span><span data-l="ja">見本から始める</span></h2>
+    <p class="lead"><span data-l="en">The Example Car Pack has a sample car and two wheels. Copy it, rename it, and make it yours. No credit required.</span><span data-l="ja">Example Car Pack には、サンプルの車とホイールが 2 つ入っています。コピーして名前を変えれば、あなたのパックの土台になります。クレジット表記は不要です。</span></p>
+    <div class="cta-row"><a class="btn arrow" href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack"><span data-l="en">Example Car Pack on CurseForge</span><span data-l="ja">Example Car Pack（CurseForge）</span></a><a class="btn outline" href="https://discord.gg/q3YNqaveRd"><span data-l="en">Ask on Discord</span><span data-l="ja">Discord で質問する</span></a></div>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

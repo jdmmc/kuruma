@@ -1,0 +1,128 @@
+/* カーパック作成ガイド。中身はリポジトリの PACK_CREATE_GUIDE.html をそのまま使い、見た目だけサイトに合わせる。
+   ガイドのクラス名（steps・note・card など）はサイトのものと重なるので、すべて .gdoc の下に閉じ込める */
+
+/* ガイドは class="ja" / class="en" で言語を持っている */
+:root:not([data-lang="ja"]) .gdoc .ja, :root[data-lang="ja"] .gdoc .en { display: none !important; }
+
+/* 見出しの帯（写真の代わりに黒い面） */
+.ghero { background: var(--black); color: var(--white); padding-block: 150px 0; }
+.ghero h1 { font-family: var(--f-latin), var(--f-ja); font-weight: 500; font-stretch: 85%; font-size: clamp(44px, 7vw, 96px); letter-spacing: -.01em; line-height: 1; margin: 10px 0 16px; }
+:root[data-lang="ja"] .ghero h1 { font-family: var(--f-ja); font-weight: 500; letter-spacing: 0; font-size: clamp(36px, 5.4vw, 72px); }
+.ghero p { margin: 0; max-width: 40em; color: #b0b2b7; font-size: 17px; font-weight: 300; }
+.gtabs { display: flex; gap: 2px; margin-top: 44px; overflow-x: auto; scrollbar-width: none; }
+.gtabs a { padding: 14px 22px; font-size: 15px; color: #b0b2b7; border-bottom: 2px solid transparent; white-space: nowrap; }
+.gtabs a:hover { color: var(--white); }
+.gtabs a[aria-current="page"] { color: var(--white); border-bottom-color: var(--white); }
+
+/* 目次と本文 */
+.glayout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: clamp(32px, 5vw, 88px); align-items: start; padding-block: 56px 96px; }
+.glayout.solo { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1000px) { .glayout { grid-template-columns: minmax(0, 1fr); } }
+.gtoc { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow: auto; font-size: 14px; display: grid; gap: 2px; padding-right: 8px; }
+.gtoc .tt { font-size: 12px; color: var(--grey); letter-spacing: .08em; margin-bottom: 10px; }
+.gtoc a { padding: 7px 12px; border-left: 2px solid var(--line); color: var(--grey); line-height: 1.45; }
+.gtoc a:hover { color: var(--black); border-left-color: var(--black); }
+@media (max-width: 1000px) { .gtoc { position: static; max-height: none; border-bottom: 1px solid var(--line); padding-bottom: 24px; } }
+
+.gdoc { min-width: 0; max-width: 860px; font-size: 16px; line-height: 1.8; }
+:root[data-lang="ja"] .gdoc { line-height: 1.9; }
+.gdoc .gsec { padding: 0 0 72px; scroll-margin-top: 24px; }
+.gdoc .gsec + .gsec { border-top: 1px solid var(--line); padding-top: 56px; }
+.gdoc [id] { scroll-margin-top: 24px; }
+.gdoc h2 { font-family: var(--f-latin), var(--f-ja); font-size: clamp(28px, 3.2vw, 40px); font-weight: 400; letter-spacing: -.01em; line-height: 1.2; margin: 0 0 24px; text-wrap: balance; }
+:root[data-lang="ja"] .gdoc h2 { font-family: var(--f-ja); letter-spacing: 0; word-break: auto-phrase; }
+.gdoc h2 .num { display: block; font-family: var(--f-latin); font-size: 14px; font-weight: 500; color: var(--grey); letter-spacing: .08em; margin-bottom: 10px; }
+.gdoc h3 { font-size: 21px; font-weight: 500; margin: 44px 0 12px; }
+.gdoc h4 { font-size: 16px; font-weight: 500; margin: 28px 0 10px; color: var(--grey); }
+.gdoc p { margin: 0 0 16px; }
+.gdoc ul, .gdoc ol { margin: 0 0 18px; padding-left: 1.3em; }
+.gdoc li { margin: 0 0 8px; }
+.gdoc li > ul, .gdoc li > ol { margin-top: 8px; }
+.gdoc a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
+.gdoc a:hover { text-decoration-color: var(--black); }
+.gdoc b { font-weight: 600; }
+.gdoc .sub, .gdoc .lead-in { color: var(--grey); }
+
+.gdoc code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .86em; background: var(--mist); padding: .12em .4em; border-radius: 3px; }
+.gdoc pre { background: var(--black); color: #e8e9ec; border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 0 0 20px; line-height: 1.6; }
+.gdoc pre code { background: none; padding: 0; color: inherit; font-size: 13.5px; }
+.gdoc kbd { font-family: var(--f-latin); font-size: .82em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: .1em .45em; background: var(--white); white-space: nowrap; }
+
+/* 表：枠線は横だけ */
+.gdoc table { border-collapse: collapse; width: 100%; margin: 0 0 24px; font-size: 14.5px; display: block; overflow-x: auto; }
+.gdoc th, .gdoc td { border-bottom: 1px solid var(--line); padding: 11px 14px 11px 0; text-align: left; vertical-align: top; line-height: 1.6; }
+.gdoc th { font-weight: 500; color: var(--grey); white-space: nowrap; border-bottom: 2px solid var(--black); font-size: 13px; }
+.gdoc #sc td:not(:last-child), .gdoc #sd td:not(:last-child), .gdoc #se td:not(:last-child) { white-space: nowrap; }
+
+/* 手順（サイトの .steps カードとは別物） */
+.gdoc ol.steps { display: block; list-style: decimal; padding-left: 1.6em; margin: 0 0 20px; counter-reset: none; }
+.gdoc ol.steps > li { display: list-item; background: none; border-radius: 0; padding: 0; margin: 0 0 12px; }
+.gdoc ol.steps > li::before { content: none; }
+.gdoc .where { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; line-height: 1.6; padding: 0 8px; border-radius: 3px; margin-right: 8px; vertical-align: 2px; border: 1px solid transparent; }
+.gdoc .where-blender { background: #fdebd8; color: #8a4508; }
+.gdoc .where-file { background: #e3eaf5; color: #284a78; }
+.gdoc .where-lang { background: #e4f1e7; color: #2b6237; }
+.gdoc .where-game { background: #ece4f4; color: #553673; }
+
+/* 囲み */
+.gdoc .box { border-radius: 8px; padding: 18px 22px; margin: 0 0 22px; background: var(--mist); border: 0; border-left: 3px solid var(--black); }
+.gdoc .box p:last-child, .gdoc .box ul:last-child { margin-bottom: 0; }
+.gdoc .box .lbl { font-weight: 600; font-size: 12px; letter-spacing: .08em; display: block; margin-bottom: 6px; }
+.gdoc .box.warn { border-left-color: #b3261e; background: #fbeeed; }
+.gdoc .box.warn .lbl { color: #b3261e; }
+.gdoc .box.tip { border-left-color: #2c6642; }
+.gdoc .box.tip .lbl { color: #2c6642; }
+.gdoc .box.note { font-size: inherit; color: inherit; max-width: none; margin-top: 0; }
+
+/* 「必要なときだけ」の折りたたみ */
+.gdoc details.more { border-top: 1px solid var(--line); margin: 0; }
+.gdoc details.more:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+.gdoc details.more > summary { cursor: pointer; padding: 16px 0; font-weight: 500; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.gdoc details.more > summary::-webkit-details-marker { display: none; }
+.gdoc details.more > summary::after { content: "+"; font-family: var(--f-latin); font-size: 22px; line-height: 1; color: var(--grey); }
+.gdoc details.more[open] > summary::after { content: "−"; }
+.gdoc details.more > summary:hover { color: var(--grey); }
+.gdoc details.more > .more-body { padding: 0 0 12px; }
+
+/* 図 */
+.gdoc figure { margin: 0 0 28px; background: var(--mist); border-radius: 12px; padding: 22px; }
+.gdoc figure svg { display: block; width: 100%; height: auto; }
+.gdoc figure img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.gdoc figcaption { font-size: 13px; color: var(--grey); margin-top: 12px; }
+.gdoc .anno { position: relative; }
+.gdoc .anno > svg.anno-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+.gdoc .an-line { stroke: #ff8a1f; stroke-width: 3.5; }
+.gdoc .an-dot { fill: #ff8a1f; stroke: #fff; stroke-width: 2.5; }
+.gdoc .an-box { fill: rgba(255,255,255,.94); stroke: #ff8a1f; stroke-width: 2.5; }
+.gdoc .an-text { font-size: 25px; font-weight: 700; fill: #1d1b18; font-family: var(--f-latin), var(--f-ja); }
+.gdoc .f-line { fill: none; stroke: #8b8d92; stroke-width: 1.6; }
+.gdoc .f-body { fill: var(--line); stroke: var(--black); stroke-width: 2; stroke-linejoin: round; }
+.gdoc .f-wheel { fill: none; stroke: var(--black); stroke-width: 2.2; }
+.gdoc .f-dash { fill: none; stroke: var(--black); stroke-width: 1.6; stroke-dasharray: 6 5; }
+.gdoc .f-thin { fill: none; stroke: #8b8d92; stroke-width: 1.1; }
+.gdoc .f-acc { fill: none; stroke: var(--black); stroke-width: 2; }
+.gdoc .f-accf { fill: var(--black); }
+.gdoc .f-t { fill: var(--black); font-size: 13px; font-family: var(--f-latin), var(--f-ja); }
+.gdoc .f-td { fill: var(--grey); font-size: 12px; font-family: var(--f-latin), var(--f-ja); }
+.gdoc .f-ta { fill: var(--black); font-size: 12.5px; font-weight: 700; font-family: var(--f-latin), var(--f-ja); }
+.gdoc .f-box { fill: var(--white); stroke: #8b8d92; stroke-width: 1.6; }
+.gdoc svg.wide text { font-size: 17px; }
+.gdoc svg.wide .f-td, .gdoc svg.wide .f-ta { font-size: 16px; }
+.gdoc svg.narrow { max-width: 420px; margin: 0 auto; }
+
+/* チェックリスト */
+.gdoc .chk { list-style: none; padding-left: 0; }
+.gdoc .chk li { padding-left: 1.9em; position: relative; }
+.gdoc .chk li::before { content: "\2610"; position: absolute; left: .2em; color: var(--black); }
+
+/* 入口のカード（サイトの .card とは別物） */
+.gdoc .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 28px 0 0; }
+@media (max-width: 700px) { .gdoc .cards { grid-template-columns: 1fr; } }
+.gdoc .card { display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: var(--black); background: var(--mist); border-radius: 12px; padding: 28px; min-height: 200px; transition: background .2s; }
+.gdoc .card:hover { background: var(--line); }
+.gdoc .card-t { font-family: var(--f-latin), var(--f-ja); font-weight: 500; font-size: 26px; line-height: 1.2; }
+.gdoc .card-d { color: var(--grey); font-size: 15px; line-height: 1.6; }
+.gdoc .card::after { content: ""; margin-top: auto; width: 9px; height: 9px; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg); }
+.glayout.solo .gdoc { max-width: none; }
+
+.gdoc .gfoot { border-top: 1px solid var(--line); padding-top: 24px; color: var(--grey); font-size: 14px; }
