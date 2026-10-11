@@ -26,11 +26,14 @@
 <header class="bar">
   <div class="wrap">
     <nav class="menu" aria-label="Main">
-      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
-      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
-      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
-      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
-      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
+      <div class="menu-links" id="menu-links">
+        <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+        <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+        <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+        <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+        <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      </div>
     </nav>
     <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
     <div class="tools">
@@ -47,12 +50,12 @@
     <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span> / <span data-l="en">Parts</span><span data-l="ja">パーツ</span></div>
     <h1><span data-l="en">Make parts</span><span data-l="ja">パーツを作る</span></h1>
     <p><span data-l="en">Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.</span><span data-l="ja">ターボとブローオフバルブ、エアロやフェンダーなどの外装パーツ、マフラー。</span></p>
-    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html" aria-current="page"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-common.html"><span data-l="en">Common</span><span data-l="ja">共通</span></a></nav>
+    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html" aria-current="page"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav>
   </div>
 </section>
 
 <div class="wrap glayout">
-  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-turbo"><span data-l="en">1. Turbos and blow-off valves</span><span data-l="ja">1. ターボとブローオフバルブ</span></a><a href="#s-body"><span data-l="en">2. Body parts</span><span data-l="ja">2. 外装パーツ</span></a><a href="#s-exhaust"><span data-l="en">3. Exhausts</span><span data-l="ja">3. マフラー</span></a><a href="#se"><span data-l="en">Appendix A. Part keys</span><span data-l="ja">付録 A. 部品の全項目</span></a></nav>
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-turbo"><span data-l="en">1. Turbos and blow-off valves</span><span data-l="ja">1. ターボとブローオフバルブ</span></a><a href="#s-body"><span data-l="en">2. Body parts</span><span data-l="ja">2. 外装パーツ</span></a><a href="#s-exhaust"><span data-l="en">3. Exhausts</span><span data-l="ja">3. マフラー</span></a><a href="#s-chk-parts"><span data-l="en">4. Checklist</span><span data-l="ja">4. チェックリスト</span></a><a href="#se"><span data-l="en">Appendix A. Part keys</span><span data-l="ja">付録 A. 部品の全項目</span></a></nav>
   <div class="gdoc"><section class="gsec" id="s-turbo">
 <h2 class="ja"><span class="num">1</span>ターボとブローオフバルブ</h2>
 <h2 class="en"><span class="num">1</span>Turbos and blow-off valves</h2>
@@ -581,6 +584,26 @@
 </ul>
 </div>
 </details>
+</section><section class="gsec" id="s-chk-parts">
+<h2 class="ja"><span class="num">4</span>チェックリスト</h2>
+<h2 class="en"><span class="num">4</span>Checklist</h2>
+<p class="ja">見落としやすいところを並べます。症状が出てから探すときは<a href="guide-ship.html#s11">配布の 3 章</a>へ。</p>
+<p class="en">What is easy to miss. If something is already wrong, go to <a href="guide-ship.html#s11">chapter 3 of Shipping</a>.</p>
+
+<h3 class="ja">外装パーツ・マフラーを入れたとき（Blender）</h3>
+<h3 class="en">If you added body parts or exhausts (in Blender)</h3>
+<ul class="chk ja">
+<li>部品のオブジェクト名が <code>part_&lt;場所&gt;-&lt;部品名&gt;</code> で、部品名が <code>car_parts/</code> のファイル名と同じ</li>
+<li>付け替える純正の部分も、<code>body</code> から分けて別のオブジェクトにした</li>
+<li><b>付け替え候補の部品を全部表示にしてから</b>選んだ（非表示のものは書き出されない）</li>
+<li>部品の中のライトは、その面に <code>light_</code> のマテリアルを割り当てた</li>
+</ul>
+<ul class="chk en">
+<li>Part objects are named <code>part_&lt;slot&gt;-&lt;part&gt;</code>, and the part name matches the file name in <code>car_parts/</code></li>
+<li>Stock pieces that can be swapped are split from <code>body</code> into their own objects</li>
+<li><b>Every selectable part was unhidden before selecting</b> (hidden objects are not exported)</li>
+<li>Lights inside a part use a <code>light_</code> material on those faces</li>
+</ul>
 </section><section class="gsec" id="se">
 <h2 class="ja">付録 A. 部品の全項目</h2>
 <h2 class="en">Appendix A. Every part key</h2>

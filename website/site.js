@@ -81,3 +81,14 @@ if (same) same.addEventListener('change', () => document.querySelector('.compare
 applyLang(ja() ? 'ja' : 'en');
 const toggle = document.getElementById('lang-toggle');
 if (toggle) toggle.addEventListener('click', () => applyLang(ja() ? 'en' : 'ja'));
+
+// 狭い画面のメニュー。ボタンで開き、リンクを押すか Esc か外を押すと閉じる
+const bar = document.querySelector('.bar');
+const menuBtn = bar && bar.querySelector('.menu-btn');
+if (menuBtn) {
+  const setOpen = open => { bar.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', String(open)); };
+  menuBtn.addEventListener('click', e => { e.stopPropagation(); setOpen(!bar.classList.contains('open')); });
+  bar.querySelectorAll('.menu-links a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+  document.addEventListener('click', e => { if (!bar.contains(e.target)) setOpen(false); });
+}

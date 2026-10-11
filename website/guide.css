@@ -46,6 +46,7 @@
 .gdoc code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .86em; background: var(--mist); padding: .12em .4em; border-radius: 3px; }
 .gdoc pre { background: var(--black); color: #e8e9ec; border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 0 0 20px; line-height: 1.6; }
 .gdoc pre code { background: none; padding: 0; color: inherit; font-size: 13.5px; }
+.gdoc pre .hl { color: #f2b35c; font-weight: 600; }
 .gdoc kbd { font-family: var(--f-latin); font-size: .82em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: .1em .45em; background: var(--white); white-space: nowrap; }
 
 /* 表：枠線は横だけ */
@@ -58,6 +59,9 @@
 .gdoc ol.steps { display: block; list-style: decimal; padding-left: 1.6em; margin: 0 0 20px; counter-reset: none; }
 .gdoc ol.steps > li { display: list-item; background: none; border-radius: 0; padding: 0; margin: 0 0 12px; }
 .gdoc ol.steps > li::before { content: none; }
+.gdoc ol.steps li li { display: list-item; counter-increment: none; background: none; border-radius: 0; padding: 0; margin: 4px 0 0; }
+.gdoc ol.steps li li::before { content: none; }
+.gdoc ol.steps ul { list-style: disc; padding-left: 1.4em; margin: 6px 0 0; }
 .gdoc .where { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; line-height: 1.6; padding: 0 8px; border-radius: 3px; margin-right: 8px; vertical-align: 2px; border: 1px solid transparent; }
 .gdoc .where-blender { background: #fdebd8; color: #8a4508; }
 .gdoc .where-file { background: #e3eaf5; color: #284a78; }
@@ -126,3 +130,13 @@
 .glayout.solo .gdoc { max-width: none; }
 
 .gdoc .gfoot { border-top: 1px solid var(--line); padding-top: 24px; color: var(--grey); font-size: 14px; }
+
+/* 入口：作る前・作る・作り終えたら の 3 段。準備と配布は作るものとは別の段に、細い帯で置く */
+.gdoc .step-k { margin: 36px 0 12px; font-size: 13px; font-weight: 600; letter-spacing: .08em; color: var(--grey); }
+.gdoc .step-k + .cards { margin-top: 0; }
+.gdoc .cards-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .gdoc .cards-3 { grid-template-columns: 1fr; } }
+.gdoc .card-step { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 4px 20px; min-height: 0; padding: 20px 28px; }
+.gdoc .card-step .card-t { font-size: 20px; }
+.gdoc .card-step .card-d { flex: 1 1 260px; }
+.gdoc .card-step::after { margin-top: 0; margin-left: auto; }

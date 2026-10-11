@@ -26,11 +26,14 @@
 <header class="bar">
   <div class="wrap">
     <nav class="menu" aria-label="Main">
-      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
-      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
-      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
-      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
-      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
+      <div class="menu-links" id="menu-links">
+        <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+        <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+        <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+        <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+        <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      </div>
     </nav>
     <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
     <div class="tools">
@@ -47,7 +50,7 @@
     <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span></div>
     <h1><span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span></h1>
     <p><span data-l="en">From a mesh in Blender to a car you can drive in Minecraft. No Java, and no Blender experience needed.</span><span data-l="ja">Blender で作った車を、Minecraft の中で走らせるまで。Java も Blender の経験も要りません。</span></p>
-    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html" aria-current="page"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-common.html"><span data-l="en">Common</span><span data-l="ja">共通</span></a></nav>
+    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html" aria-current="page"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav>
   </div>
 </section>
 
@@ -56,9 +59,16 @@
   <div class="gdoc"><section class="gsec" id="home">
 <h2 class="ja">何を作りますか？</h2>
 <h2 class="en">What are you making?</h2>
-<p class="ja">作りたいものを選んでください。どのページにも出てくる手順（Blender の基本、jar に固めて配る、確かめかた）は「共通」にまとめてあります。</p>
-<p class="en">Pick what you want to make. Steps that every page needs (Blender basics, packing a jar, checking it in game) live under "Common".</p>
-<div class="cards">
+<p class="ja">作るものを選んでください。はじめての人は先に「制作の準備」を、出来上がったら「配布」を読みます。</p>
+<p class="en">Pick what you want to make. New here? Read "Get set up" first, and "Ship it" once you are done.</p>
+<p class="step-k ja">作る前に</p><p class="step-k en">Before you start</p>
+  <a class="card card-step" href="guide-prep.html">
+    <span class="card-t ja">制作の準備</span><span class="card-t en">Get set up</span>
+    <span class="card-d ja">見本の ExampleCarPack をコピーして、自分のカーパックフォルダを用意する</span>
+    <span class="card-d en">Copy the ExampleCarPack and set up your own car pack folder</span>
+  </a>
+<p class="step-k ja">作る</p><p class="step-k en">Make</p>
+<div class="cards cards-3">
   <a class="card" href="guide-car.html">
     <span class="card-t ja">車を作る</span><span class="card-t en">Make a car</span>
     <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
@@ -74,12 +84,48 @@
     <span class="card-d ja">ターボとブローオフバルブ（モデルは要りません）、外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）</span>
     <span class="card-d en">Turbos and blow-off valves (no model needed), body parts such as aero and fenders, and exhausts (added as objects inside the car model)</span>
   </a>
-  <a class="card card-common" href="guide-common.html">
-    <span class="card-t ja">共通</span><span class="card-t en">Common</span>
-    <span class="card-d ja">このガイドについて、全体像、Blender の基本、jar に固めて配る、確認、症状別の直しかた、チェックリスト、座標系と用語</span>
-    <span class="card-d en">About this guide, the whole picture, Blender basics, packing and shipping a jar, checking, troubleshooting, checklists, axes and glossary</span>
-  </a>
 </div>
+<p class="step-k ja">作り終えたら</p><p class="step-k en">When you are done</p>
+  <a class="card card-step" href="guide-ship.html">
+    <span class="card-t ja">配布する</span><span class="card-t en">Ship it</span>
+    <span class="card-d ja">カーパックフォルダを jar に固めて、配る。うまく動かないときの直しかた</span>
+    <span class="card-d en">Pack your car pack folder into a jar and share it; troubleshooting</span>
+  </a>
+
+<h3 class="ja">やりたいことから探す</h3>
+<h3 class="en">Find what you want to do</h3>
+<table class="ja">
+<tr><th>やりたいこと</th><th>どこを読むか</th></tr>
+<tr><td>まず見本を動かしてみたい</td><td><a href="guide-ship.html#s-jar">配布の 1 章</a></td></tr>
+<tr><td>自分のカーパックを作り始めたい</td><td><a href="guide-prep.html#s-pack">準備の 1 章</a></td></tr>
+<tr><td>自分の車を走らせたい</td><td><a href="guide-car.html#s3">車の 1 章</a>から順に</td></tr>
+<tr><td>ライト・透ける窓・映るミラーを付けたい</td><td><a href="guide-car.html#s5">車の 3 章</a></td></tr>
+<tr><td>エンジン音を変えたい</td><td><a href="guide-car.html#s-sound">車の 7 章</a></td></tr>
+<tr><td>走り（加速・曲がりかた）を決めたい</td><td><a href="guide-car.html#s-spec">車の 8 章</a></td></tr>
+<tr><td>ホイールを作って換装画面で選べるようにしたい</td><td><a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-wheel.html#s-parts">2 章</a></td></tr>
+<tr><td>性能の違うタイヤを作りたい</td><td><a href="guide-wheel.html#s-tire">ホイールの 3 章</a></td></tr>
+<tr><td>ターボ・ブローオフバルブを作りたい</td><td><a href="guide-parts.html#s-turbo">パーツの 1 章</a></td></tr>
+<tr><td>ウイング・バンパーなどの外装パーツを作りたい</td><td><a href="guide-parts.html#s-body">パーツの 2 章</a></td></tr>
+<tr><td>マフラーを作りたい</td><td><a href="guide-parts.html#s-exhaust">パーツの 3 章</a></td></tr>
+<tr><td>jar にして配りたい</td><td><a href="guide-ship.html#s-jar">配布の 1 章</a></td></tr>
+<tr><td>うまく動かない</td><td><a href="guide-ship.html#s11">配布の 3 章</a></td></tr>
+</table>
+<table class="en">
+<tr><th>I want to…</th><th>Read</th></tr>
+<tr><td>See the example running first</td><td><a href="guide-ship.html#s-jar">Shipping, chapter 1</a></td></tr>
+<tr><td>Start my own car pack</td><td><a href="guide-prep.html#s-pack">Setup, chapter 1</a></td></tr>
+<tr><td>Drive my own car</td><td><a href="guide-car.html#s3">Car guide, chapter 1</a> onwards</td></tr>
+<tr><td>Add lights, see-through windows, working mirrors</td><td><a href="guide-car.html#s5">Car guide, chapter 3</a></td></tr>
+<tr><td>Change the engine sound</td><td><a href="guide-car.html#s-sound">Car guide, chapter 7</a></td></tr>
+<tr><td>Set how it drives (acceleration, handling)</td><td><a href="guide-car.html#s-spec">Car guide, chapter 8</a></td></tr>
+<tr><td>Make a wheel players can pick in the parts screen</td><td><a href="guide-wheel.html#s6">Wheel guide, chapters 1</a> and <a href="guide-wheel.html#s-parts">2</a></td></tr>
+<tr><td>Make tyres with different grip</td><td><a href="guide-wheel.html#s-tire">Wheel guide, chapter 3</a></td></tr>
+<tr><td>Make a turbo or blow-off valve</td><td><a href="guide-parts.html#s-turbo">Parts guide, chapter 1</a></td></tr>
+<tr><td>Make body parts such as wings and bumpers</td><td><a href="guide-parts.html#s-body">Parts guide, chapter 2</a></td></tr>
+<tr><td>Make an exhaust</td><td><a href="guide-parts.html#s-exhaust">Parts guide, chapter 3</a></td></tr>
+<tr><td>Pack it into a jar and share it</td><td><a href="guide-ship.html#s-jar">Shipping, chapter 1</a></td></tr>
+<tr><td>Fix something that doesn't work</td><td><a href="guide-ship.html#s11">Shipping, chapter 3</a></td></tr>
+</table>
 </section></div>
 </div>
 

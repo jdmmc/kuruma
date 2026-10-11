@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get set up | Car Pack Guide | KurumaMod</title>
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="Get set up | Car Pack Guide | KurumaMod" data-title-ja="制作の準備 | カーパック作成ガイド | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
+      <div class="menu-links" id="menu-links">
+        <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+        <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+        <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+        <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+        <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      </div>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <span data-l="en">日本語</span><span data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+    </div>
+  </div>
+</header>
+
+<section class="ghero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span> / <span data-l="en">Setup</span><span data-l="ja">準備</span></div>
+    <h1><span data-l="en">Get set up</span><span data-l="ja">制作の準備</span></h1>
+    <p><span data-l="en">Copy the example pack and set up your own car pack folder.</span><span data-l="ja">見本のパックをコピーして、自分のカーパックフォルダを用意する。</span></p>
+    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html" aria-current="page"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav>
+  </div>
+</section>
+
+<div class="wrap glayout">
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-pack"><span data-l="en">1. Get the example</span><span data-l="ja">1. 見本を手に入れる</span></a><a href="#s-pack-name"><span data-l="en">2. Replace the name</span><span data-l="ja">2. 名前を置き換える</span></a><a href="#s-pack-tree"><span data-l="en">3. What you end up with</span><span data-l="ja">3. できあがりの形</span></a><a href="#s-pack-next"><span data-l="en">4. Next steps</span><span data-l="ja">4. 次のステップ</span></a></nav>
+  <div class="gdoc"><section class="gsec" id="s-pack">
+<h2 class="ja"><span class="num">1</span>見本を手に入れる</h2>
+<h2 class="en"><span class="num">1</span>Get the example</h2>
+<p class="ja">自分のカーパックは、見本の ExampleCarPack を土台にして作ります。中身をコピーして、名前を自分のパックのものに置き換えます。車もホイールもパーツも、このフォルダの中に足していきます。</p>
+<p class="en">Your own car pack starts from the ExampleCarPack. Copy its contents and swap its name for your pack's. Cars, wheels and parts all go into this folder.</p>
+<p class="ja">ここでは、パックの名前を <code>mypack</code> とします。</p>
+<p class="en">Here the pack is called <code>mypack</code>.</p>
+
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>ExampleCarPack の jar をダウンロードする。</b><a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">CurseForge ↗</a> か <a href="https://modrinth.com/mod/kurumaexamplecarpack" target="_blank" rel="noopener">Modrinth ↗</a> から</li>
+<li><span class="where where-file">ファイル</span><b>拡張子を <code>.jar</code> から <code>.zip</code> に変える。</b></li>
+<li><span class="where where-file">ファイル</span><b>zip を <code>mypack/</code> フォルダに解凍する。</b></li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Download the ExampleCarPack jar.</b> From <a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">CurseForge ↗</a> or <a href="https://modrinth.com/mod/kurumaexamplecarpack" target="_blank" rel="noopener">Modrinth ↗</a></li>
+<li><span class="where where-file">File</span><b>Change its extension from <code>.jar</code> to <code>.zip</code>.</b></li>
+<li><span class="where where-file">File</span><b>Extract the zip into a <code>mypack/</code> folder.</b></li>
+</ol>
+
+</section><section class="gsec" id="s-pack-name">
+<h2 class="ja"><span class="num">2</span>名前を置き換える</h2>
+<h2 class="en"><span class="num">2</span>Replace the name</h2>
+<p class="ja"><b><code>kurumamod_example_carpack</code> を、すべて <code>mypack</code> に置き換える。</b>使える文字は <code>a-z</code>・<code>0-9</code>・<code>_</code> だけ</p>
+<ul class="ja">
+<li>フォルダ名 2 つ（<code>assets/</code> の下と <code>data/</code> の下）</li>
+<li>いちばん上のロゴ画像 <code>kurumamod_example_carpack.png</code> のファイル名</li>
+<li><code>META-INF/mods.toml</code> と <code>META-INF/neoforge.mods.toml</code> の中身。<code>modId</code>・<code>logoFile</code>・<code>[[dependencies.…]]</code>（2 か所）を置き換え、<code>version</code>・<code>displayName</code>・<code>description</code> も自分のものにする。2 つのファイルとも同じように直す
+<pre><code>[[mods]]
+modId = "<span class="hl">mypack</span>"                     # 置き換える
+version = "1.0.0"                    # 自分のパックの版
+displayName = "My Car Pack"          # MOD 一覧に出る名前
+logoFile = "<span class="hl">mypack</span>.png"              # 置き換える
+description = '''...'''              # MOD 一覧に出る説明文
+
+[[dependencies.<span class="hl">mypack</span>]]              # 置き換える（2 か所とも）</code></pre></li>
+<li>JSON の中のパス</li>
+</ul>
+<p class="en"><b>Replace every <code>kurumamod_example_carpack</code> with <code>mypack</code>.</b> Use only <code>a-z</code>, <code>0-9</code> and <code>_</code></p>
+<ul class="en">
+<li>Two folder names (under <code>assets/</code> and under <code>data/</code>)</li>
+<li>The file name of the logo image <code>kurumamod_example_carpack.png</code> at the top</li>
+<li>The contents of <code>META-INF/mods.toml</code> and <code>META-INF/neoforge.mods.toml</code>. Replace it in <code>modId</code>, <code>logoFile</code> and both <code>[[dependencies.…]]</code>, and make <code>version</code>, <code>displayName</code> and <code>description</code> your own. Edit both files the same way
+<pre><code>[[mods]]
+modId = "<span class="hl">mypack</span>"                     # replace
+version = "1.0.0"                    # your pack's version
+displayName = "My Car Pack"          # name in the mod list
+logoFile = "<span class="hl">mypack</span>.png"              # replace
+description = '''...'''              # description in the mod list
+
+[[dependencies.<span class="hl">mypack</span>]]              # replace (both of them)</code></pre></li>
+<li>The paths inside the JSON</li>
+</ul>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>置き換える場所を 1 つずつ確かめたい</summary>
+<div class="more-body">
+<p><code>kurumamod_example_carpack</code> を、自分のパックの名前（例 <code>mypack</code>）に全部置き換えます。</p>
+<ol>
+<li><code>META-INF/mods.toml</code> と <code>META-INF/neoforge.mods.toml</code> の <code>modId</code> を変える。<code>displayName</code>・<code>description</code>・<code>version</code> も自分のものにする</li>
+<li><code>assets/kurumamod_example_carpack/</code> と <code>data/kurumamod_example_carpack/</code> のフォルダ名を <code>modId</code> と同じにする</li>
+<li>JSON の中の <code>kurumamod_example_carpack:</code>（モデルのパス）と、lang のキー（<code>car.kurumamod_example_carpack.sample</code> など）も置き換える</li>
+<li>MOD 一覧の画像を変えるなら、png を差し替えて <code>logoFile</code> の名前を合わせる</li>
+</ol>
+<ul>
+<li><b><code>modId</code> に使えるのは <code>a-z 0-9 _</code> だけ</b>（先頭は英字）。<code>-</code> や <code>.</code> を入れると、ゲームが起動時に <code>Invalid modId</code> で落ちる</li>
+<li>フォルダ名（名前空間）は <code>modId</code> と同じにする。違っても動くが、ほかのパックとぶつかったときにどちらが読まれるか分からない</li>
+<li>車種のファイル名と名前の決まりは<a href="guide-car.html#s9">車の 6 章</a></li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Check each place to replace, one by one</summary>
+<div class="more-body">
+<p>Replace every <code>kurumamod_example_carpack</code> with your pack's name (e.g. <code>mypack</code>).</p>
+<ol>
+<li>Change <code>modId</code> in <code>META-INF/mods.toml</code> and <code>META-INF/neoforge.mods.toml</code>. Make <code>displayName</code>, <code>description</code> and <code>version</code> your own too</li>
+<li>Rename the folders <code>assets/kurumamod_example_carpack/</code> and <code>data/kurumamod_example_carpack/</code> to match <code>modId</code></li>
+<li>Replace <code>kurumamod_example_carpack:</code> inside the JSON (model paths) and in the lang keys (<code>car.kurumamod_example_carpack.sample</code> and so on)</li>
+<li>For your own mod-list image, swap the png and update <code>logoFile</code> to its name</li>
+</ol>
+<ul>
+<li><b><code>modId</code> may only use <code>a-z 0-9 _</code></b> (starting with a letter). A <code>-</code> or <code>.</code> crashes the game at start-up with <code>Invalid modId</code></li>
+<li>Make the folder name (the namespace) the same as <code>modId</code>. It works otherwise, but if two packs collide you cannot tell which one wins</li>
+<li>Car file names and naming rules are in <a href="guide-car.html#s9">chapter 6 of the Car guide</a></li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-pack-tree">
+<h2 class="ja"><span class="num">3</span>できあがりの形</h2>
+<h2 class="en"><span class="num">3</span>What you end up with</h2>
+<p class="ja"><code>mypack/</code> を開いたすぐ下に <code>META-INF/</code> と <code>pack.mcmeta</code> があれば OK です。</p>
+<p class="en">It is right if <code>META-INF/</code> and <code>pack.mcmeta</code> sit directly inside <code>mypack/</code>.</p>
+<pre class="ja"><code><span class="hl">mypack</span>/
+├── META-INF/
+│   ├── mods.toml                   ← Forge 1.20.1 用。modId を <span class="hl">mypack</span> に
+│   └── neoforge.mods.toml          ← NeoForge 1.21.1 用。modId を <span class="hl">mypack</span> に
+├── pack.mcmeta
+├── <span class="hl">mypack</span>.png                      ← ロゴ画像
+├── assets/<span class="hl">mypack</span>/                  ← 見た目
+│   ├── car_parts/                  ← パーツ（例。配布時削除）
+│   │   ├── deep_dish.json
+│   │   └── sample_wheel.json
+│   ├── lang/                       ← 言語
+│   │   ├── en_us.json
+│   │   └── ja_jp.json
+│   ├── models/entity/              ← モデル
+│   │   ├── sample.obj, sample.mtl
+│   │   └── wheel-sample.obj, wheel-sample.mtl
+│   ├── textures/entity/            ← テクスチャ
+│   │   ├── sample.png
+│   │   └── wheel-sample.png
+│   └── vehicles/sample.json
+├── data/<span class="hl">mypack</span>/                    ← 走り（諸元）
+│   ├── car_parts/                  ← パーツ（例。配布時削除）
+│   │   ├── deep_dish.json
+│   │   └── sample_wheel.json
+│   └── cars/
+│       └── sample.json
+├── modeling_tools/                 ← 作るための道具。配布時に消す
+└── sound_tools/                    ← 音を生成するツール。配布時に消す</code></pre>
+<pre class="en"><code><span class="hl">mypack</span>/
+├── META-INF/
+│   ├── mods.toml                   &lt;- for Forge 1.20.1; modId is <span class="hl">mypack</span>
+│   └── neoforge.mods.toml          &lt;- for NeoForge 1.21.1; modId is <span class="hl">mypack</span>
+├── pack.mcmeta
+├── <span class="hl">mypack</span>.png                      &lt;- logo image
+├── assets/<span class="hl">mypack</span>/                  &lt;- looks
+│   ├── car_parts/                  &lt;- parts (examples; delete before shipping)
+│   │   ├── deep_dish.json
+│   │   └── sample_wheel.json
+│   ├── lang/                       &lt;- languages
+│   │   ├── en_us.json
+│   │   └── ja_jp.json
+│   ├── models/entity/              &lt;- models
+│   │   ├── sample.obj, sample.mtl
+│   │   └── wheel-sample.obj, wheel-sample.mtl
+│   ├── textures/entity/            &lt;- textures
+│   │   ├── sample.png
+│   │   └── wheel-sample.png
+│   └── vehicles/sample.json
+├── data/<span class="hl">mypack</span>/                    &lt;- handling (spec)
+│   ├── car_parts/                  &lt;- parts (examples; delete before shipping)
+│   │   ├── deep_dish.json
+│   │   └── sample_wheel.json
+│   └── cars/
+│       └── sample.json
+├── modeling_tools/                 &lt;- tools for making packs; delete before shipping
+└── sound_tools/                    &lt;- tools for generating sounds; delete before shipping</code></pre>
+<p class="ja">これで、自分のカーパックフォルダができます。jar への固め方は<a href="guide-ship.html#s-jar">配布の 1 章</a>です。</p>
+<p class="en">That is your car pack folder. Packing it into a jar is in <a href="guide-ship.html#s-jar">chapter 1 of Shipping</a>.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>見本の中の要らないファイルを消したい</summary>
+<div class="more-body">
+<p><code>CURSEFORGE.md</code>・<code>MODRINTH.md</code>・<code>modeling_tools/</code>・<code>sound_tools/</code> は、作るための説明書きと道具です。消しても、入れたままでも構いません。</p>
+<p>見本は自由に使えます。コピーして自分のパックの土台にしてよく、表示も許諾も要りません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Remove the files you don't need from the example</summary>
+<div class="more-body">
+<p><code>CURSEFORGE.md</code>, <code>MODRINTH.md</code>, <code>modeling_tools/</code> and <code>sound_tools/</code> are documentation and tools for making packs. Delete them or keep them.</p>
+<p>The example is free to use. Copy it as the base of your own pack; no credit or permission needed.</p>
+</div>
+</details>
+
+</section><section class="gsec" id="s-pack-next">
+<h2 class="ja"><span class="num">4</span>次のステップ</h2>
+<h2 class="en"><span class="num">4</span>Next steps</h2>
+<p class="step-k ja">作る</p><p class="step-k en">Make</p>
+<div class="cards cards-3">
+  <a class="card" href="guide-car.html">
+    <span class="card-t ja">車を作る</span><span class="card-t en">Make a car</span>
+    <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
+    <span class="card-d en">Body model, lights, glass and mirrors, file layout and JSON, sounds, the spec (how it drives)</span>
+  </a>
+  <a class="card" href="guide-wheel.html">
+    <span class="card-t ja">ホイールを作る</span><span class="card-t en">Make a wheel</span>
+    <span class="card-d ja">タイヤのモデルと、換装画面で選べるホイール部品にする方法</span>
+    <span class="card-d en">The wheel model, and turning it into a wheel part players can pick in the parts screen</span>
+  </a>
+  <a class="card" href="guide-parts.html">
+    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
+    <span class="card-d ja">ターボとブローオフバルブ（モデルは要りません）、外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）</span>
+    <span class="card-d en">Turbos and blow-off valves (no model needed), body parts such as aero and fenders, and exhausts (added as objects inside the car model)</span>
+  </a>
+</div>
+<p class="step-k ja">作り終えたら</p><p class="step-k en">When you are done</p>
+  <a class="card card-step" href="guide-ship.html">
+    <span class="card-t ja">配布する</span><span class="card-t en">Ship it</span>
+    <span class="card-d ja">カーパックフォルダを jar に固めて、配る。うまく動かないときの直しかた</span>
+    <span class="card-d en">Pack your car pack folder into a jar and share it; troubleshooting</span>
+  </a>
+</section><div class="gfoot">
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="guide-car.html#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="guide-car.html#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
+</div></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>
