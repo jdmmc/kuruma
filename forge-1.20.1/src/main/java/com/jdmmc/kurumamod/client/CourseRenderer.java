@@ -43,6 +43,11 @@ public final class CourseRenderer {
     private static final float POST_ALPHA = 0.65F;
 
     private static List<CourseLinesPacket.Gate> gates = List.of();
+
+    /** 配られてきたゲート。ゴーストが「いつスタートラインを跨いだか」を割り出すのに使う。 */
+    public static List<CourseLinesPacket.Gate> gates() {
+        return gates;
+    }
     private static boolean raceActive;
 
     private CourseRenderer() {

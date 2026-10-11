@@ -1181,6 +1181,21 @@ public final class ObjModel {
                 tintRed, tintGreen, tintBlue, alpha);
     }
 
+    /**
+     * 灯火のレンズ（{@link #LIGHT_PREFIX}）を、光らせずにただの面として描く。
+     *
+     * <p>レンズは車体のパスから外してあるので、ゴーストのように灯火を描かないときは
+     * これで埋めないと<b>そこだけ穴が開く</b>。</p>
+     */
+    public void renderLightsPlain(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay) {
+        for (Map.Entry<String, int[]> entry : facesByName.entrySet()) {
+            if (entry.getKey().startsWith(LIGHT_PREFIX)) {
+                renderFaces(entry.getValue(), pose.pose(), pose.normal(), 1.0F, consumer,
+                        packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+            }
+        }
+    }
+
     /** ホイールを、付属のタイヤ（{@link #TIRE_PREFIX}）を除いて描く。タイヤを別に描くときに使う。 */
     public void renderWithoutTire(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, int packedOverlay,
                                   boolean mirrorX, Pass pass) {
@@ -1202,9 +1217,19 @@ public final class ObjModel {
                 packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
     }
 
+    /**
+     * すべての面の不透明度に掛ける倍率。ゴーストを描く間だけ 1 未満にする（{@code CarObjRenderer}）。
+     *
+     * <p>描く口（{@code render}・{@code renderOptional}・{@code renderWithoutTire} …）ごとに
+     * α の引数を足すより、行き着く先の 1 か所で掛けるほうが漏れが無い。描画は 1 本のスレッドなので
+     * static でよいが、<b>描き終えたら必ず 1 に戻すこと</b>。</p>
+     */
+    static float alphaScale = 1.0F;
+
     private void renderFaces(int[] faces, Matrix4f matrix, Matrix3f normal, float flip, VertexConsumer consumer,
                              int packedLight, int packedOverlay,
                              float tintRed, float tintGreen, float tintBlue, float alpha) {
+        alpha *= alphaScale;
         // Embeddium / Sodium があれば頂点を塊で渡す。シェーダーパック使用中にいちばん効く（BulkVertexWriter）
         if (BulkVertexWriter.write(consumer, vertices, faces, FACE_FLOATS, STRIDE, ALPHA_OFFSET, matrix, normal,
                 flip, packedLight, packedOverlay, tintRed, tintGreen, tintBlue, alpha)) {

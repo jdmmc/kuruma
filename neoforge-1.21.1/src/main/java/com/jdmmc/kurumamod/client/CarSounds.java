@@ -39,7 +39,7 @@ public final class CarSounds {
 
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
-        if (!event.getLevel().isClientSide || !(event.getEntity() instanceof CarEntity car)) {
+        if (!event.getLevel().isClientSide || !(event.getEntity() instanceof CarEntity car) || car.isGhost()) {
             return;
         }
         play(car);
@@ -62,7 +62,7 @@ public final class CarSounds {
         }
         replayPending = false;
         for (Entity entity : level.entitiesForRendering()) {
-            if (entity instanceof CarEntity car && !car.isRemoved()) {
+            if (entity instanceof CarEntity car && !car.isRemoved() && !car.isGhost()) {
                 play(car);
             }
         }
@@ -84,7 +84,7 @@ public final class CarSounds {
     /** マフラーの音源が変わった車に、排気音だけ鳴らし直す。 */
     private static void replayChangedExhausts(ClientLevel level) {
         for (Entity entity : level.entitiesForRendering()) {
-            if (!(entity instanceof CarEntity car) || car.isRemoved()) {
+            if (!(entity instanceof CarEntity car) || car.isRemoved() || car.isGhost()) {
                 continue;
             }
             CarSoundSet before = EXHAUST_SOUNDS.get(car);

@@ -27,6 +27,8 @@ import java.util.function.Supplier;
  * @param bestMillis  ベストラップ [ms]
  * @param best        今のラップでベストを更新したか
  * @param place       完走順位（{@link Type#FINISHED} のとき）
+ * @param course      コースの名前。{@link Type#LAP_STARTED}・{@link Type#LAP_COMPLETED}・
+ *                    {@link Type#BEST_CLEARED} のときだけ入る（ゴーストをコースごとに持つため。他は空）
  * @param total       ゴールまでの総時間 [ms]。<b>ラップタイムとは別に要る</b>——
  *                    ゴールした人の表示はここで止めるので、最終ラップだけでは足りない
  * @param sector      区間の番号（1 から）。{@link Type#SPLIT} のとき
@@ -37,7 +39,7 @@ import java.util.function.Supplier;
 public record RaceEventPacket(Type type, int lights, boolean frozen, int lap, int totalLaps,
                               long millis, long bestMillis, boolean best, int place,
                               int sector, int sectorCount, long delta, boolean hasDelta,
-                              long total) {
+                              long total, String course) {
 
     public enum Type {
         /** スタート信号の状態が変わった。 */
@@ -58,20 +60,26 @@ public record RaceEventPacket(Type type, int lights, boolean frozen, int lap, in
         /** 規定周回を走りきった。 */
         FINISHED,
         /** 表示を消す。 */
-        CLEARED
+        CLEARED,
+        /**
+         * ベストタイムを消した。{@code course} が空なら全コース。
+         *
+         * <p>タイムアタックのゴーストはベストの周そのものなので、一緒に消してもらう。</p>
+         */
+        BEST_CLEARED
     }
 
     private static final Type[] TYPES = Type.values();
 
     public static RaceEventPacket countdown(int lights, boolean frozen) {
         return new RaceEventPacket(Type.COUNTDOWN, lights, frozen, 0, 0, 0, 0, false, 0,
-                0, 0, 0, false, 0);
+                0, 0, 0, false, 0, "");
     }
 
     /** @param sectorCount 区間の総数（チェックポイント数 + 1）。通過数の表示に使う */
-    public static RaceEventPacket lapStarted(int lap, int totalLaps, int sectorCount) {
+    public static RaceEventPacket lapStarted(int lap, int totalLaps, int sectorCount, String course) {
         return new RaceEventPacket(Type.LAP_STARTED, 0, false, lap, totalLaps, 0, 0, false, 0,
-                0, sectorCount, 0, false, 0);
+                0, sectorCount, 0, false, 0, course);
     }
 
     /**
@@ -85,7 +93,7 @@ public record RaceEventPacket(Type type, int lights, boolean frozen, int lap, in
      */
     public static RaceEventPacket lapVoid(int passed, int sectorCount) {
         return new RaceEventPacket(Type.LAP_VOID, 0, false, 0, 0, 0, 0, false, 0,
-                passed, sectorCount, 0, false, 0);
+                passed, sectorCount, 0, false, 0, "");
     }
 
     /**
@@ -96,32 +104,38 @@ public record RaceEventPacket(Type type, int lights, boolean frozen, int lap, in
     public static RaceEventPacket split(int sector, int sectorCount, long elapsed,
                                         long delta, boolean hasDelta) {
         return new RaceEventPacket(Type.SPLIT, 0, false, 0, 0, elapsed, 0, false, 0,
-                sector, sectorCount, delta, hasDelta, 0);
+                sector, sectorCount, delta, hasDelta, 0, "");
     }
 
     public static RaceEventPacket lapCompleted(int lap, int totalLaps, long millis,
                                                long bestMillis, boolean best,
-                                               long delta, boolean hasDelta) {
+                                               long delta, boolean hasDelta, String course) {
         return new RaceEventPacket(Type.LAP_COMPLETED, 0, false, lap, totalLaps,
-                millis, bestMillis, best, 0, 0, 0, delta, hasDelta, 0);
+                millis, bestMillis, best, 0, 0, 0, delta, hasDelta, 0, course);
     }
 
     public static RaceEventPacket finished(int place, long millis, long bestMillis,
                                            long delta, boolean hasDelta, long total) {
         return new RaceEventPacket(Type.FINISHED, 0, false, 0, 0, millis, bestMillis, false, place,
-                0, 0, delta, hasDelta, total);
+                0, 0, delta, hasDelta, total, "");
+    }
+
+    /** @param course 消したコース。空なら全コース */
+    public static RaceEventPacket bestCleared(String course) {
+        return new RaceEventPacket(Type.BEST_CLEARED, 0, false, 0, 0, 0, 0, false, 0,
+                0, 0, 0, false, 0, course);
     }
 
     public static RaceEventPacket cleared() {
         return new RaceEventPacket(Type.CLEARED, 0, false, 0, 0, 0, 0, false, 0,
-                0, 0, 0, false, 0);
+                0, 0, 0, false, 0, "");
     }
 
     public RaceEventPacket(FriendlyByteBuf buf) {
         this(TYPES[buf.readByte()], buf.readByte(), buf.readBoolean(), buf.readVarInt(),
                 buf.readVarInt(), buf.readLong(), buf.readLong(), buf.readBoolean(), buf.readByte(),
                 buf.readVarInt(), buf.readVarInt(), buf.readLong(), buf.readBoolean(),
-                buf.readLong());
+                buf.readLong(), buf.readUtf());
     }
 
     public void encode(FriendlyByteBuf buf) {
@@ -139,6 +153,7 @@ public record RaceEventPacket(Type type, int lights, boolean frozen, int lap, in
         buf.writeLong(delta);
         buf.writeBoolean(hasDelta);
         buf.writeLong(total);
+        buf.writeUtf(course);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {

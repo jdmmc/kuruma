@@ -289,6 +289,23 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
     private CarInput driverInput = CarInput.NONE;
     /** 前ティックで自分が運転権を持っていたか。持ち替わった瞬間に物理の状態を作り直す。 */
     private boolean hadControl;
+
+    /**
+     * このティックに運転クライアントがサーバーへ送った状態。運転していなければ null。
+     *
+     * <p>ゴーストの記録（{@code client.CarGhosts}）が読む。他人の画面へ届くのと<b>同じもの</b>を
+     * 残しておけば、再生側は他人の車を描くのと同じ道で動かせる。</p>
+     */
+    @Nullable
+    private CarStatePacket lastSentState;
+
+    /**
+     * 自分の画面にだけいる、記録を再生している車（ゴースト）か。
+     *
+     * <p>ゴーストはサーバーに存在しない。ぶつからず、殴れず、乗れない。音・煙・タイヤ痕・
+     * 路面を照らす光も出さない（それぞれの描き手がこれを見て飛ばす）。</p>
+     */
+    private boolean ghost;
     /** 誰も乗っていないまま経過したティック数。サーバー側だけで数える。 */
     private int abandonedTicks;
 
@@ -605,13 +622,16 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         updateWheelRoll();
 
         if (level().isClientSide && isControlledByLocalInstance()) {
-            PacketDistributor.sendToServer(new CarStatePacket(getId(),
+            lastSentState = new CarStatePacket(getId(),
                     (float) state.steerAngle, (float) state.forwardSpeed,
                     getYRot(), (float) state.pitch, (float) state.roll,
                     suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
                     (float) state.engineRpm, state.gear, (float) state.throttle,
                     (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
-                    driverLights(), (float) state.boost));
+                    driverLights(), (float) state.boost);
+            PacketDistributor.sendToServer(lastSentState);
+        } else {
+            lastSentState = null;
         }
 
         if (!level().isClientSide) {
@@ -875,7 +895,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         CarEntity best = null;
         double deepest = 0.0;
         for (CarEntity other : level().getEntitiesOfClass(CarEntity.class, box,
-                car -> car != this && !car.isRemoved())) {
+                car -> car != this && !car.isRemoved() && !car.ghost)) {
             AABB overlap = box.intersect(other.getBoundingBox());
             double depth = Math.min(overlap.getXsize(), overlap.getZsize());
             if (best == null || depth > deepest) {
@@ -1241,6 +1261,41 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
     // ------------------------------------------------------------------
     // 外部から状態を差し込む口
     // ------------------------------------------------------------------
+
+    /** このティックに送った状態。運転していなければ null。 */
+    @Nullable
+    public CarStatePacket lastSentState() {
+        return lastSentState;
+    }
+
+    public boolean isGhost() {
+        return ghost;
+    }
+
+    /**
+     * 記録を再生する車にする。<b>クライアントでだけ、ワールドへ足す前に呼ぶ。</b>
+     *
+     * <p>車種・諸元・装着は記録したときのもの。いま乗っている車とは関係なく、
+     * 記録した車の姿で走る。</p>
+     */
+    public void becomeGhost(ResourceLocation carId, CarSpec spec, PartFitment parts) {
+        this.ghost = true;
+        this.carId = carId;
+        this.spec = spec;
+        this.parts = parts;
+        setNoGravity(true);
+    }
+
+    /**
+     * 記録の 1 ティックぶんを流し込む。他人の車がサーバーから受け取るのと同じ道
+     * （位置は {@link #lerpTo}、姿勢と車輪は同期値）なので、描き方も補間も同じになる。
+     */
+    public void playGhostFrame(double x, double y, double z, CarStatePacket frame) {
+        lerpTo(x, y, z, frame.yaw(), 0.0F, 3);
+        applyDriverState(frame.steerAngle(), frame.speed(), frame.yaw(), frame.pitch(), frame.roll(),
+                frame.suspension(), frame.wheelSpeed(), frame.friction(), frame.rpm(), frame.gear(),
+                frame.throttle(), frame.slipAngle(), frame.surface(), frame.lights(), frame.boost());
+    }
 
     /** 運転クライアントが毎ティック呼ぶ。次の {@link #tick()} で使われる。 */
     public void setDriverInput(CarInput input) {
@@ -1645,7 +1700,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
-        if (player.isSecondaryUseActive()) {
+        if (ghost || player.isSecondaryUseActive()) {
             return InteractionResult.PASS;
         }
         if (!level().isClientSide) {
@@ -1772,12 +1827,12 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
 
     @Override
     public boolean isPickable() {
-        return !isRemoved();
+        return !isRemoved() && !ghost;
     }
 
     @Override
     public boolean canBeCollidedWith() {
-        return true;
+        return !ghost;
     }
 
     @Override
@@ -1807,6 +1862,9 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      */
     @Override
     public boolean canCollideWith(Entity other) {
+        if (ghost || other instanceof CarEntity car && car.ghost) {
+            return false;
+        }
         if (!CarRules.carCollision() && other instanceof CarEntity) {
             return false;
         }
@@ -1823,6 +1881,9 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      */
     @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (ghost) {
+            return false;
+        }
         if (level().isClientSide || isRemoved()) {
             return true;
         }

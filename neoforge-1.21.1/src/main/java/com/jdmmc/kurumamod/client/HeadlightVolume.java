@@ -523,7 +523,7 @@ public final class HeadlightVolume {
     private static int collect(ClientLevel level, Vec3 camera, float partialTick) {
         List<CarEntity> cars = new ArrayList<>();
         for (Entity entity : level.entitiesForRendering()) {
-            if (entity instanceof CarEntity car && car.isHeadlightOn()
+            if (entity instanceof CarEntity car && car.isHeadlightOn() && !car.isGhost()
                     && car.position().distanceToSqr(camera) < collectDistance() * collectDistance()) {
                 cars.add(car);
             }

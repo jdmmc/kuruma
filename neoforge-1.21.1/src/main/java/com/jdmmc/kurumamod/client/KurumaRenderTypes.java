@@ -187,6 +187,61 @@ public final class KurumaRenderTypes extends RenderType {
     private static final Map<ResourceLocation, RenderType> GLASS = new HashMap<>();
 
     /**
+     * ゴーストの 1 回目。<b>深度だけ</b>書いて色は書かない。
+     *
+     * <p>半透明の車をそのまま描くと、車内・タイヤの裏・反対側の面まで全部透けて重なり、
+     * 濁った塊に見える。先に深度だけ埋めておけば、2 回目（{@link #ghostColor}）は
+     * <b>いちばん手前の面だけ</b>が深度テストを通るので、外側の殻だけが透けて見える。
+     * テクスチャの抜き（グリルの穴など）は cutout のシェーダが捨てるのでそのまま抜ける。</p>
+     */
+    public static RenderType ghostDepth(ResourceLocation texture) {
+        return GHOST_DEPTH.computeIfAbsent(texture, location -> create(
+                "kurumamod_ghost_depth",
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                256,
+                true,
+                false,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER)
+                        .setTextureState(new TextureStateShard(location, false, false))
+                        .setTransparencyState(NO_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP)
+                        .setOverlayState(OVERLAY)
+                        .setWriteMaskState(DEPTH_WRITE)
+                        .createCompositeState(false)));
+    }
+
+    /**
+     * ゴーストの 2 回目。色を半透明で重ねる。深度は書かない（1 回目で書いてある）。
+     *
+     * <p>カリングを切るのは右側のタイヤを鏡像で描くため（面の巻き方向が裏返る）。
+     * 裏の面が出ても、1 回目の深度に弾かれるので重ならない。</p>
+     */
+    public static RenderType ghostColor(ResourceLocation texture) {
+        return GHOST_COLOR.computeIfAbsent(texture, location -> create(
+                "kurumamod_ghost_color",
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                256,
+                true,
+                false,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                        .setTextureState(new TextureStateShard(location, false, false))
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP)
+                        .setOverlayState(OVERLAY)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .createCompositeState(false)));
+    }
+
+    private static final Map<ResourceLocation, RenderType> GHOST_DEPTH = new HashMap<>();
+    private static final Map<ResourceLocation, RenderType> GHOST_COLOR = new HashMap<>();
+
+    /**
      * GPU に置いた車のメッシュを描くときの状態（{@link CarMeshes}）。<b>頂点は積まない</b>——
      * 描く直前に {@code setupRenderState} で状態だけ整えて、頂点バッファを直接流す。
      *

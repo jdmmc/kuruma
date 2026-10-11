@@ -72,7 +72,7 @@ public final class CarTurbo {
             return;
         }
         for (Entity entity : level.entitiesForRendering()) {
-            if (entity instanceof CarEntity car && !car.isRemoved()) {
+            if (entity instanceof CarEntity car && !car.isRemoved() && !car.isGhost()) {
                 tick(car, STATES.computeIfAbsent(car, key -> new State()));
             }
         }

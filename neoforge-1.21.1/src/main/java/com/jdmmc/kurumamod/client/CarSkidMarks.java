@@ -234,7 +234,7 @@ public final class CarSkidMarks {
         int limit = (int) Math.ceil(ClientConfig.skidMarkSeconds * SEGMENTS_PER_SECOND);
         for (Entity entity : level.entitiesForRendering()) {
             // 煙と同じく、車のモデルが描かれる範囲だけ（見えていない車の跡は要らない）
-            if (!(entity instanceof CarEntity car) || !car.shouldRender(eye.x, eye.y, eye.z)) {
+            if (!(entity instanceof CarEntity car) || car.isGhost() || !car.shouldRender(eye.x, eye.y, eye.z)) {
                 continue;
             }
             // 「自分の」は自分が運転している車。助手席に乗っている車は運転者のものなので他人側

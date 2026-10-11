@@ -79,6 +79,7 @@ public class KurumaMenuScreen extends Screen {
         slider("gauge_scale", 0.5, 2.0, ClientConfig.GAUGE_SCALE);
         slider("gauge_opacity", 0.15, 1.0, ClientConfig.GAUGE_OPACITY);
         toggle("show_help", ClientConfig.SHOW_HELP);
+        toggle("time_attack_ghost", ClientConfig.TIME_ATTACK_GHOST);
         cycle("gate_display", GateDisplay.class, ClientConfig.GATE_DISPLAY,
                 display -> Component.translatable(display.translationKey()));
         toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);

@@ -148,12 +148,15 @@ public final class RaceCommands {
                                         .suggests(COURSES)
                                         .executes(RaceCommands::showLeaderboard)))
                         .then(Commands.literal("clear")
+                                // コース名を忘れたときにバニラの「不明または不完全なコマンド」で終わらせない
+                                .executes(RaceCommands::clearBestUsage)
                                 .then(Commands.literal("all").executes(RaceCommands::clearAllBests))
                                 .then(Commands.argument("name", StringArgumentType.word())
                                         .suggests(MY_RECORDS)
                                         .executes(RaceCommands::clearBest)))
                         .then(Commands.literal("clearall")
                                 .requires(source -> source.hasPermission(2))
+                                .executes(RaceCommands::clearCourseBestsUsage)
                                 .then(Commands.argument("name", StringArgumentType.word())
                                         .suggests(COURSES)
                                         .executes(RaceCommands::clearCourseBests))))
@@ -244,6 +247,7 @@ public final class RaceCommands {
                 .withStyle(ChatFormatting.GREEN), true);
         // 線が動けば過去のタイムは比較できない。消すかどうかは本人に決めてもらう
         if (data.clearCourseBests(name) > 0) {
+            notifyCourseBestsCleared(ctx.getSource().getServer(), name);
             ctx.getSource().sendSuccess(() -> Component.translatable(
                     "race.kurumamod.bests_invalidated", name).withStyle(ChatFormatting.YELLOW), false);
         }
@@ -405,30 +409,99 @@ public final class RaceCommands {
         String name = StringArgumentType.getString(ctx, "name");
         RaceData data = RaceData.get((ServerLevel) player.level());
         if (!data.clearBest(player.getUUID(), name)) {
-            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.no_best", name));
+            // コースが無いのか、コースはあるが記録が無いのかを分けて言う
+            ctx.getSource().sendFailure(Component.translatable(data.course(name).isPresent()
+                    ? "race.kurumamod.clear_no_best" : "race.kurumamod.clear_no_course", name));
+            ctx.getSource().sendFailure(recordedCoursesHint(data, player));
             return 0;
         }
+        RaceManager.notifyBestCleared(player, name);
         ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.best_cleared", name), false);
         return 1;
+    }
+
+    /** {@code /kuruma best clear} だけを打ったとき。書き方と、消せるコースを出す。 */
+    private static int clearBestUsage(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        RaceData data = RaceData.get((ServerLevel) player.level());
+        ctx.getSource().sendFailure(Component.translatable("race.kurumamod.clear_usage"));
+        ctx.getSource().sendFailure(recordedCoursesHint(data, player));
+        return 0;
+    }
+
+    /** 自己ベストのあるコースの一覧（消せる名前）。無ければそう言う。 */
+    private static Component recordedCoursesHint(RaceData data, ServerPlayer player) {
+        java.util.List<String> names = new java.util.ArrayList<>(data.recordedCourses(player.getUUID()));
+        if (names.isEmpty()) {
+            return Component.translatable("race.kurumamod.clear_none_recorded");
+        }
+        java.util.Collections.sort(names);
+        return Component.translatable("race.kurumamod.clear_recorded", String.join(", ", names));
     }
 
     private static int clearAllBests(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         RaceData data = RaceData.get((ServerLevel) player.level());
         int removed = data.clearBests(player.getUUID());
+        RaceManager.notifyBestCleared(player, "");
+        if (removed == 0) {
+            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.clear_nothing"));
+            return 0;
+        }
         ctx.getSource().sendSuccess(() -> Component.translatable(
                 "race.kurumamod.bests_cleared", removed), false);
         return removed;
+    }
+
+    /** {@code /kuruma best clearall} だけを打ったとき。書き方と、コースの一覧を出す。 */
+    private static int clearCourseBestsUsage(CommandContext<CommandSourceStack> ctx) {
+        RaceData data = RaceData.get(ctx.getSource().getLevel());
+        ctx.getSource().sendFailure(Component.translatable("race.kurumamod.clearall_usage"));
+        ctx.getSource().sendFailure(courseNamesHint(data));
+        return 0;
+    }
+
+    /** このワールドのコースの一覧。無ければそう言う。 */
+    private static Component courseNamesHint(RaceData data) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (Course course : data.courses()) {
+            names.add(course.name());
+        }
+        if (names.isEmpty()) {
+            return Component.translatable("race.kurumamod.no_courses");
+        }
+        java.util.Collections.sort(names);
+        return Component.translatable("race.kurumamod.clear_courses", String.join(", ", names));
     }
 
     /** そのコースの全員のベストを消す。コースを引き直したときに使う。 */
     private static int clearCourseBests(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "name");
         RaceData data = RaceData.get(ctx.getSource().getLevel());
+        if (data.course(name).isEmpty()) {
+            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.clear_no_course", name));
+            ctx.getSource().sendFailure(courseNamesHint(data));
+            return 0;
+        }
         int removed = data.clearCourseBests(name);
+        if (removed == 0) {
+            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.clearall_nothing", name));
+            return 0;
+        }
+        notifyCourseBestsCleared(ctx.getSource().getServer(), name);
         ctx.getSource().sendSuccess(() -> Component.translatable(
                 "race.kurumamod.course_bests_cleared", name, removed), true);
         return removed;
+    }
+
+    /**
+     * そのコースの全員のベストを消したことを、いま入っている全員に知らせる。
+     * 落ちている人のゴーストは残るが、次にベストを出した周で上書きされる。
+     */
+    private static void notifyCourseBestsCleared(net.minecraft.server.MinecraftServer server, String name) {
+        for (ServerPlayer online : server.getPlayerList().getPlayers()) {
+            RaceManager.notifyBestCleared(online, name);
+        }
     }
 
     // ------------------------------------------------------------------
