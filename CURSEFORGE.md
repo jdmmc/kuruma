@@ -8,7 +8,7 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 
 **Forge 1.20.1 (47.4.22+) / NeoForge 1.21.1 (21.1+) · No dependencies · Multiplayer · Wheel & gamepad**
 
-🚗 [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
+🌐 [Website](https://kuruma.jdm-mc.com/) · 🚗 [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
 ***
 
@@ -82,7 +82,7 @@ Fully analog throttle, brake and steering — and the handbrake too: map a wheel
 **A car pack is a single jar. Put it in `mods/` and the cars are there.**
 
 - **[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — adds the Toyota Land Cruiser Prado, a heavy off-road 4x4, and the Porsche 911, a rear-engined sports car
-- **Make your own:** follow the **[Car Pack Creation Guide](https://static.jdm-mc.com/manual/PACK_CREATE_GUIDE.html)** (no Blender experience needed) and use the **[Example Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** as your template. No coding, and no credit required
+- **Make your own:** follow the **[Car Pack Creation Guide](https://kuruma.jdm-mc.com/guide.html)** (no Blender experience needed) and use the **[Example Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** as your template. No coding, and no credit required
 
 ***
 
@@ -142,7 +142,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 **Forge 1.20.1（47.4.22+）／NeoForge 1.21.1（21.1+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
 
-🚗 [ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
+🌐 [公式サイト](https://kuruma.jdm-mc.com/) · 🚗 [ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
 ***
 
@@ -216,7 +216,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 **カーパックは jar ひとつ。`mods/` に入れるだけで車が増えます。**
 
 - **[ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — トヨタ ランドクルーザー プラド（重量級のオフロード 4x4）と、ポルシェ 911（エンジンを後ろに積んだスポーツカー）を追加
-- **自分で作るなら:** **[カーパック作成ガイド](https://static.jdm-mc.com/manual/PACK_CREATE_GUIDE.html)**（Blender 未経験でも大丈夫）を見ながら、**[エグザンプルカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** をひな型に。コードは不要、クレジット表記も不要です
+- **自分で作るなら:** **[カーパック作成ガイド](https://kuruma.jdm-mc.com/guide.html)**（Blender 未経験でも大丈夫）を見ながら、**[エグザンプルカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** をひな型に。コードは不要、クレジット表記も不要です
 
 ***
 
