@@ -7,7 +7,7 @@ license = "${mod_license}"
 modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
-displayURL = "https://static.jdm-mc.com"
+displayURL = "https://kuruma.jdm-mc.com/"
 # Mod 一覧に出すロゴ。jar のルートからの名前で書く（src/main/resources/ の直下に置く）。
 # tools/LogoRender.java が s15.obj / wheel.obj を焼いて作ったもの
 logoFile = "kurumamod.png"
