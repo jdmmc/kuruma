@@ -1,0 +1,2144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a car | Car Pack Guide | KurumaMod</title>
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="Make a car | Car Pack Guide | KurumaMod" data-title-ja="車を作る | カーパック作成ガイド | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <span data-l="en">日本語</span><span data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+    </div>
+  </div>
+</header>
+
+<section class="ghero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span> / <span data-l="en">Car</span><span data-l="ja">車</span></div>
+    <h1><span data-l="en">Make a car</span><span data-l="ja">車を作る</span></h1>
+    <p><span data-l="en">Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.</span><span data-l="ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）。</span></p>
+    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-common.html"><span data-l="en">Common</span><span data-l="ja">共通</span></a></nav>
+  </div>
+</section>
+
+<div class="wrap glayout">
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass and mirrors (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a><a href="#sd"><span data-l="en">Appendix B. Ignored values</span><span data-l="ja">付録 B. 読まれない値</span></a></nav>
+  <div class="gdoc"><section class="gsec" id="s-car-min">
+<h2 class="ja">最小の車を作る</h2>
+<h2 class="en">Make a minimal car</h2>
+<p class="ja">新しい車を 1 台ゲームに出すのに、これだけは要るという流れです。各手順の詳しいことは、手順の最後にある章にあります。ここでは、パックの名前を <code>mypack</code>、車種の名前を <code>ae86</code> とします。</p>
+<p class="en">The bare minimum to get one new car into the game. Each step links to the chapter with the details. Here the pack is called <code>mypack</code> and the car <code>ae86</code>.</p>
+
+<h3 class="ja">手順</h3>
+<h3 class="en">Steps</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>ゲージを置く。</b>→ <a href="#s3">1 章</a></li>
+<li><span class="where where-blender">Blender</span><b>ゲージのタイヤに合わせて車体を作る。</b>原点は「地面の高さ・前後輪の中間・左右の中央」→ <a href="#s4">2 章</a></li>
+<li><span class="where where-blender">Blender</span><b>車体を <code>ae86.obj</code> に書き出す。</b><code>Selected Only</code> だけ入れて、ほかは既定のまま → <a href="#s8">5 章</a></li>
+<li><span class="where where-file">ファイル</span><b>見本の <code>carpack/example/</code> をフォルダごとコピーし、<code>kurumamod_example_carpack</code> をすべて <code>mypack</code> に置き換える。</b>フォルダ名 2 つ（<code>assets/</code> の下と <code>data/</code> の下）、いちばん上のロゴ画像のファイル名、そしてすべてのファイルの中身（toml と、JSON の中のパス）。使える文字は <code>a-z</code>・<code>0-9</code>・<code>_</code> だけ → <a href="#s9">6 章</a></li>
+<li><span class="where where-file">ファイル</span><b>車体を置く。</b><code>ae86.obj</code> と <code>ae86.mtl</code> を <code>assets/mypack/models/entity/</code> に、テクスチャを <code>assets/mypack/textures/entity/ae86.png</code> に。絵がまだ無ければ、白く塗った小さな PNG でよい → <a href="#s7">4 章</a></li>
+<li><span class="where where-file">ファイル</span><b>見た目の JSON を書く。</b><code>assets/mypack/vehicles/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする:
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/ae86.obj",
+             "texture": "mypack:textures/entity/ae86.png" },
+  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
+             "texture": "kurumamod:textures/entity/wheel.png" }
+}</code></pre>
+タイヤは KurumaMod のものを借りている → <a href="#s9">6 章</a></li>
+<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code>（見た目の JSON と同じ名前）に改名して、中身をこうする:
+<pre><code>{
+  "values": { "mass": 1200.0 }
+}</code></pre>
+書いていない項目は既定の車と同じになる → <a href="#s-spec">8 章</a></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>assets/mypack/lang/ja_jp.json</code> と <code>en_us.json</code> に <code>"car.mypack.ae86": "AE86"</code> → <a href="#s9">6 章</a></li>
+<li><span class="where where-file">ファイル</span><b>フォルダの中身を jar に固めて、<code>mods/</code> に入れる。</b>フォルダごとではなく中身を固める → <a href="guide-common.html#s-jar">共通の 4 章</a></li>
+<li><span class="where where-game">ゲーム</span><b>起動して、クリエイティブの「KurumaMod」タブから車を出して乗る。</b>→ <a href="guide-common.html#s10">共通の 5 章</a></li>
+</ol>
+<p class="ja">これで、自分の車体で、既定の車と同じように走る車が 1 台増えます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Place the gauge.</b> → <a href="#s3">chapter 1</a></li>
+<li><span class="where where-blender">Blender</span><b>Build the body around the gauge wheels.</b> Origin at ground level, halfway between the axles, on the centreline → <a href="#s4">chapter 2</a></li>
+<li><span class="where where-blender">Blender</span><b>Export the body as <code>ae86.obj</code>.</b> Tick only <code>Selected Only</code>; leave the rest at defaults → <a href="#s8">chapter 5</a></li>
+<li><span class="where where-file">File</span><b>Copy the whole <code>carpack/example/</code> folder and replace every <code>kurumamod_example_carpack</code> with <code>mypack</code>.</b> That is two folder names (under <code>assets/</code> and under <code>data/</code>), the file name of the logo image at the top, and the contents of every file (the toml files and the paths inside the JSON). Use only <code>a-z</code>, <code>0-9</code> and <code>_</code> → <a href="#s9">chapter 6</a></li>
+<li><span class="where where-file">File</span><b>Put the body in place.</b> <code>ae86.obj</code> and <code>ae86.mtl</code> go in <code>assets/mypack/models/entity/</code>, the texture in <code>assets/mypack/textures/entity/ae86.png</code>. No art yet? A small all-white PNG will do → <a href="#s7">chapter 4</a></li>
+<li><span class="where where-file">File</span><b>Write the look JSON.</b> Rename <code>assets/mypack/vehicles/sample.json</code> to <code>ae86.json</code> and make it:
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/ae86.obj",
+             "texture": "mypack:textures/entity/ae86.png" },
+  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
+             "texture": "kurumamod:textures/entity/wheel.png" }
+}</code></pre>
+The wheels are borrowed from KurumaMod → <a href="#s9">chapter 6</a></li>
+<li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> (same name as the look JSON) and make it:
+<pre><code>{
+  "values": { "mass": 1200.0 }
+}</code></pre>
+Anything not written stays as on the default car → <a href="#s-spec">chapter 8</a></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang:</b> <code>"car.mypack.ae86": "AE86"</code> in <code>assets/mypack/lang/en_us.json</code> and <code>ja_jp.json</code> → <a href="#s9">chapter 6</a></li>
+<li><span class="where where-file">File</span><b>Zip the folder's contents into a jar and put it in <code>mods/</code>.</b> Zip what is inside the folder, not the folder itself → <a href="guide-common.html#s-jar">chapter 4 of Common</a></li>
+<li><span class="where where-game">Game</span><b>Start the game, take the car from the "KurumaMod" creative tab and get in.</b> → <a href="guide-common.html#s10">chapter 5 of Common</a></li>
+</ol>
+<p class="en">You now have one more car: your body, driving like the default car.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>jar を作らずに、まず見た目だけ確かめたい</summary>
+<div class="more-body">
+<p>リソースパックで KurumaMod の既定の車を自分の車体に差し替えれば、jar を作らずに <kbd>F3</kbd>+<kbd>T</kbd> で何度でも試せます。手順は<a href="#s9">6 章</a>の「A」にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Check the looks first, without building a jar</summary>
+<div class="more-body">
+<p>Override KurumaMod's built-in car with your body using a resource pack. No jar needed, and <kbd>F3</kbd>+<kbd>T</kbd> reloads it as often as you like. See route "A" in <a href="#s9">chapter 6</a>.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>もっと作り込みたい</summary>
+<div class="more-body">
+<table>
+<tr><th>やりたいこと</th><th>見る章</th></tr>
+<tr><td>ライトを光らせる・窓を透けさせる・ミラーに映す</td><td><a href="#s5">3 章</a></td></tr>
+<tr><td>テクスチャを描く</td><td><a href="#s7">4 章</a></td></tr>
+<tr><td>座席の位置・車体の大きさを直す</td><td><a href="#s9">6 章</a></td></tr>
+<tr><td>エンジン音を変える</td><td><a href="#s-sound">7 章</a></td></tr>
+<tr><td>走り（重さ・エンジン・足まわり）を変える</td><td><a href="#s-spec">8 章</a></td></tr>
+<tr><td>自分のホイールを履かせる</td><td><a href="guide-wheel.html#s6">ホイールの 1 章</a></td></tr>
+<tr><td>ウイングやバンパーを付け替えられるようにする</td><td><a href="guide-parts.html#s-body">パーツの 2 章</a></td></tr>
+</table>
+</div>
+</details>
+<details class="more en">
+<summary>Go further</summary>
+<div class="more-body">
+<table>
+<tr><th>What you want</th><th>Where</th></tr>
+<tr><td>Working lights, see-through windows, reflecting mirrors</td><td><a href="#s5">Chapter 3</a></td></tr>
+<tr><td>Paint a texture</td><td><a href="#s7">Chapter 4</a></td></tr>
+<tr><td>Fix the seat position or the body size</td><td><a href="#s9">Chapter 6</a></td></tr>
+<tr><td>Change the engine sound</td><td><a href="#s-sound">Chapter 7</a></td></tr>
+<tr><td>Change how it drives (weight, engine, suspension)</td><td><a href="#s-spec">Chapter 8</a></td></tr>
+<tr><td>Fit your own wheels</td><td><a href="guide-wheel.html#s6">Chapter 1 of the Wheel guide</a></td></tr>
+<tr><td>Make wings or bumpers swappable</td><td><a href="guide-parts.html#s-body">Chapter 2 of the Parts guide</a></td></tr>
+</table>
+</div>
+</details>
+
+<details class="more ja">
+<summary>直したものを入れ直したい</summary>
+<div class="more-body">
+<ul>
+<li><code>assets/</code> の中（モデル・テクスチャ・見た目の JSON・lang）を直したら、ゲームで <kbd>F3</kbd>+<kbd>T</kbd></li>
+<li><code>data/</code> の中（諸元）を直したら、ゲームで <code>/reload</code></li>
+</ul>
+<p>jar に入れて試しているときは、jar を作り直して入れ替え、ゲームを起動し直します。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Reload what you changed</summary>
+<div class="more-body">
+<ul>
+<li>After changing anything in <code>assets/</code> (model, texture, look JSON, lang), press <kbd>F3</kbd>+<kbd>T</kbd> in game</li>
+<li>After changing anything in <code>data/</code> (the spec), run <code>/reload</code> in game</li>
+</ul>
+<p>If you are testing from a jar, rebuild the jar, swap it in and restart the game.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>MOD 一覧に出ない</b> … フォルダごと jar に固めた（<code>META-INF/</code> が jar の直下にない）。または <code>modId</code> に <code>-</code> や <code>.</code> を使った</li>
+<li><b>タブに車が出ない</b> … <code>data/mypack/cars/ae86.json</code> の場所か、JSON の書き方が違う。理由はログに出る</li>
+<li><b>出てくるが、既定の車の姿のまま</b> … 見た目の JSON のファイル名が諸元と違う。または <code>body.model</code> のパスか名前空間（<code>mypack:</code>）が違う</li>
+<li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっていない</li>
+<li><b>車体が大きすぎ・小さすぎ・タイヤとずれる</b> … ゲージに合わせて作れていない。<code>designWheelBase</code> と <code>designWheelRadius</code> に実際の寸法を書く（<a href="#s9">6 章</a>）</li>
+</ul>
+<p>ほかの症状は<a href="guide-common.html#s11">共通の 6 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Not in the mod list</b> — you zipped the folder itself (<code>META-INF/</code> is not at the top of the jar), or <code>modId</code> contains <code>-</code> or <code>.</code></li>
+<li><b>No car in the tab</b> — <code>data/mypack/cars/ae86.json</code> is in the wrong place or not valid JSON. The reason is in the log</li>
+<li><b>It appears, but with the default car's body</b> — the look JSON's file name differs from the spec's, or the <code>body.model</code> path or namespace (<code>mypack:</code>) is wrong</li>
+<li><b>The display name shows as <code>ae86</code></b> — the lang key is not <code>car.mypack.ae86</code></li>
+<li><b>The body is too big, too small, or off from the wheels</b> — it does not match the gauge. Write your real sizes into <code>designWheelBase</code> and <code>designWheelRadius</code> (<a href="#s9">chapter 6</a>)</li>
+</ul>
+<p>Other symptoms are in <a href="guide-common.html#s11">chapter 6 of Common</a>.</p>
+</div>
+</details>
+</section><section class="gsec" id="s3">
+<h2 class="ja"><span class="num">1</span>ゲージを置く</h2>
+<h2 class="en"><span class="num">1</span>Place the gauge</h2>
+<p class="ja">車体を作る前に、寸法の目安になる枠（ゲージ）を Blender に置きます。ゲージに合わせて作れば、JSON の寸法は既定のままで済みます。</p>
+<p class="en">Before you model, put a reference frame (the gauge) into Blender. Build to it and the sizes in the JSON can stay at their defaults.</p>
+
+<h3 class="ja">やること</h3>
+<h3 class="en">What to do</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>上の <code>Scripting</code> タブを開き、<code>新規</code>（New）を押す。</b></li>
+<li><span class="where where-blender">Blender</span><b><code>modeling_tools/blender_gauge.py</code> の中身を全部貼り付けて、実行する。</b>▶ を押すか <kbd>Alt</kbd>+<kbd>P</kbd></li>
+</ol>
+<p class="ja">これで、タイヤ 4 つ・地面・シャシー基準面がワイヤーフレームで置かれます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Open the <code>Scripting</code> tab at the top and press <code>New</code>.</b></li>
+<li><span class="where where-blender">Blender</span><b>Paste the whole of <code>modeling_tools/blender_gauge.py</code> and run it.</b> Press ▶ or <kbd>Alt</kbd>+<kbd>P</kbd></li>
+</ol>
+<p class="en">Four wheels, the ground and the chassis plane now appear as wireframes.</p>
+
+<figure>
+<img src="img/guide-1.png" loading="lazy" alt="Blender Scripting tab and the New button">
+<figcaption class="ja">図 3. 上部の <code>Scripting</code> タブ（左上）を開き、<code>New</code> を押してから貼り付けます</figcaption>
+<figcaption class="en">Fig. 3. Open the <code>Scripting</code> tab (top left), press <code>New</code>, then paste.</figcaption>
+</figure>
+
+<h3 class="ja">置かれるもの</h3>
+<h3 class="en">What it places</h3>
+<table class="ja">
+<tr><th>名前</th><th>何か</th></tr>
+<tr><td><code>gauge_wheel_FL</code> ほか 4 つ</td><td>タイヤの位置と大きさ。<b>ここにタイヤハウスが来るように車体を作る</b></td></tr>
+<tr><td><code>gauge_ground</code></td><td>地面（Z = 0）。ワールド原点はこの高さ</td></tr>
+<tr><td><code>gauge_chassis_plane</code></td><td>シャシー基準面（Z = 0.602m）。ゲームが車の「位置」とする高さ。4 隅が車軸の真上</td></tr>
+</table>
+<table class="en">
+<tr><th>Name</th><th>What it is</th></tr>
+<tr><td><code>gauge_wheel_FL</code> and 3 more</td><td>Where the wheels sit and how big they are. <b>Build the wheel arches around these</b></td></tr>
+<tr><td><code>gauge_ground</code></td><td>The ground (Z = 0). The world origin is at this height</td></tr>
+<tr><td><code>gauge_chassis_plane</code></td><td>The chassis plane (Z = 0.602 m), the height the game treats as the car's position. Its corners sit right above the axles</td></tr>
+</table>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>ゲージを置き直したい</summary>
+<div class="more-body">
+<p>もう一度実行するだけです。前のゲージは消えてから置き直されます。</p>
+<p>ゲージは選択できない設定になっています。作業中に間違って動かすことはなく、<kbd>A</kbd> で全部を選んでも入りません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Place the gauge again</summary>
+<div class="more-body">
+<p>Just run it again. The old gauge is removed before the new one goes in.</p>
+<p>The gauge cannot be selected. You cannot move it by accident, and <kbd>A</kbd> (select all) leaves it out.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ゲージの寸法を知りたい</summary>
+<div class="more-body">
+<table>
+<tr><th>ホイールベース</th><td>3.12 m（前後輪の距離）</td></tr>
+<tr><th>トレッド</th><td>1.80 m（左右輪の距離）</td></tr>
+<tr><th>タイヤ半径</th><td>0.45 m（直径 90cm）</td></tr>
+<tr><th>シャシー基準面</th><td>0.602 m</td></tr>
+</table>
+<p>実車より 2 割大きめです。Minecraft のプレイヤーはずんぐりしているので、実寸だと車が小さく見えるためです。</p>
+</div>
+</details>
+<details class="more en">
+<summary>See the gauge's sizes</summary>
+<div class="more-body">
+<table>
+<tr><th>Wheelbase</th><td>3.12 m (front axle to rear axle)</td></tr>
+<tr><th>Track</th><td>1.80 m (left wheel to right wheel)</td></tr>
+<tr><th>Wheel radius</th><td>0.45 m (90 cm diameter)</td></tr>
+<tr><th>Chassis plane</th><td>0.602 m</td></tr>
+</table>
+<p>That is 20% bigger than a real car. Minecraft players are stocky, and a true-size car looks small next to them.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ゲージに合わせずに作りたい（作ってしまった）</summary>
+<div class="more-body">
+<p>それでも動きます。実際に作った寸法を、見た目の JSON の <code>designWheelBase</code>（ホイールアーチの前後の距離）と <code>designWheelRadius</code>（タイヤの半径）に書きます（<a href="#s9">6 章</a>）。ゲームがその比で車体を拡大・縮小して、ゲージの大きさに合わせます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Build without matching the gauge (or you already did)</summary>
+<div class="more-body">
+<p>It still works. Write the sizes you actually built into <code>designWheelBase</code> (distance between the arches) and <code>designWheelRadius</code> (wheel radius) in the look JSON (<a href="#s9">chapter 6</a>). The game scales the body by that ratio to fit the gauge size.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>実車と同じ大きさのゲージにしたい</summary>
+<div class="more-body">
+<p>スクリプトの先頭の <code>SCALE = 1.2</code> を <code>1.0</code> にします。そのときは諸元（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）の <code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code> も同じ寸法に揃えます（<a href="#s-spec">8 章</a>）。揃えないと、タイヤだけが元の位置と大きさで出ます。</p>
+<p><b>はじめての車では触らないでください。</b></p>
+</div>
+</details>
+<details class="more en">
+<summary>Use a real-world-size gauge</summary>
+<div class="more-body">
+<p>Change <code>SCALE = 1.2</code> at the top of the script to <code>1.0</code>. Then set <code>wheel_base</code>, <code>track_width</code> and <code>wheel_radius</code> in the spec (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) to the same sizes (<a href="#s-spec">chapter 8</a>). If you don't, the wheels still appear at the old positions and size.</p>
+<p><b>Leave it alone for your first car.</b></p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ホイールを作りたい</summary>
+<div class="more-body">
+<p>ホイールは車体とは別のファイルで作り、専用のゲージ（<code>modeling_tools/blender_wheel_gauge.py</code>）を使います。<a href="guide-wheel.html#s6">ホイールの 1 章</a>を見てください。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Build a wheel</summary>
+<div class="more-body">
+<p>Wheels are built in a separate file with their own gauge, <code>modeling_tools/blender_wheel_gauge.py</code>. See <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a>.</p>
+</div>
+</details>
+</section><section class="gsec" id="s4">
+<h2 class="ja"><span class="num">2</span>車体を作る</h2>
+<h2 class="en"><span class="num">2</span>Build the body</h2>
+<p class="ja">車体のメッシュを作る章です。決まりは原点の位置と向きだけで、大きさと形は自由です。</p>
+<p class="en">This chapter is about modelling the body. The only rules are where the origin is and which way the car faces; size and shape are up to you.</p>
+
+<h3 class="ja">最小の車体を作る</h3>
+<h3 class="en">Make a minimal body</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>前を −Y、上を +Z に向けて作る。</b>Blender の標準の向きのまま（テンキー <kbd>1</kbd> で正面から見た向き）</li>
+<li><span class="where where-blender">Blender</span><b>ワールド原点が「地面の高さ・前後輪のちょうど中間・左右の中央」に来るように置く。</b>ゲージのとおりに作れば、そうなっている</li>
+<li><span class="where where-blender">Blender</span><b>タイヤハウスを、ゲージのタイヤに合わせて切る。</b></li>
+</ol>
+<p class="ja">これで、書き出せばゲームのタイヤと車体が合います。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Face the car towards −Y with +Z up.</b> That is Blender's default (numpad <kbd>1</kbd> looks at the front)</li>
+<li><span class="where where-blender">Blender</span><b>Put the world origin at ground level, exactly halfway between the axles, on the centreline.</b> If you follow the gauge, it already is</li>
+<li><span class="where where-blender">Blender</span><b>Cut the wheel arches around the gauge wheels.</b></li>
+</ol>
+<p class="en">Once exported, the body and the in-game wheels line up.</p>
+
+<figure>
+<svg viewBox="0 0 720 350" role="img" aria-label="Body origin and gauge, side view">
+  <line class="f-line" x1="20" y1="250" x2="700" y2="250"/>
+  <path class="f-body" d="M122 228 L122 186 C123 166 134 150 150 146 L240 142 L296 84 L450 78 L534 134 L636 142 C652 146 658 166 658 186 L658 228 Z"/>
+  <path class="f-dash" d="M76 44 V178 H690"/>
+  <circle cx="203" cy="196" r="54" fill="var(--fig)" stroke="var(--ink)" stroke-width="2.2"/>
+  <circle cx="577" cy="196" r="54" fill="var(--fig)" stroke="var(--ink)" stroke-width="2.2"/>
+  <circle class="f-line" cx="203" cy="196" r="21"/>
+  <circle class="f-line" cx="577" cy="196" r="21"/>
+  <line class="f-dash" x1="390" y1="60" x2="390" y2="262"/>
+  <circle class="f-accf" cx="390" cy="250" r="5.5"/>
+  <line class="f-acc" x1="366" y1="250" x2="414" y2="250"/>
+  <g class="f-thin">
+    <line x1="203" y1="196" x2="203" y2="334"/>
+    <line x1="577" y1="196" x2="577" y2="334"/>
+    <line x1="203" y1="326" x2="577" y2="326"/>
+  </g>
+  <path class="f-accf" d="M203 326 l10 -4 v8 z"/><path class="f-accf" d="M577 326 l-10 -4 v8 z"/>
+  <text class="f-ta ja" x="24" y="36">シャシー基準面 ＝ Z 0.602 m</text>
+  <text class="f-ta en" x="24" y="36">chassis plane = Z 0.602 m</text>
+  <text class="f-ta ja" x="390" y="52" text-anchor="middle">前後輪の中点</text>
+  <text class="f-ta en" x="390" y="52" text-anchor="middle">midpoint of the axles</text>
+  <text class="f-td ja" x="698" y="270" text-anchor="end">地面 ＝ Z 0</text>
+  <text class="f-td en" x="698" y="270" text-anchor="end">ground = Z 0</text>
+  <text class="f-ta ja" x="390" y="280" text-anchor="middle">ワールド原点（0, 0, 0）</text>
+  <text class="f-ta en" x="390" y="280" text-anchor="middle">world origin (0, 0, 0)</text>
+  <text class="f-td ja" x="390" y="318" text-anchor="middle">ホイールベース 3.12 m</text>
+  <text class="f-td en" x="390" y="318" text-anchor="middle">wheelbase 3.12 m</text>
+</svg>
+<figcaption class="ja">図 4. 車体の原点は「地面の高さ・前後輪の中点・左右中央」。重心ではありません</figcaption>
+<figcaption class="en">Fig. 4. The body origin sits at ground level, midway between the axles, on the centreline — not at the centre of mass.</figcaption>
+</figure>
+
+<figure>
+<div class="anno"><img src="img/guide-2.jpg" loading="lazy" alt="The S15 body in Blender, with the gauge wheels sitting in the wheel arches"><svg class="anno-layer" viewBox="0 0 1418 869" preserveAspectRatio="none" role="img" aria-label="Annotations: gauge wheels, wheel arch, world origin"><g class="ja"><line class="an-line" x1="267" y1="640" x2="420" y2="572"/><circle class="an-dot" cx="420" cy="572" r="7"/><line class="an-line" x1="267" y1="640" x2="880" y2="448"/><circle class="an-dot" cx="880" cy="448" r="7"/><rect class="an-box" x="70" y="640" width="197" height="45" rx="7"/><text class="an-text" x="81" y="675">ゲージのタイヤ</text></g><g class="en"><line class="an-line" x1="260" y1="640" x2="420" y2="572"/><circle class="an-dot" cx="420" cy="572" r="7"/><line class="an-line" x1="260" y1="640" x2="880" y2="448"/><circle class="an-dot" cx="880" cy="448" r="7"/><rect class="an-box" x="70" y="640" width="190" height="45" rx="7"/><text class="an-text" x="81" y="675">Gauge wheels</text></g><g class="ja"><line class="an-line" x1="282" y1="308" x2="372" y2="452"/><circle class="an-dot" cx="372" cy="452" r="7"/><rect class="an-box" x="60" y="230" width="222" height="78" rx="7"/><text class="an-text" x="71" y="265">タイヤハウスを</text><text class="an-text" x="71" y="298">この輪に合わせる</text></g><g class="en"><line class="an-line" x1="306" y1="308" x2="372" y2="452"/><circle class="an-dot" cx="372" cy="452" r="7"/><rect class="an-box" x="60" y="230" width="246" height="78" rx="7"/><text class="an-text" x="71" y="265">Cut the arch</text><text class="an-text" x="71" y="298">to fit this ring</text></g><g class="ja"><line class="an-line" x1="600" y1="690" x2="583" y2="433"/><circle class="an-dot" cx="583" cy="433" r="7"/><rect class="an-box" x="600" y="690" width="447" height="78" rx="7"/><text class="an-text" x="611" y="725">ワールド原点</text><text class="an-text" x="611" y="758">（地面・前後輪の中間・左右の中央）</text></g><g class="en"><line class="an-line" x1="600" y1="690" x2="583" y2="433"/><circle class="an-dot" cx="583" cy="433" r="7"/><rect class="an-box" x="600" y="690" width="568" height="78" rx="7"/><text class="an-text" x="611" y="725">World origin</text><text class="an-text" x="611" y="758">(ground, between the axles, centreline)</text></g></svg></div>
+<figcaption class="ja">図 5. 見本の S15 の車体。ゲージのタイヤ（線で描かれた輪）が、ちょうどタイヤハウスに収まるように作ってあります</figcaption>
+<figcaption class="en">Fig. 5. The S15 body. The gauge wheels (the wire rings) sit right inside the wheel arches.</figcaption>
+</figure>
+
+<h3 class="ja">原点の 3 つの条件</h3>
+<h3 class="en">The three origin rules</h3>
+<table class="ja">
+<tr><th>高さ</th><td><b>地面（Z = 0）。</b>車体の底ではない</td></tr>
+<tr><th>前後</th><td>前輪と後輪のちょうど中間。全長の中心とは限らない</td></tr>
+<tr><th>左右</th><td>中央</td></tr>
+</table>
+<table class="en">
+<tr><th>Height</th><td><b>Ground level (Z = 0)</b>, not the underside of the body</td></tr>
+<tr><th>Front–rear</th><td>Exactly halfway between the axles, not necessarily the middle of the overall length</td></tr>
+<tr><th>Left–right</th><td>On the centreline</td></tr>
+</table>
+<p class="ja">合わせるのはワールド原点です。オブジェクトを選んだときに出るオレンジの点（オブジェクト原点）はどこにあっても構いません（<a href="guide-common.html#s2">共通の 3 章</a>）。</p>
+<p class="en">What matters is the world origin. The orange dot you see on a selected object (its object origin) can be anywhere (<a href="guide-common.html#s2">chapter 3 of Common</a>).</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>原点がずれていたので直したい</summary>
+<div class="more-body">
+<p>車体を全部選び（<kbd>A</kbd>）、<kbd>G</kbd> で動かします。ゲージは選択できないので一緒には動きません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Fix an origin that is off</summary>
+<div class="more-body">
+<p>Select the whole body (<kbd>A</kbd>) and move it with <kbd>G</kbd>. The gauge cannot be selected, so it stays put.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>左右対称に半分だけ作りたい</summary>
+<div class="more-body">
+<p>ミラーモディファイアを使います。書き出しのときに自動で適用されるので、「適用」は押さなくてかまいません。</p>
+<p>ただし、左右のドアミラーの鏡だけは別々のオブジェクトにします（<a href="#mirror">3 章のミラー</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Model half and mirror it</summary>
+<div class="more-body">
+<p>Use a mirror modifier. The exporter applies it for you, so you don't need to press "Apply".</p>
+<p>The one exception is the glass of the two door mirrors, which must be separate objects (<a href="#mirror">mirrors in chapter 3</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ボンネットやバンパーを別のオブジェクトに分けたい</summary>
+<div class="more-body">
+<p>分けても分けなくても同じです。ゲームは名前の決まっていないオブジェクトを全部まとめて車体として描きます。同梱の車体は作業のしやすさで <code>body</code> / <code>hood</code> / <code>trunk</code> / <code>bumper_f</code> / <code>bumper_r</code> に分けてあります。</p>
+<p>ライト・ガラス・ミラー・付け替える部品だけは名前で働きが決まるので、別のオブジェクト（または別のマテリアル）にします（<a href="#s5">3 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Split the bonnet or bumpers into their own objects</summary>
+<div class="more-body">
+<p>Split or not, it makes no difference. The game draws every object without a special name as body. The bundled body is split into <code>body</code> / <code>hood</code> / <code>trunk</code> / <code>bumper_f</code> / <code>bumper_r</code> only for convenience while modelling.</p>
+<p>Lights, glass, mirrors and swappable parts are the exception: their names decide what they do, so they need their own objects (or materials) (<a href="#s5">chapter 3</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>車内（内装）も作りたい</summary>
+<div class="more-body">
+<p>作らなくてもかまいません。何も作らなければ、車体の裏面がそのまま内装として見えます。作るなら、ふつうの車体として作れば描かれます。座席の位置は見た目の JSON の <code>seat</code> で決まり、座席のメッシュとは関係ありません（<a href="#s9">6 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Model an interior</summary>
+<div class="more-body">
+<p>You don't have to. Without one, the back faces of the body show through and serve as the cabin. If you do model one, build it as ordinary body and it is drawn. Where the player sits comes from <code>seat</code> in the look JSON, not from any seat mesh (<a href="#s9">chapter 6</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ポリゴン数の目安を知りたい</summary>
+<div class="more-body">
+<p>あまり気にしなくてかまいません。同梱の車体は 671 面、タイヤは 344 面です。面は四角形のままにしておくと軽く描けます（<a href="#s8">5 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How many polygons?</summary>
+<div class="more-body">
+<p>Don't worry much about it. The bundled body is 671 faces and the wheel 344. Keeping faces as quads draws faster (<a href="#s8">chapter 5</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>走るとタイヤがボディを突き抜ける</b> … タイヤハウスがゲージのタイヤに合っていない</li>
+<li><b>車体が地面に埋まる・浮く</b> … 原点を車体の底に置いている。地面の高さ（Z = 0）へ動かす</li>
+<li><b>タイヤが前後にずれる</b> … 原点が前後輪の中間にない。全長の中心に置いていないか見る</li>
+<li><b>前後が逆・左右が鏡像</b> … 書き出しの <code>Forward Axis</code> を触った（<a href="#s8">5 章</a>）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Tyres poke through the body when driving</b> — the arches don't match the gauge wheels</li>
+<li><b>The body sinks into the ground or floats</b> — the origin is at the underside of the body. Move it to ground level (Z = 0)</li>
+<li><b>The wheels sit too far forward or back</b> — the origin is not halfway between the axles. Check you didn't use the middle of the overall length</li>
+<li><b>Front and back swapped, or mirrored</b> — <code>Forward Axis</code> was changed on export (<a href="#s8">chapter 5</a>)</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s5">
+<h2 class="ja"><span class="num">3</span>ライト・ガラス・ミラー（名前で決まる機能）</h2>
+<h2 class="en"><span class="num">3</span>Lights, glass and mirrors (names that do things)</h2>
+<p class="ja">オブジェクトに決まった名前を付けるだけで、ライトが光り、窓が透け、ミラーに後ろが映ります。JSON には何も書きません。</p>
+<p class="en">Give an object one of a few set names and it lights up, turns see-through or reflects what is behind. Nothing goes into the JSON.</p>
+
+<h3 class="ja">ライトを光らせる</h3>
+<h3 class="en">Make the lights work</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>ライトのレンズを別のオブジェクトにして、名前を付ける。</b>ヘッドライトは <code>light_head</code>、テールランプは <code>light_tail</code>、バックランプは <code>light_reverse</code>。左右で 1 つのオブジェクトでよい（ミラーモディファイアのままでよい）</li>
+<li><span class="where where-blender">Blender</span><b>レンズの面を、車体から 1〜2mm 浮かせる。</b></li>
+<li><span class="where where-blender">Blender</span><b>レンズの UV は展開せず、1 点に潰してテクスチャの白い画素に置く。</b>色はゲームが付ける</li>
+</ol>
+<p class="ja">これで、<kbd>L</kbd> でヘッドライトが点き、テールランプはいつもうっすら光ってブレーキで明るくなり、ギアを R に入れるとバックランプが点きます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make each lens its own object and name it.</b> <code>light_head</code> for headlights, <code>light_tail</code> for tail lights, <code>light_reverse</code> for reverse lights. One object for both sides is fine (a mirror modifier is fine)</li>
+<li><span class="where where-blender">Blender</span><b>Float the lens faces 1–2 mm proud of the body.</b></li>
+<li><span class="where where-blender">Blender</span><b>Don't unwrap the lens: collapse its UVs to one point on a white pixel of the texture.</b> The game adds the colour</li>
+</ol>
+<p class="en"><kbd>L</kbd> now turns the headlights on, the tail lights glow dimly and brighten under braking, and the reverse lights come on in R.</p>
+
+<div class="box warn ja">
+<span class="lbl"><code>light_</code> で始まる名前はこの 3 つだけ</span>
+<p><code>light_fog</code> のような名前を付けると、<b>そこが穴になって何も描かれません。</b>フォグランプは <code>light_head</code> に含めるか、ふつうの車体として作ります。</p>
+</div>
+<div class="box warn en">
+<span class="lbl">ONLY THESE THREE <code>light_</code> NAMES</span>
+<p>Name something <code>light_fog</code> and <b>it becomes a hole where nothing is drawn.</b> Fold fog lights into <code>light_head</code>, or model them as plain body.</p>
+</div>
+
+<h3 class="ja">窓を透けさせる</h3>
+<h3 class="en">Make the windows see-through</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>窓を別のオブジェクトにして、名前を <code>glass</code> で始める。</b><code>glass</code>・<code>glass_side</code>・<code>glass.front</code> など</li>
+</ol>
+<p class="ja">これで、窓が透けます（濃さは 0.35）。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make the windows their own object and start the name with <code>glass</code>.</b> <code>glass</code>, <code>glass_side</code>, <code>glass.front</code> and so on</li>
+</ol>
+<p class="en">The windows are now see-through (opacity 0.35).</p>
+
+<h3 id="mirror" class="ja">ミラーに後ろを映す</h3>
+<h3 id="mirror-en" class="en">Make the mirrors reflect</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>鏡を別のオブジェクトにして、名前を付ける。</b>ルームミラーは <code>mirror_rear</code>、ドアミラーは <code>mirror_left</code> と <code>mirror_right</code>。筐体ごとの箱 1 つでよい</li>
+<li><span class="where where-blender">Blender</span><b>左右のドアミラーは、別々のオブジェクトにする。</b>ミラーモディファイアで 1 つにしたままにしない（適用してから分ける）</li>
+<li><span class="where where-blender">Blender</span><b>鏡になる面（いちばん広い平らな面）を、運転席のほうへ向ける。</b>角度は合わせなくてよい</li>
+<li><span class="where where-game">ゲーム</span><b><kbd>H</kbd> のメニューで、ミラーを入れる。</b>既定は切</li>
+</ol>
+<p class="ja">これで、ミラーに後ろの景色が実際に映ります。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make each mirror its own object and name it.</b> <code>mirror_rear</code> for the rear-view mirror, <code>mirror_left</code> and <code>mirror_right</code> for the door mirrors. One box for the whole housing is fine</li>
+<li><span class="where where-blender">Blender</span><b>Keep the two door mirrors as separate objects.</b> Don't leave them joined by a mirror modifier (apply it, then separate)</li>
+<li><span class="where where-blender">Blender</span><b>Turn the mirror face (the largest flat face) towards the driver.</b> You don't need to aim it</li>
+<li><span class="where where-game">Game</span><b>Turn mirrors on in the <kbd>H</kbd> menu.</b> They are off by default</li>
+</ol>
+<p class="en">The mirrors now show what is really behind you.</p>
+
+<figure>
+<svg viewBox="0 0 720 300" role="img" aria-label="Where the special names sit on the car">
+  <line class="f-line" x1="30" y1="240" x2="690" y2="240"/>
+  <path class="f-body" d="M122 218 L122 176 C123 156 134 140 150 136 L240 132 L296 74 L450 68 L534 124 L636 132 C652 136 658 156 658 176 L658 218 Z"/>
+  <circle cx="203" cy="186" r="54" fill="var(--fig)" stroke="var(--ink)" stroke-width="2.2"/>
+  <circle cx="577" cy="186" r="54" fill="var(--fig)" stroke="var(--ink)" stroke-width="2.2"/>
+  <path class="f-acc" fill="var(--accent-soft)" d="M300 80 L352 78 L320 126 L278 128 Z"/>
+  <path class="f-acc" fill="var(--accent-soft)" d="M364 78 L442 74 L448 124 L362 126 Z"/>
+  <rect class="f-accf" x="124" y="158" width="18" height="14" rx="2"/>
+  <rect class="f-accf" x="638" y="152" width="18" height="14" rx="2"/>
+  <rect class="f-accf" x="614" y="152" width="18" height="14" rx="2"/>
+  <rect class="f-accf" x="282" y="114" width="14" height="10" rx="2"/>
+  <g class="f-thin">
+    <path d="M112 120 L130 156"/>
+    <path d="M250 62 L282 112"/>
+    <path d="M400 46 L400 74"/>
+    <path d="M620 120 L640 150"/>
+  </g>
+  <text class="f-ta" x="28" y="116">light_head</text>
+  <text class="f-ta" x="52" y="56">mirror_left / mirror_right</text>
+  <text class="f-ta" x="330" y="40">glass / glass_side</text>
+  <text class="f-ta" x="700" y="116" text-anchor="end">light_tail / light_reverse</text>
+  <text class="f-td ja" x="360" y="276" text-anchor="middle">これら以外のオブジェクトは、名前が何であっても全部「車体」</text>
+  <text class="f-td en" x="360" y="276" text-anchor="middle">every other object, whatever it is called, is body</text>
+</svg>
+<figcaption class="ja">図 6. 名前で機能が決まる部位。ルームミラー（<code>mirror_rear</code>）は室内なのでこの図には出ていません</figcaption>
+<figcaption class="en">Fig. 6. Where the meaningful names sit. The rear-view mirror (<code>mirror_rear</code>) is inside the cabin, so it is not shown.</figcaption>
+</figure>
+
+<figure>
+<div class="anno"><img src="img/guide-3.jpg" loading="lazy" alt="The S15 in Blender showing only its glass, light and mirror objects, selected in the outliner"><svg class="anno-layer" viewBox="0 0 1418 869" preserveAspectRatio="none" role="img" aria-label="Annotations: glass, light and mirror objects"><g class="ja"><line class="an-line" x1="500" y1="155" x2="500" y2="300"/><circle class="an-dot" cx="500" cy="300" r="7"/><rect class="an-box" x="330" y="110" width="176" height="45" rx="7"/><text class="an-text" x="341" y="145">glass_front</text></g><g class="en"><line class="an-line" x1="500" y1="155" x2="500" y2="300"/><circle class="an-dot" cx="500" cy="300" r="7"/><rect class="an-box" x="330" y="110" width="176" height="45" rx="7"/><text class="an-text" x="341" y="145">glass_front</text></g><g class="ja"><line class="an-line" x1="700" y1="420" x2="680" y2="310"/><circle class="an-dot" cx="680" cy="310" r="7"/><rect class="an-box" x="700" y="420" width="190" height="45" rx="7"/><text class="an-text" x="711" y="455">glass_side_…</text></g><g class="en"><line class="an-line" x1="700" y1="420" x2="680" y2="310"/><circle class="an-dot" cx="680" cy="310" r="7"/><rect class="an-box" x="700" y="420" width="190" height="45" rx="7"/><text class="an-text" x="711" y="455">glass_side_…</text></g><g class="ja"><line class="an-line" x1="222" y1="700" x2="290" y2="530"/><circle class="an-dot" cx="290" cy="530" r="7"/><line class="an-line" x1="195" y1="700" x2="195" y2="410"/><circle class="an-dot" cx="195" cy="410" r="7"/><rect class="an-box" x="60" y="700" width="162" height="45" rx="7"/><text class="an-text" x="71" y="735">light_head</text></g><g class="en"><line class="an-line" x1="222" y1="700" x2="290" y2="530"/><circle class="an-dot" cx="290" cy="530" r="7"/><line class="an-line" x1="195" y1="700" x2="195" y2="410"/><circle class="an-dot" cx="195" cy="410" r="7"/><rect class="an-box" x="60" y="700" width="162" height="45" rx="7"/><text class="an-text" x="71" y="735">light_head</text></g><g class="ja"><line class="an-line" x1="895" y1="155" x2="895" y2="258"/><circle class="an-dot" cx="895" cy="258" r="7"/><rect class="an-box" x="690" y="110" width="386" height="45" rx="7"/><text class="an-text" x="701" y="145">light_tail / light_reverse</text></g><g class="en"><line class="an-line" x1="895" y1="155" x2="895" y2="258"/><circle class="an-dot" cx="895" cy="258" r="7"/><rect class="an-box" x="690" y="110" width="386" height="45" rx="7"/><text class="an-text" x="701" y="145">light_tail / light_reverse</text></g><g class="ja"><line class="an-line" x1="640" y1="520" x2="630" y2="360"/><circle class="an-dot" cx="630" cy="360" r="7"/><rect class="an-box" x="640" y="520" width="386" height="45" rx="7"/><text class="an-text" x="651" y="555">mirror_left / mirror_right</text></g><g class="en"><line class="an-line" x1="640" y1="520" x2="630" y2="360"/><circle class="an-dot" cx="630" cy="360" r="7"/><rect class="an-box" x="640" y="520" width="386" height="45" rx="7"/><text class="an-text" x="651" y="555">mirror_left / mirror_right</text></g><g class="ja"><line class="an-line" x1="1300" y1="330" x2="1300" y2="200"/><circle class="an-dot" cx="1300" cy="200" r="7"/><rect class="an-box" x="1083" y="330" width="322" height="78" rx="7"/><text class="an-text" x="1094" y="365">選んだ行が、名前で</text><text class="an-text" x="1094" y="398">役目の決まるオブジェクト</text></g><g class="en"><line class="an-line" x1="1300" y1="330" x2="1300" y2="200"/><circle class="an-dot" cx="1300" cy="200" r="7"/><rect class="an-box" x="963" y="330" width="442" height="78" rx="7"/><text class="an-text" x="974" y="365">The selected rows are the</text><text class="an-text" x="974" y="398">objects whose names set a role</text></g></svg></div>
+<figcaption class="ja">図 7. 見本の S15 で、名前で役目が決まるオブジェクト（<code>glass_…</code>・<code>light_…</code>・<code>mirror_…</code>）だけを表示したところ。<b>アウトライナーの名前が、そのままゲームの中の役目になります</b></figcaption>
+<figcaption class="en">Fig. 7. The S15 with only its role objects shown (<code>glass_…</code>, <code>light_…</code>, <code>mirror_…</code>). <b>The names in the outliner are what the game reads.</b></figcaption>
+</figure>
+
+<h3 class="ja">名前の一覧</h3>
+<h3 class="en">All the names</h3>
+<table class="ja">
+<tr><th>名前</th><th>なるもの</th></tr>
+<tr><td><code>light_head</code></td><td>ヘッドライト。<kbd>L</kbd> で点く。光の筋もここから出る</td></tr>
+<tr><td><code>light_tail</code></td><td>テールランプ。いつもうっすら、ブレーキで最大</td></tr>
+<tr><td><code>light_reverse</code></td><td>バックランプ。ギアが R のとき</td></tr>
+<tr><td><code>glass</code> で始まる</td><td>半透明のガラス</td></tr>
+<tr><td><code>mirror_rear</code></td><td>ルームミラー</td></tr>
+<tr><td><code>mirror_left</code> / <code>mirror_right</code></td><td>ドアミラー</td></tr>
+<tr><td><code>part_</code> で始まる</td><td>付け替える部品。その部品を付けているときだけ描かれる（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>gauge_</code> で始まる</td><td>捨てられる（ゲージが混ざっても描かれない）</td></tr>
+<tr><td>それ以外</td><td>車体</td></tr>
+</table>
+<table class="en">
+<tr><th>Name</th><th>What it becomes</th></tr>
+<tr><td><code>light_head</code></td><td>Headlight. <kbd>L</kbd> turns it on; the light beam starts here too</td></tr>
+<tr><td><code>light_tail</code></td><td>Tail light. Dim at all times, full under braking</td></tr>
+<tr><td><code>light_reverse</code></td><td>Reverse light. On in R</td></tr>
+<tr><td>starts with <code>glass</code></td><td>Translucent glass</td></tr>
+<tr><td><code>mirror_rear</code></td><td>Rear-view mirror</td></tr>
+<tr><td><code>mirror_left</code> / <code>mirror_right</code></td><td>Door mirrors</td></tr>
+<tr><td>starts with <code>part_</code></td><td>A swappable part. Drawn only while that part is fitted (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td>starts with <code>gauge_</code></td><td>Discarded, so a stray gauge is never drawn</td></tr>
+<tr><td>anything else</td><td>Body</td></tr>
+</table>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>オブジェクトを分けずに、一部の面だけをライトやガラスにしたい</summary>
+<div class="more-body">
+<p>面に割り当てるマテリアルの名前を <code>light_tail</code>・<code>glass</code>・<code>mirror_left</code> などにします。その面だけがその働きになります。バンパーの一部の面をテールランプにする、といった使い方です。</p>
+<ol>
+<li>編集モード（<kbd>Tab</kbd>）で面を選ぶ</li>
+<li>マテリアルタブでスロットを「＋」で増やし、そのマテリアルを入れる</li>
+<li>「割り当て」を押す</li>
+</ol>
+<ul>
+<li><b>オブジェクト名とマテリアル名が違う働きを指すときは、マテリアル名が勝ちます。</b>役目の名前でないマテリアル（<code>body</code> など）なら、オブジェクト名の働きのまま</li>
+<li>名前の後ろの <code>.001</code> は無視されます。<code>light_tail.001</code> もテールランプ</li>
+<li>書き出しの「マテリアル」の「書き出し」は入れたまま（既定で入っています）。外すと名前が OBJ に入りません</li>
+</ul>
+<table>
+<tr><th>オブジェクト名</th><th>面のマテリアル</th><th>その面</th></tr>
+<tr><td><code>light_head</code></td><td><code>body</code></td><td>ヘッドライト</td></tr>
+<tr><td><code>light_head</code></td><td><code>glass</code></td><td>ガラス</td></tr>
+<tr><td><code>Bumper</code></td><td><code>light_tail</code></td><td>テールランプ</td></tr>
+<tr><td><code>Bumper</code></td><td><code>body</code></td><td>車体</td></tr>
+</table>
+</div>
+</details>
+<details class="more en">
+<summary>Turn just some faces into a light or glass, without splitting the object</summary>
+<div class="more-body">
+<p>Name the material on those faces <code>light_tail</code>, <code>glass</code>, <code>mirror_left</code> and so on. Only those faces take the role. A few faces of a bumper can become a tail light this way.</p>
+<ol>
+<li>Select the faces in Edit Mode (<kbd>Tab</kbd>)</li>
+<li>On the Material tab, add a slot with "+" and put the material in it</li>
+<li>Press "Assign"</li>
+</ol>
+<ul>
+<li><b>When the object name and the material name ask for different roles, the material wins.</b> A material without a role name (<code>body</code>, say) leaves the object's role in place</li>
+<li>A trailing <code>.001</code> is ignored: <code>light_tail.001</code> is still a tail light</li>
+<li>Keep "Export Materials" ticked in the OBJ exporter (it is on by default), or the names never reach the OBJ</li>
+</ul>
+<table>
+<tr><th>Object name</th><th>Face material</th><th>That face</th></tr>
+<tr><td><code>light_head</code></td><td><code>body</code></td><td>Headlight</td></tr>
+<tr><td><code>light_head</code></td><td><code>glass</code></td><td>Glass</td></tr>
+<tr><td><code>Bumper</code></td><td><code>light_tail</code></td><td>Tail light</td></tr>
+<tr><td><code>Bumper</code></td><td><code>body</code></td><td>Body</td></tr>
+</table>
+</div>
+</details>
+
+<details class="more ja">
+<summary>レンズの色を自分で塗りたい</summary>
+<div class="more-body">
+<p>レンズの UV を展開して、テクスチャに色を塗ります。展開したレンズは塗った色がそのまま出ます。</p>
+<table>
+<tr><th>レンズの UV</th><th>色</th></tr>
+<tr><td>1 点に潰す</td><td>ゲームが付ける（ヘッドは電球色、テールは赤、バックは白）。UV の場所を取らない</td></tr>
+<tr><td>展開する</td><td>テクスチャの色</td></tr>
+</table>
+<p>どちらでも、点いたときの明るさと消えたときの暗さはゲームが付けます。テクスチャで暗く塗る必要はありません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Paint the lens colour yourself</summary>
+<div class="more-body">
+<p>Unwrap the lens and paint it in the texture. An unwrapped lens shows exactly the painted colour.</p>
+<table>
+<tr><th>Lens UVs</th><th>Colour</th></tr>
+<tr><td>Collapsed to one point</td><td>Set by the game (warm white head, red tail, white reverse). Uses no UV space</td></tr>
+<tr><td>Unwrapped</td><td>From the texture</td></tr>
+</table>
+<p>Either way, the game handles how bright it is when on and how dim when off. Don't paint that into the texture.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ガラスの濃さを変えたい</summary>
+<div class="more-body">
+<p>窓にマテリアルを割り当てて、その <b>Alpha</b> を下げます（例 0.2 でもっと薄く、0.6 で濃く）。その値がそのまま濃さになります。Alpha が 1 のまま、またはマテリアルが無ければ 0.35 です。</p>
+<p>書き出した <code>.mtl</code> を OBJ と一緒に置いてください。濃さはこのファイルが運びます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change how dark the glass is</summary>
+<div class="more-body">
+<p>Give the window a material and turn its <b>Alpha</b> down (0.2 for lighter, 0.6 for darker). That value is the opacity. With Alpha left at 1, or no material at all, it is 0.35.</p>
+<p>Keep the exported <code>.mtl</code> next to the OBJ; it carries the opacity.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>窓を何枚かのオブジェクトに分けたい</summary>
+<div class="more-body">
+<p>全部 <code>glass</code> で始めれば、何枚でもかまいません（<code>glass.front</code> / <code>glass.front_side</code> / <code>glass.rear</code> など）。<code>glass</code> のすぐ後ろに <code>_</code> か <code>.</code> を置きます。<code>glasshouse</code> のように続けた名前はガラスになりません。</p>
+<p><code>light_</code> と違い、<code>glass</code> の名前は自由に増やしても穴は開きません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Split the windows into several objects</summary>
+<div class="more-body">
+<p>Any number is fine as long as each starts with <code>glass</code> (<code>glass.front</code>, <code>glass.front_side</code>, <code>glass.rear</code> and so on). Put <code>_</code> or <code>.</code> right after <code>glass</code>; a name that runs straight on, like <code>glasshouse</code>, is not glass.</p>
+<p>Unlike <code>light_</code>, new <code>glass</code> names never leave a hole.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ミラーの筐体と鏡を分けたい</summary>
+<div class="more-body">
+<p>筐体はふつうの名前（見本では <code>body_mirror_left</code>）にして、鏡の板だけを <code>mirror_left</code> にします。こうすると、どの面が鏡になるか迷いません。</p>
+<p>筐体ごと 1 つの <code>mirror_</code> にした場合は、いちばん広い平らな面だけが鏡になり、ほかの面はふつうの車体として描かれます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Separate the mirror housing from the glass</summary>
+<div class="more-body">
+<p>Give the housing an ordinary name (<code>body_mirror_left</code> in the sample) and name only the glass plate <code>mirror_left</code>. Then there is no doubt about which face reflects.</p>
+<p>If the whole housing is one <code>mirror_</code> object, only its largest flat face reflects; the other faces are drawn as ordinary body.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ウイングなどの部品にライトを付けたい</summary>
+<div class="more-body">
+<p>部品のオブジェクト（<code>part_…</code>）の中の面に、ライトのマテリアルを割り当てます。GT ウイングのハイマウントストップランプなら <code>light_tail</code> です。ウイングを外せばランプも消えます。</p>
+<p>部品の中のミラーは映りません（ふつうの面として描かれます）。部品の作り方は<a href="guide-parts.html#s-body">パーツの 2 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Put a light on a part such as a wing</summary>
+<div class="more-body">
+<p>Assign a light material to faces inside the part object (<code>part_…</code>). For a high-mounted brake light on a GT wing, use <code>light_tail</code>. Take the wing off and the lamp goes with it.</p>
+<p>Mirrors inside a part don't reflect (they are drawn as plain faces). How to make parts is in <a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>仕組みを知りたい（ミラーに何が映るか）</summary>
+<div class="more-body">
+<ul>
+<li>何を映すかは、車に対して決まっています。<b>板の角度は使いません。</b>実車で乗った人がミラーを合わせるのと同じで、作った角度は「合わせる前の姿」です</li>
+<li>ルームミラーは真後ろを、1 度だけ下向きに映します</li>
+<li>ドアミラーは 1.5 度下向きで、地平線が鏡の中ほどより少し上に来ます。外へは、鏡の内側 15% に自分の車の横腹が映るところまで振ります</li>
+<li>横に映る幅は決まっています（ルームミラー 34 度、ドアミラー 22 度）。縦は鏡の縦横比で決まり、横長に作るほど縦に狭くなります</li>
+<li>ルームミラーかドアミラーかは、名前ではなく<b>鏡の位置</b>で決まります。車の中心から左右 0.35m 以内ならルームミラーです。<code>left</code> / <code>right</code> の名前が実際の左右と逆でも正しく映ります</li>
+<li>UV は要りません。面の中の位置がそのまま使われます</li>
+<li>鏡ごとに、その位置から世界をもう一度描いています。左右のドアミラーを 1 つのオブジェクトにすると、左右で同じ景色が映るのはこのためです</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>How it works (what a mirror shows)</summary>
+<div class="more-body">
+<ul>
+<li>What each mirror looks at is fixed relative to the car. <b>The angle of the plate is not used.</b> Like a real driver adjusting the glass after getting in, the angle you modelled is only the "before adjustment" pose</li>
+<li>The rear-view mirror looks straight back, 1° down</li>
+<li>Door mirrors look 1.5° down, putting the horizon a little above the middle of the glass. They are turned outward until your own car's flank fills the inner 15% of the glass</li>
+<li>The horizontal field of view is fixed (34° rear-view, 22° door). The vertical follows the glass's aspect ratio: the wider you make it, the narrower the vertical view</li>
+<li>Whether it is a rear-view or a door mirror is decided by <b>where it is</b>, not its name: within 0.35 m of the car's centreline it is the rear-view mirror. If <code>left</code> / <code>right</code> are swapped, it still reflects correctly</li>
+<li>No UVs needed. The position within the face is used directly</li>
+<li>Each mirror redraws the world from its own position. That is why two door mirrors joined into one object show the same view</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>ライトを足したところが穴になる</b> … <code>light_head</code> / <code>light_tail</code> / <code>light_reverse</code> 以外の <code>light_</code> 名を付けた</li>
+<li><b>レンズがチラつく</b> … レンズの面が車体と同じ面にある。1〜2mm 浮かせる</li>
+<li><b>レンズの色がおかしい</b> … 展開した UV が、テクスチャの塗っていない場所を指している。1 点に潰して白い画素に置くか、テクスチャに色を塗る</li>
+<li><b>窓が透けない</b> … 名前が <code>glass</code> で始まっていない（<code>glasshouse</code> のように続けていないか）。マテリアルの Alpha を使っているなら <code>.mtl</code> を一緒に置いたか</li>
+<li><b>ミラーが映らない</b> … <kbd>H</kbd> で入れたか。描画設定が「最高（Fabulous）」のときと、シェーダーパックを使っているときは映らない（暗いガラスになる）</li>
+<li><b>左右のミラーに同じ景色が映る</b> … ミラーモディファイアで 1 つのオブジェクトのまま。適用してから分ける</li>
+<li><b>ドアミラーが真後ろしか映さない</b> … 鏡が車の中心から 0.35m 以内にあり、ルームミラーとして扱われている</li>
+<li><b>ログに役目が食い違うと出る</b> … オブジェクト名とマテリアル名が違う働きを指している。マテリアルのほうが使われている</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>A hole where you added a light</b> — you used a <code>light_</code> name other than <code>light_head</code> / <code>light_tail</code> / <code>light_reverse</code></li>
+<li><b>The lens flickers</b> — the lens sits flush with the body. Float it 1–2 mm</li>
+<li><b>The lens is the wrong colour</b> — its unwrapped UVs point at an unpainted part of the texture. Collapse them onto a white pixel, or paint the texture</li>
+<li><b>Windows aren't see-through</b> — the name doesn't start with <code>glass</code> (or runs straight on, like <code>glasshouse</code>). If you use material Alpha, is the <code>.mtl</code> next to the OBJ?</li>
+<li><b>Mirrors show nothing</b> — did you turn them on in <kbd>H</kbd>? They don't reflect with graphics set to "Fabulous" or with a shader pack (you get dark glass)</li>
+<li><b>Both door mirrors show the same view</b> — they are still one object via a mirror modifier. Apply it and separate them</li>
+<li><b>A door mirror only looks straight back</b> — it is within 0.35 m of the centreline, so it is treated as the rear-view mirror</li>
+<li><b>The log says roles disagree</b> — the object name and the material name ask for different roles. The material's role is used</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s7">
+<h2 class="ja"><span class="num">4</span>テクスチャを貼る</h2>
+<h2 class="en"><span class="num">4</span>Add a texture</h2>
+<p class="ja">車体に色や模様を付ける章です。テクスチャが無くても車は走るので、形だけ先に作ってあとで貼ってもかまいません。</p>
+<p class="en">This chapter is about giving the body colour and detail. The car drives without a texture, so you can build the shape first and paint it later.</p>
+
+<h3 class="ja">最小のテクスチャを貼る</h3>
+<h3 class="en">Add a minimal texture</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>車体を UV 展開して、PNG のテクスチャに色を塗る。</b>大きさは自由</li>
+<li><span class="where where-blender">Blender</span><b>マテリアルを使っているなら、Base Color を白（1.0）にする。</b></li>
+<li><span class="where where-file">ファイル</span><b>PNG を置き、見た目の JSON で指す。</b><code>assets/mypack/textures/entity/mycar.png</code> に置いて、<code>assets/mypack/vehicles/mycar.json</code> の <code>body</code> に書く:
+<pre><code>"body": { "model": "mypack:models/entity/mycar.obj",
+          "texture": "mypack:textures/entity/mycar.png" }</code></pre></li>
+</ol>
+<p class="ja">これで、ゲームで <kbd>F3</kbd>+<kbd>T</kbd> を押すと車体にテクスチャが貼られます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>UV-unwrap the body and paint a PNG texture.</b> Any resolution</li>
+<li><span class="where where-blender">Blender</span><b>If you use materials, set Base Color to white (1.0).</b></li>
+<li><span class="where where-file">File</span><b>Put the PNG in place and point the look JSON at it.</b> Save it as <code>assets/mypack/textures/entity/mycar.png</code> and write it into <code>body</code> in <code>assets/mypack/vehicles/mycar.json</code>:
+<pre><code>"body": { "model": "mypack:models/entity/mycar.obj",
+          "texture": "mypack:textures/entity/mycar.png" }</code></pre></li>
+</ol>
+<p class="en">Press <kbd>F3</kbd>+<kbd>T</kbd> in game and the body is textured.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>UV を張らずに、まず形だけ確かめたい</summary>
+<div class="more-body">
+<p>そのままでかまいません。UV 展開していない面は、テクスチャの 1 点の色で塗りつぶされます。絵がまだ無ければ、白く塗った小さな PNG を置いておけば足ります。</p>
+<p>ライトのレンズは、UV を展開しないほうが都合がよいことがあります（<a href="#s5">3 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Check the shape first, without UVs</summary>
+<div class="more-body">
+<p>That works as it is. Faces without UVs are filled with the colour of a single pixel of the texture. If you have no art yet, a small all-white PNG is enough.</p>
+<p>For light lenses, leaving them unwrapped is often the better choice (<a href="#s5">chapter 3</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>タイヤにも自分のテクスチャを使いたい</summary>
+<div class="more-body">
+<p>車体とタイヤは別々のテクスチャを指せます。見た目の JSON の <code>wheel</code> に書きます:</p>
+<pre><code>"wheel": { "model": "mypack:models/entity/mywheel.obj",
+           "texture": "mypack:textures/entity/mywheel.png" }</code></pre>
+<p>タイヤのモデルの作り方は<a href="guide-wheel.html#s6">ホイールの 1 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Use your own texture on the wheels too</summary>
+<div class="more-body">
+<p>Body and wheels can point at different textures. Write it into <code>wheel</code> in the look JSON:</p>
+<pre><code>"wheel": { "model": "mypack:models/entity/mywheel.obj",
+           "texture": "mypack:textures/entity/mywheel.png" }</code></pre>
+<p>How to model the wheel is in <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a>.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>テクスチャを使わず、マテリアルの色だけで塗り分けたい</summary>
+<div class="more-body">
+<p>できます。マテリアルの Base Color が、テクスチャの色に掛け合わされて出ます。テクスチャを白一色にしておけば、マテリアルの色がそのまま出ます。書き出した <code>.mtl</code> を OBJ と一緒に置いてください。色はこのファイルが運びます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Colour it with material colours only, no texture</summary>
+<div class="more-body">
+<p>You can. A material's Base Color is multiplied over the texture, so with an all-white texture the material colour comes through as is. Keep the exported <code>.mtl</code> next to the OBJ; it carries the colours.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>テクスチャが暗い</b> … マテリアルの Base Color が Blender の既定の 0.8 グレーのまま。白にする</li>
+<li><b>マテリアルの色が出ず、全体が白い</b> … <code>.mtl</code> を OBJ と一緒に置いていない。マテリアルを使わないつもりなら、それで問題ない</li>
+<li><b>テクスチャが変わらない</b> … <kbd>F3</kbd>+<kbd>T</kbd> を押したか。<code>texture</code> のパスと名前空間（<code>mypack:</code>）が合っているか</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>The texture comes out dark</b> — the material's Base Color is still Blender's default 0.8 grey. Set it to white</li>
+<li><b>Material colours don't show; everything is white</b> — the <code>.mtl</code> is not next to the OBJ. If you don't use materials, that is fine</li>
+<li><b>The texture doesn't change</b> — did you press <kbd>F3</kbd>+<kbd>T</kbd>? Do the <code>texture</code> path and namespace (<code>mypack:</code>) match?</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s8">
+<h2 class="ja"><span class="num">5</span>OBJ に書き出す</h2>
+<h2 class="en"><span class="num">5</span>Export to OBJ</h2>
+<p class="ja">Blender の車体を、ゲームが読む OBJ ファイルにする章です。入れるチェックは 1 つだけで、あとは既定のままにします。</p>
+<p class="en">This chapter turns the Blender body into the OBJ file the game reads. You tick one box and leave everything else at its default.</p>
+
+<h3 class="ja">やること</h3>
+<h3 class="en">What to do</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>車体を全部選ぶ（<kbd>A</kbd>）。</b>ゲージは選ばれない</li>
+<li><span class="where where-blender">Blender</span><b><code>ファイル</code> → <code>エクスポート</code> → <code>Wavefront (.obj)</code> を開く。</b></li>
+<li><span class="where where-blender">Blender</span><b>右のパネルで <code>Selected Only</code> を入れる。ほかの設定は触らない。</b>下の表のとおりになっているか見る</li>
+<li><span class="where where-blender">Blender</span><b>ファイル名を付けて書き出す。</b>例 <code>mycar.obj</code></li>
+<li><span class="where where-file">ファイル</span><b>できた <code>.obj</code> と <code>.mtl</code> を、両方 <code>assets/mypack/models/entity/</code> に置く。</b></li>
+</ol>
+<p class="ja">これで、見た目の JSON（<a href="#s9">6 章</a>）の <code>body.model</code> から指せる車体ができます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Select the whole body (<kbd>A</kbd>).</b> The gauge is not selected</li>
+<li><span class="where where-blender">Blender</span><b>Open <code>File</code> → <code>Export</code> → <code>Wavefront (.obj)</code>.</b></li>
+<li><span class="where where-blender">Blender</span><b>Tick <code>Selected Only</code> in the right-hand panel. Don't touch anything else.</b> Check it matches the table below</li>
+<li><span class="where where-blender">Blender</span><b>Name the file and export.</b> For example <code>mycar.obj</code></li>
+<li><span class="where where-file">File</span><b>Put both the <code>.obj</code> and the <code>.mtl</code> in <code>assets/mypack/models/entity/</code>.</b></li>
+</ol>
+<p class="en">You now have a body that <code>body.model</code> in the look JSON (<a href="#s9">chapter 6</a>) can point at.</p>
+
+<h3 class="ja">書き出しの設定</h3>
+<h3 class="en">Export settings</h3>
+<table class="ja">
+<tr><th>項目</th><th>どうする</th></tr>
+<tr><td>Selected Only<br><span class="sub">（古い版では Selection Only）</span></td><td><b>入れる</b>（ゲージを書き出さないため）</td></tr>
+<tr><td>Forward Axis / Up Axis</td><td><b>触らない</b>（−Z / Y のまま）</td></tr>
+<tr><td>Apply Modifiers</td><td>触らない（入ったまま）。ミラーモディファイアがこれで適用される</td></tr>
+<tr><td>Triangulated Mesh<br><span class="sub">（古い版では Triangulate Faces）</span></td><td>触らない（入れない）。四角形のままのほうが軽い</td></tr>
+<tr><td>マテリアルの「書き出し」</td><td>触らない（入ったまま）。マテリアルの名前と色が <code>.mtl</code> に入る</td></tr>
+</table>
+<table class="en">
+<tr><th>Setting</th><th>Do this</th></tr>
+<tr><td>Selected Only<br><span class="sub">(older versions: Selection Only)</span></td><td><b>Tick it</b> (keeps the gauge out)</td></tr>
+<tr><td>Forward Axis / Up Axis</td><td><b>Leave alone</b> (−Z / Y)</td></tr>
+<tr><td>Apply Modifiers</td><td>Leave alone (on). This applies the mirror modifier</td></tr>
+<tr><td>Triangulated Mesh<br><span class="sub">(older versions: Triangulate Faces)</span></td><td>Leave alone (off). Quads draw faster</td></tr>
+<tr><td>Materials: Export</td><td>Leave alone (on). Material names and colours go into the <code>.mtl</code></td></tr>
+</table>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>タイヤも書き出したい</summary>
+<div class="more-body">
+<p>タイヤは車体とは<b>別のファイル</b>に書き出します（例 <code>mywheel.obj</code>）。設定は車体と同じです。作り方は<a href="guide-wheel.html#s6">ホイールの 1 章</a>にあります。KurumaMod のタイヤを借りるなら、書き出す必要はありません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Export the wheel too</summary>
+<div class="more-body">
+<p>The wheel goes into a <b>separate file</b> from the body (for example <code>mywheel.obj</code>), with the same settings. How to build it is in <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a>. If you borrow KurumaMod's wheel, there is nothing to export.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary><code>.mtl</code> は要るのか知りたい</summary>
+<div class="more-body">
+<p><code>.mtl</code> は、マテリアルの色・ガラスの濃さ・マテリアル名で付けたライトなどの働きを運びます。どれも使っていなければ消してもかまいません。消すと全体が白（テクスチャの色そのまま）になります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Do I need the <code>.mtl</code>?</summary>
+<div class="more-body">
+<p>The <code>.mtl</code> carries material colours, glass opacity, and roles given by material names (lights and so on). If you use none of those, you may delete it; everything then turns white (the texture as is).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>三角形にして書き出したい・凹んだ面がある</summary>
+<div class="more-body">
+<p>三角形にしても描けますが、重くなるだけです。5 角形以上の面は、凹んでいても MOD が正しく割ります。全体を三角形にする必要はありません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Triangulate on export, or the model has concave faces</summary>
+<div class="more-body">
+<p>Triangulating still works; it just makes the model heavier. The mod splits faces with five or more corners correctly, even concave ones. There is no need to triangulate everything.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>仕組みを知りたい（なぜ Forward Axis を触ってはいけないか）</summary>
+<div class="more-body">
+<p>設定には <code>−Z Forward</code> と書いてありますが、Blender の前（−Y）は OBJ では +Z になって出てきます。この読み替えは MOD が済ませているので、既定のままで車は正しく前を向きます。</p>
+<p><code>Forward Axis</code> を変えると、前後と左右がまとめて裏返ります。車体は左右対称なので鏡像になっても気づけず、あとで「タイヤの向きだけおかしい」という形で出てきます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How it works (why not to touch Forward Axis)</summary>
+<div class="more-body">
+<p>The dialog says <code>−Z Forward</code>, but Blender's front (−Y) actually comes out as +Z in the OBJ. The mod already accounts for that, so the defaults give a car facing the right way.</p>
+<p>Changing <code>Forward Axis</code> flips front–back and left–right together. A symmetric body gives no clue it has been mirrored; it shows up later as "only the wheels point the wrong way".</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>前後が逆・左右が鏡像</b> … <code>Forward Axis</code> を変えた。既定（−Z / Y）へ戻して書き出し直す</li>
+<li><b>ゲージが一緒に書き出された</b> … <code>Selected Only</code> を入れ忘れた。ゲージ（<code>gauge_</code>）は描かれないので害はないが、入れて書き出し直す</li>
+<li><b>片側しかない</b> … ミラーモディファイアが適用されていない。<code>Apply Modifiers</code> を入れたままにする</li>
+<li><b>付け替える部品（<code>part_…</code>）が出ない</b> … 非表示のまま書き出した。非表示のオブジェクトは選べないので OBJ に入らない。全部表示にしてから選ぶ（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</li>
+<li><b>マテリアルの色やガラスの濃さが出ない</b> … <code>.mtl</code> を OBJ と同じ場所に置いていない</li>
+<li><b>面がねじれる・抜ける</b> … 平面から大きく曲がった面か、辺が交差した面がある。Blender でその面だけ割る</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Front and back swapped, or mirrored</b> — <code>Forward Axis</code> was changed. Put it back to −Z / Y and export again</li>
+<li><b>The gauge was exported too</b> — <code>Selected Only</code> was off. Gauge objects (<code>gauge_</code>) are never drawn, so it is harmless, but tick it and export again</li>
+<li><b>Only one half of the car</b> — the mirror modifier was not applied. Keep <code>Apply Modifiers</code> on</li>
+<li><b>A swappable part (<code>part_…</code>) never appears</b> — it was hidden when you exported. Hidden objects cannot be selected, so they are left out of the OBJ. Unhide everything before selecting (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</li>
+<li><b>Material colours or glass opacity missing</b> — the <code>.mtl</code> is not next to the OBJ</li>
+<li><b>Faces twist or disappear</b> — a face is badly non-planar or has crossing edges. Split just that face in Blender</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s9">
+<h2 class="ja"><span class="num">6</span>車をゲームに入れる（置き場所と JSON）</h2>
+<h2 class="en"><span class="num">6</span>Put the car in the game (files and JSON)</h2>
+<p class="ja">作ったモデルを、ゲームで走る車種にします。見本のパックをコピーして、名前と中身を入れ替えるのがいちばん早い道です。</p>
+<p class="en">This turns your model into a car you can drive in game. The quickest way is to copy the example pack and swap in your own names and files.</p>
+
+<h3 class="ja">最小のカーパックを作る</h3>
+<h3 class="en">Make a minimal car pack</h3>
+<p class="ja">ここでは、パックの名前を <code>mypack</code>、車種の名前を <code>ae86</code> とします。</p>
+<p class="en">Here the pack is called <code>mypack</code> and the car <code>ae86</code>.</p>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b><code>carpack/example/</code> をフォルダごとコピーする。</b></li>
+<li><span class="where where-file">ファイル</span><b><code>kurumamod_example_carpack</code> を、すべて <code>mypack</code> に置き換える。</b>フォルダ名 2 つ（<code>assets/</code> の下と <code>data/</code> の下）、いちばん上のロゴ画像 <code>kurumamod_example_carpack.png</code> のファイル名、そして<b>すべてのファイルの中身</b>（<code>META-INF/mods.toml</code>・<code>META-INF/neoforge.mods.toml</code> と、JSON の中のパス）です。使える文字は <code>a-z</code>・<code>0-9</code>・<code>_</code> だけ</li>
+<li><span class="where where-file">ファイル</span><b>モデルとテクスチャを置く。</b><code>assets/mypack/models/entity/ae86.obj</code>（<code>.mtl</code> も一緒に）と <code>assets/mypack/textures/entity/ae86.png</code></li>
+<li><span class="where where-file">ファイル</span><b>見た目の JSON を書く。</b><code>assets/mypack/vehicles/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする:
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/ae86.obj",
+             "texture": "mypack:textures/entity/ae86.png" },
+  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
+             "texture": "kurumamod:textures/entity/wheel.png" }
+}</code></pre></li>
+<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">8 章</a>で詰める）:
+<pre><code>{
+  "values": { "mass": 1200.0 }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>assets/mypack/lang/ja_jp.json</code> と <code>en_us.json</code> に <code>"car.mypack.ae86": "AE86"</code></li>
+<li><span class="where where-file">ファイル</span><b>jar に固めて <code>mods/</code> に入れる。</b>固め方は<a href="guide-common.html#s-jar">共通の 4 章</a></li>
+</ol>
+<p class="ja">これで、クリエイティブタブに「AE86」が並び、自分の車体で走ります。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Copy the whole <code>carpack/example/</code> folder.</b></li>
+<li><span class="where where-file">File</span><b>Replace every <code>kurumamod_example_carpack</code> with <code>mypack</code>.</b> That is two folder names (under <code>assets/</code> and under <code>data/</code>), the logo image <code>kurumamod_example_carpack.png</code> at the top, and <b>the contents of every file</b> (<code>META-INF/mods.toml</code>, <code>META-INF/neoforge.mods.toml</code> and the paths inside the JSON). Use only <code>a-z</code>, <code>0-9</code> and <code>_</code></li>
+<li><span class="where where-file">File</span><b>Add the model and texture:</b> <code>assets/mypack/models/entity/ae86.obj</code> (with its <code>.mtl</code>) and <code>assets/mypack/textures/entity/ae86.png</code></li>
+<li><span class="where where-file">File</span><b>Write the looks JSON.</b> Rename <code>assets/mypack/vehicles/sample.json</code> to <code>ae86.json</code> and make it:
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/ae86.obj",
+             "texture": "mypack:textures/entity/ae86.png" },
+  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
+             "texture": "kurumamod:textures/entity/wheel.png" }
+}</code></pre></li>
+<li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 8</a>):
+<pre><code>{
+  "values": { "mass": 1200.0 }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang:</b> <code>"car.mypack.ae86": "AE86"</code> in <code>assets/mypack/lang/en_us.json</code> and <code>ja_jp.json</code></li>
+<li><span class="where where-file">File</span><b>Pack it into a jar and put it in <code>mods/</code>.</b> See <a href="guide-common.html#s-jar">chapter 4 of the Common guide</a></li>
+</ol>
+<p class="en">"AE86" now appears in the creative tab and drives with your body.</p>
+
+<p class="ja">できあがりの形:</p>
+<p class="en">What you end up with:</p>
+<pre class="ja"><code>mypack.jar
+├── META-INF/mods.toml              ← Forge 1.20.1 用
+├── META-INF/neoforge.mods.toml     ← NeoForge 1.21.1 用
+├── pack.mcmeta
+├── assets/mypack/                  ← 見た目
+│   ├── models/entity/ae86.obj
+│   ├── models/entity/ae86.mtl
+│   ├── textures/entity/ae86.png
+│   ├── vehicles/ae86.json
+│   └── lang/ja_jp.json, en_us.json
+└── data/mypack/                    ← 走り
+    └── cars/ae86.json</code></pre>
+<pre class="en"><code>mypack.jar
+├── META-INF/mods.toml              &lt;- for Forge 1.20.1
+├── META-INF/neoforge.mods.toml     &lt;- for NeoForge 1.21.1
+├── pack.mcmeta
+├── assets/mypack/                  &lt;- looks
+│   ├── models/entity/ae86.obj
+│   ├── models/entity/ae86.mtl
+│   ├── textures/entity/ae86.png
+│   ├── vehicles/ae86.json
+│   └── lang/en_us.json, ja_jp.json
+└── data/mypack/                    &lt;- handling
+    └── cars/ae86.json</code></pre>
+
+<p class="ja"><b>名前がずれてもエラーは出ません。</b>車種 id <code>mypack:ae86</code> から、次の 3 つが決まります。1 つでもずれると、黙って既定の姿や名前になります。</p>
+<p class="en"><b>A mismatched name gives no error.</b> The car id <code>mypack:ae86</code> fixes these three names; if one is off, the car quietly gets the default body or name.</p>
+<table class="ja">
+<tr><th></th><th>名前</th></tr>
+<tr><td>諸元</td><td><code>data/mypack/cars/ae86.json</code></td></tr>
+<tr><td>見た目</td><td><code>assets/mypack/vehicles/ae86.json</code></td></tr>
+<tr><td>表示名の翻訳キー</td><td><code>car.mypack.ae86</code></td></tr>
+</table>
+<table class="en">
+<tr><th></th><th>Name</th></tr>
+<tr><td>Spec</td><td><code>data/mypack/cars/ae86.json</code></td></tr>
+<tr><td>Looks</td><td><code>assets/mypack/vehicles/ae86.json</code></td></tr>
+<tr><td>Display-name translation key</td><td><code>car.mypack.ae86</code></td></tr>
+</table>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>既定の車の見た目だけ差し替えたい（リソースパック）</summary>
+<div class="more-body">
+<p>新しい車種は増やさず、KurumaMod 付属の車を自分のモデルで上書きします。jar を作らずに済み、<kbd>F3</kbd>+<kbd>T</kbd> で何度でも入れ直せるので、モデルを試すのにも向いています。</p>
+<ol>
+<li>次の形でフォルダを作る:
+<pre><code>.minecraft/resourcepacks/MyCar/
+├── pack.mcmeta
+└── assets/kurumamod/
+    ├── models/entity/car.obj      ← 自分の車体（.mtl も一緒に）
+    ├── models/entity/wheel.obj    ← 自分のタイヤ
+    ├── textures/entity/car.png
+    └── vehicles/car.json          ← 見た目の JSON（書き方は最小のカーパックと同じ）</code></pre></li>
+<li><code>pack.mcmeta</code> を書く:
+<pre><code>{
+  "pack": { "description": "MyCar", "pack_format": 15 }
+}</code></pre></li>
+<li>ゲームの設定でリソースパックを有効にする</li>
+</ol>
+<p>開発環境で試すときは <code>run/resourcepacks/</code> に置きます。人に配るなら、最小のカーパックの形にします。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Only replace the look of the built-in car (resource pack)</summary>
+<div class="more-body">
+<p>Instead of adding a car, override KurumaMod's own car with your model. No jar to build, and <kbd>F3</kbd>+<kbd>T</kbd> reloads it as often as you like, so it is also handy for trying out a model.</p>
+<ol>
+<li>Make this folder:
+<pre><code>.minecraft/resourcepacks/MyCar/
+├── pack.mcmeta
+└── assets/kurumamod/
+    ├── models/entity/car.obj      &lt;- your body (keep the .mtl with it)
+    ├── models/entity/wheel.obj    &lt;- your wheel
+    ├── textures/entity/car.png
+    └── vehicles/car.json          &lt;- looks JSON (written as in the minimal car pack)</code></pre></li>
+<li>Write <code>pack.mcmeta</code>:
+<pre><code>{
+  "pack": { "description": "MyCar", "pack_format": 15 }
+}</code></pre></li>
+<li>Enable the pack in the game's settings</li>
+</ol>
+<p>In a development environment it goes in <code>run/resourcepacks/</code>. To hand the car to others, use the minimal car pack layout instead.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>車体の大きさ・位置を合わせたい</summary>
+<div class="more-body">
+<p>ゲージ（<a href="#s3">1 章</a>）にぴったり合わせて作ったなら、何も書かなくて済みます。合わせられなかったときは、見た目の JSON（<code>assets/mypack/vehicles/ae86.json</code>）のいちばん外側に、<b>メッシュを実際に作った寸法</b>を書きます。</p>
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/ae86.obj",
+             "texture": "mypack:textures/entity/ae86.png" },
+  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
+             "texture": "kurumamod:textures/entity/wheel.png" },
+
+  "designWheelBase": 3.12,
+  "designWheelRadius": 0.45,
+  "designRideHeight": 0.6019
+}</code></pre>
+<ul>
+<li><code>designWheelBase</code> … メッシュの前後のホイールアーチが何 m 離れているか（既定 3.12）。5.2m で作ってしまったなら <code>5.2</code> と書けば、既定の車の大きさに縮みます</li>
+<li><code>designWheelRadius</code> … メッシュのタイヤが何 m の半径で作られているか（既定 0.45）</li>
+<li><code>designRideHeight</code> … 車体をシャシー基準面から下げる量 [m]（既定 0.6019）。車体が埋まる・浮くときに直す</li>
+<li>どれも「この車の寸法」ではなく「メッシュの寸法」です。実際の寸法は諸元にあり、ゲームはその比でメッシュを拡大します</li>
+</ul>
+<p>あとは <code>body</code> の中で細かく直せます:</p>
+<pre><code>"body": { "model": "...", "texture": "...",
+          "offset": [0.0, 0.02, 0.0],
+          "scale": 1.05 }</code></pre>
+<ul>
+<li><code>offset</code> … 車体をずらす [m]。<code>[x, y, z]</code> で +X 右・+Y 上・−Z 前</li>
+<li><code>scale</code> … 大きさの微調整。数字 1 つでも <code>[x, y, z]</code> でもよい。原点が地面なので上へ伸びる</li>
+</ul>
+<p><b>大きい車にしたいときは、ここではなく諸元を変えます。</b>ゲームの調整画面でホイールベースとトレッドを広げ、<code>body.scale</code> を同じ倍率にします（1.2 倍なら 3.12→3.74m、1.8→2.16m、<code>scale</code> 1.2）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Make the body the right size and position</summary>
+<div class="more-body">
+<p>If you built exactly to the gauge (<a href="#s3">chapter 1</a>), there is nothing to write. If not, write <b>the sizes you actually built the mesh at</b> at the top level of the looks JSON (<code>assets/mypack/vehicles/ae86.json</code>):</p>
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/ae86.obj",
+             "texture": "mypack:textures/entity/ae86.png" },
+  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
+             "texture": "kurumamod:textures/entity/wheel.png" },
+
+  "designWheelBase": 3.12,
+  "designWheelRadius": 0.45,
+  "designRideHeight": 0.6019
+}</code></pre>
+<ul>
+<li><code>designWheelBase</code> — how far apart the front and rear arches are in your mesh, in m (default 3.12). If you built it at 5.2 m, write <code>5.2</code> and it shrinks to the default car's size</li>
+<li><code>designWheelRadius</code> — the radius your mesh's tyre was built at, in m (default 0.45)</li>
+<li><code>designRideHeight</code> — how far to drop the body below the chassis plane, in m (default 0.6019). Change it if the body sinks or floats</li>
+<li>These describe the mesh, not the car. The car's real sizes are in the spec, and the game scales the mesh by the ratio</li>
+</ul>
+<p>Then fine-tune inside <code>body</code>:</p>
+<pre><code>"body": { "model": "...", "texture": "...",
+          "offset": [0.0, 0.02, 0.0],
+          "scale": 1.05 }</code></pre>
+<ul>
+<li><code>offset</code> — shift the body, in m. <code>[x, y, z]</code> with +X right, +Y up, −Z forward</li>
+<li><code>scale</code> — fine size adjustment; one number or <code>[x, y, z]</code>. The origin is on the ground, so it grows upward</li>
+</ul>
+<p><b>For a bigger car, change the spec instead.</b> Widen the wheelbase and track in the game's tuning screen, and set <code>body.scale</code> to the same ratio (for 1.2×: 3.12→3.74 m, 1.8→2.16 m, <code>scale</code> 1.2).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>座席の位置を直したい</summary>
+<div class="more-body">
+<p>見た目の JSON のいちばん外側に <code>seat</code> を書きます。運転席の位置で、助手席は左右反転で自動的に置かれます。</p>
+<pre><code>"seat": [0.5, -0.55, 0.2]</code></pre>
+<ul>
+<li><code>[x, y, z]</code> [m]。+X 右・+Y 上・−Z 前。既定は右ハンドル（x が正）</li>
+<li>前後（z）は前後輪の中点から、左右（x）と高さ（y）はシャシー基準面の中心から測る</li>
+<li><b>足元の位置で、目線ではありません。</b>一人称の視点はここから 1.62m 上に来ます。目線で決めたいなら 1.62 を引く</li>
+<li>座面に合わせると視線が高くなり、目線に合わせると足が床下へ潜ります。どちらにするかは車ごとの好み</li>
+<li>メッシュから測るときは、<code>designWheelBase</code> などで拡大・縮小された後の大きさで測る</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Move the seat</summary>
+<div class="more-body">
+<p>Write <code>seat</code> at the top level of the looks JSON. It is the driver's seat; the passenger seat is mirrored automatically.</p>
+<pre><code>"seat": [0.5, -0.55, 0.2]</code></pre>
+<ul>
+<li><code>[x, y, z]</code> in m, with +X right, +Y up, −Z forward. The default is right-hand drive (positive x)</li>
+<li>Front-to-back (z) is measured from the midpoint of the axles; side (x) and height (y) from the centre of the chassis plane</li>
+<li><b>It is where the feet go, not the eyes.</b> The first-person camera sits 1.62 m above it; subtract 1.62 to place the eye line instead</li>
+<li>Match the cushion and the view sits high; match the eye line and the feet sink through the floor. Pick per car</li>
+<li>If you measure from the mesh, measure it after the scaling from <code>designWheelBase</code> and friends</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>タイヤの見た目を変えたい（自前のタイヤ・ずらす・太さ・キャンバー）</summary>
+<div class="more-body">
+<p>見た目の JSON の <code>wheel</code> に書きます。</p>
+<pre><code>"wheel": { "model": "mypack:models/entity/ae86_wheel.obj",
+           "texture": "mypack:textures/entity/ae86_wheel.png",
+           "offset": [0.03, 0.0, 0.0],
+           "scale": [1.2, 1.0, 1.0],
+           "camber": -2.0 }</code></pre>
+<ul>
+<li><code>model</code> / <code>texture</code> … 自前のタイヤ。<code>kurumamod:</code> で始めれば KurumaMod のものを借りられる</li>
+<li><code>offset</code> … タイヤをずらす [m]。<b>X は「外向き」</b>（左右で向きが反転する）。X は −0.05〜0.10 に丸められる</li>
+<li><code>scale</code> … X が太さ（0.5〜2.5 に丸められる）。<b>Y・Z（直径）は 1 のままにする。</b>直径はゲームの調整画面のタイヤ半径で変える</li>
+<li><code>camber</code> … キャンバー角 [度]。負で上が内側。−30〜10 に丸められる。見た目だけで、グリップは変わらない</li>
+</ul>
+<p>プレイヤーは換装画面で太さ・キャンバー・オフセットを変えられます。ここに書くのはその最初の値です。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change how the wheels look (own wheel, offset, width, camber)</summary>
+<div class="more-body">
+<p>Write it in <code>wheel</code> in the looks JSON.</p>
+<pre><code>"wheel": { "model": "mypack:models/entity/ae86_wheel.obj",
+           "texture": "mypack:textures/entity/ae86_wheel.png",
+           "offset": [0.03, 0.0, 0.0],
+           "scale": [1.2, 1.0, 1.0],
+           "camber": -2.0 }</code></pre>
+<ul>
+<li><code>model</code> / <code>texture</code> — your own wheel. Start the path with <code>kurumamod:</code> to borrow KurumaMod's</li>
+<li><code>offset</code> — shift the wheels, in m. <b>X is "outward"</b> (it flips between sides). X is clamped to −0.05–0.10</li>
+<li><code>scale</code> — X is width (clamped to 0.5–2.5). <b>Leave Y and Z (diameter) at 1.</b> Change the diameter with the tyre radius in the game's tuning screen</li>
+<li><code>camber</code> — camber in degrees; negative leans the top inward. Clamped to −30–10. Looks only; grip does not change</li>
+</ul>
+<p>Players can change width, camber and offset in the parts screen; what you write here is the starting value.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>見た目の JSON に書ける項目を全部見たい</summary>
+<div class="more-body">
+<p>置き場所は <code>assets/&lt;パック&gt;/vehicles/&lt;車&gt;.json</code>。書かなかった項目は既定値になります。</p>
+<table>
+<tr><th>キー</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>body.model</code></td><td>既定の車</td><td>車体の OBJ</td></tr>
+<tr><td><code>body.texture</code></td><td>既定の車</td><td>車体のテクスチャ</td></tr>
+<tr><td><code>body.offset</code></td><td><code>[0,0,0]</code></td><td>車体をずらす [m]（+X 右・+Y 上・−Z 前）</td></tr>
+<tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>車体の大きさの微調整。数字 1 つか <code>[x,y,z]</code>。上へ伸びる</td></tr>
+<tr><td><code>wheel.model</code></td><td>既定のタイヤ</td><td>タイヤの OBJ</td></tr>
+<tr><td><code>wheel.texture</code></td><td>既定のタイヤ</td><td>タイヤのテクスチャ</td></tr>
+<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>タイヤをずらす [m]。X は外向き（−0.05〜0.10）</td></tr>
+<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td>X は太さ（0.5〜2.5）。Y・Z は 1 のまま</td></tr>
+<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>キャンバー角 [度]（−30〜10）。見た目だけ</td></tr>
+<tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>メッシュのホイールアーチが何 m 離れているか</td></tr>
+<tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td>メッシュのタイヤが何 m の半径で作られているか</td></tr>
+<tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
+<tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転</td></tr>
+<tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">7 章</a>）</td></tr>
+<tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
+</table>
+<p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">8 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>See every key in the looks JSON</summary>
+<div class="more-body">
+<p>The file is <code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>. Anything you leave out takes the default.</p>
+<table>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>body.model</code></td><td>built-in car</td><td>Body OBJ</td></tr>
+<tr><td><code>body.texture</code></td><td>built-in car</td><td>Body texture</td></tr>
+<tr><td><code>body.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the body [m] (+X right, +Y up, −Z forward)</td></tr>
+<tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>Fine size adjustment; one number or <code>[x,y,z]</code>. Grows upward</td></tr>
+<tr><td><code>wheel.model</code></td><td>built-in wheel</td><td>Wheel OBJ</td></tr>
+<tr><td><code>wheel.texture</code></td><td>built-in wheel</td><td>Wheel texture</td></tr>
+<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the wheels [m]. X is outward (−0.05–0.10)</td></tr>
+<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td>X is width (0.5–2.5). Leave Y and Z at 1</td></tr>
+<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>Camber in degrees (−30–10). Looks only</td></tr>
+<tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>How far apart the arches are in your mesh</td></tr>
+<tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td>The radius your mesh's tyre was built at</td></tr>
+<tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
+<tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored</td></tr>
+<tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 7</a>)</td></tr>
+<tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+</table>
+<p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>外装パーツを付けたい・最初から付けておきたい</summary>
+<div class="more-body">
+<p>見た目の JSON の <code>parts</code>（オブジェクト名の対応）と、諸元の JSON の <code>default_parts</code>（初期装備）を使います。書き方は<a href="guide-parts.html#s-body">パーツの 2 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Add body parts, or fit them from the start</summary>
+<div class="more-body">
+<p>Use <code>parts</code> in the looks JSON (object names) and <code>default_parts</code> in the spec JSON (default parts). See <a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>名前の決まりを詳しく知りたい</summary>
+<div class="more-body">
+<ul>
+<li>大文字と空白は使えない。名前空間（<code>mypack</code>）は <code>a-z 0-9 _ . -</code>、車種名はこれに <code>/</code> を加えたもの</li>
+<li><code>modId</code> は名前空間より狭く、<code>-</code> も <code>.</code> も使えない（<code>^[a-z][a-z0-9_]{1,63}$</code>）。外れると読み込みが <code>Invalid modId</code> で落ちる。区切りは <code>_</code> だけにする</li>
+<li>名前空間は <code>modId</code> と同じにする。違っても動くが、ほかのパックとぶつかったときにどちらが読まれるか分からなくなる</li>
+<li>サブフォルダは使わない。<code>cars/toyota/ae86.json</code> は id が <code>mypack:toyota/ae86</code>、翻訳キーが <code>car.mypack.toyota/ae86</code> になる</li>
+<li>lang を書かなければ、表示名は <code>ae86</code> とそのまま出る</li>
+<li>MOD 一覧に出る画像は <code>mods.toml</code> の <code>logoFile</code> で指す</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Naming rules in detail</summary>
+<div class="more-body">
+<ul>
+<li>No uppercase, no spaces. Namespaces (<code>mypack</code>) allow <code>a-z 0-9 _ . -</code>; car names allow those plus <code>/</code></li>
+<li><code>modId</code> is stricter: no <code>-</code>, no <code>.</code> (<code>^[a-z][a-z0-9_]{1,63}$</code>). Breaking that fails the load with <code>Invalid modId</code>. Use <code>_</code> as the only separator</li>
+<li>Make the namespace the same as <code>modId</code>. It works either way, but if two packs collide you cannot tell which one won</li>
+<li>No subfolders. <code>cars/toyota/ae86.json</code> becomes the id <code>mypack:toyota/ae86</code> and the key <code>car.mypack.toyota/ae86</code></li>
+<li>Without a lang entry, the display name is simply <code>ae86</code></li>
+<li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code></li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>Forge と NeoForge の両方で使いたい</summary>
+<div class="more-body">
+<p>見本をコピーしていれば、もうそうなっています。Forge 1.20.1 は <code>META-INF/mods.toml</code> だけを、NeoForge 1.21.1 は <code>META-INF/neoforge.mods.toml</code> だけを読むので、両方入れておけば同じ jar がどちらでも動きます。</p>
+<ul>
+<li>2 つの中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
+<li><code>pack.mcmeta</code> に <code>"supported_formats": [15, 48]</code> を書く。無いと 1.21.1 で互換と見なされない</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Work on both Forge and NeoForge</summary>
+<div class="more-body">
+<p>If you copied the example, it already does. Forge 1.20.1 reads only <code>META-INF/mods.toml</code> and NeoForge 1.21.1 reads only <code>META-INF/neoforge.mods.toml</code>, so with both inside, the same jar loads on either.</p>
+<ul>
+<li>The two files are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
+<li>Put <code>"supported_formats": [15, 48]</code> in <code>pack.mcmeta</code>, or 1.21.1 will not treat the pack as compatible</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>見本の中身を知りたい・要らないものを消したい</summary>
+<div class="more-body">
+<table>
+<tr><th>id</th><th>何の見本か</th></tr>
+<tr><td><code>kurumamod_example_carpack:sample</code></td><td>車体メッシュ・テクスチャ・灯火まで自前で持つ、一通り揃った車</td></tr>
+<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>自前のメッシュを持つホイールの部品（<a href="guide-wheel.html#s-parts">ホイールの 2 章</a>）</td></tr>
+<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>換装画面のスライダーへ既定値を渡すホイールの部品</td></tr>
+</table>
+<p>ホイールの部品が要らなければ、<code>assets/mypack/car_parts/</code> と <code>data/mypack/car_parts/</code> のファイル、<code>wheel-sample.obj</code>・<code>.mtl</code>、lang の <code>part.…</code> の行を消します。使わなくなった <code>sample.obj</code> なども消してかまいません。</p>
+<p>隣の <code>carpack/basic/</code> はプレイヤーへ配っている公式パックで、作りは同じです。出来上がったパックに何が入るかを見るのに向いています。</p>
+</div>
+</details>
+<details class="more en">
+<summary>What is in the example, and what you can delete</summary>
+<div class="more-body">
+<table>
+<tr><th>Id</th><th>What it demonstrates</th></tr>
+<tr><td><code>kurumamod_example_carpack:sample</code></td><td>A complete car — its own body mesh, texture and lights</td></tr>
+<tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>A wheel part with its own mesh (<a href="guide-wheel.html#s-parts">chapter 2 of the Wheel guide</a>)</td></tr>
+<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>A wheel part that hands defaults to the fitment sliders</td></tr>
+</table>
+<p>If you do not want the wheel parts, delete the files in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>wheel-sample.obj</code> and its <code>.mtl</code>, and the <code>part.…</code> lines in lang. Unused files such as <code>sample.obj</code> can go too.</p>
+<p><code>carpack/basic/</code> next door is the official pack that ships to players, built the same way — a good look at what a finished pack contains.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>仕組みを知りたい（なぜ見た目と走りでフォルダが分かれるのか）</summary>
+<div class="more-body">
+<p><code>assets/</code> はプレイヤーのゲームだけが読み、<code>data/</code> はサーバーが読みます。誰も乗っていない車はサーバーが動かすので、走りを決める値は <code>data/</code> に置きます。もし <code>assets/</code> に置けたら、無人の車の動きが各プレイヤーのリソースパック次第になってしまいます。そのため、見た目の JSON に書けるのは見た目だけです。</p>
+<p>jar 1 つにすれば、<code>assets/</code> と <code>data/</code> の両方が一緒に読まれます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How it works (why looks and handling live in different folders)</summary>
+<div class="more-body">
+<p><code>assets/</code> is read only by each player's game; <code>data/</code> is read by the server. The server drives cars nobody is in, so handling values belong in <code>data/</code>. If they could live in <code>assets/</code>, a driverless car would behave according to each player's resource pack. That is why the looks JSON can only describe appearance.</p>
+<p>In a single jar, both <code>assets/</code> and <code>data/</code> are read together.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>MOD 一覧に出ない</b> … <code>modId</code> に <code>-</code> や <code>.</code> を使っていないか。<code>META-INF/</code> が jar の直下にあるか（<a href="guide-common.html#s-jar">共通の 4 章</a>）</li>
+<li><b>車種が増えない</b> … <code>data/mypack/cars/ae86.json</code> の場所と、JSON の書き間違い。ログに理由が出る</li>
+<li><b>走るのに姿が既定の車のまま</b> … <code>vehicles/</code> の JSON のファイル名が車種名と同じか。<code>model</code> の名前空間（<code>mypack:</code>）が合っているか</li>
+<li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっているか</li>
+<li><b>車体だけ大きい・小さい</b> … <code>designWheelBase</code> がメッシュの実寸か</li>
+<li><b>車体が埋まる・浮く</b> … <code>designRideHeight</code>。メッシュの原点が地面の高さにあるか</li>
+<li><b>タイヤが大きすぎる・小さすぎる</b> … <code>designWheelRadius</code> がメッシュの実寸か</li>
+<li><b>調整画面で寸法を変えたらタイヤがフェンダーからはみ出した</b> … 仕様。タイヤは諸元に合わせて動き、車体は動かない。車体も合わせるなら <code>body.scale</code></li>
+<li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">8 章</a>）</li>
+</ul>
+<p>ほかの症状は<a href="guide-common.html#s11">共通の 6 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Not in the mod list</b> — does <code>modId</code> contain <code>-</code> or <code>.</code>? Is <code>META-INF/</code> at the top of the jar (<a href="guide-common.html#s-jar">chapter 4 of the Common guide</a>)?</li>
+<li><b>No new car</b> — check where <code>data/mypack/cars/ae86.json</code> is, and the JSON for typos. The reason is in the log</li>
+<li><b>It drives but wears the default body</b> — is the <code>vehicles/</code> JSON named the same as the car? Does the namespace in <code>model</code> (<code>mypack:</code>) match?</li>
+<li><b>The display name is just <code>ae86</code></b> — is the lang key <code>car.mypack.ae86</code>?</li>
+<li><b>Only the body is too big or small</b> — is <code>designWheelBase</code> the real size of your mesh?</li>
+<li><b>The body sinks or floats</b> — <code>designRideHeight</code>. Is the mesh origin at ground level?</li>
+<li><b>Wheels too big or small</b> — is <code>designWheelRadius</code> the real size of your mesh?</li>
+<li><b>After changing sizes in the tuning screen, the wheels stick out of the fenders</b> — expected. Wheels follow the spec; the body does not. Use <code>body.scale</code> to match the body</li>
+<li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>)</li>
+</ul>
+<p>More symptoms in <a href="guide-common.html#s11">chapter 6 of the Common guide</a>.</p>
+</div>
+</details>
+</section><section class="gsec" id="s-sound">
+<h2 class="ja"><span class="num">7</span>音を付ける</h2>
+<h2 class="en"><span class="num">7</span>Add sounds</h2>
+<p class="ja">エンジン音などを車ごとに差し替えます。書かなかった音は KurumaMod の音のままなので、この章は飛ばしてもかまいません。</p>
+<p class="en">Give a car its own engine note and other sounds. Anything you leave out stays KurumaMod's, so you can skip this chapter.</p>
+
+<h3 class="ja">最小のエンジン音を付ける</h3>
+<h3 class="en">Add a minimal engine sound</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>音源を置く。</b><code>assets/mypack/sounds/ae86_exhaust.ogg</code>。OGG・モノラルで、継ぎ目なくループするもの</li>
+<li><span class="where where-file">ファイル</span><b>高回転用の音源を作って、同じ場所に置く。</b>同梱の道具を使う（Python が要る）:
+<pre><code>pip install numpy soundfile
+python sound_tools/make_octave_up.py ae86_exhaust.ogg
+# → ae86_exhaust_high.ogg</code></pre></li>
+<li><span class="where where-file">ファイル</span><b>音に名前を付ける。</b><code>assets/mypack/sounds.json</code>:
+<pre><code>{
+  "ae86_exhaust": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [{ "name": "mypack:ae86_exhaust", "attenuation_distance": 64 }]
+  },
+  "ae86_exhaust_high": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [{ "name": "mypack:ae86_exhaust_high", "attenuation_distance": 64 }]
+  }
+}</code></pre></li>
+<li><span class="where where-file">ファイル</span><b>車の見た目の JSON から指す。</b><code>assets/mypack/vehicles/ae86.json</code>（<a href="#s9">6 章</a>）のいちばん外側に、手順 3 で付けた名前を書く:
+<pre><code>"sounds": {
+  "exhaust": "mypack:ae86_exhaust",
+  "exhaust_high": "mypack:ae86_exhaust_high"
+}</code></pre></li>
+<li><span class="where where-game">ゲーム</span><b><kbd>F3</kbd>+<kbd>T</kbd> を押す。</b></li>
+</ol>
+<p class="ja">これで、乗っている車のエンジン音がその場で入れ替わります。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add the sound</b> <code>assets/mypack/sounds/ae86_exhaust.ogg</code>: Ogg Vorbis, mono, a seamless loop</li>
+<li><span class="where where-file">File</span><b>Make the high-rpm copy and put it next to it,</b> with the bundled tool (needs Python):
+<pre><code>pip install numpy soundfile
+python sound_tools/make_octave_up.py ae86_exhaust.ogg
+# → ae86_exhaust_high.ogg</code></pre></li>
+<li><span class="where where-file">File</span><b>Name the sounds</b> in <code>assets/mypack/sounds.json</code>:
+<pre><code>{
+  "ae86_exhaust": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [{ "name": "mypack:ae86_exhaust", "attenuation_distance": 64 }]
+  },
+  "ae86_exhaust_high": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [{ "name": "mypack:ae86_exhaust_high", "attenuation_distance": 64 }]
+  }
+}</code></pre></li>
+<li><span class="where where-file">File</span><b>Point the car's looks JSON at them.</b> At the top level of <code>assets/mypack/vehicles/ae86.json</code> (<a href="#s9">chapter 6</a>), write the names from step 3:
+<pre><code>"sounds": {
+  "exhaust": "mypack:ae86_exhaust",
+  "exhaust_high": "mypack:ae86_exhaust_high"
+}</code></pre></li>
+<li><span class="where where-game">Game</span><b>Press <kbd>F3</kbd>+<kbd>T</kbd>.</b></li>
+</ol>
+<p class="en">The car you are in switches to the new engine sound on the spot.</p>
+
+<p class="ja">ほかの音も同じやり方で差し替えられます。<code>sounds</code> に書ける名前:</p>
+<p class="en">Other sounds are replaced the same way. Names you can use in <code>sounds</code>:</p>
+<table class="ja">
+<tr><th>名前</th><th>音</th><th>鳴り方</th></tr>
+<tr><td><code>exhaust</code></td><td>エンジン音（低〜中回転）</td><td>ループ。回転数で音程、アクセルで音量が変わる</td></tr>
+<tr><td><code>exhaust_high</code></td><td>エンジン音（高回転）</td><td>ループ。<code>exhaust</code> を 1 オクターブ上げたもの</td></tr>
+<tr><td><code>road</code></td><td>ロードノイズ</td><td>ループ。車速</td></tr>
+<tr><td><code>wind</code></td><td>風切り音</td><td>ループ。車速</td></tr>
+<tr><td><code>slip</code> / <code>slip_chatter</code></td><td>タイヤの悲鳴（伸ばし／刻み）</td><td>ループ。舗装路で滑ったとき。滑り始めの 0.6 秒だけ刻みが鳴る</td></tr>
+<tr><td><code>gravel</code> / <code>sand</code></td><td>砂利・土／砂・雪の路面音</td><td>ループ。未舗装を走っているとき</td></tr>
+<tr><td><code>turbo</code></td><td>ターボの過給音（ヒュイーン）</td><td>ループ。ブーストで音程と音量が上がる。ターボの部品を付けたときだけ</td></tr>
+<tr><td><code>shift</code></td><td>変速音</td><td>1 回</td></tr>
+<tr><td><code>crash</code></td><td>衝突音</td><td>1 回</td></tr>
+<tr><td><code>blowoff</code></td><td>ブローオフ（プシュッ）</td><td>1 回。ブーストが掛かった状態でアクセルを抜いたときとシフトアップのとき。ブローオフバルブの部品を付けたときだけ</td></tr>
+</table>
+<table class="en">
+<tr><th>Name</th><th>Sound</th><th>How it plays</th></tr>
+<tr><td><code>exhaust</code></td><td>Engine (low to mid rpm)</td><td>Loop. Pitch follows rpm, volume follows throttle</td></tr>
+<tr><td><code>exhaust_high</code></td><td>Engine (high rpm)</td><td>Loop. <code>exhaust</code> shifted up one octave</td></tr>
+<tr><td><code>road</code></td><td>Road noise</td><td>Loop. Speed</td></tr>
+<tr><td><code>wind</code></td><td>Wind</td><td>Loop. Speed</td></tr>
+<tr><td><code>slip</code> / <code>slip_chatter</code></td><td>Tyre squeal (sustained / chatter)</td><td>Loop. Sliding on tarmac; the chatter plays for the first 0.6 s of a slide</td></tr>
+<tr><td><code>gravel</code> / <code>sand</code></td><td>Gravel &amp; dirt / sand &amp; snow</td><td>Loop. Driving on loose ground</td></tr>
+<tr><td><code>turbo</code></td><td>Turbo spool whistle</td><td>Loop. Pitch and volume rise with boost. Only with a turbo part fitted</td></tr>
+<tr><td><code>shift</code></td><td>Gear change</td><td>One-shot</td></tr>
+<tr><td><code>crash</code></td><td>Impact</td><td>One-shot</td></tr>
+<tr><td><code>blowoff</code></td><td>Blow-off valve</td><td>One-shot. On a throttle lift or upshift under boost. Only with a blow-off valve part fitted</td></tr>
+</table>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>音源をうまく作りたい</summary>
+<div class="more-body">
+<ul>
+<li><b>OGG Vorbis のモノラルにする。</b>Audacity なら「トラック → ミックス → ステレオをモノラルにミックスダウン」してから OGG で書き出す</li>
+<li><b>ループ音は末尾を先頭へクロスフェードして、継ぎ目を消す。</b>長さは 1 秒ほどあれば十分。短すぎると繰り返しが耳につく</li>
+<li><b>音量は一定にする。</b>ゲームがアクセルや車速で音量を動かすので、素材の中の強弱は二重に掛かって「うねる」</li>
+<li><b>エンジン音は少し高めに作る。</b>アイドルで元の 0.65 倍、レブで約 3.9 倍の音程で鳴る。実車のアイドリングをそのまま使うと低すぎる</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Make good source audio</summary>
+<div class="more-body">
+<ul>
+<li><b>Ogg Vorbis, mono.</b> In Audacity: Tracks → Mix → Mix Stereo Down to Mono, then export as OGG</li>
+<li><b>Cross-fade the tail of a loop into its head</b> so there is no seam. About a second is plenty; much shorter and the repetition becomes audible</li>
+<li><b>Keep the level steady.</b> The game drives volume from throttle and speed, so any swell inside the file is applied twice and the sound "wobbles"</li>
+<li><b>Build the engine a little high.</b> It plays at 0.65× the original pitch at idle and about 3.9× at the redline; a straight recording of a real idle ends up too low</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>音の届く距離や字幕を変えたい</summary>
+<div class="more-body">
+<ul>
+<li><code>attenuation_distance</code> … 音が届く距離 [ブロック]。書かなければ 16。KurumaMod はエンジン音 64・スキール 48・ロードノイズ 32</li>
+<li><code>subtitle</code> … 字幕の翻訳キー。KurumaMod のもの（<code>subtitles.kurumamod.car_exhaust</code> など）をそのまま借りられる。自分の lang に書いたキーでもよい</li>
+<li><code>"name"</code> は <code>sounds/</code> からのパスで、拡張子を付けない</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Change how far a sound carries, or its subtitle</summary>
+<div class="more-body">
+<ul>
+<li><code>attenuation_distance</code> — how far it carries, in blocks (16 if left out). KurumaMod uses 64 for the engine, 48 for squeal, 32 for road noise</li>
+<li><code>subtitle</code> — the subtitle's translation key. You can borrow KurumaMod's (<code>subtitles.kurumamod.car_exhaust</code> and so on) or use one from your own lang</li>
+<li><code>"name"</code> is the path under <code>sounds/</code>, without the extension</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ターボやブローオフの音を変えたい</summary>
+<div class="more-body">
+<p><code>sounds</code> に <code>"turbo"</code> / <code>"blowoff"</code> を書きます。変わるのは音だけです。鳴るかどうかは、その車にターボやブローオフバルブの部品が付いているかで決まります（<a href="guide-parts.html#s-turbo">パーツの 1 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change the turbo or blow-off sound</summary>
+<div class="more-body">
+<p>Write <code>"turbo"</code> / <code>"blowoff"</code> in <code>sounds</code>. Only the sound changes. Whether it plays depends on the car having a turbo or blow-off valve part fitted (<a href="guide-parts.html#s-turbo">chapter 1 of the Parts guide</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>仕組みを知りたい（なぜ高回転用の音源が要るのか）</summary>
+<div class="more-body">
+<p>Minecraft は音程を 0.5〜2.0 倍までしか変えられません。1 つの音源ではレブまで音程が上がりきらないので、1 オクターブ上の音源を <code>exhaust_high</code> として並べ、回転に合わせて 2 つを入れ替えています。</p>
+<p><code>make_octave_up.py</code> は長さを半分にして 1 オクターブ上げます。ループはループのまま出てきます（継ぎ目は増えません）。ステレオを渡してもモノラルにして書きます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How it works (why a high-rpm sound is needed)</summary>
+<div class="more-body">
+<p>Minecraft can only shift pitch between 0.5× and 2.0×, so one file cannot climb all the way to the redline. The game plays a one-octave-up copy as <code>exhaust_high</code> and cross-fades between the two with rpm.</p>
+<p><code>make_octave_up.py</code> halves the length to go up an octave. A seamless loop comes out seamless, and stereo input is written as mono.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>鳴らない</b> … mp3 や wav になっていないか（OGG だけ鳴る）。<code>"name"</code> に拡張子を付けていないか</li>
+<li><b>いつもの音のまま</b> … <code>sounds</code> に書いた名前が <code>sounds.json</code> に無い。ログに警告が 1 行出ている。直したら <kbd>F3</kbd>+<kbd>T</kbd></li>
+<li><b>離れても音が小さくならない</b> … 音源がステレオ。モノラルにする</li>
+<li><b>音がうねる</b> … 音源の中で音量が揺れている。一定にする</li>
+<li><b>レブ付近で音程が上がりきらない</b> … <code>exhaust_high</code> を書いていない。書かないと高回転側にも同じ音源を使い、音程が 2 倍で頭打ちになる</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>No sound</b> — is it MP3 or WAV? Only OGG plays. Did you put the extension in <code>"name"</code>?</li>
+<li><b>Still the usual sound</b> — the name in <code>sounds</code> is missing from <code>sounds.json</code>. A warning is in the log. Press <kbd>F3</kbd>+<kbd>T</kbd> after fixing</li>
+<li><b>It stays loud far away</b> — the file is stereo. Make it mono</li>
+<li><b>The sound wobbles</b> — the level swells inside the file. Keep it steady</li>
+<li><b>The pitch stops rising near the redline</b> — <code>exhaust_high</code> is missing. Without it the same file plays on the high side, and the pitch caps at 2×</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-spec">
+<h2 class="ja"><span class="num">8</span>諸元（走り）を書く</h2>
+<h2 class="en"><span class="num">8</span>Write the spec (how it drives)</h2>
+<p class="ja">加速・ブレーキ・曲がりかたを決める値（諸元）を書きます。置き場所は <code>data/mypack/cars/&lt;車&gt;.json</code> です。</p>
+<p class="en">This sets the values that decide acceleration, braking and cornering (the spec). They go in <code>data/mypack/cars/&lt;car&gt;.json</code>.</p>
+
+<h3 class="ja">最小の諸元を作る</h3>
+<h3 class="en">Make a minimal spec</h3>
+<ol class="steps ja">
+<li><span class="where where-game">ゲーム</span><b>車に乗り、<kbd>G</kbd> で調整画面を開いて、走りを詰める。</b></li>
+<li><span class="where where-game">ゲーム</span><b>「プリセット」から名前を付けて保存する。</b></li>
+<li><span class="where where-file">ファイル</span><b><code>config/kurumamod-setups.json</code> を開き、付けた名前の <code>{ … }</code> の中身をコピーする。</b>中に <code>"parts": { … }</code> があれば、そこは除く</li>
+<li><span class="where where-file">ファイル</span><b><code>data/mypack/cars/ae86.json</code> の <code>values</code> に貼る。</b>
+<pre><code>{
+  "order": 10,
+  "values": {
+    "mass": 1500.0,
+    "peak_torque": 200.0,
+    "peak_torque_rpm": 3200.0,
+    "redline_rpm": 5600.0
+  }
+}</code></pre></li>
+<li><span class="where where-game">ゲーム</span><b><code>/reload</code> を打つ。</b>（<kbd>F3</kbd>+<kbd>T</kbd> ではない）</li>
+</ol>
+<p class="ja">これで、クリエイティブタブから出したその車が、調整画面で詰めたとおりに走ります。</p>
+<ol class="steps en">
+<li><span class="where where-game">Game</span><b>Get in a car, press <kbd>G</kbd> to open the tuning screen, and dial in the handling.</b></li>
+<li><span class="where where-game">Game</span><b>Save it under a name from "Preset".</b></li>
+<li><span class="where where-file">File</span><b>Open <code>config/kurumamod-setups.json</code> and copy what is inside the <code>{ … }</code> under your name.</b> If there is a <code>"parts": { … }</code> inside, leave that out</li>
+<li><span class="where where-file">File</span><b>Paste it into <code>values</code> in <code>data/mypack/cars/ae86.json</code>.</b>
+<pre><code>{
+  "order": 10,
+  "values": {
+    "mass": 1500.0,
+    "peak_torque": 200.0,
+    "peak_torque_rpm": 3200.0,
+    "redline_rpm": 5600.0
+  }
+}</code></pre></li>
+<li><span class="where where-game">Game</span><b>Run <code>/reload</code>.</b> (Not <kbd>F3</kbd>+<kbd>T</kbd>.)</li>
+</ol>
+<p class="en">The car, taken fresh from the creative tab, now drives the way you tuned it.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>変えたい項目だけ書きたい</summary>
+<div class="more-body">
+<p>書かなかった項目は既定値になります。既定の車から変えたいところだけ残せば十分です。KurumaMod の項目が増えても、古いパックはそのまま読めます。</p>
+<ul>
+<li>書ける項目の全リストは<a href="#sc">付録 A</a></li>
+<li>書いても読まれない値（車重などから自動で決まるもの）は<a href="#sd">付録 B</a></li>
+<li><code>values</code> を使わず、いちばん外側に直接書いてもよい</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Write only what you change</summary>
+<div class="more-body">
+<p>Anything you leave out takes the default, so keep only what differs from the default car. Old packs keep loading when KurumaMod adds parameters.</p>
+<ul>
+<li>Every key is listed in <a href="#sc">Appendix A</a></li>
+<li>Values that are ignored even if written (they follow from mass and the like) are in <a href="#sd">Appendix B</a></li>
+<li>You may skip <code>values</code> and write the keys at the top level instead</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>手で数字を書きたい（単位）</summary>
+<div class="more-body">
+<p>ファイルには内部単位で書きます。<b>角度はラジアンです。</b>調整画面が度で見せている項目でも同じです。</p>
+<table>
+<tr><th>種類</th><th>単位</th></tr>
+<tr><td>長さ</td><td>m（cm ではない）</td></tr>
+<tr><td>質量</td><td>kg</td></tr>
+<tr><td>角度</td><td>rad（度ではない）</td></tr>
+<tr><td>バネ定数</td><td>N/m</td></tr>
+<tr><td>トルク</td><td>N·m</td></tr>
+<tr><td>回転数</td><td>rpm</td></tr>
+</table>
+<ul>
+<li>例: 最大切れ角 35 度は <code>"max_steer": 0.6109</code>。<code>32.0</code> と書くと 32 ラジアンと読まれる</li>
+<li>調整画面の範囲から外れた値は、範囲の端に丸められる（ログに警告が出る）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Type the numbers by hand (units)</summary>
+<div class="more-body">
+<p>The file takes internal units. <b>Angles are radians</b>, even for parameters the tuning screen shows in degrees.</p>
+<table>
+<tr><th>Quantity</th><th>Unit</th></tr>
+<tr><td>Length</td><td>m (not cm)</td></tr>
+<tr><td>Mass</td><td>kg</td></tr>
+<tr><td>Angle</td><td>rad (not degrees)</td></tr>
+<tr><td>Spring rate</td><td>N/m</td></tr>
+<tr><td>Torque</td><td>N·m</td></tr>
+<tr><td>Engine speed</td><td>rpm</td></tr>
+</table>
+<ul>
+<li>Example: 35° of steering lock is <code>"max_steer": 0.6109</code>. Writing <code>32.0</code> is read as 32 radians</li>
+<li>Values outside the tuning screen's range are clamped to the nearest end (the log warns you)</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>メモを残したい</summary>
+<div class="more-body">
+<p><code>_</code> で始まるキーは読み飛ばされます。JSON にはコメントが書けないので、これで理由を残せます。</p>
+<pre><code>{
+  "values": {
+    "_comment_mass": "バンなので既定より重くする",
+    "mass": 1500.0
+  }
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Leave notes</summary>
+<div class="more-body">
+<p>Keys starting with <code>_</code> are skipped. JSON has no comments, so this is how you leave a note.</p>
+<pre><code>{
+  "values": {
+    "_comment_mass": "A van, so heavier than the default",
+    "mass": 1500.0
+  }
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>クリエイティブタブでの並び順を変えたい</summary>
+<div class="more-body">
+<p>いちばん外側の <code>order</code> で決まります。小さいほど前（既定 <code>100</code>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change the order in the creative tab</summary>
+<div class="more-body">
+<p>Set <code>order</code> at the top level. Smaller comes first (default <code>100</code>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>最初から部品を付けておきたい</summary>
+<div class="more-body">
+<p>いちばん外側の <code>default_parts</code> に書きます（<code>values</code> と同じ階層）。書き方は<a href="guide-parts.html#s-body">パーツの 2 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Fit parts from the start</summary>
+<div class="more-body">
+<p>Write <code>default_parts</code> at the top level, next to <code>values</code>. See <a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>直したのに走りが変わらない</b> … <code>/reload</code> を打ったか。すでに置いてある車は置いたときの諸元のまま。クリエイティブタブから出し直す</li>
+<li><b>その車種がタブから消えた</b> … JSON が壊れている。<code>values</code> に <code>"parts"</code> のような数でないものが混ざっていないか。理由はログに出る</li>
+<li><b>舵が異常に切れる・効かない</b> … 角度を度で書いていないか（ラジアンで書く）</li>
+<li><b>書いた値が効かない</b> … 車重などから自動で決まる値かもしれない（<a href="#sd">付録 B</a>）。見た目の JSON（<code>assets/</code>）に書いていないか</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>An edit changes nothing</b> — did you run <code>/reload</code>? A car already placed keeps the spec it was placed with; take a fresh one from the creative tab</li>
+<li><b>The car vanished from the tab</b> — the JSON is broken. Is something that is not a number, like <code>"parts"</code>, inside <code>values</code>? The reason is in the log</li>
+<li><b>Steering is wild or dead</b> — did you write an angle in degrees? Use radians</li>
+<li><b>A value has no effect</b> — it may be one that follows from mass and the like (<a href="#sd">Appendix B</a>). Or did you put it in the looks JSON under <code>assets/</code>?</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="sc">
+<h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
+<h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
+<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<h4 class="ja">サスペンション</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>stroke</code></td><td>ストローク</td><td>m</td><td>0.3</td><td>0.15 – 0.8</td></tr>
+<tr><td><code>front_anti_roll</code></td><td>フロント スタビライザー</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
+<tr><td><code>rear_anti_roll</code></td><td>リア スタビライザー</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
+<tr><td><code>front_roll_center</code></td><td>フロント ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
+<tr><td><code>rear_roll_center</code></td><td>リア ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
+</table>
+<p class="ja"><b>足を硬くしたいときは <code>stroke</code> を短くします。</b>沈み込みがストロークの 39.2% で固定なので、短いほどバネが硬くなり、ダンパーの係数もそれに合わせて上がります。</p>
+<h4 class="ja">ダンパー</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>front_bump_damping</code></td><td>フロント 縮み側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>front_rebound_damping</code></td><td>フロント 伸び側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_bump_damping</code></td><td>リア 縮み側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_rebound_damping</code></td><td>リア 伸び側減衰</td><td>減衰比</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+</table>
+<p class="ja"><b>N·s/m ではなく減衰比（臨界減衰に対する割合）で書きます。</b>係数はその輪のバネと荷重から KurumaMod が計算するので、<code>stroke</code> や <code>mass</code> を変えても効き方は変わりません。1 で揺り返しがちょうど出なくなる硬さ。実車は伸び側を縮み側の 1.5〜3 倍にすることが多く、そうすると段差を柔らかくいなしつつ揺れがすぐ収まります。</p>
+<h4 class="ja">ステアリング ジオメトリ</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>ackermann</code></td><td>アッカーマン率</td><td>割合（1 で幾何どおり）</td><td>0.5</td><td>−0.5 – 1.2</td></tr>
+<tr><td><code>front_toe</code></td><td>フロント トー</td><td><b>rad</b>（正でイン）</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>rear_toe</code></td><td>リア トー</td><td><b>rad</b>（正でイン）</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>front_roll_steer</code></td><td>フロント ロールステア</td><td>rad/rad（正でアンダー）</td><td>0.05</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>rear_roll_steer</code></td><td>リア ロールステア</td><td>rad/rad（正でアンダー）</td><td>0.08</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>front_compliance_steer</code></td><td>フロント コンプライアンスステア</td><td><b>rad</b>/G（正でアンダー）</td><td>0.00873（＝0.5°/G）</td><td>−0.00873 – 0.0262</td></tr>
+<tr><td><code>rear_compliance_steer</code></td><td>リア コンプライアンスステア</td><td><b>rad</b>/G（正でアンダー）</td><td>0.00349（＝0.2°/G）</td><td>−0.00873 – 0.0262</td></tr>
+</table>
+<h4 class="ja">タイヤ</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>friction</code></td><td>グリップ</td><td>μ</td><td>1</td><td>0.3 – 1.5</td></tr>
+<tr><td><code>tire_falloff</code></td><td>滑ったときのグリップ低下</td><td>割合</td><td>0</td><td>0 – 0.5</td></tr>
+<tr><td><code>tire_load_sensitivity</code></td><td>タイヤの荷重感度</td><td>—</td><td>0.15</td><td>0 – 0.4</td></tr>
+<tr><td><code>cornering_stiffness</code></td><td>横すべり剛性</td><td>—</td><td>12</td><td>4 – 25</td></tr>
+<tr><td><code>longitudinal_stiffness</code></td><td>縦すべり剛性</td><td>—</td><td>18</td><td>5 – 40</td></tr>
+<tr><td><code>wheel_radius</code></td><td>タイヤ半径</td><td>m</td><td>0.45</td><td>0.25 – 1.1</td></tr>
+</table>
+<p class="ja"><b><code>friction</code> に書くのは実際の摩擦係数（μ）です。</b>調整画面は既定を 1.00 とした相対値で出しています（いまは基準が 1.0 なので同じ数字）。</p>
+<h4 class="ja">車体</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>mass</code></td><td>車重</td><td>kg</td><td>1200</td><td>500 – 2500</td></tr>
+<tr><td><code>weight_distribution</code></td><td>前後の荷重配分</td><td>前軸の割合</td><td>0.56</td><td>0.35 – 0.7</td></tr>
+<tr><td><code>wheel_base</code></td><td>ホイールベース</td><td>m</td><td>3.12</td><td>2 – 7</td></tr>
+<tr><td><code>track_width</code></td><td>トレッド</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+</table>
+<h4 class="ja">エンジン</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>peak_torque</code></td><td>最大トルク</td><td>N·m</td><td>350</td><td>60 – 700</td></tr>
+<tr><td><code>peak_torque_rpm</code></td><td>最大トルク回転数</td><td>rpm</td><td>4200</td><td>1500 – 8000</td></tr>
+<tr><td><code>peak_power_rpm</code></td><td>最高出力回転数</td><td>rpm</td><td>最大トルク回転数の 1.59 倍（6676.4）</td><td>2500 – 12000</td></tr>
+<tr><td><code>idle_rpm</code></td><td>アイドル回転数</td><td>rpm</td><td>800</td><td>500 – 2000</td></tr>
+<tr><td><code>redline_rpm</code></td><td>レブリミット</td><td>rpm</td><td>7000</td><td>4000 – 12000</td></tr>
+<tr><td><code>engine_brake</code></td><td>エンジンブレーキ</td><td>N·m</td><td>35</td><td>0 – 120</td></tr>
+<tr><td><code>engine_inertia</code></td><td>エンジンの慣性</td><td>kg·m²</td><td>0.25</td><td>0.05 – 1</td></tr>
+</table>
+<h4 class="ja">変速機</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>gear_count</code></td><td>前進の段数</td><td>段</td><td>5</td><td>3 – 8</td></tr>
+<tr><td><code>first_gear</code></td><td>1速のギア比</td><td>—</td><td>4.2</td><td>1.5 – 5</td></tr>
+<tr><td><code>top_gear</code></td><td>最高段のギア比</td><td>—</td><td>0.85</td><td>0.4 – 1.5</td></tr>
+<tr><td><code>drivetrain_efficiency</code></td><td>駆動系の伝達効率</td><td>—</td><td>0.9</td><td>0.7 – 1</td></tr>
+<tr><td><code>shift_time</code></td><td>変速にかかる時間</td><td>秒</td><td>0.35</td><td>0 – 1.5</td></tr>
+<tr><td><code>manual_transmission</code></td><td>変速</td><td>0 = AT・1 = MT</td><td>0</td><td>0 – 1</td></tr>
+</table>
+<h4 class="ja">駆動系・デフ</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>drive_layout</code></td><td>駆動方式</td><td>0 = FF・1 = FR・2 = 4WD</td><td>2</td><td>0 – 2</td></tr>
+<tr><td><code>torque_split</code></td><td>前後トルク配分</td><td>後輪の割合（4WD のみ）</td><td>0.5</td><td>0.1 – 0.9</td></tr>
+<tr><td><code>diff_preload</code></td><td>デフ イニシャルトルク</td><td>N·m</td><td>0</td><td>0 – 300</td></tr>
+<tr><td><code>diff_lock_ratio</code></td><td>デフ 差動制限率</td><td>—</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>diff_coast_ratio</code></td><td>デフ 戻し側の効き</td><td>—</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>center_diff_lock</code></td><td>センターデフ 締結の強さ</td><td>—</td><td>0</td><td>0 – 1</td></tr>
+</table>
+<p class="ja"><code>diff_lock_ratio</code> と <code>diff_preload</code> がどちらも 0 ならオープンデフ。<code>diff_coast_ratio</code> は 0 で 1way、0.5 で 1.5way、1 で 2way。</p>
+<p class="ja"><code>torque_split</code> と <code>center_diff_lock</code> は 4WD（<code>drive_layout</code> が 2）のときだけ効きます。<code>torque_split</code> は前後へ配る駆動力の割合で、後ろへ寄せるほど踏んだときに尻が出やすくなります（FR 寄り）。<code>center_diff_lock</code> が 0 ならオープンで配分どおり、上げると前後の回転差を揃えにいき、空転しかけた軸から掴んでいる軸へトルクが移ります（1 で直結）。締めるほど配分の意味は薄れ、低速で小さく回ったときに止まろうとします（タイトコーナーブレーキング）。サイドブレーキを引いている間は自動で切れます。古い <code>drive_bias</code>（0 = FF・1 = FR・間は 4WD の配分）も読めます。</p>
+<h4 class="ja">ブレーキ・走行抵抗</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>abs</code></td><td>ABS</td><td>強さ（0 で無効）</td><td>0.7</td><td>0 – 1</td></tr>
+<tr><td><code>rolling_resistance</code></td><td>転がり抵抗</td><td>—</td><td>0.15</td><td>0 – 1</td></tr>
+</table>
+<p class="ja">最高速の項目はありません。<b>実際の最高速はトルクと抵抗から決まり</b>、最高段でレブまで回した速度より速くは走れません。</p>
+<h4 class="ja">空力</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>drag_area</code></td><td>空気抵抗（CdA）</td><td>m²（Cd×前面投影面積）</td><td>0.78</td><td>0.2 – 5</td></tr>
+<tr><td><code>front_downforce</code></td><td>ダウンフォース（前）</td><td>m²（−Cl×面積）</td><td>0</td><td>0 – 3</td></tr>
+<tr><td><code>rear_downforce</code></td><td>ダウンフォース（後）</td><td>m²（−Cl×面積）</td><td>0</td><td>0 – 3</td></tr>
+</table>
+<p class="ja">空気抵抗は力として掛かるので、<b>同じ値でも重い車ほど減速しにくくなります</b>。目安はスポーツカー 0.5、乗用車 0.7、SUV 1.0。以前の <code>drag</code>（減速度の係数）を書いたパックは、その車の車重で自動的に換算され、走りは変わりません。</p>
+<p class="ja">ダウンフォースは前軸・後軸の位置で車体を下へ押し、速度の 2 乗で増えます。<b>前を強くするとオーバー、後ろを強くするとアンダー</b>。押し付けるぶん空気抵抗も増える（ダウンフォースの 1/6 が CdA に足される）ので、付けるほど最高速は落ちます。目安はウイング付きの市販車で前後合わせて 0.3〜0.6、GT 系のレーシングカーで 2〜3。</p>
+<h4 class="ja">操作と補助</h4>
+<table class="ja">
+<tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
+<tr><td><code>max_steer</code></td><td>最大切れ角</td><td><b>rad</b></td><td>0.6109（＝35°）</td><td>0.1745 – 1.1345</td></tr>
+<tr><td><code>steer_grip_margin</code></td><td>切れ角の余裕（大で滑らせやすい）</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
+<tr><td><code>visual_slip_limit</code></td><td>見た目のタイヤ角</td><td><b>rad</b>（0 で無効）</td><td>0.7854（＝45°）</td><td>0 – 1.5708</td></tr>
+<tr><td><code>steer_rate</code></td><td>舵が入るまでの時間</td><td>秒</td><td>0.18</td><td>0 – 1</td></tr>
+<tr><td><code>steer_return</code></td><td>舵が中立へ戻る時間</td><td>秒</td><td>0.11</td><td>0 – 1</td></tr>
+<tr><td><code>self_aligning</code></td><td>舵の自己復元</td><td>—（0 で中立へ戻る）</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_press</code></td><td>ペダルを踏みきる時間</td><td>秒</td><td>0.25</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_release</code></td><td>ペダルを戻しきる時間</td><td>秒</td><td>0.12</td><td>0 – 1</td></tr>
+<tr><td><code>handbrake_press</code></td><td>サイドブレーキが効ききる時間</td><td>秒</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>traction_control</code></td><td>トラクションコントロール</td><td>強さ（0 で無効）</td><td>1</td><td>0 – 1</td></tr>
+</table>
+<h4 class="en">Suspension</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>stroke</code></td><td>Travel</td><td>m</td><td>0.3</td><td>0.15 – 0.8</td></tr>
+<tr><td><code>front_anti_roll</code></td><td>Front anti-roll bar</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
+<tr><td><code>rear_anti_roll</code></td><td>Rear anti-roll bar</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
+<tr><td><code>front_roll_center</code></td><td>Front roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
+<tr><td><code>rear_roll_center</code></td><td>Rear roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
+</table>
+<p class="en"><b>To stiffen the suspension, shorten <code>stroke</code>.</b> Static sag is fixed at 39.2% of the stroke, so a shorter stroke means stiffer springs, and the damper coefficients rise with them.</p>
+<h4 class="en">Dampers</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>front_bump_damping</code></td><td>Front bump damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>front_rebound_damping</code></td><td>Front rebound damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_bump_damping</code></td><td>Rear bump damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+<tr><td><code>rear_rebound_damping</code></td><td>Rear rebound damping</td><td>damping ratio</td><td>0.45</td><td>0.1 – 1.5</td></tr>
+</table>
+<p class="en"><b>Write a damping ratio (a fraction of critical damping), not N·s/m.</b> KurumaMod works out the coefficient from that wheel's spring and load, so changing <code>stroke</code> or <code>mass</code> keeps the feel the same. At 1 the car just stops bouncing back. Real cars often run rebound at 1.5–3 times bump, which soaks up bumps softly but settles quickly.</p>
+<h4 class="en">Steering geometry</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>ackermann</code></td><td>Ackermann</td><td>fraction (1 = true Ackermann)</td><td>0.5</td><td>−0.5 – 1.2</td></tr>
+<tr><td><code>front_toe</code></td><td>Front toe</td><td><b>rad</b> (positive = toe-in)</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>rear_toe</code></td><td>Rear toe</td><td><b>rad</b> (positive = toe-in)</td><td>0</td><td>−0.00873 – 0.00873</td></tr>
+<tr><td><code>front_roll_steer</code></td><td>Front roll steer</td><td>rad/rad (positive = understeer)</td><td>0.05</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>rear_roll_steer</code></td><td>Rear roll steer</td><td>rad/rad (positive = understeer)</td><td>0.08</td><td>−0.2 – 0.3</td></tr>
+<tr><td><code>front_compliance_steer</code></td><td>Front compliance steer</td><td><b>rad</b>/G (positive = understeer)</td><td>0.00873 (= 0.5°/G)</td><td>−0.00873 – 0.0262</td></tr>
+<tr><td><code>rear_compliance_steer</code></td><td>Rear compliance steer</td><td><b>rad</b>/G (positive = understeer)</td><td>0.00349 (= 0.2°/G)</td><td>−0.00873 – 0.0262</td></tr>
+</table>
+<h4 class="en">Tires</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>friction</code></td><td>Grip</td><td>μ</td><td>1</td><td>0.3 – 1.5</td></tr>
+<tr><td><code>tire_falloff</code></td><td>Grip loss when sliding</td><td>fraction</td><td>0</td><td>0 – 0.5</td></tr>
+<tr><td><code>tire_load_sensitivity</code></td><td>Tyre load sensitivity</td><td>—</td><td>0.15</td><td>0 – 0.4</td></tr>
+<tr><td><code>cornering_stiffness</code></td><td>Lateral slip stiffness</td><td>—</td><td>12</td><td>4 – 25</td></tr>
+<tr><td><code>longitudinal_stiffness</code></td><td>Longitudinal slip stiffness</td><td>—</td><td>18</td><td>5 – 40</td></tr>
+<tr><td><code>wheel_radius</code></td><td>Tyre radius</td><td>m</td><td>0.45</td><td>0.25 – 1.1</td></tr>
+</table>
+<p class="en"><b><code>friction</code> is the actual coefficient of friction (μ).</b> The tuning screen shows it relative to the default (the reference is 1.0 for now, so the numbers match).</p>
+<h4 class="en">Chassis</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>mass</code></td><td>Mass</td><td>kg</td><td>1200</td><td>500 – 2500</td></tr>
+<tr><td><code>weight_distribution</code></td><td>Weight distribution</td><td>fraction on the front axle</td><td>0.56</td><td>0.35 – 0.7</td></tr>
+<tr><td><code>wheel_base</code></td><td>Wheelbase</td><td>m</td><td>3.12</td><td>2 – 7</td></tr>
+<tr><td><code>track_width</code></td><td>Track width</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+</table>
+<h4 class="en">Engine</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>peak_torque</code></td><td>Peak torque</td><td>N·m</td><td>350</td><td>60 – 700</td></tr>
+<tr><td><code>peak_torque_rpm</code></td><td>Peak torque rpm</td><td>rpm</td><td>4200</td><td>1500 – 8000</td></tr>
+<tr><td><code>peak_power_rpm</code></td><td>Peak power rpm</td><td>rpm</td><td>1.59 × peak torque rpm (6676.4)</td><td>2500 – 12000</td></tr>
+<tr><td><code>idle_rpm</code></td><td>Idle rpm</td><td>rpm</td><td>800</td><td>500 – 2000</td></tr>
+<tr><td><code>redline_rpm</code></td><td>Redline</td><td>rpm</td><td>7000</td><td>4000 – 12000</td></tr>
+<tr><td><code>engine_brake</code></td><td>Engine braking</td><td>N·m</td><td>35</td><td>0 – 120</td></tr>
+<tr><td><code>engine_inertia</code></td><td>Engine inertia</td><td>kg·m²</td><td>0.25</td><td>0.05 – 1</td></tr>
+</table>
+<h4 class="en">Gearbox</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>gear_count</code></td><td>Forward gears</td><td>gears</td><td>5</td><td>3 – 8</td></tr>
+<tr><td><code>first_gear</code></td><td>1st gear ratio</td><td>—</td><td>4.2</td><td>1.5 – 5</td></tr>
+<tr><td><code>top_gear</code></td><td>Top gear ratio</td><td>—</td><td>0.85</td><td>0.4 – 1.5</td></tr>
+<tr><td><code>drivetrain_efficiency</code></td><td>Drivetrain efficiency</td><td>—</td><td>0.9</td><td>0.7 – 1</td></tr>
+<tr><td><code>shift_time</code></td><td>Shift time</td><td>s</td><td>0.35</td><td>0 – 1.5</td></tr>
+<tr><td><code>manual_transmission</code></td><td>Transmission</td><td>0 = AT, 1 = MT</td><td>0</td><td>0 – 1</td></tr>
+</table>
+<h4 class="en">Driveline & Differential</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>drive_layout</code></td><td>Drive layout</td><td>0 = FWD, 1 = RWD, 2 = AWD</td><td>2</td><td>0 – 2</td></tr>
+<tr><td><code>torque_split</code></td><td>Front/rear torque split</td><td>rear share (AWD only)</td><td>0.5</td><td>0.1 – 0.9</td></tr>
+<tr><td><code>diff_preload</code></td><td>Diff preload</td><td>N·m</td><td>0</td><td>0 – 300</td></tr>
+<tr><td><code>diff_lock_ratio</code></td><td>Diff lock ratio</td><td>—</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>diff_coast_ratio</code></td><td>Diff coast ratio</td><td>—</td><td>0.5</td><td>0 – 1</td></tr>
+<tr><td><code>center_diff_lock</code></td><td>Centre diff lock</td><td>—</td><td>0</td><td>0 – 1</td></tr>
+</table>
+<p class="en">With <code>diff_lock_ratio</code> and <code>diff_preload</code> both at 0 it is an open diff. <code>diff_coast_ratio</code> is 1-way at 0, 1.5-way at 0.5, 2-way at 1.</p>
+<p class="en"><code>torque_split</code> and <code>center_diff_lock</code> only apply to AWD (<code>drive_layout</code> 2). <code>torque_split</code> is the share of drive sent to each axle; the more goes to the rear, the more the tail steps out on the throttle (RWD-like). With <code>center_diff_lock</code> at 0 the centre is open and the split holds exactly; raising it pulls the front and rear speeds together and moves torque from an axle that starts to spin to the one that still grips (1 is fully locked). The tighter it is, the less the split matters, and the car resists tight turns at low speed (tight-corner braking). It opens automatically while the handbrake is pulled. The old <code>drive_bias</code> (0 = FWD, 1 = RWD, anything between = AWD split) is still read.</p>
+<h4 class="en">Brakes & Resistance</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>abs</code></td><td>ABS</td><td>strength (0 = off)</td><td>0.7</td><td>0 – 1</td></tr>
+<tr><td><code>rolling_resistance</code></td><td>Rolling resistance</td><td>—</td><td>0.15</td><td>0 – 1</td></tr>
+</table>
+<p class="en">There is no top-speed field. <b>The real top speed comes out of torque versus resistance</b>, and the car can never go faster than top gear at the redline.</p>
+<h4 class="en">Aerodynamics</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>drag_area</code></td><td>Drag area (CdA)</td><td>m² (Cd × frontal area)</td><td>0.78</td><td>0.2 – 5</td></tr>
+<tr><td><code>front_downforce</code></td><td>Front downforce</td><td>m² (−Cl × area)</td><td>0</td><td>0 – 3</td></tr>
+<tr><td><code>rear_downforce</code></td><td>Rear downforce</td><td>m² (−Cl × area)</td><td>0</td><td>0 – 3</td></tr>
+</table>
+<p class="en">Drag is applied as a force, so <b>the same value slows a heavier car less</b>. Rough guide: sports car 0.5, saloon 0.7, SUV 1.0. Packs that still write the old <code>drag</code> (a deceleration coefficient) are converted using that car's mass, so they drive exactly as before.</p>
+<p class="en">Downforce pushes the body down at the front and rear axles and grows with the square of speed. <b>More at the front gives oversteer, more at the rear gives understeer.</b> It costs drag too (one sixth of the downforce is added to CdA), so the more you add, the lower the top speed. Rough guide: 0.3–0.6 in total for a road car with a wing, 2–3 for a GT-class race car.</p>
+<h4 class="en">Controls & Aids</h4>
+<table class="en">
+<tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
+<tr><td><code>max_steer</code></td><td>Max steering angle</td><td><b>rad</b></td><td>0.6109 (= 35°)</td><td>0.1745 – 1.1345</td></tr>
+<tr><td><code>steer_grip_margin</code></td><td>Steering margin (higher = slides more)</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
+<tr><td><code>visual_slip_limit</code></td><td>Visual wheel angle</td><td><b>rad</b> (0 = off)</td><td>0.7854 (= 45°)</td><td>0 – 1.5708</td></tr>
+<tr><td><code>steer_rate</code></td><td>Steering lock-to-lock time</td><td>s</td><td>0.18</td><td>0 – 1</td></tr>
+<tr><td><code>steer_return</code></td><td>Steering return time</td><td>s</td><td>0.11</td><td>0 – 1</td></tr>
+<tr><td><code>self_aligning</code></td><td>Self-aligning torque</td><td>— (0 = returns to centre)</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_press</code></td><td>Pedal press time</td><td>s</td><td>0.25</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_release</code></td><td>Pedal release time</td><td>s</td><td>0.12</td><td>0 – 1</td></tr>
+<tr><td><code>handbrake_press</code></td><td>Handbrake press time</td><td>s</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>traction_control</code></td><td>Traction control</td><td>strength (0 = off)</td><td>1</td><td>0 – 1</td></tr>
+</table>
+</section><section class="gsec" id="sd">
+<h2 class="ja">付録 B. 書いても読まれない値</h2>
+<h2 class="en">Appendix B. Values ignored even if you write them</h2>
+<p class="ja"><b>他の諸元から決まる値は、書いても黙って捨てられます。</b>KurumaMod が計算します。</p>
+<p class="en"><b>Values that follow from other values are silently dropped.</b> KurumaMod computes them.</p>
+<table class="ja">
+<tr><th>決まるもの</th><th>何から</th></tr>
+<tr><td>バネ・バンプストップ・ダンパーの係数（減衰比は付録 A）</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>重心高</td><td>停車時の車高</td></tr>
+<tr><td>慣性モーメント 3 つ</td><td><code>mass</code> と <code>wheel_base</code> / <code>track_width</code></td></tr>
+<tr><td>車輪の慣性・登坂できる段差・終減速比</td><td><code>wheel_radius</code></td></tr>
+<tr><td>制動配分</td><td><code>weight_distribution</code> と重心高とホイールベース</td></tr>
+<tr><td>ブレーキとサイドブレーキの効き</td><td><code>friction</code></td></tr>
+<tr><td>変速点・バックの最高速</td><td><code>redline_rpm</code> とギア比</td></tr>
+</table>
+<table class="en">
+<tr><th>Derived</th><th>From</th></tr>
+<tr><td>Springs, bump stops, damper coefficients (the ratios are in Appendix A)</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code></td></tr>
+<tr><td>Centre of gravity height</td><td>Static ride height</td></tr>
+<tr><td>All three moments of inertia</td><td><code>mass</code> with <code>wheel_base</code> / <code>track_width</code></td></tr>
+<tr><td>Wheel inertia, climbable step, final drive</td><td><code>wheel_radius</code></td></tr>
+<tr><td>Brake bias</td><td><code>weight_distribution</code>, CG height and wheelbase</td></tr>
+<tr><td>Brake and handbrake authority</td><td><code>friction</code></td></tr>
+<tr><td>Shift points, reverse top speed</td><td><code>redline_rpm</code> and the gear ratios</td></tr>
+</table>
+<p class="ja">そのため「タイヤ半径を変えたらファイナルも直す」「寸法を変えたら慣性も」といった<b>組み合わせの手直しは要りません</b>。半径を変えればギアリングも車高も登坂力も一緒に動きます。</p>
+<p class="en">So there is no cross-checking to do — no "I changed the tyre radius, now fix the final drive", no "I changed the dimensions, now fix the inertia". Change the radius and the gearing, ride height and climbing ability all move with it.</p>
+</section><div class="gfoot">
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
+</div></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

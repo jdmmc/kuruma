@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KurumaMod</title>
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="KurumaMod" data-title-ja="KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <span data-l="en">日本語</span><span data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+    </div>
+  </div>
+</header>
+
+<section class="hero" style="padding:0">
+  <img src="img/eyecatch.jpg" alt="Silvia S15 on track by day and night" data-alt-ja="昼と夜のサーキットを走るシルビア S15">
+  <div class="copy">
+    <div class="wrap">
+      <div class="kicker"><span data-l="en">A driving mod for Minecraft · Forge 1.20.1 / NeoForge 1.21.1</span><span data-l="ja">Minecraft のドライブ MOD · Forge 1.20.1 / NeoForge 1.21.1</span></div>
+      <h1 class="brand" aria-label="KurumaMod">KURUMA</h1>
+      <p><span data-l="en">Gran Turismo, in Minecraft. The front dips when you brake, the rear squats when you accelerate, and if you get greedy with the throttle it steps sideways.</span><span data-l="ja">Minecraft で、グランツーリスモ。ブレーキでフロントが沈み、アクセルでリアが沈み、踏みすぎればタイヤを鳴らして横を向く。</span></p>
+      <div class="cta">
+        <a class="btn light arrow" href="https://www.curseforge.com/minecraft/mc-mods/kuruma"><span data-l="en">Download on CurseForge</span><span data-l="ja">CurseForge でダウンロード</span></a>
+        <a class="btn outline on-dark" href="https://modrinth.com/mod/kuruma">Modrinth</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="badges">
+  <div class="wrap">
+    <div><b><span data-l="en">No dependencies</span><span data-l="ja">前提 MOD なし</span></b><span><span data-l="en">Just drop it in mods/</span><span data-l="ja">mods に入れるだけ</span></span></div>
+    <div><b><span data-l="en">Multiplayer</span><span data-l="ja">マルチプレイ</span></b><span><span data-l="en">Race your friends</span><span data-l="ja">友だちとレース</span></span></div>
+    <div><b><span data-l="en">Wheel and gamepad</span><span data-l="ja">ハンコン・パッド</span></b><span><span data-l="en">Fully analog input</span><span data-l="ja">フルアナログ入力</span></span></div>
+    <div><b><span data-l="en">Free and open source</span><span data-l="ja">無料・オープンソース</span></b><span>GPL-3.0</span></div>
+  </div>
+</div>
+
+<section id="cars">
+  <div class="wrap">
+    <h2 class="title"><span data-l="en">Choose your car</span><span data-l="ja">車を選ぶ</span></h2>
+    <p class="lead"><span data-l="en">All three run on the same physics. Weight, balance and drivetrain are what make them drive differently.</span><span data-l="ja">3 台とも同じ物理で走ります。重さ、重心の位置、駆動方式の違いが、そのまま走りの違いになります。</span></p>
+    <div class="filters" role="group" aria-label="Filter">
+      <button type="button" aria-pressed="true" data-filter="all"><span data-l="en">All</span><span data-l="ja">すべて</span></button>
+      <button type="button" aria-pressed="false" data-filter="sport"><span data-l="en">Sports cars</span><span data-l="ja">スポーツカー</span></button>
+      <button type="button" aria-pressed="false" data-filter="awd"><span data-l="en">All-wheel drive</span><span data-l="ja">4WD</span></button>
+    </div>
+    <div class="models"><article class="model" data-kind="sport awd">
+        <div class="shot"><img src="img/car-s15.jpg" alt="Blue Silvia S15 parked on a track" data-alt-ja="コースに止まる青いシルビア S15"></div>
+        <div class="txt">
+          <div class="tag"><span><span data-l="en">Sports coupe · AWD</span><span data-l="ja">スポーツクーペ・4WD</span></span></div>
+          <h3 class="latin">Silvia S15</h3>
+          <dl><div><dt><span data-l="en">Max power</span><span data-l="ja">最高出力</span></dt><dd>281 PS</dd></div><div><dt>0-100 km/h</dt><dd>5.3 s</dd></div><div><dt><span data-l="en">Top speed</span><span data-l="ja">最高速度</span></dt><dd>255 km/h</dd></div></dl>
+          <div class="price"><span data-l="en">Included with KurumaMod</span><span data-l="ja">KurumaMod に標準搭載</span></div>
+          <div class="acts">
+            <a class="btn" href="s15.html"><span data-l="en">Explore</span><span data-l="ja">詳しく見る</span></a>
+            <a class="btn outline" href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較する</span></a>
+          </div>
+        </div>
+      </article><article class="model" data-kind="sport">
+        <div class="shot"><img src="img/car-porche911.jpg" alt="Yellow 911 on a track with skid marks" data-alt-ja="タイヤ痕の残るコースに止まる黄色い 911"></div>
+        <div class="txt">
+          <div class="tag"><b>NEW</b><span><span data-l="en">Rear-engined · RWD</span><span data-l="ja">リアエンジン・後輪駆動</span></span></div>
+          <h3 class="latin">911</h3>
+          <dl><div><dt><span data-l="en">Max power</span><span data-l="ja">最高出力</span></dt><dd>335 PS</dd></div><div><dt>0-100 km/h</dt><dd>5.4 s</dd></div><div><dt><span data-l="en">Top speed</span><span data-l="ja">最高速度</span></dt><dd>276 km/h</dd></div></dl>
+          <div class="price">Basic Car Pack</div>
+          <div class="acts">
+            <a class="btn" href="911.html"><span data-l="en">Explore</span><span data-l="ja">詳しく見る</span></a>
+            <a class="btn outline" href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較する</span></a>
+          </div>
+        </div>
+      </article><article class="model" data-kind="awd">
+        <div class="shot"><img src="img/car-prado.jpg" alt="Silver Land Cruiser Prado on a track" data-alt-ja="コースに止まる銀色のランドクルーザー プラド"></div>
+        <div class="txt">
+          <div class="tag"><span><span data-l="en">Off-road 4x4</span><span data-l="ja">クロスカントリー 4WD</span></span></div>
+          <h3 class="latin">Land Cruiser Prado</h3>
+          <dl><div><dt><span data-l="en">Max torque</span><span data-l="ja">最大トルク</span></dt><dd>420 N·m</dd></div><div><dt>0-100 km/h</dt><dd>11.0 s</dd></div><div><dt><span data-l="en">Weight</span><span data-l="ja">車両重量</span></dt><dd>2,100 kg</dd></div></dl>
+          <div class="price">Basic Car Pack</div>
+          <div class="acts">
+            <a class="btn" href="prado.html"><span data-l="en">Explore</span><span data-l="ja">詳しく見る</span></a>
+            <a class="btn outline" href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較する</span></a>
+          </div>
+        </div>
+      </article></div>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="eyebrow"><span data-l="en">Why KurumaMod</span><span data-l="ja">なぜ KurumaMod なのか</span></div>
+        <h2 class="title"><span data-l="en">Built around the driving itself.</span><span data-l="ja">作り込んだのは、運転そのもの。</span></h2>
+        <p><span data-l="en">Suspension, weight transfer, tyre grip, engine and gearbox, differential. Grip fades gradually instead of vanishing, so you feel the limit coming before you reach it. Pull the handbrake and the clutch drops for you, the rear locks, and you can hold it in a drift.</span><span data-l="ja">サスペンション、荷重移動、タイヤのグリップ、エンジンとギア、デフ。グリップはいきなり消えずに少しずつ抜けるので、限界が近づいてくるのが分かります。サイドブレーキを引けばクラッチが自動で切れ、リアがロックして、そのままドリフトに持ち込めます。</span></p>
+        <div class="cta-row"><a class="btn light arrow" href="features.html"><span data-l="en">See all features</span><span data-l="ja">特徴をすべて見る</span></a></div>
+      </div>
+      <div class="media"><img src="img/drift.jpg" alt="Silvia S15 drifting" data-alt-ja="ドリフトするシルビア S15"></div>
+    </div>
+    <div class="figures"><div><b>80<small>Hz</small></b><span><span data-l="en">Physics updates per second</span><span data-l="ja">物理の計算回数（毎秒）</span></span></div><div><b>40+</b><span><span data-l="en">Setup options</span><span data-l="ja">セッティング項目</span></span></div><div><b>6</b><span><span data-l="en">Road surfaces</span><span data-l="ja">路面の種類</span></span></div><div><b>0</b><span><span data-l="en">Required mods</span><span data-l="ja">必要な前提 MOD</span></span></div></div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2 class="title"><span data-l="en">More than a car-shaped block</span><span data-l="ja">車の形をしたブロックではありません</span></h2>
+    <div class="tiles">
+      <a class="tile wide" href="features.html">
+        <img src="img/hud.jpg" alt="Silvia S15 with gauges on screen" data-alt-ja="回転計と速度計を表示して走る S15">
+        <div class="in"><small><span data-l="en">Physics</span><span data-l="ja">物理演算</span></small><h3><span data-l="en">You feel the limit before you reach it.</span><span data-l="ja">限界の手前が、手に伝わる。</span></h3><p><span data-l="en">Steering follows the slide, so there's always enough opposite lock to catch it.</span><span data-l="ja">ハンドルは滑りに合わせて切れるので、流れた分だけカウンターを当てられます。</span></p></div>
+      </a>
+      <a class="tile two" href="features.html">
+        <img src="img/eyecatch.jpg" alt="Headlights on a night track" data-alt-ja="夜のサーキットをヘッドライトで照らして走る">
+        <div class="in"><small><span data-l="en">Lighting</span><span data-l="ja">ライティング</span></small><h3><span class="key">L</span><span data-l="en">Headlights that really light the road</span><span data-l="ja">路面を本当に照らすヘッドライト</span></h3><p><span data-l="en">A proper low beam, shadows from trees and walls, beams in fog and rain. Works with shader packs.</span><span data-l="ja">カットオフの付いたロービーム、木や壁の影、霧や雨の中の光の筋。シェーダーパックにも対応。</span></p></div>
+      </a>
+      <a class="tile third" href="features.html">
+        <img src="img/gravel.jpg" alt="A car leaving a smoke trail on loose ground" data-alt-ja="未舗装路に煙の跡を残して走る車">
+        <div class="in"><small><span data-l="en">Surfaces</span><span data-l="ja">路面</span></small><h3><span data-l="en">Six surfaces and rain</span><span data-l="ja">6 種類の路面と雨</span></h3><p><span data-l="en">Tarmac, dirt, gravel, sand, snow and ice each drive differently.</span><span data-l="ja">舗装、土、砂利、砂、雪、氷で、走りがまったく変わります。</span></p></div>
+      </a>
+      <a class="tile third" href="features.html">
+        <img src="img/camber.jpg" alt="Wheels with negative camber" data-alt-ja="キャンバーを付けたホイール">
+        <div class="in"><small><span data-l="en">Customise</span><span data-l="ja">カスタマイズ</span></small><h3><span data-l="en">Aero, mufflers, wheels</span><span data-l="ja">エアロ、マフラー、ホイール</span></h3><p><span data-l="en">Camber, offset and width, plus wings that make real downforce.</span><span data-l="ja">キャンバー、オフセット、幅。ウイングは本当にダウンフォースを生みます。</span></p></div>
+      </a>
+      <a class="tile two" href="features.html">
+        <img src="img/race.jpg" alt="Start lights on a race track" data-alt-ja="スタートシグナルの点いたコース">
+        <div class="in"><small><span data-l="en">Racing</span><span data-l="ja">レース</span></small><h3><span data-l="en">Race your friends</span><span data-l="ja">友だちとレースを</span></h3><p><span data-l="en">Start lights, live standings and split times, in multiplayer.</span><span data-l="ja">スタートシグナル、リアルタイムの順位、区間タイム。マルチプレイで。</span></p></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="mist" id="news">
+  <div class="wrap">
+    <div class="split" style="align-items:start">
+      <div>
+        <div class="eyebrow"><span data-l="en">What's new</span><span data-l="ja">新着</span></div>
+        <h2 class="title">KurumaMod 1.7.0</h2>
+        <p><span data-l="en">Aero parts, mufflers, easier countersteer and the Porsche 911.</span><span data-l="ja">エアロパーツ、マフラー、当てやすくなったカウンター、そしてポルシェ 911。</span></p>
+        <div class="cta-row"><a class="btn arrow" href="https://www.curseforge.com/minecraft/mc-mods/kuruma"><span data-l="en">Download 1.7.0</span><span data-l="ja">1.7.0 をダウンロード</span></a></div>
+      </div>
+      <dl class="news-list"><div><dt><span data-l="en">Aero parts</span><span data-l="ja">エアロパーツ</span></dt><dd><span data-l="en">Bumpers, side skirts, fenders, rear wings and diffusers. Wings and diffusers make real downforce, and you set the wing angle.</span><span data-l="ja">バンパー、サイドスカート、フェンダー、リアウイング、ディフューザー。ウイングとディフューザーは本当にダウンフォースを生み、角度も決められます。</span></dd></div><div><dt><span data-l="en">Mufflers</span><span data-l="ja">マフラー</span></dt><dd><span data-l="en">Change the exhaust note, with a slider for the tone. Everyone nearby hears the same sound.</span><span data-l="ja">排気音が変わり、音色はスライダーで調整。周りの人にも同じ音で聞こえます。</span></dd></div><div><dt><span data-l="en">Easier countersteer</span><span data-l="ja">カウンターが当てやすく</span></dt><dd><span data-l="en">The steering limit now follows the slide, so you can catch the rear when it steps out.</span><span data-l="ja">切れ角の上限が滑りに合わせて動くので、リアが出ても当て舵で拾えます。</span></dd></div><div><dt><span data-l="en">Analog handbrake</span><span data-l="ja">アナログのサイドブレーキ</span></dt><dd><span data-l="en">Map a wheel's handbrake lever, and how far you pull sets how hard it bites.</span><span data-l="ja">ハンコンのサイドレバーを割り当てると、引いた量で効きが変わります。</span></dd></div><div><dt><span data-l="en">Camera modes</span><span data-l="ja">カメラモード</span></dt><dd><span data-l="en">V cycles follow, horizon-level and free views. The first-person view now tilts with the body.</span><span data-l="ja">V で追従・水平維持・自由を切り替え。一人称の視点は車体と一緒に傾くように。</span></dd></div><div><dt><span data-l="en">Porsche 911 and a new Prado</span><span data-l="ja">ポルシェ 911 と新しいプラド</span></dt><dd><span data-l="en">Basic Car Pack 1.2.0 adds the 911 and a remade Land Cruiser Prado.</span><span data-l="ja">Basic Car Pack 1.2.0 で 911 を追加し、プラドを作り直しました。</span></dd></div></dl>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="title"><span data-l="en">Add more cars</span><span data-l="ja">車を追加する</span></h2>
+    <p class="lead"><span data-l="en">A car pack is a single jar. Put it in mods/ and the cars are there.</span><span data-l="ja">カーパックは jar ひとつ。mods に入れるだけで車が増えます。</span></p>
+    <div class="packs">
+      <a class="pack" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack"><small><span data-l="en">Official</span><span data-l="ja">公式</span></small><h3>Basic Car Pack</h3><p><span data-l="en">Adds the Porsche 911 and the Toyota Land Cruiser Prado.</span><span data-l="ja">ポルシェ 911 とトヨタ ランドクルーザー プラドを追加します。</span></p><span class="go">CurseForge</span></a>
+      <a class="pack" href="guide.html"><small><span data-l="en">Create</span><span data-l="ja">作る</span></small><h3><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></h3><p><span data-l="en">Build your own car in Blender. No coding, and no Blender experience needed.</span><span data-l="ja">Blender で自分の車を作る。コードは不要、Blender 未経験でも大丈夫。</span></p><span class="go"><span data-l="en">Read the guide</span><span data-l="ja">ガイドを読む</span></span></a>
+      <a class="pack" href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack"><small><span data-l="en">Template</span><span data-l="ja">ひな型</span></small><h3>Example Car Pack</h3><p><span data-l="en">A sample car and wheels to copy as your starting point. No credit required.</span><span data-l="ja">土台にできるサンプルの車とホイール。クレジット表記も不要です。</span></p><span class="go">CurseForge</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="dark cta-band">
+  <div class="wrap">
+    <div>
+      <h2 class="title"><span data-l="en">Join the community</span><span data-l="ja">コミュニティに参加</span></h2>
+      <p class="lead"><span data-l="en">Share setups, show off your builds, and hear about new cars first.</span><span data-l="ja">セッティングを共有したり、作った車を見せ合ったり。新しい車の情報もいち早く。</span></p>
+    </div>
+    <div class="acts">
+      <a class="btn light arrow" href="https://discord.gg/q3YNqaveRd">Discord</a>
+      <a class="btn outline on-dark" href="https://x.com/kurumamod">X @kurumamod</a>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

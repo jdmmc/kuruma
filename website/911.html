@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>911 | KurumaMod</title>
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="911 | KurumaMod" data-title-ja="911 | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <span data-l="en">日本語</span><span data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+    </div>
+  </div>
+</header>
+
+<section class="hero page" style="padding:0">
+  <img src="img/car-porche911.jpg" alt="Yellow 911 on a track with skid marks" data-alt-ja="タイヤ痕の残るコースに止まる黄色い 911">
+  <div class="copy">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a> / <span data-l="en">Porsche 911</span><span data-l="ja">ポルシェ 911</span></div>
+      <h1>911</h1>
+      <p><span data-l="en">The weight is at the back. You drive it with your right foot.</span><span data-l="ja">重さは後ろに。操るのは右足で。</span></p>
+      <div class="cta"><a class="btn light arrow" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack"><span data-l="en">Get the Basic Car Pack</span><span data-l="ja">Basic Car Pack を入手</span></a><a class="btn outline on-dark" href="https://modrinth.com/mod/kurumabasiccarpack">Modrinth</a></div>
+    </div>
+  </div>
+</section>
+
+<div class="subnav">
+  <div class="wrap">
+    <span class="name">911</span>
+    <nav aria-label="On this page">
+      <a href="#overview"><span data-l="en">Overview</span><span data-l="ja">概要</span></a>
+      <a href="#performance"><span data-l="en">Performance</span><span data-l="ja">パフォーマンス</span></a>
+      <a href="#engine"><span data-l="en">Engine</span><span data-l="ja">エンジン</span></a>
+      <a href="#chassis"><span data-l="en">Chassis</span><span data-l="ja">シャシー</span></a>
+      <a href="#parts"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a>
+      <a href="#specs"><span data-l="en">Specs</span><span data-l="ja">主要諸元</span></a>
+    </nav>
+    <a class="btn" href="#get"><span data-l="en">Get it</span><span data-l="ja">入手する</span></a>
+  </div>
+</div>
+
+<section id="overview">
+  <div class="wrap">
+    <div class="figures light"><div><b>335<small>PS</small></b><span><span data-l="en">Max power</span><span data-l="ja">最高出力</span></span></div><div><b>5.4<small>s</small></b><span>0-100 km/h</span></div><div><b>276<small>km/h</small></b><span><span data-l="en">Top speed</span><span data-l="ja">最高速度</span></span></div><div><b>40:60</b><span><span data-l="en">Weight distribution</span><span data-l="ja">前後重量配分</span></span></div></div>
+    <div class="split" style="margin-top:clamp(56px,8vw,112px)">
+      <div>
+        <div class="eyebrow"><span data-l="en">Rear-engined · RWD</span><span data-l="ja">リアエンジン・後輪駆動</span> · Basic Car Pack</div>
+        <h2 class="title"><span data-l="en">The weight is at the back. You drive it with your right foot.</span><span data-l="ja">重さは後ろに。操るのは右足で。</span></h2>
+        <p><span data-l="en">The engine sits behind the rear axle, so 60% of the weight is on the rear tyres. Get on the throttle and it digs in and launches hard; lift and the tail starts to come round. A stiffer front anti-roll bar keeps it calmer at the limit.</span><span data-l="ja">エンジンを後軸より後ろに積んだ RR。荷重の 60% が後輪に掛かるので、踏めば強く蹴り出し、抜けば尻が回り込みます。前のスタビを厚くして、限界での巻き込みは和らげてあります。</span></p>
+      </div>
+      <div class="media"><img src="img/car-porche911.jpg" alt="Yellow 911 on a track with skid marks" data-alt-ja="タイヤ痕の残るコースに止まる黄色い 911"></div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="performance">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Performance</span><span data-l="ja">パフォーマンス</span></div>
+    <h2 class="title"><span data-l="en">We didn't copy these numbers. We drove them.</span><span data-l="ja">数字は、走らせて測りました。</span></h2>
+    <p class="lead"><span data-l="en">Every figure below comes from running KurumaMod's own physics: flat tarmac, default setup, full throttle.</span><span data-l="ja">下の数字はすべて、KurumaMod の物理演算で平坦な舗装路を初期セッティングのまま全開で走らせた結果です。</span></p>
+    <div class="figures"><div><b>5.40<small>s</small></b><span>0-100 km/h</span></div><div><b>13.42<small>s</small></b><span>0-400 m</span></div><div><b>276<small>km/h</small></b><span><span data-l="en">Top speed</span><span data-l="ja">最高速度</span></span></div><div><b>4.33<small>kg/PS</small></b><span><span data-l="en">Power-to-weight</span><span data-l="ja">パワーウエイトレシオ</span></span></div></div>
+  </div>
+</section>
+
+<section class="mist" id="engine">
+  <div class="wrap">
+    <div class="split rev">
+      <div>
+        <div class="eyebrow"><span data-l="en">Engine</span><span data-l="ja">エンジン</span></div>
+        <h2 class="title">420 N·m / 4,400 rpm</h2>
+        <p><span data-l="en">A high-revving engine in the spirit of a flat six: peak torque at 4,400 rpm, peak power at 6,500, and it pulls to 7,400. Low and slippery, it has the highest top speed of the three.</span><span data-l="ja">水平対向 6 気筒をイメージした、高回転まで回るエンジン。4,400rpm で最大トルク、6,500rpm で最高出力、7,400rpm まで回ります。背が低く空気抵抗が小さいので、最高速は 3 台でいちばん伸びます。</span></p>
+      </div>
+      <div class="chart" data-tq="420" data-rt="4400" data-rp="6500" data-red="7400">
+        <div class="legend"><span><i></i><span data-l="en">Torque (N·m)</span><span data-l="ja">トルク（N·m）</span></span><span><i class="pw"></i><span data-l="en">Power (PS)</span><span data-l="ja">出力（PS）</span></span></div>
+        <svg viewBox="0 0 720 380" role="img" aria-label="911 torque and power curves"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="chassis">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="eyebrow"><span data-l="en">Chassis</span><span data-l="ja">シャシー</span></div>
+        <h2 class="title"><span data-l="en">Front 40 : Rear 60</span><span data-l="ja">前 40 ： 後 60</span></h2>
+        <p><span data-l="en">With the weight at the back, the rear tyres get loaded under acceleration and it puts power down well. Lift mid-corner, though, and the tail wants to step out. The front anti-roll bar is three times the rear to keep that in check.</span><span data-l="ja">後ろが重いぶん、加速では後輪に荷重が乗ってよく蹴ります。その代わり、コーナーでアクセルを抜けば尻が出やすい。前のスタビを後ろの 3 倍にして、それを抑えています。</span></p>
+        <div class="wd">
+          <div class="wdbar"><div class="f" style="width:40%">40%</div><div class="r">60%</div></div>
+          <div class="cap"><span><span data-l="en">Front axle</span><span data-l="ja">前軸</span></span><span><span data-l="en">RWD</span><span data-l="ja">RR（後輪駆動）</span></span><span><span data-l="en">Rear axle</span><span data-l="ja">後軸</span></span></div>
+        </div>
+        <dl class="facts"><div><dt><span data-l="en">Wheelbase</span><span data-l="ja">ホイールベース</span></dt><dd>3.13 m</dd></div><div><dt><span data-l="en">Track</span><span data-l="ja">トレッド</span></dt><dd>2.00 m</dd></div><div><dt><span data-l="en">Suspension travel</span><span data-l="ja">サスペンションストローク</span></dt><dd>30 cm</dd></div><div><dt><span data-l="en">Tyre diameter</span><span data-l="ja">タイヤ外径</span></dt><dd>90 cm</dd></div><div><dt><span data-l="en">Anti-roll bars F / R</span><span data-l="ja">スタビライザー 前／後</span></dt><dd>4,500 / 1,500 N/m</dd></div><div><dt><span data-l="en">Max steering angle</span><span data-l="ja">最大切れ角</span></dt><dd>35°</dd></div></dl>
+      </div>
+      <div class="media"><div class="plate"><span>RR</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="mist" id="parts">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></div>
+    <h2 class="title"><span data-l="en">Swap parts and see them on your car.</span><span data-l="ja">換装画面で、付けたまま見比べる。</span></h2>
+    <p class="lead"><span data-l="en">Parts change while you sit in the car. Turbos, tyres and aero change how it drives; mufflers and blow-off valves only change the sound.</span><span data-l="ja">パーツは車に乗ったまま付け替えられます。走りが変わるのはタービン・タイヤ・エアロで、マフラーとブローオフは音だけが変わります。</span></p>
+    
+    <div class="parts"><div class="part"><small><span data-l="en">Turbo</span><span data-l="ja">タービン</span></small><h3><span data-l="en">Stock / big turbo</span><span data-l="ja">純正／ビッグタービン</span></h3><p><span data-l="en">Boost comes in with the revs. The big turbo adds up to 70% more torque at the top end.</span><span data-l="ja">回転が上がるほど過給が立ち上がります。ビッグタービンは高回転で最大 1.7 倍のトルク。</span></p><div class="val"><span data-l="en">Torque gain</span><span data-l="ja">トルクの上乗せ</span><b>×1.7</b></div></div><div class="part"><small><span data-l="en">Intake</span><span data-l="ja">吸気</span></small><h3><span data-l="en">Blow-off valve</span><span data-l="ja">ブローオフバルブ</span></h3><p><span data-l="en">With a turbo fitted, it vents when you lift or shift up.</span><span data-l="ja">タービン装着時に。アクセルを抜いた瞬間とシフトアップで鳴ります。</span></p><div class="val"><span data-l="en">Effect on performance</span><span data-l="ja">性能への影響</span><b>0</b></div></div><div class="part"><small><span data-l="en">Tyres</span><span data-l="ja">タイヤ</span></small><h3><span data-l="en">Dirt</span><span data-l="ja">ダート</span></h3><p><span data-l="en">Grips on dirt and gravel; gives up a little on tarmac.</span><span data-l="ja">土と砂利で強いタイヤ。舗装では少しグリップが落ちます。</span></p><div class="val"><span data-l="en">Grip on gravel</span><span data-l="ja">砂利でのグリップ</span><b>×1.25</b></div></div><div class="part"><small><span data-l="en">Tyres</span><span data-l="ja">タイヤ</span></small><h3><span data-l="en">Off-road</span><span data-l="ja">オフロード</span></h3><p><span data-l="en">Best on sand and snow. On tarmac, the steering responds a little slower.</span><span data-l="ja">砂と雪でいちばん強いタイヤ。舗装では舵の効き始めが鈍くなります。</span></p><div class="val"><span data-l="en">Grip on snow</span><span data-l="ja">雪でのグリップ</span><b>×1.25</b></div></div></div>
+  </div>
+</section>
+
+<section id="specs">
+  <div class="wrap">
+    <h2 class="title"><span data-l="en">Specifications</span><span data-l="ja">主要諸元</span></h2>
+    <div class="specs-grid"><table class="specs"><caption><span data-l="en">Dimensions and weight</span><span data-l="ja">寸法・重量</span></caption><tr><th><span data-l="en">Wheelbase</span><span data-l="ja">ホイールベース</span></th><td>3.13 m</td></tr><tr><th><span data-l="en">Track</span><span data-l="ja">トレッド</span></th><td>2.00 m</td></tr><tr><th><span data-l="en">Weight</span><span data-l="ja">車両重量</span></th><td>1,450 kg</td></tr><tr><th><span data-l="en">Weight distribution F : R</span><span data-l="ja">前後重量配分</span></th><td>40 : 60</td></tr><tr><th><span data-l="en">Drag area (CdA)</span><span data-l="ja">空気抵抗（CdA）</span></th><td>0.72 m²</td></tr></table><table class="specs"><caption><span data-l="en">Engine</span><span data-l="ja">エンジン</span></caption><tr><th><span data-l="en">Max power</span><span data-l="ja">最高出力</span></th><td>335 PS / 6,500 rpm</td></tr><tr><th><span data-l="en">Max torque</span><span data-l="ja">最大トルク</span></th><td>420 N·m / 4,400 rpm</td></tr><tr><th><span data-l="en">Idle</span><span data-l="ja">アイドル回転数</span></th><td>800 rpm</td></tr><tr><th><span data-l="en">Rev limit</span><span data-l="ja">レブリミット</span></th><td>7,400 rpm</td></tr><tr><th><span data-l="en">Forced induction</span><span data-l="ja">過給</span></th><td><span data-l="en">None (turbo available)</span><span data-l="ja">なし（タービン装着可）</span></td></tr></table><table class="specs"><caption><span data-l="en">Drivetrain</span><span data-l="ja">駆動系</span></caption><tr><th><span data-l="en">Layout</span><span data-l="ja">駆動方式</span></th><td><span data-l="en">RWD, rear engine</span><span data-l="ja">RR（後輪駆動）</span></td></tr><tr><th><span data-l="en">Gearbox</span><span data-l="ja">変速機</span></th><td><span data-l="en">5-speed, auto or manual</span><span data-l="ja">5 速 AT／MT 切替</span></td></tr><tr><th><span data-l="en">1st / 5th</span><span data-l="ja">1 速／5 速</span></th><td>4.20 / 0.85</td></tr><tr><th><span data-l="en">Final drive</span><span data-l="ja">最終減速比</span></th><td>4.92</td></tr><tr><th><span data-l="en">Differential</span><span data-l="ja">デフ</span></th><td><span data-l="en">Open</span><span data-l="ja">オープン</span></td></tr></table><table class="specs"><caption><span data-l="en">Chassis</span><span data-l="ja">足まわり</span></caption><tr><th><span data-l="en">Suspension travel</span><span data-l="ja">サスペンションストローク</span></th><td>30 cm</td></tr><tr><th><span data-l="en">Anti-roll bars F / R</span><span data-l="ja">スタビライザー 前／後</span></th><td>4,500 / 1,500 N/m</td></tr><tr><th><span data-l="en">Tyre diameter</span><span data-l="ja">タイヤ外径</span></th><td>90 cm</td></tr><tr><th><span data-l="en">Max steering angle</span><span data-l="ja">最大切れ角</span></th><td>35°</td></tr><tr><th><span data-l="en">ABS / TCS</span><span data-l="ja">ABS／TCS</span></th><td><span data-l="en">Standard</span><span data-l="ja">標準装備</span></td></tr></table><table class="specs"><caption><span data-l="en">Performance</span><span data-l="ja">性能</span></caption><tr><th>0-100 km/h</th><td>5.40 s</td></tr><tr><th>0-400 m</th><td>13.42 s</td></tr><tr><th><span data-l="en">Top speed</span><span data-l="ja">最高速度</span></th><td>276 km/h</td></tr><tr><th><span data-l="en">Power-to-weight</span><span data-l="ja">パワーウエイトレシオ</span></th><td>4.33 kg/PS</td></tr></table></div>
+    <p class="note"><span data-l="en">Measured with KurumaMod's own physics on flat tarmac, default setup, no parts, full throttle. Max power is calculated from the torque curve. Sizes are in Minecraft blocks (1 block = 1 m), about 1.2× a real car.</span><span data-l="ja">性能は KurumaMod の物理演算で、平坦な舗装路・初期セッティング・パーツ無し・全開で測った値です。最高出力はトルク曲線から計算しています。寸法は 1 ブロック = 1m で、実車の約 1.2 倍の大きさです。</span> <span data-l="en">Change the setup with G and these values change too.</span><span data-l="ja">G キーのセッティングで変えると、これらの値も変わります。</span></p>
+  </div>
+</section>
+
+<section class="mist cta-band" id="get">
+  <div class="wrap">
+    <div>
+      <h2 class="title"><span data-l="en">Drive the 911</span><span data-l="ja">911 に乗る</span></h2>
+      <p class="lead"><span data-l="en">Install KurumaMod and the Basic Car Pack. Both are free, and the pack is a single jar.</span><span data-l="ja">KurumaMod と Basic Car Pack を入れるだけ。どちらも無料で、カーパックは jar 1 つです。</span></p>
+    </div>
+    <div class="acts"><a class="btn arrow" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack"><span data-l="en">Get the Basic Car Pack</span><span data-l="ja">Basic Car Pack を入手</span></a><a class="btn outline" href="https://modrinth.com/mod/kurumabasiccarpack">Modrinth</a></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="title"><span data-l="en">More cars</span><span data-l="ja">他の車種</span></h2>
+    <div class="others"><a class="other" href="s15.html"><img src="img/car-s15.jpg" alt="Blue Silvia S15 parked on a track" data-alt-ja="コースに止まる青いシルビア S15"><div class="in"><div><small><span data-l="en">Sports coupe · AWD</span><span data-l="ja">スポーツクーペ・4WD</span></small><h3>Silvia S15</h3></div><span class="btn light arrow" style="min-height:44px"><span data-l="en">Explore</span><span data-l="ja">詳しく見る</span></span></div></a><a class="other" href="prado.html"><img src="img/car-prado.jpg" alt="Silver Land Cruiser Prado on a track" data-alt-ja="コースに止まる銀色のランドクルーザー プラド"><div class="in"><div><small><span data-l="en">Off-road 4x4</span><span data-l="ja">クロスカントリー 4WD</span></small><h3>Land Cruiser Prado</h3></div><span class="btn light arrow" style="min-height:44px"><span data-l="en">Explore</span><span data-l="ja">詳しく見る</span></span></div></a></div>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

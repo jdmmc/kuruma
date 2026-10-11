@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a wheel | Car Pack Guide | KurumaMod</title>
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="Make a wheel | Car Pack Guide | KurumaMod" data-title-ja="ホイールを作る | カーパック作成ガイド | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <a href="index.html#cars"><span data-l="en">Cars</span><span data-l="ja">車種</span></a>
+      <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+      <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+      <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+      <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <span data-l="en">日本語</span><span data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+    </div>
+  </div>
+</header>
+
+<section class="ghero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span> / <span data-l="en">Wheel</span><span data-l="ja">ホイール</span></div>
+    <h1><span data-l="en">Make a wheel</span><span data-l="ja">ホイールを作る</span></h1>
+    <p><span data-l="en">The wheel model, and turning wheels and tyres into parts players can pick.</span><span data-l="ja">ホイールのモデルと、換装画面で選べるホイール・タイヤの部品にする方法。</span></p>
+    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html" aria-current="page"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-common.html"><span data-l="en">Common</span><span data-l="ja">共通</span></a></nav>
+  </div>
+</section>
+
+<div class="wrap glayout">
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s6"><span data-l="en">1. Model the wheel</span><span data-l="ja">1. ホイールのモデルを作る</span></a><a href="#s-parts"><span data-l="en">2. Make a wheel a part</span><span data-l="ja">2. ホイールを部品にする</span></a><a href="#s-tire"><span data-l="en">3. Make a tyre a part</span><span data-l="ja">3. タイヤを部品にする</span></a><a href="#se"><span data-l="en">Appendix A. Part keys</span><span data-l="ja">付録 A. 部品の全項目</span></a></nav>
+  <div class="gdoc"><section class="gsec" id="s6">
+<h2 class="ja"><span class="num">1</span>ホイールのモデルを作る</h2>
+<h2 class="en"><span class="num">1</span>Model the wheel</h2>
+<p class="ja">ホイールを Blender で作り、OBJ に書き出すまでです。ホイールは車体とは別のファイルで作ります。</p>
+<p class="en">This chapter takes a wheel from Blender to an exported OBJ. Wheels are built in a separate file from the body.</p>
+
+<h3 class="ja">最小のホイールを作る</h3>
+<h3 class="en">Make a minimal wheel</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>新しいファイルで、ゲージを置く。</b><code>Scripting</code> タブで <code>modeling_tools/blender_wheel_gauge.py</code> を実行する。半径 0.45m の輪・車軸の線・地面・表を示す矢印が置かれる</li>
+<li><span class="where where-blender">Blender</span><b>ゲージの輪に収まるように、ホイールを作る。</b>原点は車軸の中心に置く。円柱から作るなら、先に <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> で回して軸を左右（X）へ向ける</li>
+<li><span class="where where-blender">Blender</span><b>ホイールの表（デザイン面）を +X へ向ける。</b>ゲージの矢印の側。作るのは左側用の 1 つだけ</li>
+<li><span class="where where-blender">Blender</span><b>タイヤも作るなら、ホイールとは別のオブジェクトにして、名前を <code>Tire</code> にする。</b>リムだけで作るなら、この手順は要らない</li>
+<li><span class="where where-blender">Blender</span><b>ゲージを除いてホイールだけを選び、OBJ に書き出す。</b>「Selected Only」を入れ、「Triangulated Mesh」は入れない（設定の全体は<a href="guide-car.html#s8">車の 5 章</a>と同じ）</li>
+<li><span class="where where-file">ファイル</span><b>書き出したファイルとテクスチャを置く。</b><code>assets/mypack/models/entity/my_wheel.obj</code>（<code>.mtl</code> も一緒に）と <code>assets/mypack/textures/entity/my_wheel.png</code></li>
+</ol>
+<p class="ja">これで、ホイールのモデルができました。換装画面で選べるようにするのは <a href="#s-parts">2 章</a>、自分の車に最初から履かせるのは下の「自分の車に最初から履かせたい」です。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>In a new file, place the gauge.</b> Run <code>modeling_tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab. It places a 0.45 m radius ring, the axle line, the ground and an arrow marking the outer face</li>
+<li><span class="where where-blender">Blender</span><b>Model the wheel to fit inside the gauge ring,</b> with the origin at the centre of the axle. If you start from a cylinder, first rotate it with <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> so its axis runs left–right (X)</li>
+<li><span class="where where-blender">Blender</span><b>Point the face of the wheel (the design side) towards +X</b>, the side the gauge arrow points to. Build the left-hand wheel only</li>
+<li><span class="where where-blender">Blender</span><b>If you model a tyre too, make it a separate object from the wheel and name it <code>Tire</code>.</b> Skip this if you only build the rim</li>
+<li><span class="where where-blender">Blender</span><b>Select only the wheel (not the gauge) and export it as OBJ.</b> Tick "Selected Only" and leave "Triangulated Mesh" off (the full settings are the same as <a href="guide-car.html#s8">chapter 5 of the Car guide</a>)</li>
+<li><span class="where where-file">File</span><b>Put the exported file and the texture in your pack:</b> <code>assets/mypack/models/entity/my_wheel.obj</code> (with its <code>.mtl</code>) and <code>assets/mypack/textures/entity/my_wheel.png</code></li>
+</ol>
+<p class="en">The wheel model is done. To make it selectable in the parts screen, go to <a href="#s-parts">chapter 2</a>; to fit it to your own car from the start, see "Fit it to my own car" below.</p>
+
+<figure>
+<svg viewBox="0 0 720 300" role="img" aria-label="Wheel origin and outer face">
+  <line class="f-line" x1="360" y1="40" x2="360" y2="284" stroke-dasharray="4 6"/>
+
+  <circle class="f-wheel" cx="180" cy="140" r="80"/>
+  <circle class="f-line" cx="180" cy="140" r="33"/>
+  <line class="f-line" x1="70" y1="220" x2="290" y2="220"/>
+  <circle class="f-accf" cx="180" cy="140" r="5"/>
+  <line class="f-acc" x1="160" y1="140" x2="200" y2="140"/>
+  <line class="f-acc" x1="180" y1="120" x2="180" y2="160"/>
+  <line class="f-thin" x1="180" y1="140" x2="236" y2="84"/>
+
+  <rect class="f-wheel" x="524" y="60" width="44" height="160" rx="4"/>
+  <line class="f-acc" x1="400" y1="140" x2="690" y2="140"/>
+  <circle class="f-accf" cx="546" cy="140" r="5"/>
+  <line class="f-acc" x1="580" y1="182" x2="656" y2="182" stroke-linecap="round"/>
+  <path class="f-accf" d="M664 182 l-10 -5 v10 z"/>
+
+  <text class="f-td ja" x="180" y="26" text-anchor="middle">横から見た図</text>
+  <text class="f-td en" x="180" y="26" text-anchor="middle">side view</text>
+  <text class="f-td ja" x="545" y="26" text-anchor="middle">断面（上から見た図）</text>
+  <text class="f-td en" x="545" y="26" text-anchor="middle">cross-section, from above</text>
+  <text class="f-td ja" x="70" y="238">地面</text>
+  <text class="f-td en" x="70" y="238">ground</text>
+  <text class="f-td ja" x="241" y="80">半径</text>
+  <text class="f-td en" x="241" y="80">radius</text>
+  <text class="f-ta ja" x="396" y="132">回転軸 ＝ X（左右）</text>
+  <text class="f-ta en" x="396" y="132">spin axis = X</text>
+  <text class="f-ta ja" x="624" y="204" text-anchor="middle">+X ＝ 表</text>
+  <text class="f-ta en" x="624" y="204" text-anchor="middle">+X = outer face</text>
+  <text class="f-td ja" x="462" y="204" text-anchor="middle">−X ＝ 内側</text>
+  <text class="f-td en" x="462" y="204" text-anchor="middle">−X = inboard</text>
+  <text class="f-ta ja" x="180" y="270" text-anchor="middle">原点は車軸の中心（底ではない）</text>
+  <text class="f-ta en" x="180" y="270" text-anchor="middle">origin at the axle centre, not the bottom</text>
+  <text class="f-ta ja" x="545" y="270" text-anchor="middle">左側用を 1 つだけ作る</text>
+  <text class="f-ta en" x="545" y="270" text-anchor="middle">build the left-hand wheel only</text>
+</svg>
+<figcaption class="ja">図 8. ホイールに求められるのはこの 3 つ（原点・回転軸・表の向き）だけです</figcaption>
+<figcaption class="en">Fig. 8. Only three things are required of a wheel: origin, spin axis, and which way the outer face points.</figcaption>
+</figure>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>自分の車に最初から履かせたい</summary>
+<div class="more-body">
+<p>車の見た目の定義 <code>assets/mypack/vehicles/&lt;車&gt;.json</code> の <code>wheel</code> にモデルとテクスチャを書き、作った半径を <code>designWheelRadius</code>（<code>wheel</code> の外、いちばん外側）に書きます:</p>
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/my_car.obj",
+             "texture": "mypack:textures/entity/my_car.png" },
+  "wheel": { "model": "mypack:models/entity/my_wheel.obj",
+             "texture": "mypack:textures/entity/my_wheel.png" },
+  "designWheelRadius": 0.45
+}</code></pre>
+<p>このファイルのほかの項目は<a href="guide-car.html#s9">車の 6 章</a>にあります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Fit it to my own car</summary>
+<div class="more-body">
+<p>In the car's looks file <code>assets/mypack/vehicles/&lt;car&gt;.json</code>, set the model and texture under <code>wheel</code>, and write the radius you built at as <code>designWheelRadius</code> (outside <code>wheel</code>, at the top level):</p>
+<pre><code>{
+  "body":  { "model": "mypack:models/entity/my_car.obj",
+             "texture": "mypack:textures/entity/my_car.png" },
+  "wheel": { "model": "mypack:models/entity/my_wheel.obj",
+             "texture": "mypack:textures/entity/my_wheel.png" },
+  "designWheelRadius": 0.45
+}</code></pre>
+<p>The rest of this file is in <a href="guide-car.html#s9">chapter 6 of the Car guide</a>.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ゲージと違う大きさで作りたい</summary>
+<div class="more-body">
+<p>大きさは自由です。作った半径（m）を、車に履かせるなら <code>designWheelRadius</code>、部品にするなら <code>designRadius</code>（<a href="#s-parts">2 章</a>）に書きます。ゲームは、この値と車のタイヤ半径の比で拡大して描きます。</p>
+<p>ゲーム内の調整画面でタイヤ半径を変えると、見た目もそのまま追従します。タイヤは接地したまま、車体だけが上がります（リフトアップ）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Build it at a different size from the gauge</summary>
+<div class="more-body">
+<p>Any size is fine. Write the radius you built at (in m) as <code>designWheelRadius</code> when fitting it to a car, or as <code>designRadius</code> when making it a part (<a href="#s-parts">chapter 2</a>). The game scales the mesh by the ratio between this value and the car's tyre radius.</p>
+<p>Change the tyre radius in the in-game tuning screen and the model follows: the tyres stay on the ground and the body rises (a lift-up).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>タイヤを作らず、KurumaMod のタイヤを使いたい</summary>
+<div class="more-body">
+<p>リムだけで作れば、KurumaMod 標準のタイヤが自動で嵌まります。ホイールごと借りるなら、モデルを <code>kurumamod:models/entity/wheel.obj</code>、テクスチャを <code>kurumamod:textures/entity/wheel.png</code> にします（<a href="guide-car.html#s9">車の 6 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Skip the tyre and use KurumaMod's</summary>
+<div class="more-body">
+<p>Build only the rim and KurumaMod's own tyre is fitted automatically. To borrow the whole wheel, use <code>kurumamod:models/entity/wheel.obj</code> as the model and <code>kurumamod:textures/entity/wheel.png</code> as the texture (<a href="guide-car.html#s9">chapter 6 of the Car guide</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>仕組みを知りたい（なぜタイヤに <code>Tire</code> と名前を付けるのか）</summary>
+<div class="more-body">
+<p>換装画面でタイヤ（<a href="#s-tire">3 章</a>）を選ぶと、ゲームは <code>tire</code> で始まる名前（大文字小文字は問わない）のオブジェクトを隠し、選んだタイヤをリムに嵌めて描きます。</p>
+<ul>
+<li>タイヤを選んでいない（ノーマル）ときは、あなたのタイヤがそのまま出る</li>
+<li>名前が無いと、タイヤもホイールの一部として描かれたままになり、選んだタイヤと重なって見える</li>
+<li>シェーダーパックの影は、タイヤだけが落とす。地面にスポークの模様が出ない</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>How it works (why name the tyre <code>Tire</code>)</summary>
+<div class="more-body">
+<p>When a tyre (<a href="#s-tire">chapter 3</a>) is picked in the parts screen, the game hides any object whose name starts with <code>tire</code> (in any case) and draws the picked tyre on the rim instead.</p>
+<ul>
+<li>With no tyre picked (Normal), your own tyre is drawn as it is</li>
+<li>Without the name, your tyre stays part of the wheel and shows through the picked one</li>
+<li>With shader packs, only the tyre casts a shadow, so no spoke pattern appears on the ground</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>タイヤが大きすぎる・小さすぎる</b> … <code>designWheelRadius</code>（部品なら <code>designRadius</code>）が、作った半径になっていない</li>
+<li><b>回るとぶれる・地面に埋まる・浮く</b> … 原点が車軸の中心にない。タイヤの底に置いていないか見る</li>
+<li><b>タイヤが横倒しで転がる</b> … 回転軸が左右（X）を向いていない。<kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> で回す</li>
+<li><b>右側のタイヤの表が内側を向く</b> … 表が +X を向いていない。左側用として作り直す（右側は MOD が鏡像にして描く）</li>
+<li><b>1 か所にタイヤが 2 本描かれる</b> … 左右 2 つ作っている。左側用の 1 つだけにする</li>
+<li><b>選んだタイヤと自分のタイヤが重なる</b> … タイヤのオブジェクト名が <code>tire</code> で始まっていない</li>
+<li><b>全体が白い</b> … <code>.mtl</code> を置いていないか、マテリアルが無い。形が正しければ問題ない（色の付け方は<a href="guide-car.html#s7">車の 4 章</a>）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Wheels too big or too small</b> — <code>designWheelRadius</code> (or <code>designRadius</code> for a part) is not the radius you built at</li>
+<li><b>Wobbles as it spins, sinks into the ground, or floats</b> — the origin is not at the axle centre. Check it is not at the bottom of the tyre</li>
+<li><b>Rolls on its side</b> — the spin axis does not run left–right (X). Rotate with <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd></li>
+<li><b>The right-hand wheels face inward</b> — the face is not towards +X. Rebuild it as the left-hand wheel (the mod mirrors it for the right)</li>
+<li><b>Two tyres drawn in one place</b> — you modelled both sides. Keep only the left-hand one</li>
+<li><b>Your tyre shows through the picked one</b> — the tyre object's name does not start with <code>tire</code></li>
+<li><b>Everything is white</b> — no <code>.mtl</code>, or no material. Harmless if the shape is right (colouring is in <a href="guide-car.html#s7">chapter 4 of the Car guide</a>)</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-parts">
+<h2 class="ja"><span class="num">2</span>ホイールを部品にする</h2>
+<h2 class="en"><span class="num">2</span>Make a wheel a part</h2>
+<p class="ja">作ったホイールを、ゲームの換装画面で選べるようにします。見た目だけの部品で、走りは変わりません。</p>
+<p class="en">Make your wheel selectable in the in-game parts screen. It changes the looks only; driving stays the same.</p>
+
+<h3 class="ja">最小のホイール部品を作る</h3>
+<h3 class="en">Make a minimal wheel part</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>ホイールのモデルを作って置く。</b>作り方は <a href="#s6">1 章</a>。ここでは <code>assets/mypack/models/entity/my_wheel.obj</code> と <code>assets/mypack/textures/entity/my_wheel.png</code> に置いたとする</li>
+<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_wheel.json</code>（ファイル名が部品名）:
+<pre><code>{ "slot": "wheel" }</code></pre></li>
+<li><span class="where where-file">ファイル</span><b>見た目のファイルを置く。</b><code>assets/mypack/car_parts/my_wheel.json</code>（部品と同じファイル名）。<code>designRadius</code> は作った半径（ゲージどおりなら 0.45）:
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/my_wheel.obj",
+    "texture": "mypack:textures/entity/my_wheel.png",
+    "designRadius": 0.45
+  }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_wheel": "マイホイール"</code></li>
+</ol>
+<p class="ja">これで、ゲームの <kbd>G</kbd> →「パーツ」→「ホイール」のタブに並びます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Build the wheel model and put it in your pack.</b> See <a href="#s6">chapter 1</a>. Here it is at <code>assets/mypack/models/entity/my_wheel.obj</code> and <code>assets/mypack/textures/entity/my_wheel.png</code></li>
+<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_wheel.json</code> (the file name is the part name):
+<pre><code>{ "slot": "wheel" }</code></pre></li>
+<li><span class="where where-file">File</span><b>Add the looks file</b> <code>assets/mypack/car_parts/my_wheel.json</code> (same file name as the part). <code>designRadius</code> is the radius you built at (0.45 if you followed the gauge):
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/my_wheel.obj",
+    "texture": "mypack:textures/entity/my_wheel.png",
+    "designRadius": 0.45
+  }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_wheel": "My Wheels"</code></li>
+</ol>
+<p class="en">It now appears under <kbd>G</kbd> → "Parts" → the "Wheels" tab.</p>
+
+<p class="ja">見本パックの <code>sample_wheel</code> が、この形そのものです。</p>
+<p class="en">The example pack's <code>sample_wheel</code> is exactly this setup.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>オフセット・キャンバー・太さの最初の値を決めたい</summary>
+<div class="more-body">
+<p>見た目のファイル <code>assets/mypack/car_parts/my_wheel.json</code> の <code>wheel</code> に書きます。換装画面のスライダーの最初の位置になり、プレイヤーが「R」を押すとここへ戻ります。</p>
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/my_wheel.obj",
+    "texture": "mypack:textures/entity/my_wheel.png",
+    "designRadius": 0.45,
+    "offset": [0.02, 0.0, 0.0],
+    "scale": [1.3, 1.0, 1.0],
+    "camber": -4.0
+  }
+}</code></pre>
+<ul>
+<li><code>offset</code> … X だけ使う。外へ出す量 [m]（−0.05〜0.10）</li>
+<li><code>scale</code> … X だけ使う。太さの倍率（0.5〜2.5）。Y・Z は 1.0 のままにする（変えると接地が崩れる）</li>
+<li><code>camber</code> … キャンバー角 [度]。負で上が内側（−30〜10）</li>
+<li>範囲の外に書いた値は、端に丸めて読む</li>
+<li>書かなかった項目は、その車のホイールの値になる</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Set the starting offset, camber and width</summary>
+<div class="more-body">
+<p>Write them under <code>wheel</code> in the looks file <code>assets/mypack/car_parts/my_wheel.json</code>. They become where the parts-screen sliders start, and "R" returns to them.</p>
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/my_wheel.obj",
+    "texture": "mypack:textures/entity/my_wheel.png",
+    "designRadius": 0.45,
+    "offset": [0.02, 0.0, 0.0],
+    "scale": [1.3, 1.0, 1.0],
+    "camber": -4.0
+  }
+}</code></pre>
+<ul>
+<li><code>offset</code> — only X is used: how far out to push the wheel [m] (−0.05 to 0.10)</li>
+<li><code>scale</code> — only X is used: width multiplier (0.5 to 2.5). Leave Y and Z at 1.0 (changing them breaks ground contact)</li>
+<li><code>camber</code> — camber in degrees. Negative leans the top inward (−30 to 10)</li>
+<li>Values outside the range are clamped to the nearest end</li>
+<li>Anything you leave out takes the car's own wheel value</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>メッシュを作らず、角度や太さだけ変えた部品にしたい</summary>
+<div class="more-body">
+<p><code>model</code> と <code>texture</code> を書かなければ、その車のホイールのまま、書いた値だけが変わります。見本パックの <code>deep_dish</code> がこの形です。<code>assets/mypack/car_parts/deep_dish.json</code>:</p>
+<pre><code>{
+  "wheel": {
+    "scale": [1.6, 1.0, 1.0],
+    "camber": -12.0
+  }
+}</code></pre>
+<p>ただし、スライダーで作れる状態に名前を付けるだけになるので、ふつうはメッシュを持つホイールを作ります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>A part with no mesh, only a different angle or width</summary>
+<div class="more-body">
+<p>Leave out <code>model</code> and <code>texture</code>; the car's own wheel is kept and only the values you write change. The example pack's <code>deep_dish</code> works this way. <code>assets/mypack/car_parts/deep_dish.json</code>:</p>
+<pre><code>{
+  "wheel": {
+    "scale": [1.6, 1.0, 1.0],
+    "camber": -12.0
+  }
+}</code></pre>
+<p>This only names something players can already make with the sliders, so usually you would build a wheel with its own mesh.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>決まった車種にだけ付けたい</summary>
+<div class="more-body">
+<p><code>data/mypack/car_parts/my_wheel.json</code> の <code>cars</code> に車種の id を並べます。その車種の換装画面にだけ並びます。別のパックの車種を書いてもかまいません（<code>kurumamod:car</code> は KurumaMod の既定の車）。</p>
+<pre><code>{
+  "slot": "wheel",
+  "cars": ["mypack:kei", "mypack:kei_van"]
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Only fit certain cars</summary>
+<div class="more-body">
+<p>List car ids in <code>cars</code> in <code>data/mypack/car_parts/my_wheel.json</code>. The part then appears only in those cars' parts screen. Cars from other packs are fine (<code>kurumamod:car</code> is KurumaMod's default car).</p>
+<pre><code>{
+  "slot": "wheel",
+  "cars": ["mypack:kei", "mypack:kei_van"]
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>換装画面に並ぶ順を変えたい</summary>
+<div class="more-body">
+<p><code>data/mypack/car_parts/my_wheel.json</code> に <code>order</code> を書きます。小さいほど左に並びます（書かなければ 100）。</p>
+<pre><code>{
+  "slot": "wheel",
+  "order": 10
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Change the order in the parts screen</summary>
+<div class="more-body">
+<p>Add <code>order</code> to <code>data/mypack/car_parts/my_wheel.json</code>. Smaller numbers sit further left (100 if left out).</p>
+<pre><code>{
+  "slot": "wheel",
+  "order": 10
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>前後で違うホイールにしたい</summary>
+<div class="more-body">
+<p>いまはできません。4 輪とも同じ部品を履きます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Different wheels front and rear</summary>
+<div class="more-body">
+<p>Not possible yet. All four wheels wear the same part.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>換装画面に並ばない</b> … <code>data/</code> 側のファイルが無いか、<code>slot</code> が書かれていない（ログに出る）。<code>cars</code> で絞っているなら、乗っている車種が入っているか見る</li>
+<li><b>並ぶが、見た目が変わらない</b> … <code>assets/</code> 側のファイル名が <code>data/</code> 側と違う。または <code>"wheel": { ... }</code> の中のキーの綴りが違う</li>
+<li><b>名前が <code>my_wheel</code> のまま出る</b> … lang のキーが <code>part.&lt;パック&gt;.&lt;部品名&gt;</code> になっていない</li>
+<li><b>大きすぎる・小さすぎる</b> … <code>designRadius</code> が作った半径になっていない</li>
+<li><b>付けても走りが変わらない</b> … ホイールは見た目だけの部品。グリップを変えたいならタイヤ（<a href="#s-tire">3 章</a>）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Not in the parts screen</b> — the <code>data/</code> file is missing, or has no <code>slot</code> (the log says so). If you use <code>cars</code>, check the car you are in is listed</li>
+<li><b>Listed, but the looks do not change</b> — the <code>assets/</code> file name differs from the <code>data/</code> one, or a key inside <code>"wheel": { ... }</code> is misspelt</li>
+<li><b>The name shows as <code>my_wheel</code></b> — the lang key is not <code>part.&lt;pack&gt;.&lt;part&gt;</code></li>
+<li><b>Too big or too small</b> — <code>designRadius</code> is not the radius you built at</li>
+<li><b>Driving does not change</b> — wheels are looks only. To change grip, make a tyre (<a href="#s-tire">chapter 3</a>)</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-tire">
+<h2 class="ja"><span class="num">3</span>タイヤを部品にする</h2>
+<h2 class="en"><span class="num">3</span>Make a tyre a part</h2>
+<p class="ja">ダート用・オフロード用のような、走りが変わるタイヤを作ります。タイヤはホイールとは別の部品で、路面ごとのグリップが変わります。</p>
+<p class="en">Make a tyre that changes how the car drives, such as a gravel or mud-terrain tyre. Tyres are a separate part from wheels, and they change grip on each surface.</p>
+
+<h3 class="ja">最小のタイヤ部品を作る</h3>
+<h3 class="en">Make a minimal tyre part</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_tire.json</code>（ファイル名が部品名）:
+<pre><code>{
+  "slot": "tire",
+  "tire": {
+    "grip": { "paved": 0.90, "gravel": 1.20 }
+  }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_tire": "マイタイヤ"</code></li>
+</ol>
+<p class="ja">これで、ゲームの <kbd>G</kbd> →「パーツ」→「タイヤ」のタブに並びます。数字はノーマルタイヤに対する倍率で、この例は舗装で 0.9 倍・砂利で 1.2 倍のグリップです。見た目は KurumaMod 標準のタイヤです。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_tire.json</code> (the file name is the part name):
+<pre><code>{
+  "slot": "tire",
+  "tire": {
+    "grip": { "paved": 0.90, "gravel": 1.20 }
+  }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_tire": "My Tyres"</code></li>
+</ol>
+<p class="en">It now appears under <kbd>G</kbd> → "Parts" → the "Tyres" tab. The numbers are ratios to the Normal tyre; this one has 0.9× grip on tarmac and 1.2× on gravel. It looks like KurumaMod's standard tyre.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>性能の数字を決めたい</summary>
+<div class="more-body">
+<p>書ける項目はこれで全部です。<b>どれもノーマルタイヤに対する倍率</b>で、書かなかったものは 1 です。</p>
+<pre><code>{
+  "slot": "tire",
+  "tire": {
+    "stiffness": 0.85,
+    "grip":    { "paved": 0.88, "dirt": 1.20, "gravel": 1.25, "sand": 1.10, "snow": 1.10 },
+    "rolling": { "paved": 1.15 }
+  }
+}</code></pre>
+<ul>
+<li><code>grip</code> … その路面でのグリップ</li>
+<li><code>rolling</code> … その路面での転がり抵抗。大きいほど進みにくい</li>
+<li><code>stiffness</code> … 舵を切ってから力が立ち上がるまでの鋭さ。ブロックの大きいタイヤほど小さくする</li>
+<li>路面の名前は <code>paved</code>（舗装）・<code>dirt</code>（土・草）・<code>gravel</code>（砂利）・<code>sand</code>（砂）・<code>snow</code>（雪）・<code>ice</code>（氷）</li>
+<li>倍率は 0.3〜3.0 に丸めて読む</li>
+</ul>
+<p>同梱のタイヤの値と、既定の車での効き目（比べる目安）:</p>
+<table class="ja">
+<tr><th></th><th>stiffness</th><th>grip</th><th>rolling</th><th>効き目</th></tr>
+<tr><td>ノーマル</td><td>1</td><td>すべて 1</td><td>すべて 1</td><td>舗装の横 G 0.93・砂利 0.62・砂 0.48</td></tr>
+<tr><td>ダート</td><td>0.85</td><td>舗装 0.88・土 1.20・砂利 1.25・砂 1.10・雪 1.10</td><td>舗装 1.15</td><td>舗装 0.84・砂利 0.77・砂 0.54。砂利の制動 31.9→25.7m</td></tr>
+<tr><td>オフロード</td><td>0.75</td><td>舗装 0.80・土 1.15・砂利 1.10・砂 1.35・雪 1.25・氷 1.05</td><td>舗装 1.40・土 0.85・砂 0.70・雪 0.80</td><td>舗装 0.77・砂利 0.68・砂 0.68。砂の 0-100 7.15→6.18 秒</td></tr>
+</table>
+<p>どの路面でも強いタイヤは作らないでください。得意な路面があれば苦手な路面がある、のがタイヤを選ぶ意味です。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Choose the numbers</summary>
+<div class="more-body">
+<p>These are all the keys. <b>Every number is a ratio to the Normal tyre</b>, and anything left out is 1.</p>
+<pre><code>{
+  "slot": "tire",
+  "tire": {
+    "stiffness": 0.85,
+    "grip":    { "paved": 0.88, "dirt": 1.20, "gravel": 1.25, "sand": 1.10, "snow": 1.10 },
+    "rolling": { "paved": 1.15 }
+  }
+}</code></pre>
+<ul>
+<li><code>grip</code> — grip on that surface</li>
+<li><code>rolling</code> — rolling resistance on that surface. Bigger means harder to keep moving</li>
+<li><code>stiffness</code> — how sharply force builds once you steer. Lower it for chunky tread</li>
+<li>Surface names: <code>paved</code>, <code>dirt</code> (dirt and grass), <code>gravel</code>, <code>sand</code>, <code>snow</code>, <code>ice</code></li>
+<li>Ratios are clamped to 0.3–3.0</li>
+</ul>
+<p>The shipped tyres, and what they do on the default car, for reference:</p>
+<table class="en">
+<tr><th></th><th>stiffness</th><th>grip</th><th>rolling</th><th>Effect</th></tr>
+<tr><td>Normal</td><td>1</td><td>all 1</td><td>all 1</td><td>lateral g 0.93 paved, 0.62 gravel, 0.48 sand</td></tr>
+<tr><td>Gravel</td><td>0.85</td><td>paved 0.88, dirt 1.20, gravel 1.25, sand 1.10, snow 1.10</td><td>paved 1.15</td><td>0.84 paved, 0.77 gravel, 0.54 sand. Gravel braking 31.9→25.7 m</td></tr>
+<tr><td>Mud terrain</td><td>0.75</td><td>paved 0.80, dirt 1.15, gravel 1.10, sand 1.35, snow 1.25, ice 1.05</td><td>paved 1.40, dirt 0.85, sand 0.70, snow 0.80</td><td>0.77 paved, 0.68 gravel, 0.68 sand. Sand 0–100 7.15→6.18 s</td></tr>
+</table>
+<p>Please don't make a tyre that wins everywhere. A tyre that is good somewhere should be worse somewhere else; that is what makes the choice matter.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>見た目（トレッドの形）も変えたい</summary>
+<div class="more-body">
+<ol>
+<li>Blender でタイヤだけのメッシュを作る。原点・回転軸・表の向きはホイールと同じ（<a href="#s6">1 章</a>）。大きさは自由</li>
+<li>OBJ とテクスチャを置く。<code>assets/mypack/models/entity/my_tire.obj</code> と <code>assets/mypack/textures/entity/my_tire.png</code></li>
+<li>見た目のファイルを置く。<code>assets/mypack/car_parts/my_tire.json</code>（部品と同じファイル名）。<b>必ず <code>"tire"</code> の中に書く</b>:
+<pre><code>{
+  "tire": {
+    "model": "mypack:models/entity/my_tire.obj",
+    "texture": "mypack:textures/entity/my_tire.png"
+  }
+}</code></pre></li>
+</ol>
+<p>内径と外径はメッシュから測るので、書かなくてかまいません。選んだタイヤは、内径がホイールのリムへ、外径が車のタイヤ半径へ来るように伸び縮みして描かれます。リムの大きいホイールほどサイドウォールが薄くなります。換装画面の「太さ」は、ホイールとタイヤに一緒に効きます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change the looks (tread) too</summary>
+<div class="more-body">
+<ol>
+<li>Model the tyre alone in Blender. Origin, spin axis and outer face are the same as a wheel (<a href="#s6">chapter 1</a>). Any size will do</li>
+<li>Put the OBJ and texture in your pack: <code>assets/mypack/models/entity/my_tire.obj</code> and <code>assets/mypack/textures/entity/my_tire.png</code></li>
+<li>Add the looks file <code>assets/mypack/car_parts/my_tire.json</code> (same file name as the part). <b>Always write it inside <code>"tire"</code></b>:
+<pre><code>{
+  "tire": {
+    "model": "mypack:models/entity/my_tire.obj",
+    "texture": "mypack:textures/entity/my_tire.png"
+  }
+}</code></pre></li>
+</ol>
+<p>The inner and outer radii are measured from the mesh, so you need not write them. The picked tyre is stretched so its inner edge sits on the wheel's rim and its outer edge at the car's tyre radius; bigger rims get thinner sidewalls. The parts screen's Width slider acts on the wheel and tyre together.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>自分のホイールで、タイヤの嵌まる位置を直したい</summary>
+<div class="more-body">
+<p>タイヤの内径（ビード）を置く半径は、次の順に決まります。</p>
+<ol>
+<li>ホイールの見た目のファイルに <code>rimRadius</code>（メッシュの寸法・m）が書いてあれば、その値</li>
+<li>無ければ、ホイールに付けたタイヤ（<code>Tire</code>）の内径</li>
+<li>それも無ければ、リムのいちばん外側の半径の 95%</li>
+</ol>
+<p>位置が合わないときは、ホイールの見た目のファイル <code>assets/mypack/car_parts/my_wheel.json</code> の <code>wheel</code> に <code>rimRadius</code> を書きます:</p>
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/my_wheel.obj",
+    "texture": "mypack:textures/entity/my_wheel.png",
+    "designRadius": 0.45,
+    "rimRadius": 0.33
+  }
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Fix where tyres sit on my own wheel</summary>
+<div class="more-body">
+<p>The radius where the tyre's inner edge (bead) sits is chosen in this order:</p>
+<ol>
+<li><code>rimRadius</code> in the wheel's looks file, if written (mesh units, m)</li>
+<li>otherwise, the inner edge of the tyre you modelled on the wheel (<code>Tire</code>)</li>
+<li>otherwise, 95% of the rim's outermost radius</li>
+</ol>
+<p>If tyres sit wrong, add <code>rimRadius</code> under <code>wheel</code> in the wheel's looks file <code>assets/mypack/car_parts/my_wheel.json</code>:</p>
+<pre><code>{
+  "wheel": {
+    "model": "mypack:models/entity/my_wheel.obj",
+    "texture": "mypack:textures/entity/my_wheel.png",
+    "designRadius": 0.45,
+    "rimRadius": 0.33
+  }
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>決まった車種にだけ付けたい・並ぶ順を変えたい</summary>
+<div class="more-body">
+<p>ホイールと同じく、<code>data/mypack/car_parts/my_tire.json</code> に <code>cars</code> と <code>order</code> を書けます（<a href="#s-parts">2 章</a>）。</p>
+<pre><code>{
+  "slot": "tire",
+  "order": 30,
+  "cars": ["mypack:kei"],
+  "tire": { "grip": { "paved": 0.90, "gravel": 1.20 } }
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Only fit certain cars, or change the order</summary>
+<div class="more-body">
+<p>As with wheels, <code>cars</code> and <code>order</code> go in <code>data/mypack/car_parts/my_tire.json</code> (<a href="#s-parts">chapter 2</a>).</p>
+<pre><code>{
+  "slot": "tire",
+  "order": 30,
+  "cars": ["mypack:kei"],
+  "tire": { "grip": { "paved": 0.90, "gravel": 1.20 } }
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>タブに並ぶが、走りがノーマルと同じ</b> … <code>"tire": { ... }</code> が書かれていない（ログに出る）</li>
+<li><b>一部の路面だけ効かない</b> … 路面の名前の綴りが違う。知らない名前はログに出て無視される</li>
+<li><b>見た目が KurumaMod 標準のタイヤのまま</b> … 見た目のファイルで <code>"tire": { ... }</code> の中に書いていない。または <code>assets/</code> 側のファイル名が <code>data/</code> 側と違う</li>
+<li><b>選んだタイヤと、ホイールに付いていたタイヤが重なる</b> … ホイールのタイヤのオブジェクト名が <code>tire</code> で始まっていない（<a href="#s6">1 章</a>）</li>
+<li><b>サイドウォールが厚すぎる・薄すぎる</b> … 上の「タイヤの嵌まる位置を直したい」。それでも合わないときは、タイヤの見た目の <code>"tire"</code> に <code>innerRadius</code> / <code>outerRadius</code>（メッシュのタイヤの内径・外径 [m]）を書く</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Listed, but drives like Normal</b> — <code>"tire": { ... }</code> is missing (the log says so)</li>
+<li><b>Only some surfaces have no effect</b> — a surface name is misspelt. Unknown names are logged and ignored</li>
+<li><b>Still looks like KurumaMod's standard tyre</b> — the looks file is not written inside <code>"tire": { ... }</code>, or the <code>assets/</code> file name differs from the <code>data/</code> one</li>
+<li><b>The picked tyre and the wheel's own tyre overlap</b> — the wheel's tyre object name does not start with <code>tire</code> (<a href="#s6">chapter 1</a>)</li>
+<li><b>Sidewalls too thick or too thin</b> — see "Fix where tyres sit on my own wheel" above. If that is not enough, write <code>innerRadius</code> / <code>outerRadius</code> (the mesh tyre's inner and outer radius [m]) inside the tyre's <code>"tire"</code></li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="se">
+<h2 class="ja">付録 A. 部品の全項目</h2>
+<h2 class="en">Appendix A. Every part key</h2>
+<h4 class="ja">素性 — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
+<h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。<code>"wheel"</code>・<code>"tire"</code>・<code>"turbo"</code>・<code>"blowoff"</code>・<code>"front_bumper"</code>・<code>"side_skirt"</code>・<code>"fender"</code>・<code>"rear_wing"</code>・<code>"rear_diffuser"</code>・<code>"exhaust"</code></td></tr>
+<tr><td><code>order</code></td><td>整数</td><td><code>100</code></td><td>換装画面に並ぶ順</td></tr>
+<tr><td><code>cars</code></td><td>車種 id の配列</td><td>（すべての車種）</td><td>付けられる車種。読める値が 1 つも無ければ、その部品は捨てられる</td></tr>
+<tr><td><code>turbo.boost</code></td><td>数字</td><td><code>0.35</code></td><td>ターボだけ。ブーストいっぱいでトルクを何割増やすか（0〜1.5）</td></tr>
+<tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1）</td></tr>
+<tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合</td></tr>
+<tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
+<tr><td><code>tire.stiffness</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。横・縦の剛性の倍率（よれやすさ。0.3〜3.0）</td></tr>
+<tr><td><code>tire.grip.&lt;路面&gt;</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。その路面でのグリップの倍率。路面は <code>paved</code>・<code>dirt</code>・<code>gravel</code>・<code>sand</code>・<code>snow</code>・<code>ice</code></td></tr>
+<tr><td><code>tire.rolling.&lt;路面&gt;</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。その路面での転がり抵抗の倍率</td></tr>
+<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>aero.angle</code></td><td>数字</td><td><code>0.5</code></td><td>外装パーツだけ。調整していないときの角度（0〜1）</td></tr>
+</table>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits: <code>"wheel"</code>, <code>"tire"</code>, <code>"turbo"</code>, <code>"blowoff"</code>, <code>"front_bumper"</code>, <code>"side_skirt"</code>, <code>"fender"</code>, <code>"rear_wing"</code>, <code>"rear_diffuser"</code> or <code>"exhaust"</code></td></tr>
+<tr><td><code>order</code></td><td>integer</td><td><code>100</code></td><td>Position in the parts screen</td></tr>
+<tr><td><code>cars</code></td><td>array of car ids</td><td>(every car)</td><td>Which cars can fit it. If none of the values can be read, the part is dropped</td></tr>
+<tr><td><code>turbo.boost</code></td><td>number</td><td><code>0.35</code></td><td>Turbos only. Extra torque at full boost (0 to 1.5)</td></tr>
+<tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1)</td></tr>
+<tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full</td></tr>
+<tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
+<tr><td><code>tire.stiffness</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Scale on lateral and longitudinal stiffness (tread squirm; 0.3 to 3.0)</td></tr>
+<tr><td><code>tire.grip.&lt;surface&gt;</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Grip on that surface. Surfaces: <code>paved</code>, <code>dirt</code>, <code>gravel</code>, <code>sand</code>, <code>snow</code>, <code>ice</code></td></tr>
+<tr><td><code>tire.rolling.&lt;surface&gt;</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Rolling resistance on that surface</td></tr>
+<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td><code>aero.angle</code></td><td>number</td><td><code>0.5</code></td><td>Body parts only. Default angle (0 to 1)</td></tr>
+</table>
+<h4 class="ja">見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"wheel": { ... }</code> の中。入れ子を省いて、いちばん外側に書いてもよい。<b>ホイールだけ</b>。ターボとブローオフには要らない）</h4>
+<h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting). <b>Wheels only</b>; turbos and blow-off valves need none</h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>その車種の <code>wheel.model</code></td><td>ホイールの OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>その車種の <code>wheel.texture</code></td><td>ホイールのテクスチャ</td></tr>
+<tr><td><code>designRadius</code></td><td>数字</td><td>その車種の <code>designWheelRadius</code></td><td><b>メッシュが何 m の半径で作られているか</b></td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車種の <code>wheel.offset</code></td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
+<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車種の <code>wheel.scale</code></td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
+<tr><td><code>camber</code></td><td>数字</td><td>その車種の <code>wheel.camber</code></td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
+<tr><td><code>rimRadius</code></td><td>数字</td><td>（測る）</td><td>タイヤの内径（ビード）を置く半径 [m]（メッシュの寸法）。<a href="#s-tire">3 章</a></td></tr>
+</table>
+<h4 class="ja">タイヤの見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"tire": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>KurumaMod 標準のタイヤ</td><td>タイヤの OBJ（タイヤだけ。原点は車軸の中心）</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/wheel.png</code></td><td>タイヤのテクスチャ</td></tr>
+<tr><td><code>innerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの内径 [m]。測った値がおかしいときだけ書く</td></tr>
+<tr><td><code>outerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの外径 [m]。同上</td></tr>
+</table>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>the car's <code>wheel.model</code></td><td>Wheel OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>the car's <code>wheel.texture</code></td><td>Wheel texture</td></tr>
+<tr><td><code>designRadius</code></td><td>number</td><td>the car's <code>designWheelRadius</code></td><td><b>The radius the mesh was built at, in m</b></td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's <code>wheel.offset</code></td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
+<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's <code>wheel.scale</code></td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
+<tr><td><code>camber</code></td><td>number</td><td>the car's <code>wheel.camber</code></td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
+<tr><td><code>rimRadius</code></td><td>number</td><td>(measured)</td><td>Radius where the tyre's bead sits [m], in mesh units. <a href="#s-tire">Chapter 3</a></td></tr>
+</table>
+<h4 class="en">Tyre looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"tire": { ... }</code>; <b>not at the top level</b>)</h4>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>model</code></td><td>id</td><td>KurumaMod's own tyre</td><td>Tyre OBJ (tyre only, origin at the axle centre)</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/wheel.png</code></td><td>Tyre texture</td></tr>
+<tr><td><code>innerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's inner tyre radius [m]. Only write it if the measured one is wrong</td></tr>
+<tr><td><code>outerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's outer tyre radius [m]. Likewise</td></tr>
+</table>
+<h4 class="ja">マフラーの音 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"exhaust": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
+<tr><td><code>pitch</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>1</code></td><td>音程の倍率（0.5〜1.5）。範囲なら「音の低さ」で動かせる</td></tr>
+<tr><td><code>volume</code></td><td>数字</td><td><code>1</code></td><td>音量の倍率（0〜2）</td></tr>
+<tr><td><code>sound</code></td><td>id</td><td>（その車の音）</td><td>排気音のサウンドイベント</td></tr>
+<tr><td><code>sound_high</code></td><td>id</td><td>（無し）</td><td>高回転側（1 オクターブ上）のサウンドイベント</td></tr>
+<tr><td><code>tone</code></td><td>数字</td><td><code>0</code></td><td>調整していないときの低さ（0〜1）</td></tr>
+</table>
+<h4 class="en">Exhaust sound — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"exhaust": { ... }</code>; <b>not at the top level</b>)</h4>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>pitch</code></td><td>number or <code>[min, max]</code></td><td><code>1</code></td><td>Pitch multiplier (0.5 to 1.5). A range is adjustable with "Deepness"</td></tr>
+<tr><td><code>volume</code></td><td>number</td><td><code>1</code></td><td>Volume multiplier (0 to 2)</td></tr>
+<tr><td><code>sound</code></td><td>id</td><td>(the car's)</td><td>Exhaust sound event</td></tr>
+<tr><td><code>sound_high</code></td><td>id</td><td>(none)</td><td>High-rev (one octave up) sound event</td></tr>
+<tr><td><code>tone</code></td><td>number</td><td><code>0</code></td><td>Default deepness (0 to 1)</td></tr>
+</table>
+<h4 class="ja">車の側 — 初期装備（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> のいちばん外側）と対応（<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>）</h4>
+<table class="ja">
+<tr><th>キー</th><th>型</th><th>意味</th></tr>
+<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true</td></tr>
+<tr><td><code>parts.&lt;部品 id&gt;.show</code></td><td>オブジェクト名の配列</td><td>その部品を付けたときに出すオブジェクト（<code>part_</code> で始まる名前だけ）</td></tr>
+</table>
+<h4 class="en">On the car — default parts (top level of <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) and mapping (<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>)</h4>
+<table class="en">
+<tr><th>Key</th><th>Type</th><th>Meaning</th></tr>
+<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true</td></tr>
+<tr><td><code>parts.&lt;part id&gt;.show</code></td><td>array of object names</td><td>Objects shown while that part is fitted (names starting with <code>part_</code> only)</td></tr>
+</table>
+</section><div class="gfoot">
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="guide-car.html#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="guide-car.html#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
+</div></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>
