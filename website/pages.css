@@ -150,8 +150,9 @@ table.specs caption { text-align: left; font-weight: 700; font-size: 13px; paddi
 
 /* 手順 */
 .steps { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; counter-reset: s; }
-@media (max-width: 1000px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
+.steps.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1000px) { .steps, .steps.three { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .steps, .steps.three { grid-template-columns: 1fr; } }
 .steps li { counter-increment: s; background: var(--white); border-radius: 12px; padding: 26px; display: grid; gap: 8px; align-content: start; }
 .steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--f-latin); font-size: 40px; font-stretch: 85%; line-height: 1; }
 .steps h3 { font-size: 18px; font-weight: 500; }
@@ -167,6 +168,9 @@ code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-siz
 .keys .key { color: var(--white); }
 
 /* 比較表 */
+/* 車種の列は同じ幅にする（中身の長さで幅が変わると、写真の大きさが揃わない） */
+table.compare.cars { table-layout: fixed; }
+table.compare.cars thead th:first-child { width: 25%; }
 table.compare thead .thumb { display: block; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--black); margin-bottom: 12px; position: relative; }
 table.compare thead .thumb img, table.compare thead .thumb .plate { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 table.compare thead .thumb .plate span { font-size: 56px; -webkit-text-stroke-width: 1px; }

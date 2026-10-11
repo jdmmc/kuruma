@@ -484,19 +484,6 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
   </div>
 </div>
 
-<section id="cars">
-  <div class="wrap">
-    <h2 class="title">{T("Choose your car", "車を選ぶ")}</h2>
-    <p class="lead">{T("All three run on the same physics. Weight, balance and drivetrain are what make them drive differently.", "3 台とも同じ物理で走ります。重さ、重心の位置、駆動方式の違いが、そのまま走りの違いになります。")}</p>
-    <div class="filters" role="group" aria-label="Filter">
-      <button type="button" aria-pressed="true" data-filter="all">{T("All", "すべて")}</button>
-      <button type="button" aria-pressed="false" data-filter="sport">{T("Sports cars", "スポーツカー")}</button>
-      <button type="button" aria-pressed="false" data-filter="awd">{T("All-wheel drive", "4WD")}</button>
-    </div>
-    <div class="models">{cards}</div>
-  </div>
-</section>
-
 <section class="dark">
   <div class="wrap">
     <div class="split">
@@ -513,7 +500,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
   </div>
 </section>
 
-<section id="features">
+<section class="mist" id="features">
   <div class="wrap">
     <h2 class="title">{T("More than a car-shaped block", "車の形をしたブロックではありません")}</h2>
     <div class="tiles">
@@ -522,6 +509,39 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
       {tile("third", "gravel.jpg", ("A car leaving a smoke trail on loose ground", "未舗装路に煙の跡を残して走る車"), ("Surfaces", "路面"), T("Six surfaces and rain", "6 種類の路面と雨"), ("Tarmac, dirt, gravel, sand, snow and ice each drive differently.", "舗装、土、砂利、砂、雪、氷で、走りがまったく変わります。"))}
       {tile("third", "camber.jpg", ("Wheels with negative camber", "キャンバーを付けたホイール"), ("Customise", "カスタマイズ"), T("Aero, mufflers, wheels", "エアロ、マフラー、ホイール"), ("Camber, offset and width, plus wings that make real downforce.", "キャンバー、オフセット、幅。ウイングは本当にダウンフォースを生みます。"))}
       {tile("two", "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends", "友だちとレースを"), ("Start lights, live standings and split times, in multiplayer.", "スタートシグナル、リアルタイムの順位、区間タイム。マルチプレイで。"))}
+    </div>
+  </div>
+</section>
+
+<section id="cars">
+  <div class="wrap">
+    <h2 class="title">{T("Cars included", "収録車種")}</h2>
+    <p class="lead">{T("The S15 comes with KurumaMod; the 911 and the Prado come with the free Basic Car Pack. All three run on the same physics, so weight, balance and drivetrain are what make them drive differently.", "S15 は KurumaMod に、911 とプラドは無料の Basic Car Pack に入っています。3 台とも同じ物理で走るので、重さ、重心の位置、駆動方式の違いが、そのまま走りの違いになります。")}</p>
+    <div class="models">{cards}</div>
+  </div>
+</section>
+
+<section class="mist" id="start">
+  <div class="wrap">
+    <div class="eyebrow">{T("Get started", "はじめかた")}</div>
+    <h2 class="title">{T("Three steps to the driver's seat.", "3 ステップで、運転席へ。")}</h2>
+    <ol class="steps three">
+      <li><h3>{T("Download", "ダウンロードする")}</h3><p>{T("From CurseForge or Modrinth. Forge 1.20.1 and NeoForge 1.21.1. No other mods required.", "CurseForge か Modrinth から。Forge 1.20.1 と NeoForge 1.21.1。前提 MOD はいりません。")}</p></li>
+      <li><h3>{T("Put it in mods/", "mods に入れる")}</h3><p>{T("Add the Basic Car Pack too if you want the 911 and the Prado.", "911 とプラドに乗るなら、Basic Car Pack も一緒に。")}</p></li>
+      <li><h3>{T("Place a car and get in", "車を置いて、乗る")}</h3><p>{T("Take a car from the KurumaMod creative tab, right-click the ground to place it, then right-click the car.", "クリエイティブの KurumaMod タブから車を取り、地面を右クリックで置いて、車を右クリックで乗ります。")}</p></li>
+    </ol>
+    <div class="cta-row"><a class="btn arrow" href="start.html">{T("Controls and FAQ", "操作とよくある質問")}</a></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="title">{T("Add more cars", "車を追加する")}</h2>
+    <p class="lead">{T("A car pack is a single jar. Put it in mods/ and the cars are there.", "カーパックは jar ひとつ。mods に入れるだけで車が増えます。")}</p>
+    <div class="packs">
+      <a class="pack" href="{CF_BASIC}"><small>{T("Official", "公式")}</small><h3>Basic Car Pack</h3><p>{T("Adds the Porsche 911 and the Toyota Land Cruiser Prado.", "ポルシェ 911 とトヨタ ランドクルーザー プラドを追加します。")}</p><span class="go">CurseForge</span></a>
+      <a class="pack" href="{GUIDE}"><small>{T("Create", "作る")}</small><h3>{T("Car pack guide", "カーパック作成ガイド")}</h3><p>{T("Build your own car in Blender. No coding, and no Blender experience needed.", "Blender で自分の車を作る。コードは不要、Blender 未経験でも大丈夫。")}</p><span class="go">{T("Read the guide", "ガイドを読む")}</span></a>
+      <a class="pack" href="{CF_EXAMPLE}"><small>{T("Template", "ひな型")}</small><h3>Example Car Pack</h3><p>{T("A sample car and wheels to copy as your starting point. No credit required.", "土台にできるサンプルの車とホイール。クレジット表記も不要です。")}</p><span class="go">CurseForge</span></a>
     </div>
   </div>
 </section>
@@ -536,18 +556,6 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
         <div class="cta-row"><a class="btn arrow" href="{CF}">{T("Download 1.7.0", "1.7.0 をダウンロード")}</a></div>
       </div>
       <dl class="news-list">{news}</dl>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2 class="title">{T("Add more cars", "車を追加する")}</h2>
-    <p class="lead">{T("A car pack is a single jar. Put it in mods/ and the cars are there.", "カーパックは jar ひとつ。mods に入れるだけで車が増えます。")}</p>
-    <div class="packs">
-      <a class="pack" href="{CF_BASIC}"><small>{T("Official", "公式")}</small><h3>Basic Car Pack</h3><p>{T("Adds the Porsche 911 and the Toyota Land Cruiser Prado.", "ポルシェ 911 とトヨタ ランドクルーザー プラドを追加します。")}</p><span class="go">CurseForge</span></a>
-      <a class="pack" href="{GUIDE}"><small>{T("Create", "作る")}</small><h3>{T("Car pack guide", "カーパック作成ガイド")}</h3><p>{T("Build your own car in Blender. No coding, and no Blender experience needed.", "Blender で自分の車を作る。コードは不要、Blender 未経験でも大丈夫。")}</p><span class="go">{T("Read the guide", "ガイドを読む")}</span></a>
-      <a class="pack" href="{CF_EXAMPLE}"><small>{T("Template", "ひな型")}</small><h3>Example Car Pack</h3><p>{T("A sample car and wheels to copy as your starting point. No credit required.", "土台にできるサンプルの車とホイール。クレジット表記も不要です。")}</p><span class="go">CurseForge</span></a>
     </div>
   </div>
 </section>
@@ -781,7 +789,7 @@ page("compare.html", "Compare cars | KurumaMod", "車種を比較 | KurumaMod", 
     <p class="lead">{T("BEST marks the strongest of the three.", "BEST は 3 台の中でいちばん良い値です。")}</p>
     <label class="toggle" for="show-same"><input type="checkbox" id="show-same"> {T("Show rows that are the same for all three", "3 台とも同じ項目も表示する")}</label>
     <div class="compare-wrap">
-      <table class="compare">
+      <table class="compare cars">
         <thead><tr><th scope="col"></th>{heads}</tr></thead>
         <tbody>{rows_html}</tbody>
       </table>
