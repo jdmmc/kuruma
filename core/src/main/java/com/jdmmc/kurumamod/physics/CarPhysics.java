@@ -187,6 +187,7 @@ public final class CarPhysics {
         TireForces forces = computeTireForces(spec, state, contact, input, dt);
         updateSuspension(spec, state, contact, forces, dt);
         dampTumbling(spec, state, dt);
+        rightOverturned(state, dt);
 
         double lateralSpeedBefore = state.lateralSpeed;
         double forwardSpeedBefore = state.forwardSpeed;
@@ -1629,6 +1630,85 @@ public final class CarPhysics {
 
     /** 横転の減衰が効く速さの上限 [m/s]。10km/h。 */
     private static final double TUMBLE_SPEED_LIMIT = 10.0 / 3.6;
+
+    /**
+     * 横転したまま<b>止まってしまった</b>車を起こす。
+     *
+     * <p>車体が硬い箱になってから、70 度より傾くとタイヤが地面に届かない
+     * （サスペンションは真下へしか伸びない）。以前は傾いた車体をタイヤの押し返しが
+     * 起こしていたが、その力が無くなったので、横倒しや裏返しのまま止まった車は
+     * 自分では起き上がらない（78 条件中 17 しか起きなかった）。</p>
+     *
+     * <p><b>起こすのは止まって {@link #RIGHTING_DELAY} たってから。</b>転がっている最中や
+     * 飛んでいる間は一切触らない——事故の見え方とジャンプで崩した体勢は、その場の
+     * 物理のまま。条件は {@link #dampTumbling} と同じく「ほとんど止まっている」に加えて
+     * 上下にも動いていないこと（真下へ落ちている車を除くため）。</p>
+     *
+     * <p>回し方はピッチとロールを<b>まっすぐ 0 へ</b>戻す向き。傾きの勾配に沿わせると
+     * 裏返しから「ピッチもロールも 180 度」という同じ向きの別の表し方へ転がり込み、
+     * サスペンションの式がそれを水平と読まない。地面への食い込みは車体の当たり判定
+     * （{@link CarBody}）が押し返すので、ここは向きを回すだけでよい。傾きが
+     * {@link #RIGHTING_END} を下回ればタイヤが地面に届き、あとはサスペンションの仕事。</p>
+     */
+    private static void rightOverturned(CarState state, double dt) {
+        double upright = Math.cos(state.pitch) * Math.cos(state.roll);
+        double tilt = Math.acos(Math.max(-1.0, Math.min(1.0, upright)));
+        double speed = Math.hypot(state.forwardSpeed, state.lateralSpeed);
+        boolean active = state.overturnedSeconds >= RIGHTING_DELAY;
+        // 起こしている最中は、押し返しで上へ動いても、少し横へずれても止めない
+        boolean still = active
+                ? speed <= TUMBLE_SPEED_LIMIT * 2.0
+                : speed <= TUMBLE_SPEED_LIMIT && Math.abs(state.verticalSpeed) <= RIGHTING_REST_SPEED;
+        if (tilt <= (active ? RIGHTING_END : RIGHTING_START)) {
+            state.overturnedSeconds = 0.0;
+            return;
+        }
+        if (!still) {
+            // 一気に 0 へ戻さず、動いていたぶんだけ減らす。縦に立った車は当たり判定が
+            // わずかに震え続けるので、0 に戻すと待ち時間がいつまでも貯まらない
+            state.overturnedSeconds = Math.max(0.0, Math.min(state.overturnedSeconds, RIGHTING_DELAY) - dt);
+            return;
+        }
+        state.overturnedSeconds += dt;
+        if (state.overturnedSeconds < RIGHTING_DELAY) {
+            return;
+        }
+        // ピッチとロールを 0 へ向かうまっすぐな向きに、残りが小さくなるほど緩めて回す
+        double distance = Math.hypot(state.pitch, state.roll);
+        if (distance < 1e-6) {
+            return;
+        }
+        // 回り出しは時間で、着地は残りの角度で緩める。角速度は<b>毎刻み狙いの値に置く</b>——
+        // 寄せるだけだと、屋根や側面が地面に平らに乗っているとき、地面へ食い込む側の縁を
+        // 押し返す当たり判定に毎刻み半分ずつ打ち消されて、ほとんど回らない
+        double rampIn = Math.min(1.0, (state.overturnedSeconds - RIGHTING_DELAY) / RIGHTING_RAMP);
+        double rate = RIGHTING_RATE * rampIn * Math.min(1.0, distance / RIGHTING_EASE);
+        state.pitchRate = -state.pitch / distance * rate;
+        state.rollRate = -state.roll / distance * rate;
+        // 鼻先か尻で縦に立った車（ピッチ 90 度付近）は、ピッチ・ロール・ヨーの表し方が
+        // 特異になる向きで、車体の当たり判定を通すと角速度がほとんど打ち消される。
+        // ここだけ角度そのものを直接戻す。食い込んだぶんは当たり判定が上へ押し出す
+        if (Math.abs(state.pitch) > RIGHTING_UPRIGHT_PITCH && Math.abs(state.pitch) < Math.PI - RIGHTING_UPRIGHT_PITCH) {
+            state.pitch += state.pitchRate * dt;
+        }
+    }
+
+    /** 起き上がり補助を始める傾き [rad]。タイヤが地面に届かなくなる角度（約 70 度）。 */
+    private static final double RIGHTING_START = Math.toRadians(70.0);
+    /** 起き上がり補助をやめる傾き [rad]。ここまで戻ればタイヤが着いてサスペンションが受け取る。 */
+    private static final double RIGHTING_END = Math.toRadians(35.0);
+    /** 横倒しのまま何秒止まっていたら起こすか [s]。転がり終わりの揺れ戻りを待つ。 */
+    private static final double RIGHTING_DELAY = 1.0;
+    /** 「止まっている」とみなす上下の速さ [m/s]。真下へ落ちている車を除く。 */
+    private static final double RIGHTING_REST_SPEED = 1.0;
+    /** 起こすときの回転の速さ [rad/s]。約 90 度/秒。 */
+    private static final double RIGHTING_RATE = 1.6;
+    /** 残りの角度がこれより小さいと回転を緩める [rad]。着地で跳ねないように。 */
+    private static final double RIGHTING_EASE = Math.toRadians(60.0);
+    /** これより縦に立っていたら、ピッチを角度で直接戻す [rad]。 */
+    private static final double RIGHTING_UPRIGHT_PITCH = Math.toRadians(70.0);
+    /** 回り出しにかける時間 [s]。いきなり回り出すと跳ねる。 */
+    private static final double RIGHTING_RAMP = 0.3;
 
     /** 1 ティックの秒数 [s]。上の割合をサブステップの刻みへ割り直すのに使う。 */
     private static final double TICK_SECONDS = 0.05;
