@@ -41,8 +41,6 @@ public final class CarHull {
     public static final double OVERHANG = 0.30;
     /** 車同士の箱の、タイヤの外周から車体の端までの張り出し [m]。見た目の車体に合わせる。 */
     public static final double BODY_OVERHANG = 0.60;
-    /** 車同士の箱の下端の、停車時の地面からの高さ [m]。バンパーの下端のあたり。 */
-    public static final double BODY_CLEARANCE = 0.25;
     /** 車体の幅のトレッドに対する比。 */
     public static final double WIDTH_RATIO = 0.90;
     /** 箱の厚みの下限 [m]。 */
@@ -109,8 +107,8 @@ public final class CarHull {
     }
 
     /**
-     * 車同士の当たりに使う箱。見た目の車体に合わせて、地面の少し上（{@link #BODY_CLEARANCE}）
-     * から地形用の箱の上端まで、前後はタイヤの外周から {@link #BODY_OVERHANG} まで。
+     * 車同士の当たりに使う箱。上下は車体（{@link CarBody}）と同じで、地上高（調整画面）から屋根まで。
+     * 前後はタイヤの外周から {@link #BODY_OVERHANG} まで。
      */
     public static CarHull body(CarSpec spec, double x, double y, double z,
                                double yaw, double pitch, double roll) {
@@ -120,13 +118,18 @@ public final class CarHull {
     /**
      * 車同士の箱。大きさは車種の元の諸元（{@code shape}）で決め、前後の位置だけいまの諸元に合わせる
      * （{@link CarBody} と同じ。調整画面でタイヤ半径などを動かしても見た目の車体は変わらないため）。
+     *
+     * <p><b>下端は地上高に合わせて上げること。</b>バニラの箱はこの箱の内側に作り、サーバーの
+     * {@code handleMoveVehicle} はそれで「動いた先が塞がっていないか」を見る。以前は下端を
+     * 25cm に固定していたので、地上高を 120cm にして車体が 1 ブロックの段を越えられても、
+     * バニラの箱が段に入ってサーバーに引き戻され、一瞬止まっていた。</p>
      */
     public static CarHull body(CarSpec spec, CarSpec shape, double x, double y, double z,
                                double yaw, double pitch, double roll) {
         double middle = spec.axleMidpointOffset();
         double half = shape.wheelBase() / 2.0 + shape.wheelRadius() + BODY_OVERHANG;
-        double bottom = BODY_CLEARANCE - shape.staticRideHeight();
-        double top = bottom + CarBody.HEIGHT;
+        double bottom = CarBody.bottomOf(spec, shape);
+        double top = CarBody.topOf(shape);
         return build(x, y, z, yaw, pitch, roll, middle + half, middle - half, bottom, top, halfWidth(shape));
     }
 
