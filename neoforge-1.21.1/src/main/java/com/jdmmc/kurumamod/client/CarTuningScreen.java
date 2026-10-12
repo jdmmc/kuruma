@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.tuning.TunableParameter;
 import com.jdmmc.kurumamod.tuning.Tunables;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -12,6 +13,8 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +44,8 @@ public class CarTuningScreen extends Screen {
     private static final int RESET_WIDTH = 18;
     private static final int GAP = 4;
     private static final int ROW_HEIGHT = 21;
+    /** 解説の折り返し幅。画面の端まで広がると読みにくい */
+    private static final int TOOLTIP_WIDTH = 220;
 
     // 下端のタブ。名前しか入らないので、換装画面のタイルより低くしてある
     private static final int TAB_HEIGHT = 30;
@@ -343,6 +348,35 @@ public class CarTuningScreen extends Screen {
 
         renderScrollBar(graphics);
         renderTabHints(graphics);
+        renderRowTooltip(graphics, mouseX, mouseY);
+    }
+
+    /**
+     * 項目名にマウスを乗せたら解説を出す。
+     *
+     * <p><b>スライダーの上では出さない。</b>動かしている最中に値が隠れると、何に合わせたのか
+     * 分からなくなる。名前は列の幅で切れていることがあるので、解説の頭に名前を全部出す。
+     * 解説の無い項目（拡張 MOD が足したものなど）は何も出さない。</p>
+     */
+    private void renderRowTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (mouseX < panelLeft || mouseX >= panelLeft + LABEL_WIDTH) {
+            return;
+        }
+        for (Row row : rows) {
+            if (!row.visible || mouseY < row.y || mouseY >= row.y + ROW_HEIGHT - 2) {
+                continue;
+            }
+            String key = row.parameter.tooltipKey();
+            if (!I18n.exists(key)) {
+                return;
+            }
+            List<FormattedCharSequence> lines = new ArrayList<>();
+            lines.add(Component.translatable(row.parameter.translationKey())
+                    .withStyle(ChatFormatting.YELLOW).getVisualOrderText());
+            lines.addAll(font.split(Component.translatable(key), TOOLTIP_WIDTH));
+            graphics.renderTooltip(font, lines, mouseX, mouseY);
+            return;
+        }
     }
 
     private void renderScrollBar(GuiGraphics graphics) {
