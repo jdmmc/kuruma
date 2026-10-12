@@ -224,6 +224,18 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
     private static final double LOOKAHEAD_SECONDS = 0.15;
     /** 先読みの斜面の長さの上限 [m]。 */
     private static final double LOOKAHEAD_MAX = 3.0;
+    /**
+     * 下りの斜面の長さの上限 [m]。段を降りた直後は、後ろの段から斜面を下ろして地面にする。
+     *
+     * <p><b>登りより短くする（＝急にする）こと。</b>降りていく坂より緩い斜面を置くと地面が実際より
+     * 高く残り、段ごとに大きく揺さぶられて、25% の下りを 30m/s で走ると宙返りした（上限 3m）。
+     * 2m（段 50cm を 25% で降りる）ならロールの揺れが 7 度から 0〜1 度になり、宙返りもしない。
+     * 1m では先読みしないのと変わらない。</p>
+     *
+     * <p>崖や単独の段では効かない（車は自然に放物線で飛び、その軌道が斜面より上を通る）。
+     * 55cm を超える落差は斜面を作らない——作ると崖の先で宙に支えられる。</p>
+     */
+    private static final double LOOKAHEAD_DOWN_MAX = 2.0;
     /** 先読みで地面を調べる間隔 [m]。 */
     private static final double LOOKAHEAD_SPACING = 0.25;
     /** 先読みの斜面で登る高さ [m]。ハーフブロックの段。 */
@@ -1244,18 +1256,19 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             double previous = previousGroundHeight[index];
             // 段の高さを測る基準。地面を見失っていた輪は、いまのタイヤ下端から
             double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
-            double ahead = lookAhead(x, z, from, bottom, base);
+            double ahead = lookAhead(x, z, from, bottom, base, height);
             setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, ahead, rise);
         }
     }
 
     /**
-     * 進む向きの先にある低い段から、手前へ斜面を下ろしたときの、いまの位置での高さ。
-     * 低い段が無ければ負の無限大。
+     * 段から斜面を下ろしたときの、いまの位置での高さ。前にある低い段からは手前へ（登り）、
+     * 後ろにある低い段からはこちらへ（下り）。低い段が無ければ負の無限大。
      *
-     * @param base この輪のいまの地面。これより {@link CarBody#STEP_LIFT} を超えて高い段は見ない
+     * @param base   この輪のいまの地面。前の段はこれより {@link CarBody#STEP_LIFT} を超えて高いものは見ない
+     * @param height この輪の真下の地面。後ろの段はこれより {@link CarBody#STEP_LIFT} を超えて高いものは見ない（崖）
      */
-    private double lookAhead(double x, double z, double from, double bottom, double base) {
+    private double lookAhead(double x, double z, double from, double bottom, double base, double height) {
         double velocityX = state.velocityX();
         double velocityZ = state.velocityZ();
         double speed = Math.hypot(velocityX, velocityZ);
@@ -1277,11 +1290,32 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
                 continue;
             }
-            double height = hit.getLocation().y;
-            if (height - base > CarBody.STEP_LIFT) {
+            double ground = hit.getLocation().y;
+            if (ground - base > CarBody.STEP_LIFT) {
                 continue;
             }
-            best = Math.max(best, height - slope * distance);
+            best = Math.max(best, ground - slope * distance);
+        }
+        // 下り。後ろの段から斜面を下ろす
+        double downReach = Math.min(LOOKAHEAD_DOWN_MAX, speed * LOOKAHEAD_SECONDS);
+        double downSlope = LOOKAHEAD_RISE / downReach;
+        for (double distance = LOOKAHEAD_SPACING; distance <= downReach + 1.0e-9; distance += LOOKAHEAD_SPACING) {
+            double px = x - velocityX / speed * distance;
+            double pz = z - velocityZ / speed * distance;
+            BlockHitResult hit = level().clip(new ClipContext(
+                    new Vec3(px, from, pz),
+                    new Vec3(px, bottom, pz),
+                    ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE,
+                    this));
+            if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+                continue;
+            }
+            double ground = hit.getLocation().y;
+            if (ground - height > CarBody.STEP_LIFT) {
+                continue;
+            }
+            best = Math.max(best, ground - downSlope * distance);
         }
         return best;
     }
