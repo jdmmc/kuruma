@@ -42,6 +42,8 @@
   "tuning.kurumamod.stroke.value": "%s cm  %s",
   "tuning.kurumamod.static_sag": "弹簧下沉率",
   "tuning.kurumamod.static_sag.value": "%s%%  %s",
+  "tuning.kurumamod.body_clearance": "车身离地间隙",
+  "tuning.kurumamod.body_clearance.value": "%s cm",
   "tuning.kurumamod.front_anti_roll": "前防倾杆",
   "tuning.kurumamod.front_anti_roll.value": "%s N/m  前 %s%%",
   "tuning.kurumamod.rear_anti_roll": "后防倾杆",

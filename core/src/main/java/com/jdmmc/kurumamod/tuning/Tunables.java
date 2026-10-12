@@ -83,6 +83,11 @@ public final class Tunables {
                                     CarSpec::staticSag, CarSpec.Builder::staticSag)
                             .unit(0.01)
                             .detail(Tunables::sagTravel),
+                    // 車体の当たり判定の地上高。見た目の車体は変わらない。上げるほど段差で腹を擦らず、
+                    // 120cm なら 1 ブロックの段にも車体が当たらない（タイヤが登れる高さまで）
+                    TunableParameter.linear("body_clearance", 10, 120, "%.0f",
+                                    CarSpec::bodyClearance, CarSpec.Builder::bodyClearance)
+                            .unit(0.01),
                     // スタビはバネと違って左右逆に動くときだけ効くので、沈み込みも
                     // ノーズダイブも変えずにロールだけ締められる。0 で無し。
                     // 見せる補足がロール剛性の前後配分なのは、ロール量より
