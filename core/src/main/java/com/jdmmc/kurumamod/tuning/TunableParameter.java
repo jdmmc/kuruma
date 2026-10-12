@@ -90,6 +90,11 @@ public record TunableParameter(
         return "tuning.kurumamod." + name;
     }
 
+    /** 項目名にマウスを乗せたときに出す解説の翻訳キー。 */
+    public String tooltipKey() {
+        return translationKey() + ".tooltip";
+    }
+
     /** 値の書式の翻訳キー。名前と値を別に置くことで、画面側で列を分けて並べられる。 */
     public String valueKey() {
         return "tuning.kurumamod." + name + ".value";
