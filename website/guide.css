@@ -9,7 +9,11 @@
 .ghero h1 { font-family: var(--f-latin), var(--f-ja); font-weight: 500; font-stretch: 85%; font-size: clamp(44px, 7vw, 96px); letter-spacing: -.01em; line-height: 1; margin: 10px 0 16px; }
 :root[data-lang="ja"] .ghero h1 { font-family: var(--f-ja); font-weight: 500; letter-spacing: 0; font-size: clamp(36px, 5.4vw, 72px); }
 .ghero p { margin: 0; max-width: 40em; color: #b0b2b7; font-size: 17px; font-weight: 300; }
-.gtabs { display: flex; gap: 2px; margin-top: 44px; overflow-x: auto; scrollbar-width: none; }
+/* ページのタブは固定ヘッダーの真下に留める（ghero の外に出してあるのはそのため） */
+.ghero { padding-bottom: 44px; }
+.gtabs-bar { position: sticky; top: 88px; z-index: 15; background: var(--black); }
+@media (max-width: 860px) { .gtabs-bar { top: 64px; } }
+.gtabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
 .gtabs a { padding: 14px 22px; font-size: 15px; color: #b0b2b7; border-bottom: 2px solid transparent; white-space: nowrap; }
 .gtabs a:hover { color: var(--white); }
 .gtabs a[aria-current="page"] { color: var(--white); border-bottom-color: var(--white); }
@@ -18,7 +22,7 @@
 .glayout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: clamp(32px, 5vw, 88px); align-items: start; padding-block: 56px 96px; }
 .glayout.solo { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 1000px) { .glayout { grid-template-columns: minmax(0, 1fr); } }
-.gtoc { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow: auto; font-size: 14px; display: grid; gap: 2px; padding-right: 8px; }
+.gtoc { position: sticky; top: 164px; max-height: calc(100vh - 188px); overflow: auto; font-size: 14px; display: grid; gap: 2px; padding-right: 8px; }
 .gtoc .tt { font-size: 12px; color: var(--grey); letter-spacing: .08em; margin-bottom: 10px; }
 .gtoc a { padding: 7px 12px; border-left: 2px solid var(--line); color: var(--grey); line-height: 1.45; }
 .gtoc a:hover { color: var(--black); border-left-color: var(--black); }
@@ -26,9 +30,9 @@
 
 .gdoc { min-width: 0; max-width: 860px; font-size: 16px; line-height: 1.8; }
 :root[data-lang="ja"] .gdoc { line-height: 1.9; }
-.gdoc .gsec { padding: 0 0 72px; scroll-margin-top: 24px; }
+.gdoc .gsec { padding: 0 0 72px; scroll-margin-top: 76px; }
 .gdoc .gsec + .gsec { border-top: 1px solid var(--line); padding-top: 56px; }
-.gdoc [id] { scroll-margin-top: 24px; }
+.gdoc [id] { scroll-margin-top: 76px; }
 .gdoc h2 { font-family: var(--f-latin), var(--f-ja); font-size: clamp(28px, 3.2vw, 40px); font-weight: 400; letter-spacing: -.01em; line-height: 1.2; margin: 0 0 24px; text-wrap: balance; }
 :root[data-lang="ja"] .gdoc h2 { font-family: var(--f-ja); letter-spacing: 0; word-break: auto-phrase; }
 .gdoc h2 .num { display: block; font-family: var(--f-latin); font-size: 14px; font-weight: 500; color: var(--grey); letter-spacing: .08em; margin-bottom: 10px; }

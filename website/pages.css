@@ -54,7 +54,7 @@ a.pack:hover { background: var(--line); }
 .crumb a:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 /* 車種ページの帯メニュー */
-.subnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; background: rgba(255,255,255,.97); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px); }
+.subnav { position: sticky; top: 88px; z-index: 15; background: rgba(255,255,255,.97); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px); }
 .subnav .wrap { display: flex; align-items: center; gap: 4px; min-height: 64px; }
 .subnav .name { font-family: var(--f-latin); font-weight: 600; font-stretch: 85%; font-size: 18px; margin-right: 24px; white-space: nowrap; }
 .subnav nav { display: flex; gap: 2px; overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
@@ -62,6 +62,7 @@ a.pack:hover { background: var(--line); }
 .subnav nav a:hover { color: var(--black); background: var(--mist); }
 .subnav .btn { min-height: 40px; padding: 0 18px; font-size: 14px; margin-left: 12px; }
 @media (max-width: 700px) { .subnav .name, .subnav .btn { display: none; } }
+@media (max-width: 860px) { .subnav { top: 64px; } }
 section[id] { scroll-margin-top: 64px; }
 
 .figures.light div { border-top-color: var(--line); }

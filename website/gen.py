@@ -5,6 +5,7 @@
 website/guide-src/PACK_CREATE_GUIDE.html を読む（ガイドはサイトにだけ置く。見本パックには入れない）。どちらも引数で差し替えられる（gen.py <出力> <ガイド>）。
 英語が既定。日本語は <span data-l="ja"> で並べて持ち、site.js が切り替える。
 """
+import html
 import re
 import sys
 from pathlib import Path
@@ -20,6 +21,9 @@ CF_EXAMPLE = "https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack"
 GUIDE = "guide.html"
 DISCORD = "https://discord.gg/q3YNqaveRd"
 X = "https://x.com/kurumamod"
+# 公開先。OGP の画像とページの URL は絶対 URL でないと X や Discord が読めない
+SITE = "https://kuruma.jdm-mc.com/"
+DEFAULT_DESC = "A driving mod for Minecraft with real car physics: suspension, weight transfer, tyre grip, engine and gearbox. Forge 1.20.1 and NeoForge 1.21.1."
 
 
 def T(en, ja=None):
@@ -39,6 +43,7 @@ HEAD = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+{meta}
 <script>
 // 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
 (function () {{
@@ -107,8 +112,24 @@ FOOTER = f"""<footer>
 """
 
 
-def page(name, title, title_ja, body):
-    (OUT / name).write_text(HEAD.format(title=title, title_ja=title_ja) + HEADER + body + FOOTER, encoding="utf-8")
+def page(name, title, title_ja, body, desc=DEFAULT_DESC, image="img/ogp.jpg"):
+    url = SITE + ("" if name == "index.html" else name)
+    meta = "\n".join([
+        f'<meta name="description" content="{html.escape(desc)}">',
+        '<link rel="icon" href="favicon.ico" sizes="any">',
+        '<link rel="icon" href="img/favicon.png" type="image/png">',
+        '<link rel="apple-touch-icon" href="img/apple-touch-icon.png">',
+        f'<link rel="canonical" href="{url}">',
+        '<meta property="og:type" content="website">',
+        '<meta property="og:site_name" content="KurumaMod">',
+        f'<meta property="og:title" content="{html.escape(title)}">',
+        f'<meta property="og:description" content="{html.escape(desc)}">',
+        f'<meta property="og:url" content="{url}">',
+        f'<meta property="og:image" content="{SITE + image}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        '<meta name="twitter:site" content="@kurumamod">',
+    ])
+    (OUT / name).write_text(HEAD.format(title=title, title_ja=title_ja, meta=meta) + HEADER + body + FOOTER, encoding="utf-8")
 
 
 def visual(m):
@@ -413,7 +434,7 @@ def model_page(key):
   </div>
 </section>
 """
-    page(m["file"], f"{name} | KurumaMod", f"{name} | KurumaMod", body)
+    page(m["file"], f"{name} | KurumaMod", f"{name} | KurumaMod", body, desc=m["catch"][0], image="img/" + m["img"])
 
 
 for k in MODELS:
@@ -439,8 +460,8 @@ def model_card(m):
       </article>"""
 
 
-def tile(cls, img, alt, small, h, p):
-    return f"""<a class="tile {cls}" href="features.html">
+def tile(cls, anchor, img, alt, small, h, p):
+    return f"""<a class="tile {cls}" href="features.html#{anchor}">
         <img src="img/{img}" {ALT(*alt)}>
         <div class="in"><small>{T(*small)}</small><h3>{h}</h3><p>{T(*p)}</p></div>
       </a>"""
@@ -504,11 +525,11 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
   <div class="wrap">
     <h2 class="title">{T("More than a car-shaped block", "車の形をしたブロックではありません")}</h2>
     <div class="tiles">
-      {tile("wide", "hud.jpg", ("Silvia S15 with gauges on screen", "回転計と速度計を表示して走る S15"), ("Physics", "物理演算"), T("You feel the limit before you reach it.", "限界の手前が、手に伝わる。"), ("Steering follows the slide, so there's always enough opposite lock to catch it.", "ハンドルは滑りに合わせて切れるので、流れた分だけカウンターを当てられます。"))}
-      {tile("two", "eyecatch.jpg", ("Headlights on a night track", "夜のサーキットをヘッドライトで照らして走る"), ("Lighting", "ライティング"), key_l + T("Headlights that really light the road", "路面を本当に照らすヘッドライト"), ("A proper low beam, shadows from trees and walls, beams in fog and rain. Works with shader packs.", "カットオフの付いたロービーム、木や壁の影、霧や雨の中の光の筋。シェーダーパックにも対応。"))}
-      {tile("third", "gravel.jpg", ("A car leaving a smoke trail on loose ground", "未舗装路に煙の跡を残して走る車"), ("Surfaces", "路面"), T("Six surfaces and rain", "6 種類の路面と雨"), ("Tarmac, dirt, gravel, sand, snow and ice each drive differently.", "舗装、土、砂利、砂、雪、氷で、走りがまったく変わります。"))}
-      {tile("third", "camber.jpg", ("Wheels with negative camber", "キャンバーを付けたホイール"), ("Customise", "カスタマイズ"), T("Aero, mufflers, wheels", "エアロ、マフラー、ホイール"), ("Camber, offset and width, plus wings that make real downforce.", "キャンバー、オフセット、幅。ウイングは本当にダウンフォースを生みます。"))}
-      {tile("two", "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends", "友だちとレースを"), ("Start lights, live standings and split times, in multiplayer.", "スタートシグナル、リアルタイムの順位、区間タイム。マルチプレイで。"))}
+      {tile("wide", "physics", "hud.jpg", ("Silvia S15 with gauges on screen", "回転計と速度計を表示して走る S15"), ("Physics", "物理演算"), T("You feel the limit before you reach it.", "限界の手前が、手に伝わる。"), ("Steering follows the slide, so there's always enough opposite lock to catch it.", "ハンドルは滑りに合わせて切れるので、流れた分だけカウンターを当てられます。"))}
+      {tile("two", "lighting", "eyecatch.jpg", ("Headlights on a night track", "夜のサーキットをヘッドライトで照らして走る"), ("Lighting", "ライティング"), key_l + T("Headlights that really light the road", "路面を本当に照らすヘッドライト"), ("A proper low beam, shadows from trees and walls, beams in fog and rain. Works with shader packs.", "カットオフの付いたロービーム、木や壁の影、霧や雨の中の光の筋。シェーダーパックにも対応。"))}
+      {tile("third", "surface", "gravel.jpg", ("A car leaving a smoke trail on loose ground", "未舗装路に煙の跡を残して走る車"), ("Surfaces", "路面"), T("Six surfaces and rain", "6 種類の路面と雨"), ("Tarmac, dirt, gravel, sand, snow and ice each drive differently.", "舗装、土、砂利、砂、雪、氷で、走りがまったく変わります。"))}
+      {tile("third", "custom", "camber.jpg", ("Wheels with negative camber", "キャンバーを付けたホイール"), ("Customise", "カスタマイズ"), T("Aero, mufflers, wheels", "エアロ、マフラー、ホイール"), ("Camber, offset and width, plus wings that make real downforce.", "キャンバー、オフセット、幅。ウイングは本当にダウンフォースを生みます。"))}
+      {tile("two", "racing", "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends", "友だちとレースを"), ("Start lights, live standings and split times, in multiplayer.", "スタートシグナル、リアルタイムの順位、区間タイム。マルチプレイで。"))}
     </div>
   </div>
 </section>
@@ -1013,9 +1034,9 @@ def build_guide():
     <div class="crumb"><a href="index.html">KurumaMod</a> / {T("Car Pack Guide", "カーパック作成ガイド")}{"" if key == "home" else " / " + T(*label)}</div>
     <h1>{T(*title)}</h1>
     <p>{T(*sub)}</p>
-    <nav class="gtabs" aria-label="Guide pages">{tabs_for(key)}</nav>
   </div>
 </section>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages">{tabs_for(key)}</nav></div></div>
 
 <div class="wrap {layout_cls}">
   {side}
@@ -1025,7 +1046,7 @@ def build_guide():
 """
         en_title = ("Car Pack Guide" if key == "home" else f"{title[0]} | Car Pack Guide") + " | KurumaMod"
         ja_title = ("カーパック作成ガイド" if key == "home" else f"{title[1]} | カーパック作成ガイド") + " | KurumaMod"
-        page(file, en_title, ja_title, body)
+        page(file, en_title, ja_title, body, desc=sub[0])
     print(f"guide ok ({len(sections)} sections, {count[0]} images)")
 
 
