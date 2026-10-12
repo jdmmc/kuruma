@@ -15,6 +15,17 @@ import java.util.List;
  * 押し返しが後ろ上向きになって鼻先が持ち上がり、低い段なら乗り越えられる。地上高そのものは
  * 実車どおり低い（{@link #CLEARANCE}）ので、腹を擦るのは見た目どおりのところ。</p>
  *
+ * <p><b>低い段（{@link #STEP_LIFT} 以内）には、車体を真上へ持ち上げるだけ</b>（摩擦も衝撃も無し）。
+ * 25cm を超える段では、タイヤより先に前の斜面が縁に当たる（斜面の下端がタイヤの前端の位置から
+ * 始まるため）。硬い箱のままだと後ろ上向きに押し返されてブレーキになり、15m/s でハーフの段に
+ * 当たると 5.9m/s まで落ちてピッチが 43 度まで跳ねた。実車ではまず登れない高さ（50cm）だが、
+ * Minecraft ではありふれた段差なので、そりのように滑って乗り上げることにした（15m/s のまま・
+ * ピッチ 9 度）。1 ブロックの段や壁は今どおり硬く当たる。</p>
+ *
+ * <p><b>サスペンションが縮みきった先も、ここで硬く止める</b>（{@link #addBottomOutContacts}）。
+ * バンプストップはバネなので、1 刻み（1/80 秒）で 13cm 落ちてくる着地（10m/s）では、効く幅
+ * （1.5cm）を力が出る前に通り過ぎ、タイヤも車体も地面に埋まっていた。</p>
+ *
  * <p>当たりは 2 通りで拾う:</p>
  * <ul>
  *   <li><b>車体の表面の点がブロックの中にある</b>（表面に {@link #SAMPLE} 間隔で点を置く）。
@@ -57,6 +68,26 @@ public final class CarBody {
     private static final double SLOP = 0.01;
     /** 押し戻しの速度の上限 [m/s]。埋まった車が飛び出さないよう。 */
     private static final double MAX_BIAS = 3.0;
+    /**
+     * 車輪の地面からこの高さまでのブロックは「低い段」として、車体を真上へ持ち上げるだけにする [m]。
+     * ハーフブロック（0.5m）を含み、1 ブロックは含まない。
+     */
+    public static final double STEP_LIFT = 0.55;
+    /** 車輪の地面とほぼ同じ高さのブロックは低い段に含めない [m]（平らな地面は今どおり硬く受ける）。 */
+    private static final double STEP_MIN = 0.02;
+    /**
+     * 低い段に乗り上げさせるのは、これより立っている車だけ（{@code cos ピッチ × cos ロール}。約 25 度）。
+     * 大きく傾いた車は車輪が地面を見失っていて、見つけ直した直後の地面は実際より低い（上がる向きを
+     * 制限しているため）。そこから測ると平らな地面まで低い段になり、転がった車の床が摩擦を失った。
+     */
+    private static final double STEP_UPRIGHT_MIN = 0.9;
+    /**
+     * ストロークを使いきってから、さらにこれだけ縮んだところで硬く止める [m]。
+     * そこまではバンプストップ（バネ）が受ける——段差や旋回で底付きするたびにガツンと止まらないよう。
+     */
+    private static final double BOTTOM_OUT_TRAVEL = 0.03;
+    /** 縮みきるまでの残りがこれより少ない輪は、先読みの当たりとして拾う [m]。1 刻みで落ちる距離より十分長く。 */
+    private static final double BOTTOM_OUT_LOOKAHEAD = 1.0;
     /** これより深い重なりは押し出さない [m]（埋まっている）。 */
     private static final double MAX_DEPTH = 0.8;
 
@@ -84,8 +115,8 @@ public final class CarBody {
         rear = middle - half;
         // 地上高（調整画面）は元の諸元の車高での値。車高を上げれば（サスとタイヤ）シャシー基準面と
         // 一緒に上がる。屋根は既定の地上高から決めるので、地上高を上げると下端だけが上がる
-        top = CLEARANCE + HEIGHT - shape.staticRideHeight();
-        bottom = Math.min(spec.bodyClearance() - shape.staticRideHeight(), top - MIN_THICKNESS);
+        top = topOf(shape);
+        bottom = bottomOf(spec, shape);
         side = shape.trackWidth() * WIDTH_RATIO / 2.0;
         // 斜めは車体の厚みの 4 割まで（地上高を上げて薄くなった車体で、斜めが屋根を越えないよう）
         double scale = Math.min(1.0, (top - bottom) * 0.4 / CHAMFER_RISE);
@@ -105,6 +136,20 @@ public final class CarBody {
                 {-rise / slope, -run / slope, 0, (-(rear + run) * rise - bottom * run) / slope},
         };
         samples = buildSamples();
+    }
+
+    /** 車体の上端（屋根）の、シャシー基準面からの高さ [m]。地上高を上げても屋根は動かない。 */
+    static double topOf(CarSpec shape) {
+        return CLEARANCE + HEIGHT - shape.staticRideHeight();
+    }
+
+    /**
+     * 車体の下端の、シャシー基準面からの高さ [m]。地上高（調整画面）で上がる。
+     * 車同士の箱（{@link CarHull#body}）も同じ値を使う——バニラの箱はその内側に作るので、
+     * ここがずれるとサーバーの位置チェックが車体の通した段を塞がっていると見なす。
+     */
+    static double bottomOf(CarSpec spec, CarSpec shape) {
+        return Math.min(spec.bodyClearance() - shape.staticRideHeight(), topOf(shape) - MIN_THICKNESS);
     }
 
     /**
@@ -250,8 +295,25 @@ public final class CarBody {
     // 当たり
     // ------------------------------------------------------------------
 
-    /** 当たり 1 つ。点（ワールド）、車体を押す向き（単位）、重なりの深さ。 */
-    private record Contact(double px, double py, double pz, double nx, double ny, double nz, double depth) {
+    /** 当たりの種類。 */
+    private enum Kind {
+        /** 車体とブロック。摩擦あり。 */
+        BODY,
+        /** 低い段。真上へ持ち上げるだけ（摩擦・衝撃なし）。 */
+        STEP,
+        /** 縮みきったサスペンション。摩擦はタイヤの仕事なのでここでは掛けない。 */
+        WHEEL
+    }
+
+    /**
+     * 当たり 1 つ。点（ワールド）、車体を押す向き（単位）、重なりの深さ。
+     * 深さが負なのは、まだ離れている先読みの当たり（縮みきったサスペンションだけ）。
+     */
+    private record Contact(double px, double py, double pz, double nx, double ny, double nz, double depth,
+                           Kind kind) {
+        Contact(double px, double py, double pz, double nx, double ny, double nz, double depth) {
+            this(px, py, pz, nx, ny, nz, depth, Kind.BODY);
+        }
     }
 
     /** {@link #solve} の結果。 */
@@ -272,18 +334,21 @@ public final class CarBody {
      * 地形との当たりを解き、{@code state} の速度と回転を書き換える。位置は動かさない
      * （次のステップの積分で動く）。物理の 1 ステップごとに呼ぶ。
      *
-     * @param x 重心のシャシー基準面の位置（ワールド）。高さは {@code state.height}
+     * @param x      重心のシャシー基準面の位置（ワールド）。高さは {@code state.height}
+     * @param ground 各輪の地面。低い段かどうかを、いちばん高い輪の地面から測る
      */
-    public Result solve(CarSpec spec, CarState state, double x, double z, BlockField field, double dt) {
+    public Result solve(CarSpec spec, CarState state, GroundContact ground, double x, double z,
+                        BlockField field, double dt) {
         Result result = new Result();
         double y = state.height;
         double[][] ax = axes(state.yaw, state.pitch, state.roll);
-        List<Contact> contacts = findContacts(x, y, z, ax, field);
-        result.contacts = contacts.size();
+        double stepBase = Math.cos(state.pitch) * Math.cos(state.roll) >= STEP_UPRIGHT_MIN
+                ? stepBase(ground) : Double.NEGATIVE_INFINITY;
+        List<Contact> contacts = findContacts(x, y, z, ax, field, stepBase);
+        addBottomOutContacts(contacts, spec, state, ground, x, z);
         if (contacts.isEmpty()) {
             return result;
         }
-        result.touching = true;
 
         // 速度（ワールド）と回転（鉛直・車体の右・車体の前の 3 軸まわり）
         double[] fh = {-Math.sin(state.yaw), 0.0, Math.cos(state.yaw)};
@@ -312,9 +377,21 @@ public final class CarBody {
             arms[i] = new double[]{c.px - x, c.py - y, c.pz - z};
             double[] dir = {c.nx, c.ny, c.nz};
             normalMass[i] = effectiveMass(arms[i], dir, rotAxes, inertia, mass);
-            bias[i] = Math.min(MAX_BIAS, BAUMGARTE * Math.max(0.0, c.depth - SLOP) / dt);
             double approach = -dot(pointVelocity(v, w, rotAxes, arms[i]), dir);
-            result.impact = Math.max(result.impact, approach);
+            if (c.depth < 0.0) {
+                // 先読み: 離れているぶん（この 1 刻みで縮みきるところまで）は近づいてよい。
+                // それより速く近づくぶんが、縮みきった先へ突っ込む衝撃
+                bias[i] = c.depth / dt;
+                result.impact = Math.max(result.impact, approach + bias[i]);
+                continue;
+            }
+            bias[i] = Math.min(MAX_BIAS, BAUMGARTE * Math.max(0.0, c.depth - SLOP) / dt);
+            result.touching = true;
+            result.contacts++;
+            // 低い段に乗り上げるのは衝突ではない（音も揺れも出さない）
+            if (c.kind() != Kind.STEP) {
+                result.impact = Math.max(result.impact, approach);
+            }
             if (Math.abs(c.ny) > 0.5) {
                 result.vertical = true;
             } else {
@@ -334,6 +411,11 @@ public final class CarBody {
                 normalImpulse[i] = next;
                 applyImpulse(v, w, rotAxes, inertia, mass, arms[i], scale(dir, delta));
 
+                if (c.kind() != Kind.BODY) {
+                    // 低い段は滑って乗り上げる（摩擦を掛けるとブレーキになる）。
+                    // 縮みきったサスペンションの横の力は、タイヤの摩擦が物理のほうで出している
+                    continue;
+                }
                 // 摩擦。接点の滑る向きと逆に、押す力 × 係数まで
                 pv = pointVelocity(v, w, rotAxes, arms[i]);
                 vn = dot(pv, dir);
@@ -376,7 +458,56 @@ public final class CarBody {
      * （隣もブロック）は候補にしない——平らな地面や壁はブロックを並べたものなので、
      * 継ぎ目で押すと横へ跳ぶ。</p>
      */
-    private List<Contact> findContacts(double x, double y, double z, double[][] ax, BlockField field) {
+    /**
+     * 縮みきったサスペンションを、車体と同じ硬い当たりとして足す。押す点はその輪の接地点、向きは真上。
+     *
+     * <p><b>縮みきる前から先読みで拾う。</b>まだ余裕のある輪も「この 1 刻みで縮みきるところまでは
+     * 近づいてよい」当たりとして解くので、ちょうど端で止まる。縮みきってから止めると 1 刻みぶん
+     * （10m/s で 13cm）行き過ぎて、そのぶん埋まった。</p>
+     *
+     * <p>サスペンションのバネとダンパー（物理の側）はそのまま効いている。ここで止めるのはバネが
+     * 受け止めきれなかったぶんだけ。伸びる側には要らない——伸びきったらタイヤが浮くだけで、
+     * 車体を地面へ引き下ろす力は現実にも無い。</p>
+     */
+    private static void addBottomOutContacts(List<Contact> out, CarSpec spec, CarState state,
+                                             GroundContact ground, double x, double z) {
+        for (Wheel wheel : Wheel.VALUES) {
+            double groundHeight = ground.get(wheel);
+            if (groundHeight == Double.NEGATIVE_INFINITY) {
+                continue;
+            }
+            double forwardOffset = spec.wheelForwardOffset(wheel);
+            double rightOffset = spec.wheelRightOffset(wheel);
+            // 負ならストロークを使いきってバンプストップに乗っている（CarPhysics#updateSuspension と同じ）
+            double gap = state.hardpointHeight(forwardOffset, rightOffset) - groundHeight - spec.wheelRadius();
+            double depth = -BOTTOM_OUT_TRAVEL - gap;
+            if (depth <= -BOTTOM_OUT_LOOKAHEAD) {
+                continue;
+            }
+            double px = x + state.forwardX() * forwardOffset + state.rightX() * rightOffset;
+            double pz = z + state.forwardZ() * forwardOffset + state.rightZ() * rightOffset;
+            out.add(new Contact(px, groundHeight, pz, 0.0, 1.0, 0.0, depth, Kind.WHEEL));
+        }
+    }
+
+    /**
+     * 低い段を測る基準の高さ。接地している輪のうち、いちばん高い地面。
+     *
+     * <p><b>いちばん低い輪ではいけない。</b>前輪がハーフの段に乗った状態で次のハーフの段（地面から
+     * 1m）が来ると、後輪の地面から測れば壁になり、ハーフを並べた階段を登れない。どの輪も地面を
+     * 見ていない（宙にいる）ときは低い段を作らない——跳んだ車が 1 ブロックの壁を低い段と取り違えて
+     * 乗り上げないよう。</p>
+     */
+    private static double stepBase(GroundContact ground) {
+        double base = Double.NEGATIVE_INFINITY;
+        for (double h : ground.groundHeight) {
+            base = Math.max(base, h);
+        }
+        return base;
+    }
+
+    private List<Contact> findContacts(double x, double y, double z, double[][] ax, BlockField field,
+                                       double stepBase) {
         List<Contact> out = new ArrayList<>();
         double[] reach = bounds(x, y, z, ax);
         double[][] corners = corners();
@@ -438,6 +569,10 @@ public final class CarBody {
             if (separated || bestNormal == null || bestDepth > MAX_DEPTH) {
                 continue;
             }
+            if (box[4] > stepBase + STEP_MIN && box[4] <= stepBase + STEP_LIFT) {
+                addLiftContacts(out, box, samplePoints, x, y, z, ax);
+                continue;
+            }
             double[] n = bestNormal;
             double boxMax = maxProjection(boxPoints, n);
             double bodyMin = minProjection(bodyPoints, n);
@@ -475,6 +610,61 @@ public final class CarBody {
             }
         }
         return out;
+    }
+
+    /**
+     * 低い段の当たりを集める。押す向きは真上、深さはブロックの天面まで車体を持ち上げる量。
+     * 斜面に縁が当たっても後ろへは押さないので、ブレーキにならない。
+     */
+    private void addLiftContacts(List<Contact> out, double[] box, double[][] samplePoints,
+                                 double x, double y, double z, double[][] ax) {
+        int before = out.size();
+        for (double[] p : samplePoints) {
+            if (p[0] > box[0] && p[0] < box[3] && p[1] > box[1] && p[1] < box[4] && p[2] > box[2] && p[2] < box[5]) {
+                out.add(new Contact(p[0], p[1], p[2], 0.0, 1.0, 0.0, box[4] - p[1], Kind.STEP));
+            }
+        }
+        for (double[] b : edgePoints(box)) {
+            if (insideBody(b, x, y, z, ax)) {
+                double depth = depthBelow(b, x, y, z, ax);
+                if (depth > 0.0) {
+                    out.add(new Contact(b[0], b[1], b[2], 0.0, 1.0, 0.0, depth, Kind.STEP));
+                }
+            }
+        }
+        if (out.size() == before) {
+            // 点の間をすり抜けるほど薄い重なり。ブロックの中にあるいちばん低い車体の角で受ける
+            for (double[] q : corners()) {
+                double[] p = toWorld(x, y, z, ax, q);
+                if (p[0] > box[0] && p[0] < box[3] && p[1] > box[1] && p[1] < box[4] && p[2] > box[2] && p[2] < box[5]) {
+                    out.add(new Contact(p[0], p[1], p[2], 0.0, 1.0, 0.0, box[4] - p[1], Kind.STEP));
+                }
+            }
+        }
+    }
+
+    /** 車体の中の点 p から真下へ、車体の下側の面（底か斜面）を抜けるまでの距離 [m]。 */
+    private double depthBelow(double[] p, double x, double y, double z, double[][] ax) {
+        double dx = p[0] - x;
+        double dy = p[1] - y;
+        double dz = p[2] - z;
+        // 点と真上の向きを車体基準（前・上・右）で
+        double[] local = {
+                dx * ax[0][0] + dy * ax[0][1] + dz * ax[0][2],
+                dx * ax[1][0] + dy * ax[1][1] + dz * ax[1][2],
+                dx * ax[2][0] + dy * ax[2][1] + dz * ax[2][2]};
+        double[] up = {ax[0][1], ax[1][1], ax[2][1]};
+        double best = Double.MAX_VALUE;
+        for (double[] plane : planes) {
+            double toward = plane[0] * up[0] + plane[1] * up[1] + plane[2] * up[2];
+            if (toward >= -1.0e-9) {
+                continue;
+            }
+            // 点を下げていくと、外向きが下を向く面から出る
+            double inside = plane[3] - (plane[0] * local[0] + plane[1] * local[1] + plane[2] * local[2]);
+            best = Math.min(best, inside / -toward);
+        }
+        return best == Double.MAX_VALUE ? 0.0 : best;
     }
 
     /** ブロックの面（外向き n）の外が空いているか。面の中心のすぐ外で見る。 */

@@ -208,6 +208,38 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 落ち着くまでに 29 ティック掛かった。</p>
      */
     private static final double GROUND_RISE_PER_TICK = 0.15;
+    /**
+     * 低い段（{@link CarBody#STEP_LIFT} 以内）は先読みして、縁の手前から斜面で地面を上げておく。
+     * 斜面の長さは「この秒数で進む距離」——段の高さ（{@link #LOOKAHEAD_RISE}）をこの時間かけて登る。
+     *
+     * <p>上がる速さの制限（{@link #GROUND_RISE_PER_TICK}）だけだと、ハーフの段を登りきるのに
+     * 4 ティックかかり、その間（20m/s なら 4m）タイヤが段の中を走った。スラブを積んだ坂では
+     * 次の段がもう来ているので遅れが溜まり、タイヤが床を突き抜け、20m/s の 25% の坂で止まって
+     * 後ろへ下がり、30m/s では宙返りした。先読みすると縁に着いたときには段の高さまで上がっていて、
+     * 同じ坂を 17〜20m/s のまま登る（ピッチ最大 20 度前後）。</p>
+     *
+     * <p>1 ブロック以上の段は先読みしない（今までどおり上がる速さを制限する）。先読みすると
+     * 壁の手前で車が持ち上がり、地上高を上げた車が 1 ブロックの段を跳ねて越える。</p>
+     */
+    private static final double LOOKAHEAD_SECONDS = 0.15;
+    /** 先読みの斜面の長さの上限 [m]。 */
+    private static final double LOOKAHEAD_MAX = 3.0;
+    /**
+     * 下りの斜面の長さの上限 [m]。段を降りた直後は、後ろの段から斜面を下ろして地面にする。
+     *
+     * <p><b>登りより短くする（＝急にする）こと。</b>降りていく坂より緩い斜面を置くと地面が実際より
+     * 高く残り、段ごとに大きく揺さぶられて、25% の下りを 30m/s で走ると宙返りした（上限 3m）。
+     * 2m（段 50cm を 25% で降りる）ならロールの揺れが 7 度から 0〜1 度になり、宙返りもしない。
+     * 1m では先読みしないのと変わらない。</p>
+     *
+     * <p>崖や単独の段では効かない（車は自然に放物線で飛び、その軌道が斜面より上を通る）。
+     * 55cm を超える落差は斜面を作らない——作ると崖の先で宙に支えられる。</p>
+     */
+    private static final double LOOKAHEAD_DOWN_MAX = 2.0;
+    /** 先読みで地面を調べる間隔 [m]。 */
+    private static final double LOOKAHEAD_SPACING = 0.25;
+    /** 先読みの斜面で登る高さ [m]。ハーフブロックの段。 */
+    private static final double LOOKAHEAD_RISE = 0.5;
     /** 車体の上向きの鉛直成分がこれ以下（70 度より傾いた）なら、タイヤは地面に届かない。 */
     private static final double WHEEL_UPRIGHT_MIN = 0.34;
     /**
@@ -894,10 +926,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
 
     /** 物理を解いて実際に動かす。運転クライアント、または無人時のサーバーでのみ呼ばれる。 */
     private void physicsTick(CarInput input) {
-        // 接地の探索は 1 ティックに 1 回だけ。サブステップの間は同じ地形を見続けるので、
-        // 高速で走るほど地形のサンプリングが粗くなる（平地では問題にならない）
         updateWetness();
-        updateGroundContact();
 
         // 車体（CarBody）とブロックの当たりは物理の 1 ステップごとに解き、位置もここで積む。
         // 車体は硬い箱で、ブロックと交わらない。当たった点に力積を掛けるので、当たったところを
@@ -912,8 +941,11 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         boolean wall = false;
         boolean floor = false;
         for (int i = 0; i < PHYSICS_SUBSTEPS; i++) {
+            // 接地は物理の 1 刻みごとに探す。1 ティックに 1 回だと、20m/s では次に探すまでに 1m 進み、
+            // その間に越えた段の縁を知らないまま新しい段の中を走って、スラブの坂でタイヤが床に埋まった
+            updateGroundContact(x, z, dt);
             CarPhysics.step(carSpec, state, groundContact, dt, input);
-            CarBody.Result hit = body.solve(carSpec, state, x, z, blockField, dt);
+            CarBody.Result hit = body.solve(carSpec, state, groundContact, x, z, blockField, dt);
             impact = Math.max(impact, hit.impact);
             wall |= hit.horizontal;
             floor |= hit.vertical;
@@ -1163,13 +1195,13 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 接地面は<b>据え置く</b>——タイヤは路面に接したまま壁に当たっているのだから、
      * 高さは変わらないのが正しい。前へ進めないのはバニラの箱の衝突が止めてくれる。</p>
      */
-    private void updateGroundContact() {
+    private void updateGroundContact(double carX, double carZ, double dt) {
         // 大きく傾いた（70 度を超えた）車のタイヤは地面に届かない。サスペンションは真下へしか
         // 伸びないので、そのままだと横倒しや裏返しの車がタイヤで屋根を突き抜けて地面を押す。
         // 横倒しの車は側面で、裏返しの車は屋根で地面に乗る（車体の仕事）
         if (Math.cos(state.pitch) * Math.cos(state.roll) <= WHEEL_UPRIGHT_MIN) {
             for (Wheel wheel : Wheel.VALUES) {
-                setGroundHeight(wheel, Double.NEGATIVE_INFINITY);
+                setGroundHeight(wheel, Double.NEGATIVE_INFINITY, 0.0);
             }
             return;
         }
@@ -1177,15 +1209,21 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         double forwardZ = state.forwardZ();
         double rightX = state.rightX();
         double rightZ = state.rightZ();
-        double rayLength = spec.suspensionMaxLength() + spec.wheelRadius() + GROUND_RAY_MARGIN;
+        // 落ちているときは、この 1 刻みで落ちる距離だけ先まで探す。届かないと、地面を見つける
+        // 前に車体が地面へ着き、縮みきったサスペンションを止める当たり（CarBody）も間に合わず埋まった
+        // （10m の落下で 1 ティックに 68cm 落ちる）
+        double fallReach = Math.max(0.0, -state.verticalSpeed) * dt;
+        // 段差の立ち上がり制限は 1 ティックあたりの量なので、刻みの長さで割り振る
+        double rise = GROUND_RISE_PER_TICK * dt / TICK_SECONDS;
+        double rayLength = spec.suspensionMaxLength() + spec.wheelRadius() + GROUND_RAY_MARGIN + fallReach;
 
         for (Wheel wheel : Wheel.VALUES) {
             int index = wheel.ordinal();
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
 
-            double x = getX() + forwardX * forwardOffset + rightX * rightOffset;
-            double z = getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+            double x = carX + forwardX * forwardOffset + rightX * rightOffset;
+            double z = carZ + forwardZ * forwardOffset + rightZ * rightOffset;
             double top = state.hardpointHeight(forwardOffset, rightOffset);
             double bottom = top - rayLength;
             // 今のタイヤ下端。ここから登坂限界ぶん上までが「乗り越えられる」範囲
@@ -1200,7 +1238,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
                     this));
 
             if (hit.getType() == HitResult.Type.MISS) {
-                setGroundHeight(wheel, Double.NEGATIVE_INFINITY);
+                setGroundHeight(wheel, Double.NEGATIVE_INFINITY, rise);
                 continue;
             }
             if (hit.isInside()) {
@@ -1214,8 +1252,72 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             // 他 MOD の道路ブロックはそのままアスファルトとして走れる
             RoadSurface surface = SurfaceLookup.of(level().getBlockState(hit.getBlockPos()));
             surfaces[index] = surface;
-            setGroundHeight(wheel, hit.getLocation().y, tireGrip(surface), tireRolling(surface), wheelBottom);
+            double height = hit.getLocation().y;
+            double previous = previousGroundHeight[index];
+            // 段の高さを測る基準。地面を見失っていた輪は、いまのタイヤ下端から
+            double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
+            double ahead = lookAhead(x, z, from, bottom, base, height);
+            setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, ahead, rise);
         }
+    }
+
+    /**
+     * 段から斜面を下ろしたときの、いまの位置での高さ。前にある低い段からは手前へ（登り）、
+     * 後ろにある低い段からはこちらへ（下り）。低い段が無ければ負の無限大。
+     *
+     * @param base   この輪のいまの地面。前の段はこれより {@link CarBody#STEP_LIFT} を超えて高いものは見ない
+     * @param height この輪の真下の地面。後ろの段はこれより {@link CarBody#STEP_LIFT} を超えて高いものは見ない（崖）
+     */
+    private double lookAhead(double x, double z, double from, double bottom, double base, double height) {
+        double velocityX = state.velocityX();
+        double velocityZ = state.velocityZ();
+        double speed = Math.hypot(velocityX, velocityZ);
+        double best = Double.NEGATIVE_INFINITY;
+        if (speed < 0.1) {
+            return best;
+        }
+        double reach = Math.min(LOOKAHEAD_MAX, speed * LOOKAHEAD_SECONDS);
+        double slope = LOOKAHEAD_RISE / reach;
+        for (double distance = LOOKAHEAD_SPACING; distance <= reach + 1.0e-9; distance += LOOKAHEAD_SPACING) {
+            double px = x + velocityX / speed * distance;
+            double pz = z + velocityZ / speed * distance;
+            BlockHitResult hit = level().clip(new ClipContext(
+                    new Vec3(px, from, pz),
+                    new Vec3(px, bottom, pz),
+                    ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE,
+                    this));
+            if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+                continue;
+            }
+            double ground = hit.getLocation().y;
+            if (ground - base > CarBody.STEP_LIFT) {
+                continue;
+            }
+            best = Math.max(best, ground - slope * distance);
+        }
+        // 下り。後ろの段から斜面を下ろす
+        double downReach = Math.min(LOOKAHEAD_DOWN_MAX, speed * LOOKAHEAD_SECONDS);
+        double downSlope = LOOKAHEAD_RISE / downReach;
+        for (double distance = LOOKAHEAD_SPACING; distance <= downReach + 1.0e-9; distance += LOOKAHEAD_SPACING) {
+            double px = x - velocityX / speed * distance;
+            double pz = z - velocityZ / speed * distance;
+            BlockHitResult hit = level().clip(new ClipContext(
+                    new Vec3(px, from, pz),
+                    new Vec3(px, bottom, pz),
+                    ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE,
+                    this));
+            if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+                continue;
+            }
+            double ground = hit.getLocation().y;
+            if (ground - height > CarBody.STEP_LIFT) {
+                continue;
+            }
+            best = Math.max(best, ground - downSlope * distance);
+        }
+        return best;
     }
 
     /**
@@ -1233,12 +1335,15 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         return surface.rollingScale() * getSpec().tire().rollingOn(surface.surfaceName());
     }
 
-    private void setGroundHeight(Wheel wheel, double height) {
-        setGroundHeight(wheel, height, 1.0, 1.0, Double.NEGATIVE_INFINITY);
+    private void setGroundHeight(Wheel wheel, double height, double rise) {
+        int index = wheel.ordinal();
+        double previous = previousGroundHeight[index];
+        setGroundHeight(wheel, height, 1.0, 1.0, previous > Double.NEGATIVE_INFINITY ? previous : height,
+                Double.NEGATIVE_INFINITY, rise);
     }
 
     /**
-     * 接地面の高さを物理コアへ渡す。<b>上がる向きだけ 1 ティックあたりの量を制限する</b>。
+     * 接地面の高さを物理コアへ渡す。<b>上がる向きだけ 1 回あたりの量を制限する</b>。
      *
      * <p>段差の天面をいきなり渡すと、その食い込みがまるごとバンプストップに入って
      * 車が跳ね上がる。少しずつ上げれば、サスが縮みながら車体を持ち上げていく。
@@ -1249,17 +1354,22 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 出た瞬間に地面が 1m 一気に上がってバンプストップに乗り、その輪に停車時の 8 倍の荷重が
      * 跳ねた（1 輪を 1 ブロックの穴へ落として抜けるとき）。</p>
      *
-     * @param wheelBottom いまのタイヤ下端の高さ。地面を見失っていた輪をどこから上げるか
+     * <p><b>低い段（{@link CarBody#STEP_LIFT} 以内）は制限しない。</b>先読み（{@link #lookAhead}）の
+     * 斜面で縁の手前から上げてあるので、跳ね上がらない。制限するのは 1 ブロック以上の段だけ。</p>
+     *
+     * @param base  この輪のいまの地面（地面を見失っていた輪はいまのタイヤ下端）。段の高さをここから測る
+     * @param ahead 先読みの斜面の高さ。無ければ負の無限大
+     * @param rise  この 1 回で上げてよい量 [m]（{@link #GROUND_RISE_PER_TICK} を刻みで割り振ったもの）
      */
     private void setGroundHeight(Wheel wheel, double height, double gripScale, double rollingScale,
-                                 double wheelBottom) {
+                                 double base, double ahead, double rise) {
         int index = wheel.ordinal();
-        double previous = previousGroundHeight[index];
-        double limited = height;
-        if (previous > Double.NEGATIVE_INFINITY) {
-            limited = Math.min(height, previous + GROUND_RISE_PER_TICK);
-        } else if (height > wheelBottom) {
-            limited = Math.min(height, wheelBottom + GROUND_RISE_PER_TICK);
+        double limited;
+        if (height - base <= CarBody.STEP_LIFT) {
+            // 低い段は先読みの斜面で登っているので、上がる速さは制限しない
+            limited = Math.max(height, ahead);
+        } else {
+            limited = Math.min(height, Math.max(ahead, base + rise));
         }
         previousGroundHeight[index] = limited;
         groundContact.set(wheel, limited, gripScale, rollingScale);
