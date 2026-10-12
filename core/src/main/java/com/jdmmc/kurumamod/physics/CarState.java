@@ -60,6 +60,11 @@ public final class CarState {
     /** ロール角速度 [rad/s] */
     public double rollRate;
     /**
+     * 横転したまま止まっている時間 [s]。{@link CarPhysics} の起き上がり補助が数える。
+     * 起こしている最中は {@code RIGHTING_DELAY} 以上のまま保たれる。
+     */
+    public double overturnedSeconds;
+    /**
      * 実際に生じている車体右方向の加速度 [m/s^2]。いわゆる横 G。
      *
      * <p>荷重移動のロールモーメントはタイヤの横力ではなくこちらから求める。
