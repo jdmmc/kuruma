@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make a car | Car Pack Guide | KurumaMod</title>
+<meta name="description" content="Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="img/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="canonical" href="https://kuruma.jdm-mc.com/guide-car.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="KurumaMod">
+<meta property="og:title" content="Make a car | Car Pack Guide | KurumaMod">
+<meta property="og:description" content="Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.">
+<meta property="og:url" content="https://kuruma.jdm-mc.com/guide-car.html">
+<meta property="og:image" content="https://kuruma.jdm-mc.com/img/ogp.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@kurumamod">
 <script>
 // 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
 (function () {
@@ -51,9 +64,9 @@
     <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span> / <span data-l="en">Car</span><span data-l="ja">車</span></div>
     <h1><span data-l="en">Make a car</span><span data-l="ja">車を作る</span></h1>
     <p><span data-l="en">Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.</span><span data-l="ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）。</span></p>
-    <nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav>
   </div>
 </section>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
   <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass and mirrors (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">9. Checklist</span><span data-l="ja">9. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a><a href="#sd"><span data-l="en">Appendix B. Ignored values</span><span data-l="ja">付録 B. 読まれない値</span></a></nav>
