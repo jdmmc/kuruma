@@ -131,6 +131,18 @@ if (location.hostname === '{GA_HOST}') {{
 }}
 </script>"""
 
+# トップページの紹介動画
+YOUTUBE_ID = "3Hfrvz-qgxc"
+
+
+def youtube(video_id):
+    # youtube-nocookie.com は再生するまで Cookie を置かない。loading="lazy" で、
+    # スクロールして近づくまでプレイヤーを読み込まない（ページの表示を遅くしない）
+    return (f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}" title="KurumaMod" loading="lazy" '
+            'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" '
+            'referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>')
+
+
 # 書き出したページの URL。最後に sitemap.xml へ並べる
 PAGES = []
 
@@ -529,6 +541,14 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div><b>{T("Free and open source", "無料・オープンソース")}</b><span>GPL-3.0</span></div>
   </div>
 </div>
+
+<section id="video">
+  <div class="wrap">
+    <div class="eyebrow">{T("Video", "動画")}</div>
+    <h2 class="title">{T("See it drive.", "走りを見る。")}</h2>
+    <div class="video">{youtube(YOUTUBE_ID)}</div>
+  </div>
+</section>
 
 <section class="dark">
   <div class="wrap">
