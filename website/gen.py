@@ -112,9 +112,46 @@ FOOTER = f"""<footer>
 """
 
 
+# Google アナリティクス（GA4）。本番のホストで開いたときだけ読み込む。
+# 手元でファイルを開いたときや localhost で確認しているときに計測が混ざらないよう、
+# gtag.js そのものをホスト名を見てから差し込む（タグを書かないビルドを分けると、上げ忘れが起きる）
+GA_ID = "G-4NCQ47HCMC"
+GA_HOST = "kuruma.jdm-mc.com"
+GA_TAG = f"""<!-- Google tag (gtag.js)。本番（{GA_HOST}）でだけ読み込む -->
+<script>
+if (location.hostname === '{GA_HOST}') {{
+  var ga = document.createElement('script');
+  ga.async = true;
+  ga.src = 'https://www.googletagmanager.com/gtag/js?id={GA_ID}';
+  document.head.appendChild(ga);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+  gtag('config', '{GA_ID}');
+}}
+</script>"""
+
+# トップページの紹介動画
+YOUTUBE_ID = "3Hfrvz-qgxc"
+
+
+def youtube(video_id):
+    # youtube-nocookie.com は再生するまで Cookie を置かない。loading="lazy" で、
+    # スクロールして近づくまでプレイヤーを読み込まない（ページの表示を遅くしない）
+    return (f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}" title="KurumaMod" loading="lazy" '
+            'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" '
+            'referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>')
+
+
+# 書き出したページの URL。最後に sitemap.xml へ並べる
+PAGES = []
+
+
 def page(name, title, title_ja, body, desc=DEFAULT_DESC, image="img/ogp.jpg"):
     url = SITE + ("" if name == "index.html" else name)
+    PAGES.append(url)
     meta = "\n".join([
+        GA_TAG,
         f'<meta name="description" content="{html.escape(desc)}">',
         '<link rel="icon" href="favicon.ico" sizes="any">',
         '<link rel="icon" href="img/favicon.png" type="image/png">',
@@ -504,6 +541,14 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div><b>{T("Free and open source", "無料・オープンソース")}</b><span>GPL-3.0</span></div>
   </div>
 </div>
+
+<section id="video">
+  <div class="wrap">
+    <div class="eyebrow">{T("Video", "動画")}</div>
+    <h2 class="title">{T("See it drive.", "走りを見る。")}</h2>
+    <div class="video">{youtube(YOUTUBE_ID)}</div>
+  </div>
+</section>
 
 <section class="dark">
   <div class="wrap">
@@ -1051,3 +1096,22 @@ def build_guide():
 
 
 build_guide()
+
+
+# サイトマップ。page() で書き出したページをそのまま並べるので、ページを足せば自動で載る。
+# 英語と日本語は同じ URL（site.js が切り替える）なので、言語ごとの URL は持たない。
+# lastmod は書かない——作り直すたびに全ページの日付が今日になり、かえって当てにならなくなる
+def write_sitemap():
+    # 順番に意味は無いが、読んだときに分かりやすいようトップを先頭に
+    ordered = sorted(PAGES, key=lambda u: u != SITE)
+    urls = "".join(f"  <url><loc>{html.escape(u)}</loc></url>\n" for u in ordered)
+    (OUT / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{urls}</urlset>\n", encoding="utf-8")
+    # 検索エンジンがサイトマップを見つけられるよう、robots.txt から指す
+    (OUT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n", encoding="utf-8")
+    print(f"sitemap ok ({len(PAGES)} pages)")
+
+
+write_sitemap()
