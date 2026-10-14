@@ -55,6 +55,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -240,6 +241,16 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 55cm を超える落差は斜面を作らない——作ると崖の先で宙に支えられる。</p>
      */
     private static final double LOOKAHEAD_DOWN_MAX = 2.0;
+    /** 車体の角がこれより深くブロックに入っていたら、埋まったと見て持ち上げる [m]（{@link #unbury}）。 */
+    private static final double BURIED_DEPTH = 0.5;
+    /** 起き上がり補助の最中に、潜ったぶんとして持ち上げる上限 [m]。これより深いのは壁（上へ乗せない）。 */
+    private static final double RIGHTING_MAX_LIFT = 1.0;
+    /** 起き上がり補助の最中に、潜った角の横をどこまで見るか [m]。壁に触れた角を地面と取り違えないよう。 */
+    private static final double RIGHTING_SIDE_CHECK = 0.2;
+    /** 持ち上げるとき、ブロックの天面からさらに離す量 [m]。 */
+    private static final double BURIED_CLEARANCE = 0.05;
+    /** 1 回で持ち上げる上限 [m]。地中深くに落ちたものを地上まで飛ばさない（次のティックでまた上げる）。 */
+    private static final double BURIED_MAX_LIFT = 6.0;
     /** 接地を探すタイヤの端を、幅の端からどれだけ内へ寄せるか [m]。 */
     private static final double TIRE_EDGE_INSET = 0.03;
     /** 階段を探す範囲 [m]。前後それぞれ。1 マスの段なら縁が 2 つ入る。 */
@@ -344,6 +355,11 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 壁に食い込んだ輪を据え置くのに使う。
      */
     private final double[] previousGroundHeight = newGroundHeights();
+    /**
+     * 地面の中に埋まった輪（{@link #updateGroundContact}）。壁に当たった輪とは違い、
+     * 上にある地面の天面まで少しずつ持ち上げる。
+     */
+    private final boolean[] buriedWheel = new boolean[Wheel.COUNT];
 
     private static double[] newGroundHeights() {
         double[] heights = new double[Wheel.COUNT];
@@ -997,6 +1013,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         }
         reportImpact(impact);
         state.height = getY();
+        unbury(body);
 
         if (!level().isClientSide) {
             // 無人の車をサーバーが動かしている場合。運転者から届く値の代わりに自分の結果を配る
@@ -1007,6 +1024,97 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
                     driverLights(), (float) state.boost);
         }
+    }
+
+    /**
+     * 車体が地形に深く埋まっていたら、真上へ持ち上げて出す。<b>原因を問わない最後の安全策。</b>
+     *
+     * <p>車体の当たり（{@link CarBody}）は、ブロックに入ったぶんを少しずつ押し戻すだけで、
+     * 深く入り込んだものを引き上げる仕組みは持っていない（地面の中のブロックは上も横も
+     * 隣がブロックなので、押し出す向きが見つからない）。いったん深く入ると、そのまま
+     * 地面に刺さって動けなくなった。落下や転がりでは物理の検算で再現しない入り方をしているので、
+     * 入り方を塞ぐ代わりに、入ってしまったものを出す。</p>
+     *
+     * <p>埋まったと見るのは、車体の角のどれかがブロックの中に {@link #BURIED_DEPTH} より深く
+     * 入っていて、<b>その角の前後左右も同じだけブロックに囲まれている</b>とき（地面や壁に
+     * 触れているだけ・食い込みかけを押し戻している最中は対象外）。
+     * 持ち上げる量は、入っている角のうち、その上に積み重なったブロックの天面までがいちばん遠いもの。
+     * 傾きはそのまま（起こすのは {@code CarPhysics} の起き上がり補助）。落ちる速さは捨てる。</p>
+     *
+     * <p><b>起き上がり補助の最中は、浅く潜ったぶんも持ち上げる</b>（{@link #RIGHTING_MAX_LIFT} まで）。
+     * 補助は重心まわりに回すので地面側の縁が潜り、毎刻み角速度を置き直すので車体の当たりの
+     * 押し返しが追いつかず、起こしながら地面へ刺さっていった。補助そのものが物理の外の
+     * 手助けなので、位置を直接動かしてよい。</p>
+     */
+    private void unbury(CarBody body) {
+        double[][] axes = CarBody.axes(state.yaw, state.pitch, state.roll);
+        double x = getX();
+        double y = getY();
+        double z = getZ();
+        double lift = 0.0;
+        // 起き上がり補助は重心まわりに回すので、地面側の縁が潜る（車体の当たりが押し返しても、
+        // 補助が毎刻み角速度を置き直すので追いつかない）。その間は浅く潜ったぶんも持ち上げる
+        boolean righting = CarPhysics.isRighting(state);
+        for (double[] corner : body.corners()) {
+            double cx = x + axes[0][0] * corner[0] + axes[1][0] * corner[1] + axes[2][0] * corner[2];
+            double cy = y + axes[0][1] * corner[0] + axes[1][1] * corner[1] + axes[2][1] * corner[2];
+            double cz = z + axes[0][2] * corner[0] + axes[1][2] * corner[1] + axes[2][2] * corner[2];
+            double top = solidTopAbove(cx, cy, cz);
+            // 縦に深いだけでは足りない。壁に数 cm 入った角も「上まで 0.5m 以上ある」ので、
+            // 横にも深く囲まれていること（前後左右に離れた点もブロックの中）を見る。
+            // そうでないと、壁に当たっただけの車を壁の上へ持ち上げてしまう
+            double depth = top - cy;
+            if (depth > BURIED_DEPTH && surroundedSideways(cx, cy, cz, BURIED_DEPTH)) {
+                lift = Math.max(lift, depth + BURIED_CLEARANCE);
+            } else if (righting && depth > 0.0 && depth <= RIGHTING_MAX_LIFT
+                    && surroundedSideways(cx, cy, cz, RIGHTING_SIDE_CHECK)) {
+                lift = Math.max(lift, depth);
+            }
+        }
+        if (lift <= 0.0) {
+            return;
+        }
+        lift = Math.min(lift, BURIED_MAX_LIFT);
+        setPos(x, y + lift, z);
+        state.height = getY();
+        state.verticalSpeed = Math.max(0.0, state.verticalSpeed);
+        // 地面の高さの記憶は埋まっていたときのもの。上がる速さの制限が古い値から効かないよう捨てる
+        Arrays.fill(previousGroundHeight, Double.NEGATIVE_INFINITY);
+    }
+
+    /** 点から東西南北へ {@code distance} 離れた 4 点が、すべてブロックの中にあるか。壁に触れているだけの点を除く。 */
+    private boolean surroundedSideways(double x, double y, double z, double distance) {
+        return solidTopAbove(x + distance, y, z) > y
+                && solidTopAbove(x - distance, y, z) > y
+                && solidTopAbove(x, y, z + distance) > y
+                && solidTopAbove(x, y, z - distance) > y;
+    }
+
+    /**
+     * 点がブロックの当たり判定の中にあれば、そこから上へすき間なく続くブロックの天面。
+     * 中に無ければ負の無限大。
+     */
+    private double solidTopAbove(double x, double y, double z) {
+        double top = Double.NEGATIVE_INFINITY;
+        double probe = y;
+        for (int i = 0; i < 16; i++) {
+            BlockPos pos = BlockPos.containing(x, probe, z);
+            VoxelShape shape = level().getBlockState(pos).getCollisionShape(level(), pos);
+            double found = Double.NEGATIVE_INFINITY;
+            for (AABB box : shape.toAabbs()) {
+                AABB moved = box.move(pos);
+                if (x > moved.minX && x < moved.maxX && z > moved.minZ && z < moved.maxZ
+                        && probe >= moved.minY - 1.0e-6 && probe < moved.maxY) {
+                    found = Math.max(found, moved.maxY);
+                }
+            }
+            if (found == Double.NEGATIVE_INFINITY) {
+                break;
+            }
+            top = found;
+            probe = found + 1.0e-4;
+        }
+        return top;
     }
 
     /** {@link #moveCars} の結果。当たった車（無ければ null）と、押し出しの中身。 */
@@ -1348,6 +1456,24 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 }
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, rise);
                 continue;
+            }
+            if (!hit.isInside()) {
+                buriedWheel[index] = false;
+            } else if (buriedWheel[index] || previousGroundHeight[index] == Double.NEGATIVE_INFINITY) {
+                // 地面を見ていなかった輪が、いきなり登坂限界より深く地面の中にある＝走って壁に
+                // 当たったのではなく、上から（回って）地面に入った。起き上がり補助が横倒しの車を
+                // 起こすとき、伸びきったサスペンションの先のタイヤが地面へ 1.5m ほど潜る
+                // （大きいタイヤほど深い）。据え置くと地面が無いままで、タイヤを埋めたまま
+                // 車体の角で斜めに止まった。上にある地面の天面を、上がる速さを制限して渡す
+                double surface = solidTopAbove(x, from, z);
+                if (surface > Double.NEGATIVE_INFINITY && surface <= top + spec.wheelRadius()) {
+                    buriedWheel[index] = true;
+                    double previous = previousGroundHeight[index];
+                    double base = previous > Double.NEGATIVE_INFINITY ? previous : wheelBottom;
+                    setGroundHeight(wheel, surface, tireGrip(surfaces[index]), tireRolling(surfaces[index]),
+                            base, Double.NEGATIVE_INFINITY, rise);
+                    continue;
+                }
             }
             if (hit.isInside()) {
                 // 起点が塞がっている＝登坂限界より上まで続く壁。乗せずに据え置く

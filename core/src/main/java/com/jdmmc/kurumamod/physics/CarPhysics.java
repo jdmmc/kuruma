@@ -1710,6 +1710,14 @@ public final class CarPhysics {
         }
     }
 
+    /**
+     * 起き上がり補助が車を回している最中か。補助は重心まわりに回すので、地面側の縁が
+     * 潜り込む。{@code CarEntity} はこの間だけ、潜ったぶんを真上へ持ち上げる。
+     */
+    public static boolean isRighting(CarState state) {
+        return state.overturnedSeconds >= RIGHTING_DELAY;
+    }
+
     /** 起き上がり補助を始める傾き [rad]。タイヤが地面に届かなくなる角度（約 70 度）。 */
     private static final double RIGHTING_START = Math.toRadians(70.0);
     /** 起き上がり補助をやめる傾き [rad]。ここまで戻ればタイヤが着いてサスペンションが受け取る。 */
