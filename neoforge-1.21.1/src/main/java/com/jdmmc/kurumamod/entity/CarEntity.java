@@ -236,6 +236,20 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 55cm を超える落差は斜面を作らない——作ると崖の先で宙に支えられる。</p>
      */
     private static final double LOOKAHEAD_DOWN_MAX = 2.0;
+    /** 階段を探す範囲 [m]。前後それぞれ。1 マスの段なら縁が 2 つ入る。 */
+    private static final double STAIR_REACH = 3.0;
+    /**
+     * これより小さい高さの違いは段と見ない [m]。roads の階層ブロックは 1/16（6.25cm）刻みなので、
+     * どんな緩い坂でも段はこれより大きい。
+     */
+    private static final double STAIR_EPSILON = 0.05;
+    /** 階段と見る段の高さの上限 [m]。1 ブロック（＋余裕）。 */
+    private static final double STAIR_STEP_MAX = 1.05;
+    /**
+     * 階段と見る傾きの上限。35 度。roads の 30 度の坂（1 マスに 58cm）は入り、
+     * 1 マスに 1 ブロックずつ上がる坂（45 度）は入らない——それは登れない決まり。
+     */
+    private static final double STAIR_SLOPE_MAX = Math.tan(Math.toRadians(35.0));
     /** 先読みで地面を調べる間隔 [m]。 */
     private static final double LOOKAHEAD_SPACING = 0.25;
     /** 先読みの斜面で登る高さ [m]。ハーフブロックの段。 */
@@ -1222,8 +1236,11 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
 
-            double x = carX + forwardX * forwardOffset + rightX * rightOffset;
-            double z = carZ + forwardZ * forwardOffset + rightZ * rightOffset;
+            // 水平の位置は傾きの cos ぶん縮む。高さだけ傾けると、坂の上で前輪が地面を先で探す
+            double forward = state.horizontalForwardOffset(forwardOffset);
+            double right = state.horizontalRightOffset(rightOffset);
+            double x = carX + forwardX * forward + rightX * right;
+            double z = carZ + forwardZ * forward + rightZ * right;
             double top = state.hardpointHeight(forwardOffset, rightOffset);
             double bottom = top - rayLength;
             // 今のタイヤ下端。ここから登坂限界ぶん上までが「乗り越えられる」範囲
@@ -1238,6 +1255,26 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
                     this));
 
             if (hit.getType() == HitResult.Type.MISS) {
+                // 階段の下りでは、縁を越えた直後の下の段がレイの先にある。1 段ぶん深く探して、
+                // 階段なら段の角を結んだ斜面で渡す。崖なら今までどおり地面なし（落ちる）
+                BlockHitResult deep = level().clip(new ClipContext(
+                        new Vec3(x, from, z),
+                        new Vec3(x, bottom - STAIR_STEP_MAX, z),
+                        ClipContext.Block.COLLIDER,
+                        ClipContext.Fluid.NONE,
+                        this));
+                if (deep.getType() != HitResult.Type.MISS && !deep.isInside()) {
+                    double height = deep.getLocation().y;
+                    double stair = stairHeight(x, z, from, bottom, height);
+                    if (stair >= bottom) {
+                        RoadSurface surface = SurfaceLookup.of(level().getBlockState(deep.getBlockPos()));
+                        surfaces[index] = surface;
+                        double previous = previousGroundHeight[index];
+                        double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
+                        setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, stair, rise);
+                        continue;
+                    }
+                }
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, rise);
                 continue;
             }
@@ -1256,7 +1293,10 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             double previous = previousGroundHeight[index];
             // 段の高さを測る基準。地面を見失っていた輪は、いまのタイヤ下端から
             double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
-            double ahead = lookAhead(x, z, from, bottom, base, height);
+            // 階段（段の角を結んだ斜面）が取れればそちらを使う。先読みの斜面は 0.25m おきの
+            // 粗いもので、混ぜると地面が数 cm ずつ跳ね、ダンパーがそれを速度として拾って車を跳ね上げる
+            double stair = stairHeight(x, z, from, bottom, height);
+            double ahead = stair > Double.NEGATIVE_INFINITY ? stair : lookAhead(x, z, from, bottom, base, height);
             setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, ahead, rise);
         }
     }
@@ -1318,6 +1358,127 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             best = Math.max(best, ground - downSlope * distance);
         }
         return best;
+    }
+
+    /**
+     * 階段を斜面として見たときの、いまの位置での高さ。段の角（縁の上端）を結んだ線の上。
+     * 階段でなければ負の無限大。
+     *
+     * <p>roads の階層ブロックで作った坂は、1 マスごとに平らな段が並んだもの。30 度の坂なら
+     * 1 マスに 58cm の段になり、低い段の先読み（{@link #lookAhead}、55cm まで）から外れて
+     * <b>崖が並んでいるのと同じ扱いになっていた</b>——段を降りるたびに前輪が宙に出て、
+     * 下りでは 4 輪とも浮いている時間が 5〜8 割に達した。実際の車が走るのは段の角どうしを
+     * 結んだ面なので、その面を地面として渡す。</p>
+     *
+     * <p>階段と見るのは、段の幅が測れるとき（こちらの段の反対側にも縁があるか、高い側の
+     * 向こうに次の段があるとき）だけ。<b>崖・単独の段は今までどおり</b>（放物線で飛ぶ・
+     * 段差として登る）。急すぎるもの（{@link #STAIR_SLOPE_MAX} 超え、1 マスに 1 ブロックの坂など）も
+     * 階段とは見ない。</p>
+     *
+     * <p>向きは車体の前後。止まっていても坂の形は変わらないので、速度の向きには依らない。</p>
+     *
+     * @param height この輪の真下の地面
+     */
+    private double stairHeight(double x, double z, double from, double bottom, double height) {
+        double dirX = state.forwardX();
+        double dirZ = state.forwardZ();
+        double deep = bottom - STAIR_STEP_MAX;
+        double[] ahead = stairEdges(x, z, dirX, dirZ, from, deep, height);
+        double[] behind = stairEdges(x, z, -dirX, -dirZ, from, deep, height);
+        // 後ろが高い（下り）か、前が高い（上り）か。谷ならどちらも立つので高いほう
+        return Math.max(stairSide(height, behind, ahead), stairSide(height, ahead, behind));
+    }
+
+    /**
+     * 片側へ歩いて、段の縁を手前から 2 つまで探す。{縁 1 までの距離, その先の高さ, 縁 2 までの距離, その先の高さ}。
+     * 見つからなければ NaN。縁の位置は二分して 1.5cm まで詰める。
+     */
+    private double[] stairEdges(double x, double z, double dirX, double dirZ, double from, double bottom,
+                                double height) {
+        double[] edges = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
+        double level = height;
+        double previous = 0.0;
+        int found = 0;
+        for (double distance = LOOKAHEAD_SPACING; distance <= STAIR_REACH + 1.0e-9 && found < 2;
+             distance += LOOKAHEAD_SPACING) {
+            double ground = probeGround(x, z, dirX, dirZ, distance, from, bottom);
+            if (Double.isNaN(ground)) {
+                break;
+            }
+            if (Math.abs(ground - level) > STAIR_EPSILON) {
+                double near = previous;
+                double far = distance;
+                for (int i = 0; i < 3; i++) {
+                    double middle = (near + far) / 2.0;
+                    double g = probeGround(x, z, dirX, dirZ, middle, from, bottom);
+                    if (!Double.isNaN(g) && Math.abs(g - level) <= STAIR_EPSILON) {
+                        near = middle;
+                    } else {
+                        far = middle;
+                    }
+                }
+                // 縁は段差（不連続）でなければならない。なめらかな斜面は詰めても差が縮むので段とは見ない
+                double nearGround = probeGround(x, z, dirX, dirZ, near, from, bottom);
+                double farGround = probeGround(x, z, dirX, dirZ, far, from, bottom);
+                if (Double.isNaN(nearGround) || Double.isNaN(farGround)
+                        || Math.abs(farGround - nearGround) <= STAIR_EPSILON) {
+                    break;
+                }
+                edges[found * 2] = (near + far) / 2.0;
+                edges[found * 2 + 1] = ground;
+                found++;
+                level = ground;
+            }
+            previous = distance;
+        }
+        return edges;
+    }
+
+    /**
+     * {@code high} の側に高い段があるときの、段の角を結んだ線の高さ。斜面の長さ（段の幅）は、
+     * 反対側の縁（こちらの段の始まり）か、高い側の次の縁（向こうの段の幅）から取る。
+     */
+    private static double stairSide(double height, double[] high, double[] low) {
+        double edge = high[0];
+        double top = high[1];
+        double rise = top - height;
+        if (Double.isNaN(edge) || rise <= STAIR_EPSILON || rise > STAIR_STEP_MAX) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        double run;
+        double ground;
+        if (!Double.isNaN(low[0]) && low[1] < height - STAIR_EPSILON) {
+            // こちらの段は反対側の縁から始まる。その角（高さ height）から高い段の角まで
+            run = edge + low[0];
+            ground = height + rise * low[0] / run;
+        } else if (!Double.isNaN(high[2]) && high[3] > top + STAIR_EPSILON) {
+            // 階段の端の段。向こうの段の幅で同じ傾きの斜面を延ばす
+            run = high[2] - edge;
+            ground = top - rise / run * edge;
+        } else {
+            return Double.NEGATIVE_INFINITY;
+        }
+        if (rise / run > STAIR_SLOPE_MAX) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        return Math.max(height, ground);
+    }
+
+    /** 真下の地面の高さ。当たらない・起点が埋まっているときは NaN。 */
+    private double probeGround(double x, double z, double dirX, double dirZ, double distance,
+                               double from, double bottom) {
+        double px = x + dirX * distance;
+        double pz = z + dirZ * distance;
+        BlockHitResult hit = level().clip(new ClipContext(
+                new Vec3(px, from, pz),
+                new Vec3(px, bottom, pz),
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                this));
+        if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+            return Double.NaN;
+        }
+        return hit.getLocation().y;
     }
 
     /**
