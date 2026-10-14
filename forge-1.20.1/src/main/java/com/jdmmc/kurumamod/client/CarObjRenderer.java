@@ -366,9 +366,19 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
         var consumer = buffer.getBuffer(clear(model.bodyTexture()));
-        body.render(pose.last(), consumer,
-                packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
-                ObjModel.Pass.TRANSLUCENT);
+        // 乗っている車を一人称で見ているときは、ガラスを薄くする（INSIDE_GLASS_ALPHA）。
+        // ゴーストの濃さが入っていることもあるので、上書きせずに掛けて戻す
+        float outside = ObjModel.alphaScale;
+        if (viewedFromInside(car)) {
+            ObjModel.alphaScale = outside * INSIDE_GLASS_ALPHA;
+        }
+        try {
+            body.render(pose.last(), consumer,
+                    packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
+                    ObjModel.Pass.TRANSLUCENT);
+        } finally {
+            ObjModel.alphaScale = outside;
+        }
         if (optional) {
             // 部品の形の透ける面（ウイングの透明な翼端板など）
             CarModel.BodyParts parts = model.bodyParts(car.getEffectiveFitment(), body.optionalNames());
@@ -379,6 +389,24 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             drawSteeringWheel(car, model, spec, body, pose, consumer, packedLight, ObjModel.Pass.TRANSLUCENT);
         }
         pose.popPose();
+    }
+
+    /**
+     * 車内から見たときのガラスの不透明度の倍率。
+     *
+     * <p><b>同じ濃さのガラスでも、中から見ると曇って見える。</b>外から見たガラスは車内の暗さを
+     * 透かして暗く締まるが、中から見ると明るい景色の上に灰色が 35% 乗るだけになり、画面全体が
+     * 白っぽく濁る。実車のフロントガラスは可視光の 7 割以上を通すので、中からはほぼ素通しに見える。
+     * 外から見た濃さはモデル（MTL の {@code d}、無ければ 0.35）のまま変えない。</p>
+     */
+    private static final float INSIDE_GLASS_ALPHA = 0.3F;
+
+    /** この車に乗っていて、一人称で見ているか。助手席も含む。 */
+    private static boolean viewedFromInside(CarEntity car) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.options.getCameraType().isFirstPerson()
+                && minecraft.getCameraEntity() != null
+                && minecraft.getCameraEntity().getVehicle() == car;
     }
 
     /**
