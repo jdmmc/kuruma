@@ -51,5 +51,7 @@ public final class KurumaNetwork {
         registrar.playToClient(CarPartsPacket.TYPE, CarPartsPacket.STREAM_CODEC, CarPartsPacket::handle);
         // 換装の要求。何を履けるかを決めるのはサーバーなので、結果ではなく要求を送る
         registrar.playToServer(CarPartRequestPacket.TYPE, CarPartRequestPacket.STREAM_CODEC, CarPartRequestPacket::handle);
+        // 運転者の画面で走っているゴーストを、同じ車の助手席の人へ。運転者 → サーバー → ほかの乗員
+        registrar.playBidirectional(GhostRidePacket.TYPE, GhostRidePacket.STREAM_CODEC, GhostRidePacket::handle);
     }
 }
