@@ -64,6 +64,12 @@ public final class CarPhysics {
 
     /** 低速で運動学モデルへ寄せる速さ [1/s]。大きいほど強く引き戻す。 */
     private static final double KINEMATIC_RELAXATION_RATE = 20.0;
+    /**
+     * 低速の運動学的な旋回で使う切れ角の上限 [rad]。{@code tan δ} は 90 度で発散し、
+     * 最大切れ角を 90 度にすると歩くほどの速さで毎秒何回転もするヨー角速度へ寄せてしまう。
+     * これより深い角度は、タイヤの横力が決める動きに任せる。
+     */
+    private static final double KINEMATIC_STEER_LIMIT = Math.toRadians(65.0);
 
     /**
      * トラクションコントロールの効きの強さ。滑り率の超過ぶんに掛けてアクセルを絞る。
@@ -1864,7 +1870,10 @@ public final class CarPhysics {
         if (blend >= 1.0) {
             return;
         }
-        double kinematicYawRate = (state.forwardSpeed / spec.wheelBase()) * Math.tan(state.steerAngle);
+        // tan は 90 度で発散するので、切れ角は上限で頭打ちにして使う
+        double kinematicSteer = Math.max(-KINEMATIC_STEER_LIMIT,
+                Math.min(KINEMATIC_STEER_LIMIT, state.steerAngle));
+        double kinematicYawRate = (state.forwardSpeed / spec.wheelBase()) * Math.tan(kinematicSteer);
         // 旋回中心は後軸上。重心はそこから前へ離れているので、その距離×角速度が横速度になる
         // （距離は重心から後軸まで。前が重いほど長くなる）
         double kinematicLateralSpeed = kinematicYawRate * -spec.wheelForwardOffset(Wheel.REAR_LEFT);
