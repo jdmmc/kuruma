@@ -553,8 +553,10 @@ public final class CarBody {
         double[][] faces = {{-1, 0, 0}, {1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
         for (Wheel wheel : Wheel.VALUES) {
             double[][] rim = rims[wheel.ordinal()];
-            // 「前」の点は中心と同じ高さ。中心 − 半径 = タイヤ下端。そこから登坂限界まで上は登れる
-            double climbable = rim[0][1] - spec.wheelRadius() + spec.maxClimbStep();
+            // 真ん中の面の「前」と「後ろ」の中点がタイヤの中心。中心 − 半径 = タイヤ下端。
+            // そこから登坂限界まで上は登れる
+            double centerY = (rim[4][1] + rim[7][1]) / 2.0;
+            double climbable = centerY - spec.wheelRadius() + spec.maxClimbStep();
             for (double[] p : rim) {
                 double px = p[0];
                 double py = p[1];
@@ -589,6 +591,11 @@ public final class CarBody {
      * 並びは {@code 面 × 4 + 輪郭の番号}（内側が 0〜3、真ん中が 4〜7、外側が 8〜11）。
      * F3+B の描画もこれを使うので、当たり判定と見た目がずれない。</p>
      *
+     * <p><b>車体と一緒に傾ける。</b>描画はタイヤを車体の向き（ピッチ・ロール）のまま、サスペンションの
+     * 長さだけ車体の下向きへ下ろして描いている。当たりを垂直のまま置くと、段に乗り上げて傾いた車で
+     * 見えているタイヤと当たりがずれ、見た目では離れている壁にタイヤが止められた。中心も同じ式
+     * （{@code CarObjRenderer#renderWheels}）で置く。地面を探すサスペンションは今までどおり真下。</p>
+     *
      * @param x     重心のシャシー基準面の位置（ワールド）。高さは {@code state.height}
      * @param inner タイヤの内側の端 [m]。物理上のタイヤの位置から外向きに測る
      * @param outer タイヤの外側の端 [m]。同上
@@ -596,8 +603,10 @@ public final class CarBody {
     public static double[][][] tireRims(CarSpec spec, CarState state, double x, double z,
                                         double inner, double outer) {
         double radius = spec.wheelRadius();
-        double forwardX = state.forwardX();
-        double forwardZ = state.forwardZ();
+        double[][] ax = axes(state.yaw, state.pitch, state.roll);
+        double[] forward = ax[0];
+        double[] up = ax[1];
+        double[] right = ax[2];
         double diagonal = radius * Math.sqrt(0.5);
         double[][] outline = {{radius, 0.0}, {diagonal, -diagonal}, {-diagonal, -diagonal}, {-radius, 0.0}};
         double[] faces = {inner, (inner + outer) / 2.0, outer};
@@ -605,22 +614,18 @@ public final class CarBody {
         for (Wheel wheel : Wheel.VALUES) {
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
-            double forward = state.horizontalForwardOffset(forwardOffset);
-            double right = state.horizontalRightOffset(rightOffset);
-            double centerX = x + forwardX * forward + state.rightX() * right;
-            double centerZ = z + forwardZ * forward + state.rightZ() * right;
-            double centerY = state.hardpointHeight(forwardOffset, rightOffset)
-                    - state.suspensionLength[wheel.ordinal()];
+            double drop = -state.suspensionLength[wheel.ordinal()];
             // 外向き。左の輪は車体の左、右の輪は右
             double outwardSign = wheel.isLeft() ? -1.0 : 1.0;
             for (int f = 0; f < faces.length; f++) {
-                double sideX = state.rightX() * outwardSign * faces[f];
-                double sideZ = state.rightZ() * outwardSign * faces[f];
+                double side = rightOffset + outwardSign * faces[f];
                 for (int i = 0; i < outline.length; i++) {
+                    double along = forwardOffset + outline[i][0];
+                    double height = drop + outline[i][1];
                     out[wheel.ordinal()][f * outline.length + i] = new double[]{
-                            centerX + sideX + forwardX * outline[i][0],
-                            centerY + outline[i][1],
-                            centerZ + sideZ + forwardZ * outline[i][0]};
+                            x + forward[0] * along + up[0] * height + right[0] * side,
+                            state.height + forward[1] * along + up[1] * height + right[1] * side,
+                            z + forward[2] * along + up[2] * height + right[2] * side};
                 }
             }
         }
