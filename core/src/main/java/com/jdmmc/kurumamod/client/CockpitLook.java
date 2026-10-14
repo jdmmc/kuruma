@@ -32,10 +32,11 @@ public final class CockpitLook {
     public static final double DT = 0.05;
 
     /**
-     * 先読みの時間 [s]。弧の上で 2 倍先の点の方位にあたるが、ワールドで均す遅れ（約 0.25 秒ぶん）を
-     * 差し引くと、実際に見る先は 0.4 秒ぶん（頭が接点を追う幾何の値 0.6〜0.7 秒の約 6 割）
+     * 先読みの時間 [s]。<b>既定は 0（先読みしない）</b>——乗って比べた結果。H メニューで 1.6 秒まで上げられる。
+     * 0.8 にすると、ワールドで均す遅れ（約 0.25 秒ぶん）を差し引いて実際に見る先は 0.4 秒ぶんで、
+     * 43km/h・ヨー 44°/s の定常円で 13 度曲がる側を見る（0 では均す遅れのぶん外を見る）
      */
-    public static final double DEFAULT_LOOK_AHEAD = 0.8;
+    public static final double DEFAULT_LOOK_AHEAD = 0.0;
     /**
      * 進路の回転率を均す時定数 [s]。1〜2Hz の修正舵を 1/3〜1/6 に落とし、コーナー単位（1〜5 秒）の
      * 変化は通す。オープンソースの TORCS のカメラ（0.4 秒）より少し重め
@@ -103,8 +104,8 @@ public final class CockpitLook {
 
     /** 先読みをもう一段均す時定数 [s]。立ち上がりを S 字にして、切り始めにぐいっと来ないように */
     public static final double DEFAULT_PATH_TAU = 0.5;
-    /** スリップ項の倍率。もとからあった一人称（ドリフトの見え方が好評だった）と同じ */
-    public static final double DEFAULT_SLIP_GAIN = 0.6;
+    /** スリップ項の倍率。乗って比べて 0.7（もとの一人称は 0.6） */
+    public static final double DEFAULT_SLIP_GAIN = 0.7;
     /** 先読みを消しはじめる／消しきるスリップ角 [度]。グリップはおよそ 3 度まで */
     public static final double DEFAULT_GATE_START = 3.0;
     public static final double DEFAULT_GATE_END = 10.0;
