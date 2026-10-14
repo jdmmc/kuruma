@@ -69,11 +69,11 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.DoubleValue COCKPIT_LOOK_AHEAD = BUILDER
             .comment("一人称で、グリップで曲がるときにどれだけ先の進路を見るか [秒]。0 で先読みしない。",
                     "ドリフト中（スリップ角 3〜10 度以上）は効かない（CockpitLook）")
-            .defineInRange("cockpitLookAhead", 0.8, 0.0, 1.6);
+            .defineInRange("cockpitLookAhead", 0.0, 0.0, 1.6);
 
     public static final ForgeConfigSpec.DoubleValue COCKPIT_DRIFT_LOOK = BUILDER
             .comment("一人称で、横滑りしているときに進行方向をどれだけ見るか。0 で車の正面、1 で進行方向そのもの")
-            .defineInRange("cockpitDriftLook", 0.6, 0.0, 1.0);
+            .defineInRange("cockpitDriftLook", 0.7, 0.0, 1.0);
 
     public static final ForgeConfigSpec.EnumValue<GaugeTheme> GAUGE_THEME = BUILDER
             .comment("メーターの配色。CLASSIC=90 年代の純正メーター（黒い縁・白い数字・橙の針）、",
@@ -229,10 +229,10 @@ public final class ClientConfig {
     public static double speedFov = 25.0;
 
     /** 一人称の先読み [秒]。 */
-    public static double cockpitLookAhead = 0.8;
+    public static double cockpitLookAhead = 0.0;
 
     /** 一人称で、横滑り中に進行方向を見る割合。 */
-    public static double cockpitDriftLook = 0.6;
+    public static double cockpitDriftLook = 0.7;
 
     /** メーターの配色。 */
     public static GaugeTheme gaugeTheme = GaugeTheme.CLASSIC;
