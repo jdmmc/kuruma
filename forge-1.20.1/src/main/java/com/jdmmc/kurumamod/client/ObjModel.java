@@ -607,6 +607,12 @@ public final class ObjModel {
         return steeringFaces[pass == Pass.TRANSLUCENT ? 1 : 0].length > 0;
     }
 
+    /** ハンドルを回す中心と軸（メッシュの座標）。ハンドルが無いか、円盤と言えなければ null。 */
+    @Nullable
+    public SteeringWheelAxis.Result steeringAxis() {
+        return steeringAxis;
+    }
+
     /**
      * ハンドルのコラムの角度 [度]。水平から何度起きているか（メッシュのまま、傾ける前）。
      * 軸が取れていなければ NaN。

@@ -1912,6 +1912,20 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 frame.throttle(), frame.slipAngle(), frame.surface(), frame.lights(), frame.boost());
     }
 
+    /**
+     * 運転者がいまハンドルを操作しているか（A/D・スティック）。入力を持っているのは運転しているクライアントだけなので、
+     * それ以外（同乗者・他人の車・サーバー）では null。ハンドルを握る手の見た目に使う（{@code SteeringHands}）。
+     */
+    @Nullable
+    public Boolean steeringInputHeld() {
+        if (!hasLocalState()) {
+            return null;
+        }
+        return driverInput.analog()
+                ? Math.abs(driverInput.steerAxis()) > CarInput.AXIS_THRESHOLD
+                : driverInput.left() || driverInput.right();
+    }
+
     /** 運転クライアントが毎ティック呼ぶ。次の {@link #tick()} で使われる。 */
     public void setDriverInput(CarInput input) {
         this.driverInput = input;
@@ -2352,6 +2366,14 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         Vec3 seat = toWorld(seatOffset(passenger).add(0.0, passenger.getMyRidingOffset(), 0.0),
                 getYRot(), getRenderPitch(), getRenderRoll());
         move.accept(passenger, getX() + seat.x, getY() + seat.y, getZ() + seat.z);
+    }
+
+    /**
+     * 乗員の足元の位置を、<b>車体の座標</b>（乗員の向き。+X 左・+Y 上・+Z 前）で。
+     * ハンドルを握る手の向きを、車体の中で組み立てるのに使う（{@code SteeringHands}）。
+     */
+    public Vec3 riderSeatLocal(Entity passenger) {
+        return seatOffset(passenger).add(0.0, passenger.getMyRidingOffset(), 0.0);
     }
 
     /**
