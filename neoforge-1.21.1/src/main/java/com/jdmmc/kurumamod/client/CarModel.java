@@ -117,6 +117,19 @@ public record CarModel(
          * （サーバー側は既定値のまま。乗員の位置は各クライアントが自分で計算するので実害はない）。</p>
          */
         Vec3 seatOffset,
+        /**
+         * ハンドルの平行移動 [m]（{@code steering.offset}）。<b>{@code seat} と同じ向き・同じ縮尺</b>
+         * （+X 右・+Y 上・-Z 前。{@code body.scale} や {@code designWheelBase} の拡大を掛ける前の m）。
+         *
+         * <p>回す中心と軸はメッシュから読む（{@code SteeringWheelAxis}）ので、ここで動かすのは位置だけ。
+         * 中心も一緒に動くので、ずらしても振れずに回る。座席の調整画面（Ctrl+G）で決めて貼る値。</p>
+         */
+        Vec3 steeringOffset,
+        /**
+         * ハンドルのコラムの傾きの足し分 [度]（{@code steering.tilt}）。<b>正でコラムが起きる</b>
+         * （ハンドルの面が寝る）。メッシュの中心を通る左右の軸のまわりに傾けるので、回す軸も一緒に傾く。
+         */
+        double steeringTilt,
         float shadowRadius,
         CarSoundSet sounds,
         Map<ResourceLocation, PartObjects> partObjects,
@@ -269,6 +282,8 @@ public record CarModel(
                 0.0,
                 null,
                 new Vec3(0.5, -0.55, 0.2),
+                Vec3.ZERO,
+                0.0,
                 1.4F,
                 CarSoundSet.NONE,
                 Map.of(),
@@ -317,6 +332,8 @@ public record CarModel(
                 wheelCamberInRange(location, number(wheel, "camber", base.camber())),
                 wheel.has("rimRadius") ? number(wheel, "rimRadius", 0.0) : null,
                 vector(root, "seat", base.seatOffset()),
+                vector(child(root, "steering"), "offset", Vec3.ZERO),
+                number(child(root, "steering"), "tilt", 0.0),
                 (float) number(root, "shadowRadius", base.shadowRadius()),
                 CarSoundSet.parse(child(root, "sounds")),
                 parsePartObjects(child(root, "parts"), location),

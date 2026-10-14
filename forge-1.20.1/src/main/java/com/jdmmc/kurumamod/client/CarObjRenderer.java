@@ -84,6 +84,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     @Override
     public void render(CarEntity car, float entityYaw, float partialTick, PoseStack pose,
                        MultiBufferSource buffer, int packedLight) {
+        this.partialTick = partialTick;
         if (car.isGhost()) {
             renderGhost(car, partialTick, pose, buffer, packedLight);
             return;
@@ -101,6 +102,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         int lod = HeadlightVolume.ShaderPacks.renderingShadowPass() ? SHADOW_LOD : lodLevel(car, partialTick);
         renderBody(car, model, spec, pose, buffer, packedLight, lod);
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
+        // 一人称では自分の体が描かれないので、ハンドルを握る腕だけ車体の中に描き足す
+        SteeringHands.renderFirstPerson(car, pose, buffer, packedLight, partialTick);
         // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
         // 車体とタイヤを描き終えてから重ねる（理由は KurumaRenderTypes#glass）
         renderGlass(car, model, spec, pose, buffer, packedLight);
@@ -327,6 +330,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         body.renderOptional(pose.last(), buffer.getBuffer(solid(model.bodyTexture())),
                 packedLight, OverlayTexture.NO_OVERLAY, parts.shown(), ObjModel.Pass.OPAQUE);
 
+        // ハンドル。本体の面からは外してあるので、ここが描かないと穴が開く
+        drawSteeringWheel(car, model, spec, body, pose, buffer.getBuffer(solid(model.bodyTexture())),
+                packedLight, ObjModel.Pass.OPAQUE);
+
         // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
         if (ghostPass != null) {
@@ -354,22 +361,115 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                              MultiBufferSource buffer, int packedLight) {
         ObjModel body = ObjModel.get(model.bodyModel());
         boolean optional = body.hasOptional(ObjModel.Pass.TRANSLUCENT);
-        if (!body.hasTranslucent() && !optional) {
+        boolean steering = body.hasSteeringWheel(ObjModel.Pass.TRANSLUCENT);
+        if (!body.hasTranslucent() && !optional && !steering) {
             return;
         }
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
         var consumer = buffer.getBuffer(clear(model.bodyTexture()));
-        body.render(pose.last(), consumer,
-                packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
-                ObjModel.Pass.TRANSLUCENT);
+        // 乗っている車を一人称で見ているときは、ガラスを薄くする（INSIDE_GLASS_ALPHA）。
+        // ゴーストの濃さが入っていることもあるので、上書きせずに掛けて戻す
+        float outside = ObjModel.alphaScale;
+        if (viewedFromInside(car)) {
+            ObjModel.alphaScale = outside * INSIDE_GLASS_ALPHA;
+        }
+        try {
+            body.render(pose.last(), consumer,
+                    packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
+                    ObjModel.Pass.TRANSLUCENT);
+        } finally {
+            ObjModel.alphaScale = outside;
+        }
         if (optional) {
             // 部品の形の透ける面（ウイングの透明な翼端板など）
             CarModel.BodyParts parts = model.bodyParts(car.getEffectiveFitment(), body.optionalNames());
             body.renderOptional(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
                     parts.shown(), ObjModel.Pass.TRANSLUCENT);
         }
+        if (steering) {
+            drawSteeringWheel(car, model, spec, body, pose, consumer, packedLight, ObjModel.Pass.TRANSLUCENT);
+        }
         pose.popPose();
+    }
+
+    /**
+     * 車内から見たときのガラスの不透明度の倍率。
+     *
+     * <p><b>同じ濃さのガラスでも、中から見ると曇って見える。</b>外から見たガラスは車内の暗さを
+     * 透かして暗く締まるが、中から見ると明るい景色の上に灰色が 35% 乗るだけになり、画面全体が
+     * 白っぽく濁る。実車のフロントガラスは可視光の 7 割以上を通すので、中からはほぼ素通しに見える。
+     * 外から見た濃さはモデル（MTL の {@code d}、無ければ 0.35）のまま変えない。</p>
+     */
+    private static final float INSIDE_GLASS_ALPHA = 0.3F;
+
+    /** この車に乗っていて、一人称で見ているか。助手席も含む。 */
+    private static boolean viewedFromInside(CarEntity car) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.options.getCameraType().isFirstPerson()
+                && minecraft.getCameraEntity() != null
+                && minecraft.getCameraEntity().getVehicle() == car;
+    }
+
+    /**
+     * フルロックでのハンドルの回転角。<b>どの車も 1 回転半（540 度）でフルロックに届く。</b>
+     *
+     * <p>ギア比は持たず、最大切れ角から決める（{@code 540 度 ÷ 最大切れ角}）。既定の 35 度なら 15.4 で
+     * 乗用車のそれ、90 度まで切れるようにした車なら 6.0 でアングルキットを入れた車と同じ速さになる——
+     * 実車でもアングルキットは切れ角を増やす代わりにロック・トゥ・ロックをほとんど変えない。
+     * 比を固定すると 90 度の車はハンドルが 3.75 回転して、キーを押した瞬間に回りすぎる。</p>
+     */
+    private static final double HANDWHEEL_LOCK = Math.toRadians(540.0);
+
+    /** いま描いている車の部分ティック。描く口ごとに引数で回さずに済むよう、{@link #render} が置く。 */
+    private float partialTick;
+
+    /**
+     * ハンドルを置いて回す。{@link #applyBodyTransform} の中で呼ぶこと。
+     *
+     * <p>平行移動（{@code steering.offset}）は座席と同じく<b>拡大を掛ける前の m</b> で書くので、
+     * 車体の拡大で割ってから足す。拡大の中でそのまま足すと、5.2m で作ったモデルでは半分しか動かない。
+     * 傾き（{@code steering.tilt}）は中心のまわりで掛けるので {@link ObjModel#renderSteeringWheel} に渡す。</p>
+     */
+    private void drawSteeringWheel(CarEntity car, CarModel model, CarSpec spec, ObjModel body, PoseStack pose,
+                                   VertexConsumer consumer, int packedLight, ObjModel.Pass pass) {
+        if (!body.hasSteeringWheel(pass)) {
+            return;
+        }
+        CarModel.Vec3 offset = CarSeat.currentSteering(car.getCarId());
+        boolean moved = offset.x() != 0.0 || offset.y() != 0.0 || offset.z() != 0.0;
+        if (moved) {
+            double fit = CarSpec.DEFAULT.wheelBase() / model.designWheelBase();
+            CarModel.Vec3 scale = model.bodyScale();
+            pose.pushPose();
+            pose.translate(offset.x() / (fit * scale.x()), offset.y() / (fit * scale.y()),
+                    offset.z() / (fit * scale.z()));
+        }
+        body.renderSteeringWheel(pose, consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                handwheelAngle(car, spec), Math.toRadians(CarSeat.currentSteeringTilt(car.getCarId())), pass);
+        if (moved) {
+            pose.popPose();
+        }
+    }
+
+    /**
+     * ハンドルの回転角 [rad]。正で右。
+     *
+     * <p><b>切れ角の上限（運転補助・{@code steerGripMargin}）は物理が切れ角に掛けているので、
+     * ここでは何もしなくてよい。</b>高速で舵が数度に絞られていれば、ハンドルもそのぶんしか回らない。
+     * 見た目用に抑えた角度（{@link CarEntity#getVisualSteerAngle}）ではなく実際の切れ角を使う——
+     * 運転者が回しているのはこちら。</p>
+     */
+    private double handwheelAngle(CarEntity car, CarSpec spec) {
+        return icon ? 0.0 : handwheelAngle(car, spec, partialTick);
+    }
+
+    /** ハンドルの回転角 [rad]。正で右。ハンドルを握る手（{@link SteeringHands}）も同じ角度を使う。 */
+    static double handwheelAngle(CarEntity car, CarSpec spec, float partialTick) {
+        if (spec.maxSteerAngle() <= 0.0) {
+            return 0.0;
+        }
+        return car.getRenderSteerAngle(partialTick) * HANDWHEEL_LOCK / spec.maxSteerAngle();
     }
 
     /**
@@ -444,6 +544,18 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
         // 寸法を測り終えてから間引いた版へ（ビードの半径などは元のメッシュで測る）
         ObjModel wheelDrawn = wheelMesh.lod(lod);
+
+        // タイヤの当たり判定の幅を、描いている寸法に合わせる（物理は見た目の部品を知らないので）。
+        // メッシュの X は左の輪の向きで、外向きは -X。下の pose.translate と pose.scale と同じ式
+        double[] meshBounds = wheelMesh.bounds();
+        double minX = meshBounds[0];
+        double maxX = meshBounds[3];
+        if (tireMesh != null) {
+            double[] tireBounds = tireMesh.bounds();
+            minX = Math.min(minX, tireBounds[0]);
+            maxX = Math.max(maxX, tireBounds[3]);
+        }
+        car.setVisualTireSpan(offset.x() - maxX * scaleX, offset.x() - minX * scaleX);
         // シェーダーパックが太陽・月の影を描いている最中は、ホイール（リム）を描かずタイヤだけ描く。
         // タイヤの影は落ち、スポークの影は落ちない
         boolean shadowPass = HeadlightVolume.ShaderPacks.renderingShadowPass();
@@ -581,7 +693,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
 
     /**
      * F3+B のときに、本当の当たり判定を描く。地形と当たる車体（{@link com.jdmmc.kurumamod.physics.CarBody}）を橙、
-     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色で。
+     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色、タイヤの縁の当たりを桃色で。
      *
      * <p><b>バニラが白で描く箱は当たり判定ではない。</b>サーバーの移動の検査に弾かれないよう、
      * 車体の箱の内側に収まる小さな板にしてある（{@code CarEntity#makeBoundingBox}）。</p>
@@ -607,6 +719,22 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             }
         }
         renderEdges(car, box, boxEdges, 0.2F, 0.85F, 1.0F, partialTick, pose, buffer);
+
+        // タイヤの当たり（桃色）。内側の面（0〜3）と外側の面（8〜11）の輪郭を、前 → 斜め下前 →
+        // 斜め下後ろ → 後ろ → 前 と結び、内外の同じ点どうしを渡す。真ん中の面（4〜7）は描かない。
+        // 登れない高さのブロックにこの点が入ると、その向きへは進めなくなる（押し戻しはしない）
+        double[][][] rims = car.tireRims();
+        if (rims != null) {
+            List<int[]> rimEdges = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                rimEdges.add(new int[]{i, (i + 1) % 4});
+                rimEdges.add(new int[]{8 + i, 8 + (i + 1) % 4});
+                rimEdges.add(new int[]{i, 8 + i});
+            }
+            for (double[][] rim : rims) {
+                renderEdges(car, rim, rimEdges, 1.0F, 0.3F, 0.85F, partialTick, pose, buffer);
+            }
+        }
     }
 
     private static void renderEdges(CarEntity car, double[][] corners, List<int[]> edges,

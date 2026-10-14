@@ -8,6 +8,9 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 
 **Forge 1.20.1 (47.4.22+) / NeoForge 1.21.1 (21.1+) · No dependencies · Multiplayer · Wheel & gamepad**
 
+[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/)  
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
+
 🌐 [Website](https://kuruma.jdm-mc.com/) · 🚗 [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
 ***
@@ -130,6 +133,10 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 - **Modpacks:** welcome. Please add it as a CurseForge/Modrinth dependency instead of bundling the jar, so players always get the latest version
 - **License:** free software under the **GNU General Public License v3.0 only** (`GPL-3.0-only`). The full text is in `LICENSE`
 
+[![Join the KurumaMod Discord](https://kuruma.jdm-mc.com/img/cta-discord-en.png)](https://discord.gg/q3YNqaveRd)
+
+[![Visit the KurumaMod website](https://kuruma.jdm-mc.com/img/cta-website-en.png)](https://kuruma.jdm-mc.com/)
+
 ***
 
 # KurumaMod（日本語）
@@ -141,6 +148,8 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 ![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
 **Forge 1.20.1（47.4.22+）／NeoForge 1.21.1（21.1+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
+
+[![公式サイト](https://img.shields.io/badge/%E5%85%AC%E5%BC%8F%E3%82%B5%E3%82%A4%E3%83%88-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-%E5%8F%82%E5%8A%A0%E3%81%99%E3%82%8B-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
 🌐 [公式サイト](https://kuruma.jdm-mc.com/) · 🚗 [ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
@@ -263,3 +272,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 - **動画・配信:** ご自由にどうぞ。概要欄にこのページのリンクを載せていただければ、許可は不要です
 - **モッドパック:** 歓迎します。jar を同梱せず CurseForge/Modrinth の依存として追加していただけると、プレイヤーに常に最新版が届きます（ライセンス上の条件ではなく、お願いです）
 - **ライセンス:** **GNU General Public License v3.0 only**（`GPL-3.0-only`）のフリーソフトウェアです。全文は `LICENSE`（英語の原文が正本）
+
+[![KurumaMod の Discord に参加する](https://kuruma.jdm-mc.com/img/cta-discord-ja.png)](https://discord.gg/q3YNqaveRd)
+
+[![KurumaMod の公式サイトを開く](https://kuruma.jdm-mc.com/img/cta-website-ja.png)](https://kuruma.jdm-mc.com/)

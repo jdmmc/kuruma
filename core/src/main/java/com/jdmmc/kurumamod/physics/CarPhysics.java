@@ -1523,11 +1523,22 @@ public final class CarPhysics {
             double springTravel = Math.min(compression, spec.suspensionMaxLength());
             double bumpStopTravel = Math.max(0.0, compression - spec.suspensionMaxLength());
 
+            // 地面が上下する速さ。坂を走ると、車が前へ進むぶんだけ足元の地面が上がり下がりする
+            double ground = contact.groundHeight[index];
+            double previousGround = state.previousGroundHeight[index];
+            double groundSpeed = ground > Double.NEGATIVE_INFINITY && previousGround > Double.NEGATIVE_INFINITY
+                    ? (ground - previousGround) / dt
+                    : 0.0;
+            state.previousGroundHeight[index] = ground;
+
             double load = 0.0;
             if (compression > 0.0) {
-                // ダンパーはハードポイントが上がる（＝伸びる）ほど荷重を減らす向きに効く。
-                // 上がっていれば伸び側、下がっていれば縮み側の係数
-                double speed = state.hardpointVerticalSpeed(forwardOffset, rightOffset);
+                // ダンパーはハードポイントが地面から離れる（＝伸びる）ほど荷重を減らす向きに効く。
+                // 離れていれば伸び側、近づいていれば縮み側の係数。
+                // <b>地面に対する速さで見ること。</b>車体だけの上下速度で見ると、坂を下る車は
+                // 沈み続けているように見えて縮み側のダンパーが車体を押し上げ、30 度の下りでは
+                // 9 割の時間 4 輪とも宙に浮いていた（上りでは逆に荷重が抜ける）
+                double speed = state.hardpointVerticalSpeed(forwardOffset, rightOffset) - groundSpeed;
                 load = spec.suspensionStiffness(wheel) * springTravel
                         + spec.bumpStopStiffness(wheel) * bumpStopTravel
                         - spec.suspensionDamping(wheel, speed > 0.0) * speed;
@@ -1697,6 +1708,14 @@ public final class CarPhysics {
         if (Math.abs(state.pitch) > RIGHTING_UPRIGHT_PITCH && Math.abs(state.pitch) < Math.PI - RIGHTING_UPRIGHT_PITCH) {
             state.pitch += state.pitchRate * dt;
         }
+    }
+
+    /**
+     * 起き上がり補助が車を回している最中か。補助は重心まわりに回すので、地面側の縁が
+     * 潜り込む。{@code CarEntity} はこの間だけ、潜ったぶんを真上へ持ち上げる。
+     */
+    public static boolean isRighting(CarState state) {
+        return state.overturnedSeconds >= RIGHTING_DELAY;
     }
 
     /** 起き上がり補助を始める傾き [rad]。タイヤが地面に届かなくなる角度（約 70 度）。 */

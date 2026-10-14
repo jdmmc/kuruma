@@ -129,8 +129,17 @@ public final class CarState {
      */
     public final double[] brakeRelease = new double[Wheel.COUNT];
 
+    /**
+     * 前の刻みで各輪の下にあった地面の高さ [m]。地面が無ければ負の無限大。
+     *
+     * <p>ダンパーは車体と<b>地面との</b>相対速度で効くので、地面が上下する速さを
+     * ここからの差で求める（{@code CarPhysics#updateSuspension}）。</p>
+     */
+    public final double[] previousGroundHeight = new double[Wheel.COUNT];
+
     public CarState() {
         java.util.Arrays.fill(brakeRelease, 1.0);
+        java.util.Arrays.fill(previousGroundHeight, Double.NEGATIVE_INFINITY);
     }
 
     // ---- 各輪 ----
@@ -184,9 +193,26 @@ public final class CarState {
         return height + forwardOffset * Math.sin(pitch) - rightOffset * Math.sin(roll);
     }
 
-    /** 同じ位置のハードポイントの上下速度 [m/s]。正で上。 */
+    /** 同じ位置のハードポイントの上下速度 [m/s]。正で上。{@link #hardpointHeight} を時間で微分したもの。 */
     public double hardpointVerticalSpeed(double forwardOffset, double rightOffset) {
-        return verticalSpeed + forwardOffset * pitchRate - rightOffset * rollRate;
+        return verticalSpeed + forwardOffset * Math.cos(pitch) * pitchRate
+                - rightOffset * Math.cos(roll) * rollRate;
+    }
+
+    /**
+     * 車体基準で前へ {@code forwardOffset} の位置が、水平に見て重心からどれだけ前にあるか [m]。
+     *
+     * <p><b>高さ（{@link #hardpointHeight}）に sin を掛けるなら、水平には cos を掛けること。</b>
+     * 片方だけだと 30 度の坂で車体が坂より 5 度深く傾いたところで釣り合い、前輪が地面を
+     * 20cm 先で探して届かず、伸びきったままになった。</p>
+     */
+    public double horizontalForwardOffset(double forwardOffset) {
+        return forwardOffset * Math.cos(pitch);
+    }
+
+    /** 左右版の {@link #horizontalForwardOffset}。 */
+    public double horizontalRightOffset(double rightOffset) {
+        return rightOffset * Math.cos(roll);
     }
 
     /** 車体前方向の X 成分（単位ベクトル） */

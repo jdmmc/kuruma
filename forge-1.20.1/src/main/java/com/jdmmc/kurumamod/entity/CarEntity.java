@@ -55,6 +55,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -240,6 +241,32 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 55cm を超える落差は斜面を作らない——作ると崖の先で宙に支えられる。</p>
      */
     private static final double LOOKAHEAD_DOWN_MAX = 2.0;
+    /** 車体の角がこれより深くブロックに入っていたら、埋まったと見て持ち上げる [m]（{@link #unbury}）。 */
+    private static final double BURIED_DEPTH = 0.5;
+    /** 起き上がり補助の最中に、潜ったぶんとして持ち上げる上限 [m]。これより深いのは壁（上へ乗せない）。 */
+    private static final double RIGHTING_MAX_LIFT = 1.0;
+    /** 起き上がり補助の最中に、潜った角の横をどこまで見るか [m]。壁に触れた角を地面と取り違えないよう。 */
+    private static final double RIGHTING_SIDE_CHECK = 0.2;
+    /** 持ち上げるとき、ブロックの天面からさらに離す量 [m]。 */
+    private static final double BURIED_CLEARANCE = 0.05;
+    /** 1 回で持ち上げる上限 [m]。地中深くに落ちたものを地上まで飛ばさない（次のティックでまた上げる）。 */
+    private static final double BURIED_MAX_LIFT = 6.0;
+    /** 接地を探すタイヤの端を、幅の端からどれだけ内へ寄せるか [m]。 */
+    private static final double TIRE_EDGE_INSET = 0.03;
+    /** 階段を探す範囲 [m]。前後それぞれ。1 マスの段なら縁が 2 つ入る。 */
+    private static final double STAIR_REACH = 3.0;
+    /**
+     * これより小さい高さの違いは段と見ない [m]。roads の階層ブロックは 1/16（6.25cm）刻みなので、
+     * どんな緩い坂でも段はこれより大きい。
+     */
+    private static final double STAIR_EPSILON = 0.05;
+    /** 階段と見る段の高さの上限 [m]。1 ブロック（＋余裕）。 */
+    private static final double STAIR_STEP_MAX = 1.05;
+    /**
+     * 階段と見る傾きの上限。35 度。roads の 30 度の坂（1 マスに 58cm）は入り、
+     * 1 マスに 1 ブロックずつ上がる坂（45 度）は入らない——それは登れない決まり。
+     */
+    private static final double STAIR_SLOPE_MAX = Math.tan(Math.toRadians(35.0));
     /** 先読みで地面を調べる間隔 [m]。 */
     private static final double LOOKAHEAD_SPACING = 0.25;
     /** 先読みの斜面で登る高さ [m]。ハーフブロックの段。 */
@@ -328,6 +355,11 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 壁に食い込んだ輪を据え置くのに使う。
      */
     private final double[] previousGroundHeight = newGroundHeights();
+    /**
+     * 地面の中に埋まった輪（{@link #updateGroundContact}）。壁に当たった輪とは違い、
+     * 上にある地面の天面まで少しずつ持ち上げる。
+     */
+    private final boolean[] buriedWheel = new boolean[Wheel.COUNT];
 
     private static double[] newGroundHeights() {
         double[] heights = new double[Wheel.COUNT];
@@ -938,7 +970,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         // 車体は硬い箱で、ブロックと交わらない。当たった点に力積を掛けるので、当たったところを
         // 支点に車が回る（腹が乗れば亀、転がれば屋根の角が当たる）
         CarSpec carSpec = getSpec();
-        CarBody body = CarBody.of(carSpec, bodyShape());
+        double[] span = tireSpan();
+        CarBody body = CarBody.of(carSpec, bodyShape()).tireSpan(span[0], span[1]);
         double x = getX();
         double z = getZ();
         fillBlockField(body, x, z);
@@ -980,6 +1013,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         }
         reportImpact(impact);
         state.height = getY();
+        unbury(body);
 
         if (!level().isClientSide) {
             // 無人の車をサーバーが動かしている場合。運転者から届く値の代わりに自分の結果を配る
@@ -990,6 +1024,97 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
                     driverLights(), (float) state.boost);
         }
+    }
+
+    /**
+     * 車体が地形に深く埋まっていたら、真上へ持ち上げて出す。<b>原因を問わない最後の安全策。</b>
+     *
+     * <p>車体の当たり（{@link CarBody}）は、ブロックに入ったぶんを少しずつ押し戻すだけで、
+     * 深く入り込んだものを引き上げる仕組みは持っていない（地面の中のブロックは上も横も
+     * 隣がブロックなので、押し出す向きが見つからない）。いったん深く入ると、そのまま
+     * 地面に刺さって動けなくなった。落下や転がりでは物理の検算で再現しない入り方をしているので、
+     * 入り方を塞ぐ代わりに、入ってしまったものを出す。</p>
+     *
+     * <p>埋まったと見るのは、車体の角のどれかがブロックの中に {@link #BURIED_DEPTH} より深く
+     * 入っていて、<b>その角の前後左右も同じだけブロックに囲まれている</b>とき（地面や壁に
+     * 触れているだけ・食い込みかけを押し戻している最中は対象外）。
+     * 持ち上げる量は、入っている角のうち、その上に積み重なったブロックの天面までがいちばん遠いもの。
+     * 傾きはそのまま（起こすのは {@code CarPhysics} の起き上がり補助）。落ちる速さは捨てる。</p>
+     *
+     * <p><b>起き上がり補助の最中は、浅く潜ったぶんも持ち上げる</b>（{@link #RIGHTING_MAX_LIFT} まで）。
+     * 補助は重心まわりに回すので地面側の縁が潜り、毎刻み角速度を置き直すので車体の当たりの
+     * 押し返しが追いつかず、起こしながら地面へ刺さっていった。補助そのものが物理の外の
+     * 手助けなので、位置を直接動かしてよい。</p>
+     */
+    private void unbury(CarBody body) {
+        double[][] axes = CarBody.axes(state.yaw, state.pitch, state.roll);
+        double x = getX();
+        double y = getY();
+        double z = getZ();
+        double lift = 0.0;
+        // 起き上がり補助は重心まわりに回すので、地面側の縁が潜る（車体の当たりが押し返しても、
+        // 補助が毎刻み角速度を置き直すので追いつかない）。その間は浅く潜ったぶんも持ち上げる
+        boolean righting = CarPhysics.isRighting(state);
+        for (double[] corner : body.corners()) {
+            double cx = x + axes[0][0] * corner[0] + axes[1][0] * corner[1] + axes[2][0] * corner[2];
+            double cy = y + axes[0][1] * corner[0] + axes[1][1] * corner[1] + axes[2][1] * corner[2];
+            double cz = z + axes[0][2] * corner[0] + axes[1][2] * corner[1] + axes[2][2] * corner[2];
+            double top = solidTopAbove(cx, cy, cz);
+            // 縦に深いだけでは足りない。壁に数 cm 入った角も「上まで 0.5m 以上ある」ので、
+            // 横にも深く囲まれていること（前後左右に離れた点もブロックの中）を見る。
+            // そうでないと、壁に当たっただけの車を壁の上へ持ち上げてしまう
+            double depth = top - cy;
+            if (depth > BURIED_DEPTH && surroundedSideways(cx, cy, cz, BURIED_DEPTH)) {
+                lift = Math.max(lift, depth + BURIED_CLEARANCE);
+            } else if (righting && depth > 0.0 && depth <= RIGHTING_MAX_LIFT
+                    && surroundedSideways(cx, cy, cz, RIGHTING_SIDE_CHECK)) {
+                lift = Math.max(lift, depth);
+            }
+        }
+        if (lift <= 0.0) {
+            return;
+        }
+        lift = Math.min(lift, BURIED_MAX_LIFT);
+        setPos(x, y + lift, z);
+        state.height = getY();
+        state.verticalSpeed = Math.max(0.0, state.verticalSpeed);
+        // 地面の高さの記憶は埋まっていたときのもの。上がる速さの制限が古い値から効かないよう捨てる
+        Arrays.fill(previousGroundHeight, Double.NEGATIVE_INFINITY);
+    }
+
+    /** 点から東西南北へ {@code distance} 離れた 4 点が、すべてブロックの中にあるか。壁に触れているだけの点を除く。 */
+    private boolean surroundedSideways(double x, double y, double z, double distance) {
+        return solidTopAbove(x + distance, y, z) > y
+                && solidTopAbove(x - distance, y, z) > y
+                && solidTopAbove(x, y, z + distance) > y
+                && solidTopAbove(x, y, z - distance) > y;
+    }
+
+    /**
+     * 点がブロックの当たり判定の中にあれば、そこから上へすき間なく続くブロックの天面。
+     * 中に無ければ負の無限大。
+     */
+    private double solidTopAbove(double x, double y, double z) {
+        double top = Double.NEGATIVE_INFINITY;
+        double probe = y;
+        for (int i = 0; i < 16; i++) {
+            BlockPos pos = BlockPos.containing(x, probe, z);
+            VoxelShape shape = level().getBlockState(pos).getCollisionShape(level(), pos);
+            double found = Double.NEGATIVE_INFINITY;
+            for (AABB box : shape.toAabbs()) {
+                AABB moved = box.move(pos);
+                if (x > moved.minX && x < moved.maxX && z > moved.minZ && z < moved.maxZ
+                        && probe >= moved.minY - 1.0e-6 && probe < moved.maxY) {
+                    found = Math.max(found, moved.maxY);
+                }
+            }
+            if (found == Double.NEGATIVE_INFINITY) {
+                break;
+            }
+            top = found;
+            probe = found + 1.0e-4;
+        }
+        return top;
     }
 
     /** {@link #moveCars} の結果。当たった車（無ければ null）と、押し出しの中身。 */
@@ -1053,6 +1178,45 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 blockField.add(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
             }
         }
+    }
+
+    /**
+     * タイヤの当たりを見る点のワールド座標（{@link CarBody#tireRims}）。描画用。
+     * サスペンションの伸びは手元で物理を解いている車しか持っていないので、それ以外は null。
+     */
+    @Nullable
+    public double[][][] tireRims() {
+        if (!isControlledByLocalInstance()) {
+            return null;
+        }
+        double[] span = tireSpan();
+        return CarBody.tireRims(getSpec(), state, getX(), getZ(), span[0], span[1]);
+    }
+
+    /**
+     * 描画で測ったタイヤの幅（{@link CarBody#tireSpan}）。物理上のタイヤの位置から外向きに {内側の端, 外側の端}。
+     * 描いていない車（サーバーが動かす無人の車）は null のままで、{@link CarBody#defaultTireSpan} を使う。
+     */
+    @Nullable
+    private double[] visualTireSpan;
+
+    /** 描画側が、いま描いたタイヤの幅を知らせる。 */
+    public void setVisualTireSpan(double inner, double outer) {
+        visualTireSpan = new double[]{inner, outer};
+    }
+
+    private double[] tireSpan() {
+        return visualTireSpan != null ? visualTireSpan : CarBody.defaultTireSpan(getSpec());
+    }
+
+    /**
+     * 接地を探すタイヤの内側と外側の端。幅の端そのものだと、隣のブロックの面にちょうど
+     * 触れているだけで乗り上げるので、少し内へ寄せる。
+     */
+    private double[] tireGroundEdges() {
+        double[] span = tireSpan();
+        double inset = Math.min(TIRE_EDGE_INSET, (span[1] - span[0]) / 2.0);
+        return new double[]{span[0] + inset, span[1] - inset};
     }
 
     /** 車体（{@link CarBody}）の角のワールド座標。描画用。順番は {@link CarBody#corners()} と同じ。 */
@@ -1228,8 +1392,11 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
 
-            double x = carX + forwardX * forwardOffset + rightX * rightOffset;
-            double z = carZ + forwardZ * forwardOffset + rightZ * rightOffset;
+            // 水平の位置は傾きの cos ぶん縮む。高さだけ傾けると、坂の上で前輪が地面を先で探す
+            double forward = state.horizontalForwardOffset(forwardOffset);
+            double right = state.horizontalRightOffset(rightOffset);
+            double x = carX + forwardX * forward + rightX * right;
+            double z = carZ + forwardZ * forward + rightZ * right;
             double top = state.hardpointHeight(forwardOffset, rightOffset);
             double bottom = top - rayLength;
             // 今のタイヤ下端。ここから登坂限界ぶん上までが「乗り越えられる」範囲
@@ -1242,10 +1409,71 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     ClipContext.Block.COLLIDER,
                     ClipContext.Fluid.NONE,
                     this));
+            // タイヤには幅がある。内側と外側の端でも地面を探し、いちばん高いところに乗せる。
+            // 中心だけで見ると、台の端から半分はみ出したタイヤが台の下まで落ち、
+            // 内側の面が台の側面に刺さった（そこをタイヤの当たりが横へ押し返して車が揺れた）。
+            // 中心が壁の中なら壁のまま（据え置き）
+            if (!hit.isInside()) {
+                double outward = wheel.isLeft() ? -1.0 : 1.0;
+                for (double edge : tireGroundEdges()) {
+                    double ex = x + rightX * outward * edge;
+                    double ez = z + rightZ * outward * edge;
+                    BlockHitResult side = level().clip(new ClipContext(
+                            new Vec3(ex, from, ez),
+                            new Vec3(ex, bottom, ez),
+                            ClipContext.Block.COLLIDER,
+                            ClipContext.Fluid.NONE,
+                            this));
+                    if (side.getType() == HitResult.Type.MISS || side.isInside()) {
+                        continue;
+                    }
+                    if (hit.getType() == HitResult.Type.MISS || side.getLocation().y > hit.getLocation().y) {
+                        hit = side;
+                    }
+                }
+            }
 
             if (hit.getType() == HitResult.Type.MISS) {
+                // 階段の下りでは、縁を越えた直後の下の段がレイの先にある。1 段ぶん深く探して、
+                // 階段なら段の角を結んだ斜面で渡す。崖なら今までどおり地面なし（落ちる）
+                BlockHitResult deep = level().clip(new ClipContext(
+                        new Vec3(x, from, z),
+                        new Vec3(x, bottom - STAIR_STEP_MAX, z),
+                        ClipContext.Block.COLLIDER,
+                        ClipContext.Fluid.NONE,
+                        this));
+                if (deep.getType() != HitResult.Type.MISS && !deep.isInside()) {
+                    double height = deep.getLocation().y;
+                    double stair = stairHeight(x, z, from, bottom, height);
+                    if (stair >= bottom) {
+                        RoadSurface surface = SurfaceLookup.of(level().getBlockState(deep.getBlockPos()));
+                        surfaces[index] = surface;
+                        double previous = previousGroundHeight[index];
+                        double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
+                        setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, stair, rise);
+                        continue;
+                    }
+                }
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, rise);
                 continue;
+            }
+            if (!hit.isInside()) {
+                buriedWheel[index] = false;
+            } else if (buriedWheel[index] || previousGroundHeight[index] == Double.NEGATIVE_INFINITY) {
+                // 地面を見ていなかった輪が、いきなり登坂限界より深く地面の中にある＝走って壁に
+                // 当たったのではなく、上から（回って）地面に入った。起き上がり補助が横倒しの車を
+                // 起こすとき、伸びきったサスペンションの先のタイヤが地面へ 1.5m ほど潜る
+                // （大きいタイヤほど深い）。据え置くと地面が無いままで、タイヤを埋めたまま
+                // 車体の角で斜めに止まった。上にある地面の天面を、上がる速さを制限して渡す
+                double surface = solidTopAbove(x, from, z);
+                if (surface > Double.NEGATIVE_INFINITY && surface <= top + spec.wheelRadius()) {
+                    buriedWheel[index] = true;
+                    double previous = previousGroundHeight[index];
+                    double base = previous > Double.NEGATIVE_INFINITY ? previous : wheelBottom;
+                    setGroundHeight(wheel, surface, tireGrip(surfaces[index]), tireRolling(surfaces[index]),
+                            base, Double.NEGATIVE_INFINITY, rise);
+                    continue;
+                }
             }
             if (hit.isInside()) {
                 // 起点が塞がっている＝登坂限界より上まで続く壁。乗せずに据え置く
@@ -1262,7 +1490,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             double previous = previousGroundHeight[index];
             // 段の高さを測る基準。地面を見失っていた輪は、いまのタイヤ下端から
             double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
-            double ahead = lookAhead(x, z, from, bottom, base, height);
+            // 階段（段の角を結んだ斜面）が取れればそちらを使う。先読みの斜面は 0.25m おきの
+            // 粗いもので、混ぜると地面が数 cm ずつ跳ね、ダンパーがそれを速度として拾って車を跳ね上げる
+            double stair = stairHeight(x, z, from, bottom, height);
+            double ahead = stair > Double.NEGATIVE_INFINITY ? stair : lookAhead(x, z, from, bottom, base, height);
             setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, ahead, rise);
         }
     }
@@ -1324,6 +1555,127 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             best = Math.max(best, ground - downSlope * distance);
         }
         return best;
+    }
+
+    /**
+     * 階段を斜面として見たときの、いまの位置での高さ。段の角（縁の上端）を結んだ線の上。
+     * 階段でなければ負の無限大。
+     *
+     * <p>roads の階層ブロックで作った坂は、1 マスごとに平らな段が並んだもの。30 度の坂なら
+     * 1 マスに 58cm の段になり、低い段の先読み（{@link #lookAhead}、55cm まで）から外れて
+     * <b>崖が並んでいるのと同じ扱いになっていた</b>——段を降りるたびに前輪が宙に出て、
+     * 下りでは 4 輪とも浮いている時間が 5〜8 割に達した。実際の車が走るのは段の角どうしを
+     * 結んだ面なので、その面を地面として渡す。</p>
+     *
+     * <p>階段と見るのは、段の幅が測れるとき（こちらの段の反対側にも縁があるか、高い側の
+     * 向こうに次の段があるとき）だけ。<b>崖・単独の段は今までどおり</b>（放物線で飛ぶ・
+     * 段差として登る）。急すぎるもの（{@link #STAIR_SLOPE_MAX} 超え、1 マスに 1 ブロックの坂など）も
+     * 階段とは見ない。</p>
+     *
+     * <p>向きは車体の前後。止まっていても坂の形は変わらないので、速度の向きには依らない。</p>
+     *
+     * @param height この輪の真下の地面
+     */
+    private double stairHeight(double x, double z, double from, double bottom, double height) {
+        double dirX = state.forwardX();
+        double dirZ = state.forwardZ();
+        double deep = bottom - STAIR_STEP_MAX;
+        double[] ahead = stairEdges(x, z, dirX, dirZ, from, deep, height);
+        double[] behind = stairEdges(x, z, -dirX, -dirZ, from, deep, height);
+        // 後ろが高い（下り）か、前が高い（上り）か。谷ならどちらも立つので高いほう
+        return Math.max(stairSide(height, behind, ahead), stairSide(height, ahead, behind));
+    }
+
+    /**
+     * 片側へ歩いて、段の縁を手前から 2 つまで探す。{縁 1 までの距離, その先の高さ, 縁 2 までの距離, その先の高さ}。
+     * 見つからなければ NaN。縁の位置は二分して 1.5cm まで詰める。
+     */
+    private double[] stairEdges(double x, double z, double dirX, double dirZ, double from, double bottom,
+                                double height) {
+        double[] edges = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
+        double level = height;
+        double previous = 0.0;
+        int found = 0;
+        for (double distance = LOOKAHEAD_SPACING; distance <= STAIR_REACH + 1.0e-9 && found < 2;
+             distance += LOOKAHEAD_SPACING) {
+            double ground = probeGround(x, z, dirX, dirZ, distance, from, bottom);
+            if (Double.isNaN(ground)) {
+                break;
+            }
+            if (Math.abs(ground - level) > STAIR_EPSILON) {
+                double near = previous;
+                double far = distance;
+                for (int i = 0; i < 3; i++) {
+                    double middle = (near + far) / 2.0;
+                    double g = probeGround(x, z, dirX, dirZ, middle, from, bottom);
+                    if (!Double.isNaN(g) && Math.abs(g - level) <= STAIR_EPSILON) {
+                        near = middle;
+                    } else {
+                        far = middle;
+                    }
+                }
+                // 縁は段差（不連続）でなければならない。なめらかな斜面は詰めても差が縮むので段とは見ない
+                double nearGround = probeGround(x, z, dirX, dirZ, near, from, bottom);
+                double farGround = probeGround(x, z, dirX, dirZ, far, from, bottom);
+                if (Double.isNaN(nearGround) || Double.isNaN(farGround)
+                        || Math.abs(farGround - nearGround) <= STAIR_EPSILON) {
+                    break;
+                }
+                edges[found * 2] = (near + far) / 2.0;
+                edges[found * 2 + 1] = ground;
+                found++;
+                level = ground;
+            }
+            previous = distance;
+        }
+        return edges;
+    }
+
+    /**
+     * {@code high} の側に高い段があるときの、段の角を結んだ線の高さ。斜面の長さ（段の幅）は、
+     * 反対側の縁（こちらの段の始まり）か、高い側の次の縁（向こうの段の幅）から取る。
+     */
+    private static double stairSide(double height, double[] high, double[] low) {
+        double edge = high[0];
+        double top = high[1];
+        double rise = top - height;
+        if (Double.isNaN(edge) || rise <= STAIR_EPSILON || rise > STAIR_STEP_MAX) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        double run;
+        double ground;
+        if (!Double.isNaN(low[0]) && low[1] < height - STAIR_EPSILON) {
+            // こちらの段は反対側の縁から始まる。その角（高さ height）から高い段の角まで
+            run = edge + low[0];
+            ground = height + rise * low[0] / run;
+        } else if (!Double.isNaN(high[2]) && high[3] > top + STAIR_EPSILON) {
+            // 階段の端の段。向こうの段の幅で同じ傾きの斜面を延ばす
+            run = high[2] - edge;
+            ground = top - rise / run * edge;
+        } else {
+            return Double.NEGATIVE_INFINITY;
+        }
+        if (rise / run > STAIR_SLOPE_MAX) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        return Math.max(height, ground);
+    }
+
+    /** 真下の地面の高さ。当たらない・起点が埋まっているときは NaN。 */
+    private double probeGround(double x, double z, double dirX, double dirZ, double distance,
+                               double from, double bottom) {
+        double px = x + dirX * distance;
+        double pz = z + dirZ * distance;
+        BlockHitResult hit = level().clip(new ClipContext(
+                new Vec3(px, from, pz),
+                new Vec3(px, bottom, pz),
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                this));
+        if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+            return Double.NaN;
+        }
+        return hit.getLocation().y;
     }
 
     /**
@@ -1558,6 +1910,20 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         applyDriverState(frame.steerAngle(), frame.speed(), frame.yaw(), frame.pitch(), frame.roll(),
                 frame.suspension(), frame.wheelSpeed(), frame.friction(), frame.rpm(), frame.gear(),
                 frame.throttle(), frame.slipAngle(), frame.surface(), frame.lights(), frame.boost());
+    }
+
+    /**
+     * 運転者がいまハンドルを操作しているか（A/D・スティック）。入力を持っているのは運転しているクライアントだけなので、
+     * それ以外（同乗者・他人の車・サーバー）では null。ハンドルを握る手の見た目に使う（{@code SteeringHands}）。
+     */
+    @Nullable
+    public Boolean steeringInputHeld() {
+        if (!hasLocalState()) {
+            return null;
+        }
+        return driverInput.analog()
+                ? Math.abs(driverInput.steerAxis()) > CarInput.AXIS_THRESHOLD
+                : driverInput.left() || driverInput.right();
     }
 
     /** 運転クライアントが毎ティック呼ぶ。次の {@link #tick()} で使われる。 */
@@ -2000,6 +2366,14 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         Vec3 seat = toWorld(seatOffset(passenger).add(0.0, passenger.getMyRidingOffset(), 0.0),
                 getYRot(), getRenderPitch(), getRenderRoll());
         move.accept(passenger, getX() + seat.x, getY() + seat.y, getZ() + seat.z);
+    }
+
+    /**
+     * 乗員の足元の位置を、<b>車体の座標</b>（乗員の向き。+X 左・+Y 上・+Z 前）で。
+     * ハンドルを握る手の向きを、車体の中で組み立てるのに使う（{@code SteeringHands}）。
+     */
+    public Vec3 riderSeatLocal(Entity passenger) {
+        return seatOffset(passenger).add(0.0, passenger.getMyRidingOffset(), 0.0);
     }
 
     /**

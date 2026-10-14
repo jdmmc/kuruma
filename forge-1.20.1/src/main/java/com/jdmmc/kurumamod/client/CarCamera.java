@@ -38,7 +38,7 @@ public final class CarCamera {
 
     /** 1 ティックで詰める角度の割合。小さいほど緩やかに追従する。 */
     private static final float FOLLOW_RATE = 0.18F;
-    /** 進行方向をどれだけ向くか。1 で完全に進行方向、0 で車の向き。 */
+    /** 三人称で、進行方向をどれだけ向くか。1 で完全に進行方向、0 で車の向き（一人称は CockpitLook が決める）。 */
     private static final float DRIFT_LOOK = 0.6F;
     /** 見下ろす角度 [度]。 */
     private static final float LOOK_DOWN = 8.0F;
@@ -46,6 +46,12 @@ public final class CarCamera {
     private static final int MANUAL_LOOK_TICKS = 30;
     /** 視線が既に合っているとみなす角度差 [度]。ここを下回れば動かさない。 */
     private static final float SETTLED_DEGREES = 0.05F;
+
+    /** 一人称の視線を車体からどれだけ振るか（{@link CockpitLook}）。見回している間も毎ティック進める。 */
+    private static final CockpitLook COCKPIT_LOOK = new CockpitLook();
+    /** {@link #COCKPIT_LOOK} がどの車を、どのティックまで見てきたか。つながらなければ測り直す。 */
+    private static int lookCarId = -1;
+    private static int lookCarTick;
 
     /**
      * 広がりを速度域のどこへ寄せるか。1 で速度に比例、0.5（平方根）で低中速側へ寄る。
@@ -111,6 +117,8 @@ public final class CarCamera {
             manualLookCooldown = 0;
             return;
         }
+        // 一人称の視線は、見回している間やほかのモードでも毎ティック進めておく（均している値を途切れさせない）
+        double cockpitOffset = updateCockpitLook(car);
         CameraMode mode = currentMode();
         if (!mode.followsView() && mode != CameraMode.HEADING) {
             return;
@@ -136,8 +144,12 @@ public final class CarCamera {
             return;
         }
 
-        // 車の向きと進行方向の間を向く。ドリフト中は進行方向側へ振られて車体の横が見える
-        float targetYaw = car.getYRot() + (float) car.getRenderSlipAngleDegrees() * DRIFT_LOOK;
+        // 三人称は車の向きと進行方向の間を向く。ドリフト中は進行方向側へ振られて車体の横が見える。
+        // 一人称は CockpitLook の目標（ドリフトは同じ 0.6 倍、グリップでは曲がる側を先読み）。
+        // どちらも<b>ワールドに対して追いかける</b>。車の急な回転に直接付いていくと、ドリフトの振り出しで
+        // 画面がぐいぐい回った（いったん直接合わせる形にして戻した）
+        float targetYaw = car.getYRot() + (mode.isFirstPerson()
+                ? (float) cockpitOffset : (float) car.getRenderSlipAngleDegrees() * DRIFT_LOOK);
         float yaw = player.getYRot() + Mth.wrapDegrees(targetYaw - player.getYRot()) * FOLLOW_RATE;
         float pitch = player.getXRot() + (LOOK_DOWN - player.getXRot()) * FOLLOW_RATE;
 
@@ -146,6 +158,23 @@ public final class CarCamera {
         appliedYaw = yaw;
         appliedPitch = pitch;
         hasApplied = true;
+    }
+
+    /**
+     * 一人称の視線のずれ [度] を 1 ティック進める。乗り換えたときと、ティックが飛んだとき
+     * （止めていた・読み込み直し）は測り直す。前のティックとの差から回転率を出すので、飛んだ差を
+     * 1 ティックの回転として読ませないため。
+     */
+    private static double updateCockpitLook(CarEntity car) {
+        if (car.getId() != lookCarId || car.tickCount - lookCarTick != 1) {
+            COCKPIT_LOOK.reset();
+        }
+        lookCarId = car.getId();
+        lookCarTick = car.tickCount;
+        // H メニューのスライダー。走りながら動かして決めるものなので、毎ティック読む
+        COCKPIT_LOOK.setLookAhead(ClientConfig.cockpitLookAhead);
+        COCKPIT_LOOK.setSlipGain(ClientConfig.cockpitDriftLook);
+        return COCKPIT_LOOK.tick(car.getYRot(), car.getRenderSlipAngleDegrees(), car.getRenderSpeed());
     }
 
     /**

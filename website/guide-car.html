@@ -82,7 +82,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
-  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass and mirrors (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">9. Checklist</span><span data-l="ja">9. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a><a href="#sd"><span data-l="en">Appendix B. Ignored values</span><span data-l="ja">付録 B. 読まれない値</span></a></nav>
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">9. Checklist</span><span data-l="ja">9. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a><a href="#sd"><span data-l="en">Appendix B. Ignored values</span><span data-l="ja">付録 B. 読まれない値</span></a></nav>
   <div class="gdoc"><section class="gsec" id="s-car-min">
 <h2 class="ja">最小の車を作る</h2>
 <h2 class="en">Make a minimal car</h2>
@@ -452,14 +452,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <summary>ボンネットやバンパーを別のオブジェクトに分けたい</summary>
 <div class="more-body">
 <p>分けても分けなくても同じです。ゲームは名前の決まっていないオブジェクトを全部まとめて車体として描きます。同梱の車体は作業のしやすさで <code>body</code> / <code>hood</code> / <code>trunk</code> / <code>bumper_f</code> / <code>bumper_r</code> に分けてあります。</p>
-<p>ライト・ガラス・ミラー・付け替える部品だけは名前で働きが決まるので、別のオブジェクト（または別のマテリアル）にします（<a href="#s5">3 章</a>）。</p>
+<p>ライト・ガラス・ミラー・ハンドル・付け替える部品だけは名前で働きが決まるので、別のオブジェクト（または別のマテリアル）にします（<a href="#s5">3 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Split the bonnet or bumpers into their own objects</summary>
 <div class="more-body">
 <p>Split or not, it makes no difference. The game draws every object without a special name as body. The bundled body is split into <code>body</code> / <code>hood</code> / <code>trunk</code> / <code>bumper_f</code> / <code>bumper_r</code> only for convenience while modelling.</p>
-<p>Lights, glass, mirrors and swappable parts are the exception: their names decide what they do, so they need their own objects (or materials) (<a href="#s5">chapter 3</a>).</p>
+<p>Lights, glass, mirrors, the steering wheel and swappable parts are the exception: their names decide what they do, so they need their own objects (or materials) (<a href="#s5">chapter 3</a>).</p>
 </div>
 </details>
 
@@ -512,13 +512,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </div>
 </details>
 </section><section class="gsec" id="s5">
-<h2 class="ja"><span class="num">3</span>ライト・ガラス・ミラー（名前で決まる機能）</h2>
-<h2 class="en"><span class="num">3</span>Lights, glass and mirrors (names that do things)</h2>
-<p class="ja">オブジェクトに決まった名前を付けるだけで、ライトが光り、窓が透け、ミラーに後ろが映ります。JSON には何も書きません。</p>
-<p class="en">Give an object one of a few set names and it lights up, turns see-through or reflects what is behind. Nothing goes into the JSON.</p>
+<h2 class="ja"><span class="num">3</span>ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</h2>
+<h2 class="en"><span class="num">3</span>Lights, glass, mirrors and the steering wheel (names that do things)</h2>
+<p class="ja">オブジェクトに決まった名前を付けるだけで、ライトが光り、窓が透け、ミラーに後ろが映り、ハンドルが回ります。JSON には何も書きません。</p>
+<p class="en">Give an object one of a few set names and it lights up, turns see-through, reflects what is behind or turns with the steering. Nothing goes into the JSON.</p>
 
-<h3 class="ja">ライトを光らせる</h3>
-<h3 class="en">Make the lights work</h3>
+<h3 id="lights" class="ja">ライトを光らせる</h3>
+<h3 id="lights-en" class="en">Make the lights work</h3>
 <ol class="steps ja">
 <li><span class="where where-blender">Blender</span><b>ライトのレンズを別のオブジェクトにして、名前を付ける。</b>ヘッドライトは <code>light_head</code>、テールランプは <code>light_tail</code>、バックランプは <code>light_reverse</code>。左右で 1 つのオブジェクトでよい（ミラーモディファイアのままでよい）</li>
 <li><span class="where where-blender">Blender</span><b>レンズの面を、車体から 1〜2mm 浮かせる。</b></li>
@@ -532,6 +532,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </ol>
 <p class="en"><kbd>L</kbd> now turns the headlights on, the tail lights glow dimly and brighten under braking, and the reverse lights come on in R.</p>
 
+<figure>
+<div class="anno"><img src="img/blender-light.png" alt="Blender: the light_tail object selected on the S15" loading="lazy"></div>
+<figcaption class="ja">図 6. テールランプのレンズを <code>light_tail</code> という名前のオブジェクトにしたところ（見本の S15）。<code>light_head</code>・<code>light_reverse</code> も同じく役目ごとに 1 つ。左右は 1 つのオブジェクトのままでよい</figcaption>
+<figcaption class="en">Fig. 6. The tail-light lenses as one object named <code>light_tail</code> (the S15 example). <code>light_head</code> and <code>light_reverse</code> are one object per role in the same way; both sides can stay in one object.</figcaption>
+</figure>
+
 <div class="box warn ja">
 <span class="lbl"><code>light_</code> で始まる名前はこの 3 つだけ</span>
 <p><code>light_fog</code> のような名前を付けると、<b>そこが穴になって何も描かれません。</b>フォグランプは <code>light_head</code> に含めるか、ふつうの車体として作ります。</p>
@@ -541,8 +547,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <p>Name something <code>light_fog</code> and <b>it becomes a hole where nothing is drawn.</b> Fold fog lights into <code>light_head</code>, or model them as plain body.</p>
 </div>
 
-<h3 class="ja">窓を透けさせる</h3>
-<h3 class="en">Make the windows see-through</h3>
+<h3 id="glass" class="ja">窓を透けさせる</h3>
+<h3 id="glass-en" class="en">Make the windows see-through</h3>
 <ol class="steps ja">
 <li><span class="where where-blender">Blender</span><b>窓を別のオブジェクトにして、名前を <code>glass</code> で始める。</b><code>glass</code>・<code>glass_side</code>・<code>glass.front</code> など</li>
 </ol>
@@ -551,6 +557,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-blender">Blender</span><b>Make the windows their own object and start the name with <code>glass</code>.</b> <code>glass</code>, <code>glass_side</code>, <code>glass.front</code> and so on</li>
 </ol>
 <p class="en">The windows are now see-through (opacity 0.35).</p>
+
+<figure>
+<div class="anno"><img src="img/blender-glass.png" alt="Blender: the glass objects selected on the S15" loading="lazy"></div>
+<figcaption class="ja">図 7. 窓を <code>glass_front</code>・<code>glass_rear</code>・<code>glass_side_front</code>・<code>glass_side_rear</code> に分けたところ。名前が <code>glass</code> で始まっていればよく、1 つにまとめてもよい</figcaption>
+<figcaption class="en">Fig. 7. The windows split into <code>glass_front</code>, <code>glass_rear</code>, <code>glass_side_front</code> and <code>glass_side_rear</code>. Any name starting with <code>glass</code> works, and one object for all of them is fine too.</figcaption>
+</figure>
 
 <h3 id="mirror" class="ja">ミラーに後ろを映す</h3>
 <h3 id="mirror-en" class="en">Make the mirrors reflect</h3>
@@ -570,6 +582,40 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <p class="en">The mirrors now show what is really behind you.</p>
 
 <figure>
+<div class="anno"><img src="img/blender-mirror.png" alt="Blender: mirror_left, mirror_rear and mirror_right selected" loading="lazy"></div>
+<figcaption class="ja">図 8. <code>mirror_left</code>・<code>mirror_rear</code>・<code>mirror_right</code> を選んだところ。左右のドアミラーは別々のオブジェクト。鏡の面を運転席へ向けた箱でよい</figcaption>
+<figcaption class="en">Fig. 8. <code>mirror_left</code>, <code>mirror_rear</code> and <code>mirror_right</code> selected. The two door mirrors are separate objects; a box with its mirror face turned to the driver is enough.</figcaption>
+</figure>
+
+<h3 id="steering" class="ja">ハンドルを回す</h3>
+<h3 id="steering-en" class="en">Make the steering wheel turn</h3>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>ハンドルの回る部分（リムとスポーク）を別のオブジェクトにして、名前を <code>steering_wheel</code> にする。</b><code>steering</code> で始まればよい（大文字小文字は問わない）</li>
+<li><span class="where where-blender">Blender</span><b>コラム（ハンドルの付け根の筒）やメーターは入れない。</b>実車でも回らない部分なので、車体のままにする</li>
+</ol>
+<p class="ja">これで、ハンドルが切れ角に合わせて回り、運転している人の手がハンドルを握ります（一人称でも三人称でも）。回す中心と軸は形から自動で決まるので、原点の位置を合わせる必要も、JSON に書くこともありません。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make the part of the wheel that turns (rim and spokes) its own object and name it <code>steering_wheel</code>.</b> Any name starting with <code>steering</code> works (case doesn't matter)</li>
+<li><span class="where where-blender">Blender</span><b>Leave the column (the shroud the wheel sits on) and the gauges out of it.</b> They don't turn in a real car either, so keep them as body</li>
+</ol>
+<p class="en">The wheel now turns with the steering, and the driver's hands hold it (in first and third person). The centre and axis it turns about are worked out from its shape, so you don't need to place the origin or write anything in the JSON.</p>
+
+<figure>
+<div class="anno"><img src="img/blender-steer-wheel.png" alt="Blender: the steering_wheel object selected in the S15 cabin" loading="lazy"></div>
+<figcaption class="ja">図 9. 回る部分（リムとスポーク）だけを <code>steering_wheel</code> にしたところ。コラムやダッシュボードは車体のまま</figcaption>
+<figcaption class="en">Fig. 9. Only the part that turns (rim and spokes) is <code>steering_wheel</code>. The column and dashboard stay as body.</figcaption>
+</figure>
+
+<div class="box warn ja">
+<span class="lbl">円盤の形でないと回らない</span>
+<p>回る軸は「いちばん薄い向き」から決めるので、<b>コラムまで 1 つのオブジェクトに入れると軸が取れず、ハンドルは止まったまま描かれ、手も置かれません</b>（ログに理由が出ます）。リムとスポークだけにしてください。</p>
+</div>
+<div class="box warn en">
+<span class="lbl">IT MUST BE DISC-SHAPED</span>
+<p>The axis is taken from the object's thinnest direction, so <b>if the column is in the same object no axis can be found: the wheel is drawn but never turns, and no hands are placed</b> (the log says why). Keep it to the rim and spokes.</p>
+</div>
+
+<figure>
 <svg viewBox="0 0 720 300" role="img" aria-label="Where the special names sit on the car">
   <line class="f-line" x1="30" y1="240" x2="690" y2="240"/>
   <path class="f-body" d="M108 218 L108 168 C109 150 118 140 136 137 L306 126 L378 76 L498 74 L590 124 L648 130 C658 133 664 146 664 166 L664 218 Z"/>
@@ -582,6 +628,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   <rect x="652" y="156" width="12" height="10" rx="2" fill="#ffffff" stroke="#6f6f6f" stroke-width="1.5"/>
   <rect x="306" y="112" width="16" height="11" rx="2" fill="#5d6b78" stroke="#2f3a44" stroke-width="1.5"/>
   <rect x="388" y="90" width="18" height="7" rx="2" fill="#5d6b78" stroke="#2f3a44" stroke-width="1.5"/>
+  <ellipse cx="370" cy="114" rx="3.5" ry="10.5" transform="rotate(-25 370 114)" fill="none" stroke="#7a4fa0" stroke-width="2.6"/>
   <g class="f-thin">
     <path d="M100 120 L116 144"/>
     <path d="M212 62 L308 112"/>
@@ -589,6 +636,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <path d="M640 120 L655 140"/>
     <path d="M684 250 L662 166"/>
     <path d="M516 60 L406 92"/>
+    <path d="M398 194 L374 125"/>
   </g>
   <path class="f-acc" d="M92 196 H50"/><path class="f-accf" d="M44 196 l10 -5 v10 z"/>
   <text class="f-ta ja" x="58" y="186">前</text>
@@ -599,17 +647,18 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   <text class="f-ta" x="700" y="116" text-anchor="end" style="fill:#c0392b">light_tail</text>
   <text class="f-ta" x="712" y="266" text-anchor="end" style="fill:#6f6f6f">light_reverse</text>
   <text class="f-ta" x="520" y="58" style="fill:#4a5763">mirror_rear</text>
+  <text class="f-ta" x="400" y="208" text-anchor="middle" style="fill:#7a4fa0">steering_wheel</text>
   <text class="f-td ja" x="360" y="276" text-anchor="middle">これら以外のオブジェクトは、名前が何であっても全部「車体」</text>
   <text class="f-td en" x="360" y="276" text-anchor="middle">every other object, whatever it is called, is body</text>
 </svg>
-<figcaption class="ja">図 6. 名前で機能が決まる部位。ルームミラー（<code>mirror_rear</code>）は室内のフロントガラス上端にあります</figcaption>
-<figcaption class="en">Fig. 6. Where the meaningful names sit. The rear-view mirror (<code>mirror_rear</code>) is inside the cabin, at the top of the windscreen.</figcaption>
+<figcaption class="ja">図 10. 名前で機能が決まる部位。ルームミラー（<code>mirror_rear</code>）は室内のフロントガラス上端に、ハンドル（<code>steering_wheel</code>）は室内の運転席の前にあります</figcaption>
+<figcaption class="en">Fig. 10. Where the meaningful names sit. The rear-view mirror (<code>mirror_rear</code>) is inside the cabin at the top of the windscreen, and the steering wheel (<code>steering_wheel</code>) is inside the cabin in front of the driver's seat.</figcaption>
 </figure>
 
 <figure>
-<div class="anno"><img src="img/guide-3.jpg" loading="lazy" alt="The S15 in Blender showing only its glass, light and mirror objects, selected in the outliner"><svg class="anno-layer" viewBox="0 0 1418 869" preserveAspectRatio="none" role="img" aria-label="Annotations: glass, light and mirror objects"><g class="ja"><line class="an-line" x1="500" y1="155" x2="500" y2="300"/><circle class="an-dot" cx="500" cy="300" r="7"/><rect class="an-box" x="330" y="110" width="176" height="45" rx="7"/><text class="an-text" x="341" y="145">glass_front</text></g><g class="en"><line class="an-line" x1="500" y1="155" x2="500" y2="300"/><circle class="an-dot" cx="500" cy="300" r="7"/><rect class="an-box" x="330" y="110" width="176" height="45" rx="7"/><text class="an-text" x="341" y="145">glass_front</text></g><g class="ja"><line class="an-line" x1="700" y1="420" x2="680" y2="310"/><circle class="an-dot" cx="680" cy="310" r="7"/><rect class="an-box" x="700" y="420" width="190" height="45" rx="7"/><text class="an-text" x="711" y="455">glass_side_…</text></g><g class="en"><line class="an-line" x1="700" y1="420" x2="680" y2="310"/><circle class="an-dot" cx="680" cy="310" r="7"/><rect class="an-box" x="700" y="420" width="190" height="45" rx="7"/><text class="an-text" x="711" y="455">glass_side_…</text></g><g class="ja"><line class="an-line" x1="222" y1="700" x2="290" y2="530"/><circle class="an-dot" cx="290" cy="530" r="7"/><line class="an-line" x1="195" y1="700" x2="195" y2="410"/><circle class="an-dot" cx="195" cy="410" r="7"/><rect class="an-box" x="60" y="700" width="162" height="45" rx="7"/><text class="an-text" x="71" y="735">light_head</text></g><g class="en"><line class="an-line" x1="222" y1="700" x2="290" y2="530"/><circle class="an-dot" cx="290" cy="530" r="7"/><line class="an-line" x1="195" y1="700" x2="195" y2="410"/><circle class="an-dot" cx="195" cy="410" r="7"/><rect class="an-box" x="60" y="700" width="162" height="45" rx="7"/><text class="an-text" x="71" y="735">light_head</text></g><g class="ja"><line class="an-line" x1="895" y1="155" x2="895" y2="258"/><circle class="an-dot" cx="895" cy="258" r="7"/><rect class="an-box" x="690" y="110" width="386" height="45" rx="7"/><text class="an-text" x="701" y="145">light_tail / light_reverse</text></g><g class="en"><line class="an-line" x1="895" y1="155" x2="895" y2="258"/><circle class="an-dot" cx="895" cy="258" r="7"/><rect class="an-box" x="690" y="110" width="386" height="45" rx="7"/><text class="an-text" x="701" y="145">light_tail / light_reverse</text></g><g class="ja"><line class="an-line" x1="640" y1="520" x2="630" y2="360"/><circle class="an-dot" cx="630" cy="360" r="7"/><rect class="an-box" x="640" y="520" width="386" height="45" rx="7"/><text class="an-text" x="651" y="555">mirror_left / mirror_right</text></g><g class="en"><line class="an-line" x1="640" y1="520" x2="630" y2="360"/><circle class="an-dot" cx="630" cy="360" r="7"/><rect class="an-box" x="640" y="520" width="386" height="45" rx="7"/><text class="an-text" x="651" y="555">mirror_left / mirror_right</text></g><g class="ja"><line class="an-line" x1="1300" y1="330" x2="1300" y2="200"/><circle class="an-dot" cx="1300" cy="200" r="7"/><rect class="an-box" x="1083" y="330" width="322" height="78" rx="7"/><text class="an-text" x="1094" y="365">選んだ行が、名前で</text><text class="an-text" x="1094" y="398">役目の決まるオブジェクト</text></g><g class="en"><line class="an-line" x1="1300" y1="330" x2="1300" y2="200"/><circle class="an-dot" cx="1300" cy="200" r="7"/><rect class="an-box" x="963" y="330" width="442" height="78" rx="7"/><text class="an-text" x="974" y="365">The selected rows are the</text><text class="an-text" x="974" y="398">objects whose names set a role</text></g></svg></div>
-<figcaption class="ja">図 7. 見本の S15 で、名前で役目が決まるオブジェクト（<code>glass_…</code>・<code>light_…</code>・<code>mirror_…</code>）だけを表示したところ。<b>アウトライナーの名前が、そのままゲームの中の役目になります</b></figcaption>
-<figcaption class="en">Fig. 7. The S15 with only its role objects shown (<code>glass_…</code>, <code>light_…</code>, <code>mirror_…</code>). <b>The names in the outliner are what the game reads.</b></figcaption>
+<div class="anno"><img src="img/blender-named-parts.png" alt="The S15 in Blender showing only its glass, light, mirror and steering wheel objects, selected in the outliner" loading="lazy"><svg class="anno-layer" viewBox="0 0 1418 733" preserveAspectRatio="none" role="img" aria-label="Annotations: glass, light, mirror and steering wheel objects"><g class="ja"><line class="an-line" x1="540" y1="155" x2="328" y2="244"/><circle class="an-dot" cx="328" cy="244" r="7"/><rect class="an-box" x="520" y="110" width="180" height="45" rx="7"/><text class="an-text" x="531" y="145">mirror_rear</text></g><g class="en"><line class="an-line" x1="540" y1="155" x2="328" y2="244"/><circle class="an-dot" cx="328" cy="244" r="7"/><rect class="an-box" x="520" y="110" width="180" height="45" rx="7"/><text class="an-text" x="531" y="145">mirror_rear</text></g><g class="ja"><line class="an-line" x1="140" y1="220" x2="145" y2="250"/><circle class="an-dot" cx="145" cy="250" r="7"/><line class="an-line" x1="240" y1="197" x2="264" y2="199"/><circle class="an-dot" cx="264" cy="199" r="7"/><rect class="an-box" x="70" y="175" width="166" height="45" rx="7"/><text class="an-text" x="81" y="210">light_head</text></g><g class="en"><line class="an-line" x1="140" y1="220" x2="145" y2="250"/><circle class="an-dot" cx="145" cy="250" r="7"/><line class="an-line" x1="240" y1="197" x2="264" y2="199"/><circle class="an-dot" cx="264" cy="199" r="7"/><rect class="an-box" x="70" y="175" width="166" height="45" rx="7"/><text class="an-text" x="81" y="210">light_head</text></g><g class="ja"><line class="an-line" x1="360" y1="170" x2="273" y2="245"/><circle class="an-dot" cx="273" cy="245" r="7"/><rect class="an-box" x="330" y="125" width="180" height="45" rx="7"/><text class="an-text" x="341" y="160">glass_front</text></g><g class="en"><line class="an-line" x1="360" y1="170" x2="273" y2="245"/><circle class="an-dot" cx="273" cy="245" r="7"/><rect class="an-box" x="330" y="125" width="180" height="45" rx="7"/><text class="an-text" x="341" y="160">glass_front</text></g><g class="ja"><line class="an-line" x1="580" y1="225" x2="358" y2="260"/><circle class="an-dot" cx="358" cy="260" r="7"/><rect class="an-box" x="560" y="180" width="223" height="45" rx="7"/><text class="an-text" x="571" y="215">steering_wheel</text></g><g class="en"><line class="an-line" x1="580" y1="225" x2="358" y2="260"/><circle class="an-dot" cx="358" cy="260" r="7"/><rect class="an-box" x="560" y="180" width="223" height="45" rx="7"/><text class="an-text" x="571" y="215">steering_wheel</text></g><g class="ja"><line class="an-line" x1="600" y1="330" x2="503" y2="368"/><circle class="an-dot" cx="503" cy="368" r="7"/><rect class="an-box" x="600" y="300" width="166" height="45" rx="7"/><text class="an-text" x="611" y="335">glass_rear</text></g><g class="en"><line class="an-line" x1="600" y1="330" x2="503" y2="368"/><circle class="an-dot" cx="503" cy="368" r="7"/><rect class="an-box" x="600" y="300" width="166" height="45" rx="7"/><text class="an-text" x="611" y="335">glass_rear</text></g><g class="ja"><line class="an-line" x1="180" y1="440" x2="276" y2="330"/><circle class="an-dot" cx="276" cy="330" r="7"/><rect class="an-box" x="20" y="440" width="194" height="45" rx="7"/><text class="an-text" x="31" y="475">glass_side_…</text></g><g class="en"><line class="an-line" x1="180" y1="440" x2="276" y2="330"/><circle class="an-dot" cx="276" cy="330" r="7"/><rect class="an-box" x="20" y="440" width="194" height="45" rx="7"/><text class="an-text" x="31" y="475">glass_side_…</text></g><g class="ja"><line class="an-line" x1="300" y1="620" x2="195" y2="307"/><circle class="an-dot" cx="195" cy="307" r="7"/><rect class="an-box" x="20" y="620" width="393" height="45" rx="7"/><text class="an-text" x="31" y="655">mirror_left / mirror_right</text></g><g class="en"><line class="an-line" x1="300" y1="620" x2="195" y2="307"/><circle class="an-dot" cx="195" cy="307" r="7"/><rect class="an-box" x="20" y="620" width="393" height="45" rx="7"/><text class="an-text" x="31" y="655">mirror_left / mirror_right</text></g><g class="ja"><line class="an-line" x1="520" y1="660" x2="595" y2="599"/><circle class="an-dot" cx="595" cy="599" r="7"/><line class="an-line" x1="700" y1="660" x2="718" y2="436"/><circle class="an-dot" cx="718" cy="436" r="7"/><rect class="an-box" x="420" y="660" width="393" height="45" rx="7"/><text class="an-text" x="431" y="695">light_tail / light_reverse</text></g><g class="en"><line class="an-line" x1="520" y1="660" x2="595" y2="599"/><circle class="an-dot" cx="595" cy="599" r="7"/><line class="an-line" x1="700" y1="660" x2="718" y2="436"/><circle class="an-dot" cx="718" cy="436" r="7"/><rect class="an-box" x="420" y="660" width="393" height="45" rx="7"/><text class="an-text" x="431" y="695">light_tail / light_reverse</text></g><g class="ja"><line class="an-line" x1="1300" y1="590" x2="1300" y2="520"/><circle class="an-dot" cx="1300" cy="520" r="7"/><rect class="an-box" x="1083" y="590" width="322" height="78" rx="7"/><text class="an-text" x="1094" y="625">選んだ行が、名前で</text><text class="an-text" x="1094" y="658">役目の決まるオブジェクト</text></g><g class="en"><line class="an-line" x1="1300" y1="590" x2="1300" y2="520"/><circle class="an-dot" cx="1300" cy="520" r="7"/><rect class="an-box" x="963" y="590" width="442" height="78" rx="7"/><text class="an-text" x="974" y="625">The selected rows are the</text><text class="an-text" x="974" y="658">objects whose names set a role</text></g></svg></div>
+<figcaption class="ja">図 11. 見本の S15 で、名前で役目が決まるオブジェクト（<code>glass_…</code>・<code>light_…</code>・<code>mirror_…</code>・<code>steering_wheel</code>）だけを表示したところ。<b>アウトライナーの名前が、そのままゲームの中の役目になります</b></figcaption>
+<figcaption class="en">Fig. 11. The S15 with only its role objects shown (<code>glass_…</code>, <code>light_…</code>, <code>mirror_…</code>, <code>steering_wheel</code>). <b>The names in the outliner are what the game reads.</b></figcaption>
 </figure>
 
 <h3 class="ja">名前の一覧</h3>
@@ -622,6 +671,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>glass</code> で始まる</td><td>半透明のガラス</td></tr>
 <tr><td><code>mirror_rear</code></td><td>ルームミラー</td></tr>
 <tr><td><code>mirror_left</code> / <code>mirror_right</code></td><td>ドアミラー</td></tr>
+<tr><td><code>steering</code> で始まる</td><td>ハンドル。切れ角に合わせて回り、運転者の手が握る</td></tr>
 <tr><td><code>part_</code> で始まる</td><td>付け替える部品。その部品を付けているときだけ描かれる（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
 <tr><td><code>gauge_</code> で始まる</td><td>捨てられる（ゲージが混ざっても描かれない）</td></tr>
 <tr><td>それ以外</td><td>車体</td></tr>
@@ -634,6 +684,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td>starts with <code>glass</code></td><td>Translucent glass</td></tr>
 <tr><td><code>mirror_rear</code></td><td>Rear-view mirror</td></tr>
 <tr><td><code>mirror_left</code> / <code>mirror_right</code></td><td>Door mirrors</td></tr>
+<tr><td>starts with <code>steering</code></td><td>Steering wheel. Turns with the steering; the driver's hands hold it</td></tr>
 <tr><td>starts with <code>part_</code></td><td>A swappable part. Drawn only while that part is fitted (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
 <tr><td>starts with <code>gauge_</code></td><td>Discarded, so a stray gauge is never drawn</td></tr>
 <tr><td>anything else</td><td>Body</td></tr>
@@ -641,6 +692,38 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 
 <h3 class="ja">必要なときだけ</h3>
 <h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>ハンドルの位置や傾きを、座席に合わせて直したい</summary>
+<div class="more-body">
+<p>ゲームの中で <kbd>Ctrl</kbd>+<kbd>G</kbd>（座席とハンドルの位置）を開くと、乗ったまま座席とハンドルを動かせます。ハンドルは位置（X・Y・Z）と角度を動かせ、角度は正でコラムが起きます（ハンドルの面が寝る）。決まったら「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> に貼ります。</p>
+<pre><code>"seat": [0.5, -0.55, 0.2],
+"steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
+<p><code>offset</code> は <code>seat</code> と同じ向き（+X 右・+Y 上・-Z 前、メートル）。画面で動かした値はその場で効きますが、自分の画面だけで、ゲームを閉じると消えます。モデルを直すより手早く合わせられます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Adjust the wheel's position or angle to suit the seat</summary>
+<div class="more-body">
+<p>In game, <kbd>Ctrl</kbd>+<kbd>G</kbd> (seat and steering wheel position) lets you move the seat and the wheel while sitting in the car. The wheel can be moved (X, Y, Z) and tilted; a positive tilt stands the column up (the wheel face lies flatter). When it looks right, press "Copy JSON" and paste into <code>vehicles/&lt;car&gt;.json</code>.</p>
+<pre><code>"seat": [0.5, -0.55, 0.2],
+"steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
+<p><code>offset</code> uses the same directions as <code>seat</code> (+X right, +Y up, -Z forward, metres). Changes made on the screen apply at once, but only on your screen and only until you quit. It is quicker than editing the model.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ハンドルが何回転するか</summary>
+<div class="more-body">
+<p>どの車もフルロックで 1 回転半（540 度）です。比は最大切れ角から自動で決まり、35 度の車で 15.4、90 度まで切れる車で 6.0 になります。書く項目はありません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How far the wheel turns</summary>
+<div class="more-body">
+<p>Every car reaches full lock at one and a half turns (540°). The ratio follows the car's maximum steering angle: 15.4 for 35°, 6.0 for a car that steers to 90°. There is nothing to set.</p>
+</div>
+</details>
 
 <details class="more ja">
 <summary>オブジェクトを分けずに、一部の面だけをライトやガラスにしたい</summary>

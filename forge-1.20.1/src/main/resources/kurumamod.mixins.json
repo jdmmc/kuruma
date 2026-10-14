@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "kurumamod.refmap.json",
   "client": [
-    "IrisPipelineMixin"
+    "IrisPipelineMixin",
+    "PlayerModelMixin"
   ],
   "injectors": {
     "defaultRequire": 1
