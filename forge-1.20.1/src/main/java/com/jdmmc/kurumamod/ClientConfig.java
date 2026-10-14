@@ -66,6 +66,15 @@ public final class ClientConfig {
                     "遅い車でも全開なら同じだけ広がる")
             .defineInRange("speedFov", 25.0, 0.0, 50.0);
 
+    public static final ForgeConfigSpec.DoubleValue COCKPIT_LOOK_AHEAD = BUILDER
+            .comment("一人称で、グリップで曲がるときにどれだけ先の進路を見るか [秒]。0 で先読みしない。",
+                    "ドリフト中（スリップ角 3〜10 度以上）は効かない（CockpitLook）")
+            .defineInRange("cockpitLookAhead", 0.8, 0.0, 1.6);
+
+    public static final ForgeConfigSpec.DoubleValue COCKPIT_DRIFT_LOOK = BUILDER
+            .comment("一人称で、横滑りしているときに進行方向をどれだけ見るか。0 で車の正面、1 で進行方向そのもの")
+            .defineInRange("cockpitDriftLook", 0.6, 0.0, 1.0);
+
     public static final ForgeConfigSpec.EnumValue<GaugeTheme> GAUGE_THEME = BUILDER
             .comment("メーターの配色。CLASSIC=90 年代の純正メーター（黒い縁・白い数字・橙の針）、",
                     "MODERN=銀の縁に平らな文字盤と赤い針。形は同じで色だけ変わる")
@@ -219,6 +228,12 @@ public final class ClientConfig {
     /** 速度で視野をどれだけ広げるか [度]。 */
     public static double speedFov = 25.0;
 
+    /** 一人称の先読み [秒]。 */
+    public static double cockpitLookAhead = 0.8;
+
+    /** 一人称で、横滑り中に進行方向を見る割合。 */
+    public static double cockpitDriftLook = 0.6;
+
     /** メーターの配色。 */
     public static GaugeTheme gaugeTheme = GaugeTheme.CLASSIC;
 
@@ -308,6 +323,8 @@ public final class ClientConfig {
         cameraHeight = CAMERA_HEIGHT.get();
         cameraSpeedPull = CAMERA_SPEED_PULL.get();
         speedFov = SPEED_FOV.get();
+        cockpitLookAhead = COCKPIT_LOOK_AHEAD.get();
+        cockpitDriftLook = COCKPIT_DRIFT_LOOK.get();
         gaugeTheme = GAUGE_THEME.get();
         liveMirrors = LIVE_MIRRORS.get();
         gpuCarMeshes = GPU_CAR_MESHES.get();
