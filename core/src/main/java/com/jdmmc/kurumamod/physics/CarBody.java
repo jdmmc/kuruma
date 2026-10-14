@@ -484,8 +484,10 @@ public final class CarBody {
             if (depth <= -BOTTOM_OUT_LOOKAHEAD) {
                 continue;
             }
-            double px = x + state.forwardX() * forwardOffset + state.rightX() * rightOffset;
-            double pz = z + state.forwardZ() * forwardOffset + state.rightZ() * rightOffset;
+            double forward = state.horizontalForwardOffset(forwardOffset);
+            double right = state.horizontalRightOffset(rightOffset);
+            double px = x + state.forwardX() * forward + state.rightX() * right;
+            double pz = z + state.forwardZ() * forward + state.rightZ() * right;
             out.add(new Contact(px, groundHeight, pz, 0.0, 1.0, 0.0, depth, Kind.WHEEL));
         }
     }
