@@ -9,6 +9,8 @@ A heavy, tall 4x4 and a rear-engined sports car to put next to the light sports 
 starts you with. Everything in them can be tuned in-game, so the numbers below are a starting
 point, not something fixed.
 
+[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
+
 ## 🚗 Cars in this pack
 
 | Car | What it's like |
@@ -52,6 +54,10 @@ All rights reserved. Do not redistribute.
 [Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma) itself is a separate project
 under the GNU General Public License v3.0 (nothing in this pack changes it).
 
+[![Join the KurumaMod Discord](https://kuruma.jdm-mc.com/img/cta-discord-en.png)](https://discord.gg/q3YNqaveRd)
+
+[![Visit the KurumaMod website](https://kuruma.jdm-mc.com/img/cta-website-en.png)](https://kuruma.jdm-mc.com/)
+
 ---
 
 # Kuruma - ベーシックカーパック（日本語）
@@ -63,6 +69,8 @@ under the GNU General Public License v3.0 (nothing in this pack changes it).
 
 Kuruma に最初から入っている軽いスポーツカーの隣に置きたい、重くて背の高い 4WD と、エンジンを後ろに積んだスポーツカー。
 すべてゲーム内でいじれるので、以下の数字は「決められたもの」ではなく「初期値」です。
+
+[![公式サイト](https://img.shields.io/badge/%E5%85%AC%E5%BC%8F%E3%82%B5%E3%82%A4%E3%83%88-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-%E5%8F%82%E5%8A%A0%E3%81%99%E3%82%8B-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
 ## 🚗 入っている車
 
@@ -105,3 +113,7 @@ Kuruma に最初から入っている軽いスポーツカーの隣に置きた�
 
 [Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma) 本体は別のプロジェクトで、
 GNU General Public License v3.0 で公開しています（このパックが変えるものではありません）。
+
+[![KurumaMod の Discord に参加する](https://kuruma.jdm-mc.com/img/cta-discord-ja.png)](https://discord.gg/q3YNqaveRd)
+
+[![KurumaMod の公式サイトを開く](https://kuruma.jdm-mc.com/img/cta-website-ja.png)](https://kuruma.jdm-mc.com/)
