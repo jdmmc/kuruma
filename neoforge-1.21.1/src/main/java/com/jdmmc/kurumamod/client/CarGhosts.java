@@ -5,6 +5,7 @@ import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CarStatePacket;
 import com.jdmmc.kurumamod.network.CourseLinesPacket;
+import com.jdmmc.kurumamod.network.GhostRidePacket;
 import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
@@ -27,6 +28,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
@@ -84,6 +86,13 @@ public final class CarGhosts {
     private static final int GHOST_ENTITY_ID = -0x4B5247;
 
     private static final int FILE_VERSION = 1;
+
+    /** 助手席で見るゴーストのエンティティ id。自分のゴースト（{@link #GHOST_ENTITY_ID}）と重ならないように。 */
+    private static final int RIDE_GHOST_ENTITY_ID = GHOST_ENTITY_ID - 1;
+    /** 助手席へ見た目を送り直す間隔 [tick]。途中で乗ってきた人や、取りこぼしに備えて */
+    private static final int LOOK_RESEND_TICKS = 40;
+    /** 助手席で、これだけコマが届かなければゴーストを下げる [tick]（運転者が落ちたなど）。走り終えて残す時間より長く */
+    private static final int RIDE_TIMEOUT_TICKS = FINISH_HOLD_TICKS + 20;
     private static final Pattern UNSAFE = Pattern.compile("[^A-Za-z0-9_.\\-]");
     private static final String EXTENSION = ".ghost";
 
@@ -106,6 +115,17 @@ public final class CarGhosts {
     private static String lapCourse;
     private static CarEntity trailCar;
 
+    // 助手席へ流している車（運転者の側）。流していなければ -1
+    private static int sharedCarId = -1;
+    private static int sharedRiders;
+    private static int lookCooldown;
+
+    // 助手席で見ているゴースト（助手席の側）
+    private static CarEntity rideGhost;
+    private static int rideCarId = -1;
+    private static CompoundTag rideLook;
+    private static int rideSilence;
+
     // 再生中
     private static Ghost playing;
     private static CarEntity ghostEntity;
@@ -125,6 +145,7 @@ public final class CarGhosts {
         Minecraft minecraft = Minecraft.getInstance();
         if (!minecraft.isPaused()) {
             tickPlayback(minecraft);
+            tickRide(minecraft);
         }
     }
 
@@ -173,6 +194,7 @@ public final class CarGhosts {
         if (index < playing.frames().size()) {
             Frame frame = playing.frames().get(index++);
             ghostEntity.playGhostFrame(frame.x(), frame.y(), frame.z(), frame.state());
+            share(minecraft, frame);
             return;
         }
         if (finishHold-- <= 0) {
@@ -187,6 +209,7 @@ public final class CarGhosts {
         lapCourse = null;
         trailCar = null;
         stopPlayback();
+        stopRide();
     }
 
     // ------------------------------------------------------------------
@@ -382,6 +405,126 @@ public final class CarGhosts {
         }
         ghostEntity = null;
         playing = null;
+        stopSharing();
+    }
+
+    // ------------------------------------------------------------------
+    // 助手席にも見せる（GhostRidePacket）
+    // ------------------------------------------------------------------
+
+    /**
+     * 運転者の側。いま流し込んだ 1 コマを、同じ車の助手席の人へ送る。
+     *
+     * <p><b>記録そのものは送らない。</b>コマは運転者の車の状態と同じ道（サーバー経由）で届くので、
+     * 助手席から見た「ゴーストと自分の車の間隔」は運転者が見ているものとほぼ同じになる。
+     * 見た目は走り出したとき・乗員が変わったとき・{@link #LOOK_RESEND_TICKS} ごとに送り直す。</p>
+     */
+    private static void share(Minecraft minecraft, Frame frame) {
+        CarEntity car = drivenCar(minecraft);
+        int riders = car == null ? 0 : car.getPassengers().size() - 1;
+        if (riders <= 0 || playing == null) {
+            stopSharing();
+            return;
+        }
+        if (car.getId() != sharedCarId || riders != sharedRiders || --lookCooldown <= 0) {
+            CompoundTag look = new CompoundTag();
+            look.putString("Car", playing.carId().toString());
+            look.put("Spec", CarSpecCodec.save(playing.spec()));
+            look.put("Parts", playing.parts().save());
+            send(GhostRidePacket.look(car.getId(), look));
+            sharedCarId = car.getId();
+            sharedRiders = riders;
+            lookCooldown = LOOK_RESEND_TICKS;
+        }
+        send(GhostRidePacket.frame(car.getId(), frame.x(), frame.y(), frame.z(), frame.state()));
+    }
+
+    /** 助手席へ流すのをやめる（走り終えた・止めた・乗員がいなくなった）。 */
+    private static void stopSharing() {
+        if (sharedCarId >= 0) {
+            send(GhostRidePacket.stop(sharedCarId));
+        }
+        sharedCarId = -1;
+        sharedRiders = 0;
+    }
+
+    private static void send(GhostRidePacket packet) {
+        if (Minecraft.getInstance().getConnection() != null) {
+            PacketDistributor.sendToServer(packet);
+        }
+    }
+
+    /**
+     * 助手席の側。運転者の画面で走っているゴーストの 1 コマが届いた（{@code CarClientPackets#applyGhostRide}）。
+     * 自分のゴーストとは別に 1 台出す。H メニューでゴーストを切っていれば出さない。
+     */
+    public static void applyRide(GhostRidePacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        ClientLevel level = minecraft.level;
+        if (level == null || minecraft.player == null || !ClientConfig.timeAttackGhost) {
+            stopRide();
+            return;
+        }
+        // 乗っている車のものだけ（降りた後に遅れて届いたものは捨てる）
+        if (minecraft.player.getVehicle() == null || minecraft.player.getVehicle().getId() != packet.carEntityId()) {
+            return;
+        }
+        switch (packet.kind()) {
+            case GhostRidePacket.LOOK -> {
+                // 見た目が変わった（別の車で取ったベストに替わった）なら出し直す
+                if (rideGhost != null && !packet.look().equals(rideLook)) {
+                    stopRide();
+                }
+                rideLook = packet.look();
+                rideCarId = packet.carEntityId();
+            }
+            case GhostRidePacket.FRAME -> {
+                if (rideLook == null || rideCarId != packet.carEntityId()) {
+                    return;
+                }
+                if (rideGhost == null || rideGhost.isRemoved() || rideGhost.level() != level) {
+                    ResourceLocation carId = ResourceLocation.tryParse(rideLook.getString("Car"));
+                    if (carId == null) {
+                        return;
+                    }
+                    CarEntity entity = new CarEntity(Kurumamod.CAR.get(), level);
+                    entity.becomeGhost(carId, CarSpecCodec.load(rideLook.getCompound("Spec")),
+                            PartFitment.load(rideLook.getCompound("Parts")));
+                    entity.setId(RIDE_GHOST_ENTITY_ID);
+                    entity.moveTo(packet.x(), packet.y(), packet.z(), packet.state().yaw(), 0.0F);
+                    level.addEntity(entity);
+                    rideGhost = entity;
+                }
+                rideGhost.playGhostFrame(packet.x(), packet.y(), packet.z(), packet.state());
+                rideSilence = 0;
+            }
+            case GhostRidePacket.STOP -> stopRide();
+            default -> {
+            }
+        }
+    }
+
+    /** 助手席の側。降りた・コマが途切れた・ゴーストを切ったら下げる。 */
+    private static void tickRide(Minecraft minecraft) {
+        if (rideGhost == null) {
+            return;
+        }
+        boolean riding = minecraft.player != null && minecraft.player.getVehicle() != null
+                && minecraft.player.getVehicle().getId() == rideCarId;
+        if (!riding || ++rideSilence > RIDE_TIMEOUT_TICKS || !ClientConfig.timeAttackGhost
+                || rideGhost.isRemoved() || rideGhost.level() != minecraft.level) {
+            stopRide();
+        }
+    }
+
+    private static void stopRide() {
+        if (rideGhost != null && !rideGhost.isRemoved()) {
+            rideGhost.discard();
+        }
+        rideGhost = null;
+        rideLook = null;
+        rideCarId = -1;
+        rideSilence = 0;
     }
 
     // ------------------------------------------------------------------

@@ -104,5 +104,12 @@ public final class KurumaNetwork {
                 .decoder(CarPartRequestPacket::new)
                 .consumerMainThread(CarPartRequestPacket::handle)
                 .add();
+        // 運転者の画面で走っているゴーストを、同じ車の助手席の人へ。運転者 → サーバー → ほかの乗員。
+        // 番号は登録の順で決まるので、新しいパケットは必ず末尾に足すこと（途中に挟むと後ろが全部ずれる）
+        CHANNEL.messageBuilder(GhostRidePacket.class, id++)
+                .encoder(GhostRidePacket::encode)
+                .decoder(GhostRidePacket::new)
+                .consumerMainThread(GhostRidePacket::handle)
+                .add();
     }
 }
