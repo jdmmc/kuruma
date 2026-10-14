@@ -84,6 +84,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
     @Override
     public void render(CarEntity car, float entityYaw, float partialTick, PoseStack pose,
                        MultiBufferSource buffer, int packedLight) {
+        this.partialTick = partialTick;
         if (car.isGhost()) {
             renderGhost(car, partialTick, pose, buffer, packedLight);
             return;
@@ -327,6 +328,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         body.renderOptional(pose.last(), buffer.getBuffer(solid(model.bodyTexture())),
                 packedLight, OverlayTexture.NO_OVERLAY, parts.shown(), ObjModel.Pass.OPAQUE);
 
+        // ハンドル。本体の面からは外してあるので、ここが描かないと穴が開く
+        drawSteeringWheel(car, model, spec, body, pose, buffer.getBuffer(solid(model.bodyTexture())),
+                packedLight, ObjModel.Pass.OPAQUE);
+
         // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
         if (ghostPass != null) {
@@ -354,7 +359,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                              MultiBufferSource buffer, int packedLight) {
         ObjModel body = ObjModel.get(model.bodyModel());
         boolean optional = body.hasOptional(ObjModel.Pass.TRANSLUCENT);
-        if (!body.hasTranslucent() && !optional) {
+        boolean steering = body.hasSteeringWheel(ObjModel.Pass.TRANSLUCENT);
+        if (!body.hasTranslucent() && !optional && !steering) {
             return;
         }
         pose.pushPose();
@@ -369,7 +375,66 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             body.renderOptional(pose.last(), consumer, packedLight, OverlayTexture.NO_OVERLAY,
                     parts.shown(), ObjModel.Pass.TRANSLUCENT);
         }
+        if (steering) {
+            drawSteeringWheel(car, model, spec, body, pose, consumer, packedLight, ObjModel.Pass.TRANSLUCENT);
+        }
         pose.popPose();
+    }
+
+    /**
+     * フルロックでのハンドルの回転角。<b>どの車も 1 回転半（540 度）でフルロックに届く。</b>
+     *
+     * <p>ギア比は持たず、最大切れ角から決める（{@code 540 度 ÷ 最大切れ角}）。既定の 35 度なら 15.4 で
+     * 乗用車のそれ、90 度まで切れるようにした車なら 6.0 でアングルキットを入れた車と同じ速さになる——
+     * 実車でもアングルキットは切れ角を増やす代わりにロック・トゥ・ロックをほとんど変えない。
+     * 比を固定すると 90 度の車はハンドルが 3.75 回転して、キーを押した瞬間に回りすぎる。</p>
+     */
+    private static final double HANDWHEEL_LOCK = Math.toRadians(540.0);
+
+    /** いま描いている車の部分ティック。描く口ごとに引数で回さずに済むよう、{@link #render} が置く。 */
+    private float partialTick;
+
+    /**
+     * ハンドルを置いて回す。{@link #applyBodyTransform} の中で呼ぶこと。
+     *
+     * <p>平行移動（{@code steering.offset}）は座席と同じく<b>拡大を掛ける前の m</b> で書くので、
+     * 車体の拡大で割ってから足す。拡大の中でそのまま足すと、5.2m で作ったモデルでは半分しか動かない。
+     * 傾き（{@code steering.tilt}）は中心のまわりで掛けるので {@link ObjModel#renderSteeringWheel} に渡す。</p>
+     */
+    private void drawSteeringWheel(CarEntity car, CarModel model, CarSpec spec, ObjModel body, PoseStack pose,
+                                   VertexConsumer consumer, int packedLight, ObjModel.Pass pass) {
+        if (!body.hasSteeringWheel(pass)) {
+            return;
+        }
+        CarModel.Vec3 offset = CarSeat.currentSteering(car.getCarId());
+        boolean moved = offset.x() != 0.0 || offset.y() != 0.0 || offset.z() != 0.0;
+        if (moved) {
+            double fit = CarSpec.DEFAULT.wheelBase() / model.designWheelBase();
+            CarModel.Vec3 scale = model.bodyScale();
+            pose.pushPose();
+            pose.translate(offset.x() / (fit * scale.x()), offset.y() / (fit * scale.y()),
+                    offset.z() / (fit * scale.z()));
+        }
+        body.renderSteeringWheel(pose, consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                handwheelAngle(car, spec), Math.toRadians(CarSeat.currentSteeringTilt(car.getCarId())), pass);
+        if (moved) {
+            pose.popPose();
+        }
+    }
+
+    /**
+     * ハンドルの回転角 [rad]。正で右。
+     *
+     * <p><b>切れ角の上限（運転補助・{@code steerGripMargin}）は物理が切れ角に掛けているので、
+     * ここでは何もしなくてよい。</b>高速で舵が数度に絞られていれば、ハンドルもそのぶんしか回らない。
+     * 見た目用に抑えた角度（{@link CarEntity#getVisualSteerAngle}）ではなく実際の切れ角を使う——
+     * 運転者が回しているのはこちら。</p>
+     */
+    private double handwheelAngle(CarEntity car, CarSpec spec) {
+        if (icon || spec.maxSteerAngle() <= 0.0) {
+            return 0.0;
+        }
+        return car.getRenderSteerAngle(partialTick) * HANDWHEEL_LOCK / spec.maxSteerAngle();
     }
 
     /**
