@@ -102,6 +102,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         int lod = HeadlightVolume.ShaderPacks.renderingShadowPass() ? SHADOW_LOD : lodLevel(car, partialTick);
         renderBody(car, model, spec, pose, buffer, packedLight, lod);
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
+        // 一人称では自分の体が描かれないので、ハンドルを握る腕だけ車体の中に描き足す
+        SteeringHands.renderFirstPerson(car, pose, buffer, packedLight, partialTick);
         // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
         // 車体とタイヤを描き終えてから重ねる（理由は KurumaRenderTypes#glass）
         renderGlass(car, model, spec, pose, buffer, packedLight);
@@ -459,7 +461,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      * 運転者が回しているのはこちら。</p>
      */
     private double handwheelAngle(CarEntity car, CarSpec spec) {
-        if (icon || spec.maxSteerAngle() <= 0.0) {
+        return icon ? 0.0 : handwheelAngle(car, spec, partialTick);
+    }
+
+    /** ハンドルの回転角 [rad]。正で右。ハンドルを握る手（{@link SteeringHands}）も同じ角度を使う。 */
+    static double handwheelAngle(CarEntity car, CarSpec spec, float partialTick) {
+        if (spec.maxSteerAngle() <= 0.0) {
             return 0.0;
         }
         return car.getRenderSteerAngle(partialTick) * HANDWHEEL_LOCK / spec.maxSteerAngle();

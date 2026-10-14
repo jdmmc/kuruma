@@ -73,6 +73,13 @@ public final class RiderPoseRenderer {
         Vec3 drawn = entity.getPosition(partial);
         pose.translate(feet.x - drawn.x, feet.y - drawn.y, feet.z - drawn.z);
 
+        // 運転者の体は車の正面へ向ける。ハンドルを握る腕は車体の中で肩の位置から組み立てる
+        // （SteeringHands）ので、体が首と一緒に回っていると腕が肩ごとずれる。描画のための値で、次のティックでバニラが戻す
+        if (SteeringHands.drivenCar(entity) == car) {
+            entity.yBodyRot = car.getRenderYaw(partial);
+            entity.yBodyRotO = entity.yBodyRot;
+        }
+
         float yaw = 180.0F - car.getRenderYaw(partial);
         pose.mulPose(Axis.YP.rotationDegrees(yaw));
         pose.mulPose(Axis.XP.rotationDegrees(car.getRenderPitch(partial) * Mth.RAD_TO_DEG));
