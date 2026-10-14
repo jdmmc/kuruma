@@ -588,13 +588,14 @@ public record CarSpec(
         }
         if (ackermann != 0.0 && steer != 0.0) {
             // 旋回中心は後軸の延長線上、車体中心から R = L / tan δ。
-            // その輪の左右位置 y から見た向きが幾何どおりの切れ角
-            double tan = Math.tan(steer);
-            double denominator = wheelBase - wheelRightOffset(wheel) * tan;
-            if (denominator > 1e-6) {
-                double ideal = Math.atan(wheelBase * tan / denominator);
-                steer += ackermann * (ideal - steer);
-            }
+            // その輪の左右位置 y から見た向きが幾何どおりの切れ角。
+            // tan を使わず atan2 で解くのは、切れ角が 90 度に近づいても発散させないため。
+            // 内輪は旋回中心が自分の内側へ入った時点で幾何の角度が 90 度を越えるので、そこで頭打ちにする
+            double sin = Math.sin(steer);
+            double ideal = Math.atan2(wheelBase * sin,
+                    wheelBase * Math.cos(steer) - wheelRightOffset(wheel) * sin);
+            ideal = Math.max(-Math.PI / 2.0, Math.min(Math.PI / 2.0, ideal));
+            steer += ackermann * (ideal - steer);
         }
         return steer + angle;
     }
