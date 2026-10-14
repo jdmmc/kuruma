@@ -113,6 +113,18 @@ public final class KurumaKeys {
             GLFW.GLFW_KEY_L,
             "key.categories.kurumamod");
 
+    /**
+     * 座席の位置を合わせるデバッグ画面を開く。既定は Ctrl+G。
+     * セッティング（G）と同じキーに修飾キーを付けてある（{@link #OPEN_HEADLIGHT_SETTINGS} と同じ）。
+     */
+    public static final KeyMapping OPEN_SEAT_DEBUG = new KeyMapping(
+            "key.kurumamod.seat_debug",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_G,
+            "key.categories.kurumamod");
+
     /** コントローラの割り当て画面を開く。既定は J。 */
     public static final KeyMapping OPEN_CONTROLLER = new KeyMapping(
             "key.kurumamod.controller",
@@ -133,6 +145,7 @@ public final class KurumaKeys {
         event.register(SHIFT_DOWN);
         event.register(TOGGLE_HEADLIGHTS);
         event.register(OPEN_HEADLIGHT_SETTINGS);
+        event.register(OPEN_SEAT_DEBUG);
         event.register(CAMERA_CLOSER);
         event.register(CAMERA_FARTHER);
         event.register(OPEN_CONTROLLER);

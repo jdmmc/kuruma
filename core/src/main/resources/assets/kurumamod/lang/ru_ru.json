@@ -585,5 +585,18 @@
   "screen.kurumamod.part.info.exhaust_car_sound": "Звук: родной, перенастроенный",
   "screen.kurumamod.part.info.exhaust_no_performance": "Не влияет на характеристики",
   "part.kurumamod.stock_muffler": "Стоковый глушитель",
-  "part.kurumamod.twin_muffler": "Двойной глушитель"
+  "part.kurumamod.twin_muffler": "Двойной глушитель",
+  "key.kurumamod.seat_debug": "Seat and steering wheel position (debug)",
+  "screen.kurumamod.seat.title": "Seat and steering wheel position (debug)",
+  "screen.kurumamod.seat.group.seat": "Seat",
+  "screen.kurumamod.seat.group.steering": "Wheel",
+  "screen.kurumamod.seat.x": "X right",
+  "screen.kurumamod.seat.y": "Y up",
+  "screen.kurumamod.seat.z": "Z back",
+  "screen.kurumamod.seat.tilt": "Tilt",
+  "screen.kurumamod.seat.eye": "Eye height above the car origin: %s m",
+  "screen.kurumamod.seat.copy": "Copy JSON",
+  "screen.kurumamod.seat.copied": "Copied to the clipboard",
+  "screen.kurumamod.seat.reset_all": "Reset all",
+  "screen.kurumamod.seat.hint": "Only on this client until you quit. Paste the lines into vehicles/<car>.json. Shift + -/+ moves 10 cm"
 }

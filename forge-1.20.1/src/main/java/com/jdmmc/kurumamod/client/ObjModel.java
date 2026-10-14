@@ -175,6 +175,15 @@ public final class ObjModel {
     public static final String MIRROR_PREFIX = "mirror_";
 
     /**
+     * ハンドルの名前の頭（大文字小文字を問わない）。{@code steering_wheel} など。
+     *
+     * <p><b>回る部分（リムとスポーク）だけを分けること。</b>コラムカバーまで入れると円盤にならず、
+     * 軸が取れない（Prado の {@code int_steering} は幅 50cm・奥行き 44cm の塊で弾かれた）。
+     * 回す中心と軸は形から読む（{@link SteeringWheelAxis}）ので、JSON に何も書かなくてよい。</p>
+     */
+    public static final String STEERING_PREFIX = "steering";
+
+    /**
      * 部品の形の名前の頭。<b>この名前で始まるオブジェクトはふだん描かず、その部品を付けたときだけ描く</b>
      * （どの部品で出すかは {@code CarModel#partObjects} と、名前の決まり {@code part_<部品のパス>}）。
      *
@@ -227,6 +236,11 @@ public final class ObjModel {
     private final Map<String, int[]> facesByName;
     /** 鏡面。読み込みのときに 1 度だけ measure しておく。 */
     private final List<MirrorFace> mirrors;
+    /** ハンドル（{@link #STEERING_PREFIX}）の {不透明な面, 透ける面}。本体の面からは外してある。 */
+    private final int[][] steeringFaces;
+    /** ハンドルを回す中心と軸。ハンドルが無いか、円盤と言えなければ null（回さずに描く）。 */
+    @Nullable
+    private final SteeringWheelAxis.Result steeringAxis;
     /**
      * 部品の形（{@link #PART_PREFIX}）の名前 → {不透明な面, 透ける面}。
      * 本体の面（{@link #opaqueFaces} など）からは外してある。
@@ -388,6 +402,27 @@ public final class ObjModel {
             }
         }
 
+        // ハンドルも本体から外す（renderSteeringWheel が回して描く）。本体は GPU に置いたまま
+        // 動かさないので、回るものは別に持つしかない。軸が取れなくても外す——間引いた版（lod）だけ
+        // 軸が取れずに本体へ残ると、回るハンドルと止まったハンドルが二重に描かれる
+        List<Integer> steeringOpaque = new ArrayList<>();
+        List<Integer> steeringClear = new ArrayList<>();
+        for (Group group : groups) {
+            if (group.owner() != null || !isSteeringName(group.role())) {
+                continue;
+            }
+            for (int face = group.from(); face < group.to(); face++) {
+                if (excluded[face]) {
+                    continue;
+                }
+                excluded[face] = true;
+                boolean transparent = vertices[face * FACE_FLOATS + ALPHA_OFFSET] < OPAQUE_THRESHOLD;
+                (transparent ? steeringClear : steeringOpaque).add(face);
+            }
+        }
+        this.steeringFaces = new int[][]{toArray(steeringOpaque), toArray(steeringClear)};
+        this.steeringAxis = measureSteering();
+
         // 部品の形も本体から外し、名前ごとに持つ（renderOptional が描く）。
         // 本体を車ごとに違う形にしないため（GPU に置いたメッシュを使い回せなくなる）
         Map<String, List<Integer>[]> optional = new HashMap<>();
@@ -532,6 +567,91 @@ public final class ObjModel {
     public boolean hasOptional(Pass pass) {
         int index = pass == Pass.TRANSLUCENT ? 1 : 0;
         return optionalFaces.values().stream().anyMatch(faces -> faces[index].length > 0);
+    }
+
+    /** ハンドルのオブジェクト名か。Blender で付けがちな大文字（{@code Steering}）も拾う。 */
+    private static boolean isSteeringName(String name) {
+        return name.toLowerCase(java.util.Locale.ROOT).startsWith(STEERING_PREFIX);
+    }
+
+    /** ハンドルの面から回す中心と軸を読む。円盤と言えなければ理由をログに残して null。 */
+    @Nullable
+    private SteeringWheelAxis.Result measureSteering() {
+        int count = steeringFaces[0].length + steeringFaces[1].length;
+        if (count == 0) {
+            return null;
+        }
+        float[] positions = new float[count * 4 * 3];
+        int n = 0;
+        for (int[] faces : steeringFaces) {
+            for (int face : faces) {
+                for (int corner = 0; corner < 4; corner++) {
+                    int offset = face * FACE_FLOATS + corner * STRIDE;
+                    positions[n++] = vertices[offset];
+                    positions[n++] = vertices[offset + 1];
+                    positions[n++] = vertices[offset + 2];
+                }
+            }
+        }
+        SteeringWheelAxis.Result result = SteeringWheelAxis.measure(positions);
+        if (result == null) {
+            // 黙って回らないと原因を探すことになる。止めたまま描くので穴は開かない
+            LOGGER.warn("ハンドル（{}*）が円盤の形をしていないので回しません。"
+                    + "コラムカバーなど回らない部分は別のオブジェクトにしてください", STEERING_PREFIX);
+        }
+        return result;
+    }
+
+    /** ハンドルのそのパスの面が 1 つでもあるか。 */
+    public boolean hasSteeringWheel(Pass pass) {
+        return steeringFaces[pass == Pass.TRANSLUCENT ? 1 : 0].length > 0;
+    }
+
+    /**
+     * ハンドルのコラムの角度 [度]。水平から何度起きているか（メッシュのまま、傾ける前）。
+     * 軸が取れていなければ NaN。
+     */
+    public double steeringColumnAngle() {
+        SteeringWheelAxis.Result axis = steeringAxis;
+        return axis == null ? Double.NaN : Math.toDegrees(Math.asin(axis.axis()[1]));
+    }
+
+    /**
+     * ハンドルを回して描く。
+     *
+     * <p>傾き（{@code tilt}）は中心を通る左右の軸のまわりに掛け、その<b>内側で</b>回す。
+     * 回す軸もメッシュと一緒に傾くので、傾けても振れずに回る。軸が取れていなければどちらも掛けない
+     * （中心が分からない）。</p>
+     *
+     * @param angle ハンドルの回転角 [rad]。<b>正で右へ切る</b>（運転者から見て時計回り）
+     * @param tilt  コラムの傾きの足し分 [rad]。<b>正でコラムが起きる</b>（ハンドルの面が寝る）
+     */
+    public void renderSteeringWheel(PoseStack pose, VertexConsumer consumer, int packedLight, int packedOverlay,
+                                    double angle, double tilt, Pass pass) {
+        int[] faces = steeringFaces[pass == Pass.TRANSLUCENT ? 1 : 0];
+        if (faces.length == 0) {
+            return;
+        }
+        SteeringWheelAxis.Result axis = steeringAxis;
+        boolean turn = axis != null && (angle != 0.0 || tilt != 0.0);
+        if (turn) {
+            double[] c = axis.center();
+            double[] a = axis.axis();
+            pose.pushPose();
+            pose.translate(c[0], c[1], c[2]);
+            if (tilt != 0.0) {
+                // 運転者側を向いた軸 (0, sin e, cos e) は、+X まわりに -θ 回すと仰角が e+θ になる
+                pose.mulPose(new org.joml.Quaternionf().rotationX((float) -tilt));
+            }
+            // 軸は運転者の側を向いている。その軸まわりの正の回転は運転者から見て反時計回りなので、符号を返す
+            pose.mulPose(new org.joml.Quaternionf().rotationAxis((float) -angle, (float) a[0], (float) a[1], (float) a[2]));
+            pose.translate(-c[0], -c[1], -c[2]);
+        }
+        renderFaces(faces, pose.last().pose(), pose.last().normal(), 1.0F, consumer,
+                packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+        if (turn) {
+            pose.popPose();
+        }
     }
 
     /** タイヤのオブジェクト名か。Blender の既定の大文字（{@code Tire}）も拾う。 */

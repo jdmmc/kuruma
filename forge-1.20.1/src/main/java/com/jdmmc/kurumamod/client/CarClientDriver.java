@@ -79,6 +79,17 @@ public final class CarClientDriver {
                 minecraft.setScreen(new HeadlightScreen());
             }
         }
+        while (KurumaKeys.OPEN_SEAT_DEBUG.consumeClick()) {
+            // 座席は車種ごとの値なので、乗っている車の車種を合わせる
+            CarEntity riding = ridingCar(minecraft);
+            if (riding == null) {
+                if (minecraft.player != null) {
+                    minecraft.player.displayClientMessage(Component.translatable("message.kurumamod.need_car"), true);
+                }
+            } else if (minecraft.screen == null) {
+                minecraft.setScreen(new SeatScreen(riding.getCarId()));
+            }
+        }
         while (KurumaKeys.TOGGLE_CAMERA.consumeClick()) {
             CarCamera.cycleMode();
         }

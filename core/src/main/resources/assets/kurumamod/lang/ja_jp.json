@@ -598,5 +598,18 @@
   "screen.kurumamod.part.info.exhaust_car_sound": "音源: その車の音を変える",
   "screen.kurumamod.part.info.exhaust_no_performance": "走りは変わりません",
   "part.kurumamod.stock_muffler": "純正マフラー",
-  "part.kurumamod.twin_muffler": "2 本出しマフラー"
+  "part.kurumamod.twin_muffler": "2 本出しマフラー",
+  "key.kurumamod.seat_debug": "座席とハンドルの位置（デバッグ）",
+  "screen.kurumamod.seat.title": "座席とハンドルの位置（デバッグ）",
+  "screen.kurumamod.seat.group.seat": "座席",
+  "screen.kurumamod.seat.group.steering": "ハンドル",
+  "screen.kurumamod.seat.x": "X 右",
+  "screen.kurumamod.seat.y": "Y 上",
+  "screen.kurumamod.seat.z": "Z 後ろ",
+  "screen.kurumamod.seat.tilt": "角度",
+  "screen.kurumamod.seat.eye": "目線の高さ（車の原点から）: %s m",
+  "screen.kurumamod.seat.copy": "JSON をコピー",
+  "screen.kurumamod.seat.copied": "クリップボードにコピーしました",
+  "screen.kurumamod.seat.reset_all": "全部戻す",
+  "screen.kurumamod.seat.hint": "このクライアントだけ・ゲームを閉じるまで有効。vehicles/<車>.json に貼ってください。Shift+−／＋で 10cm"
 }
