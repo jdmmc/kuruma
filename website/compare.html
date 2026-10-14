@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compare cars | KurumaMod</title>
+<!-- Google tag (gtag.js)。本番（kuruma.jdm-mc.com）でだけ読み込む -->
+<script>
+if (location.hostname === 'kuruma.jdm-mc.com') {
+  var ga = document.createElement('script');
+  ga.async = true;
+  ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-4NCQ47HCMC';
+  document.head.appendChild(ga);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4NCQ47HCMC');
+}
+</script>
 <meta name="description" content="A driving mod for Minecraft with real car physics: suspension, weight transfer, tyre grip, engine and gearbox. Forge 1.20.1 and NeoForge 1.21.1.">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="img/favicon.png" type="image/png">

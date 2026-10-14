@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KurumaMod</title>
+<!-- Google tag (gtag.js)。本番（kuruma.jdm-mc.com）でだけ読み込む -->
+<script>
+if (location.hostname === 'kuruma.jdm-mc.com') {
+  var ga = document.createElement('script');
+  ga.async = true;
+  ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-4NCQ47HCMC';
+  document.head.appendChild(ga);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4NCQ47HCMC');
+}
+</script>
 <meta name="description" content="A driving mod for Minecraft with real car physics: suspension, weight transfer, tyre grip, engine and gearbox. Forge 1.20.1 and NeoForge 1.21.1.">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="img/favicon.png" type="image/png">
@@ -82,6 +95,14 @@
     <div><b><span data-l="en">Free and open source</span><span data-l="ja">無料・オープンソース</span></b><span>GPL-3.0</span></div>
   </div>
 </div>
+
+<section id="video">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Video</span><span data-l="ja">動画</span></div>
+    <h2 class="title"><span data-l="en">See it drive.</span><span data-l="ja">走りを見る。</span></h2>
+    <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/3Hfrvz-qgxc" title="KurumaMod" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+  </div>
+</section>
 
 <section class="dark">
   <div class="wrap">

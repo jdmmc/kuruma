@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make a car | Car Pack Guide | KurumaMod</title>
+<!-- Google tag (gtag.js)。本番（kuruma.jdm-mc.com）でだけ読み込む -->
+<script>
+if (location.hostname === 'kuruma.jdm-mc.com') {
+  var ga = document.createElement('script');
+  ga.async = true;
+  ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-4NCQ47HCMC';
+  document.head.appendChild(ga);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4NCQ47HCMC');
+}
+</script>
 <meta name="description" content="Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="img/favicon.png" type="image/png">
@@ -2059,7 +2072,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h4 class="ja">操作と補助</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
-<tr><td><code>max_steer</code></td><td>最大切れ角</td><td><b>rad</b></td><td>0.6109（＝35°）</td><td>0.1745 – 1.1345</td></tr>
+<tr><td><code>max_steer</code></td><td>最大切れ角</td><td><b>rad</b></td><td>0.6109（＝35°）</td><td>0.1745 – 1.5708</td></tr>
 <tr><td><code>steer_grip_margin</code></td><td>切れ角の余裕（大で滑らせやすい）</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
 <tr><td><code>visual_slip_limit</code></td><td>見た目のタイヤ角</td><td><b>rad</b>（0 で無効）</td><td>0.7854（＝45°）</td><td>0 – 1.5708</td></tr>
 <tr><td><code>steer_rate</code></td><td>舵が入るまでの時間</td><td>秒</td><td>0.18</td><td>0 – 1</td></tr>
@@ -2173,7 +2186,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h4 class="en">Controls & Aids</h4>
 <table class="en">
 <tr><th>Name</th><th>On the tuning screen</th><th>Unit</th><th>Default</th><th>Range</th></tr>
-<tr><td><code>max_steer</code></td><td>Max steering angle</td><td><b>rad</b></td><td>0.6109 (= 35°)</td><td>0.1745 – 1.1345</td></tr>
+<tr><td><code>max_steer</code></td><td>Max steering angle</td><td><b>rad</b></td><td>0.6109 (= 35°)</td><td>0.1745 – 1.5708</td></tr>
 <tr><td><code>steer_grip_margin</code></td><td>Steering margin (higher = slides more)</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
 <tr><td><code>visual_slip_limit</code></td><td>Visual wheel angle</td><td><b>rad</b> (0 = off)</td><td>0.7854 (= 45°)</td><td>0 – 1.5708</td></tr>
 <tr><td><code>steer_rate</code></td><td>Steering lock-to-lock time</td><td>s</td><td>0.18</td><td>0 – 1</td></tr>
