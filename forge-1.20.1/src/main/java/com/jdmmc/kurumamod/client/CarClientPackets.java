@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CourseLinesPacket;
+import com.jdmmc.kurumamod.network.GhostRidePacket;
 import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.network.RaceStandingsPacket;
 import com.jdmmc.kurumamod.part.CarPart;
@@ -28,6 +29,11 @@ public final class CarClientPackets {
     }
 
     /** レース中の順位表を受け取る。 */
+    /** 運転者の画面で走っているゴーストの 1 コマ（助手席で受け取る）。 */
+    public static void applyGhostRide(GhostRidePacket packet) {
+        CarGhosts.applyRide(packet);
+    }
+
     public static void applyStandings(RaceStandingsPacket packet) {
         RaceHud.acceptStandings(packet);
     }
