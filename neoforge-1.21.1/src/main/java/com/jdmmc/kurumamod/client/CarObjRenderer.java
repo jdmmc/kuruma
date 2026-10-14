@@ -444,6 +444,18 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
         // 寸法を測り終えてから間引いた版へ（ビードの半径などは元のメッシュで測る）
         ObjModel wheelDrawn = wheelMesh.lod(lod);
+
+        // タイヤの当たり判定の幅を、描いている寸法に合わせる（物理は見た目の部品を知らないので）。
+        // メッシュの X は左の輪の向きで、外向きは -X。下の pose.translate と pose.scale と同じ式
+        double[] meshBounds = wheelMesh.bounds();
+        double minX = meshBounds[0];
+        double maxX = meshBounds[3];
+        if (tireMesh != null) {
+            double[] tireBounds = tireMesh.bounds();
+            minX = Math.min(minX, tireBounds[0]);
+            maxX = Math.max(maxX, tireBounds[3]);
+        }
+        car.setVisualTireSpan(offset.x() - maxX * scaleX, offset.x() - minX * scaleX);
         // シェーダーパックが太陽・月の影を描いている最中は、ホイール（リム）を描かずタイヤだけ描く。
         // タイヤの影は落ち、スポークの影は落ちない
         boolean shadowPass = HeadlightVolume.ShaderPacks.renderingShadowPass();
@@ -581,7 +593,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
 
     /**
      * F3+B のときに、本当の当たり判定を描く。地形と当たる車体（{@link com.jdmmc.kurumamod.physics.CarBody}）を橙、
-     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色で。
+     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色、タイヤの縁の当たりを桃色で。
      *
      * <p><b>バニラが白で描く箱は当たり判定ではない。</b>サーバーの移動の検査に弾かれないよう、
      * 車体の箱の内側に収まる小さな板にしてある（{@code CarEntity#makeBoundingBox}）。</p>
@@ -607,6 +619,22 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             }
         }
         renderEdges(car, box, boxEdges, 0.2F, 0.85F, 1.0F, partialTick, pose, buffer);
+
+        // タイヤの当たり（桃色）。内側の面（0〜3）と外側の面（8〜11）の輪郭を、前 → 斜め下前 →
+        // 斜め下後ろ → 後ろ → 前 と結び、内外の同じ点どうしを渡す。真ん中の面（4〜7）は描かない。
+        // 登れない高さのブロックにこの点が入ると、その向きへは進めなくなる（押し戻しはしない）
+        double[][][] rims = car.tireRims();
+        if (rims != null) {
+            List<int[]> rimEdges = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                rimEdges.add(new int[]{i, (i + 1) % 4});
+                rimEdges.add(new int[]{8 + i, 8 + (i + 1) % 4});
+                rimEdges.add(new int[]{i, 8 + i});
+            }
+            for (double[][] rim : rims) {
+                renderEdges(car, rim, rimEdges, 1.0F, 0.3F, 0.85F, partialTick, pose, buffer);
+            }
+        }
     }
 
     private static void renderEdges(CarEntity car, double[][] corners, List<int[]> edges,

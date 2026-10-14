@@ -240,6 +240,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 55cm を超える落差は斜面を作らない——作ると崖の先で宙に支えられる。</p>
      */
     private static final double LOOKAHEAD_DOWN_MAX = 2.0;
+    /** 接地を探すタイヤの端を、幅の端からどれだけ内へ寄せるか [m]。 */
+    private static final double TIRE_EDGE_INSET = 0.03;
     /** 階段を探す範囲 [m]。前後それぞれ。1 マスの段なら縁が 2 つ入る。 */
     private static final double STAIR_REACH = 3.0;
     /**
@@ -952,7 +954,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         // 車体は硬い箱で、ブロックと交わらない。当たった点に力積を掛けるので、当たったところを
         // 支点に車が回る（腹が乗れば亀、転がれば屋根の角が当たる）
         CarSpec carSpec = getSpec();
-        CarBody body = CarBody.of(carSpec, bodyShape());
+        double[] span = tireSpan();
+        CarBody body = CarBody.of(carSpec, bodyShape()).tireSpan(span[0], span[1]);
         double x = getX();
         double z = getZ();
         fillBlockField(body, x, z);
@@ -1067,6 +1070,45 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 blockField.add(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
             }
         }
+    }
+
+    /**
+     * タイヤの当たりを見る点のワールド座標（{@link CarBody#tireRims}）。描画用。
+     * サスペンションの伸びは手元で物理を解いている車しか持っていないので、それ以外は null。
+     */
+    @Nullable
+    public double[][][] tireRims() {
+        if (!isControlledByLocalInstance()) {
+            return null;
+        }
+        double[] span = tireSpan();
+        return CarBody.tireRims(getSpec(), state, getX(), getZ(), span[0], span[1]);
+    }
+
+    /**
+     * 描画で測ったタイヤの幅（{@link CarBody#tireSpan}）。物理上のタイヤの位置から外向きに {内側の端, 外側の端}。
+     * 描いていない車（サーバーが動かす無人の車）は null のままで、{@link CarBody#defaultTireSpan} を使う。
+     */
+    @Nullable
+    private double[] visualTireSpan;
+
+    /** 描画側が、いま描いたタイヤの幅を知らせる。 */
+    public void setVisualTireSpan(double inner, double outer) {
+        visualTireSpan = new double[]{inner, outer};
+    }
+
+    private double[] tireSpan() {
+        return visualTireSpan != null ? visualTireSpan : CarBody.defaultTireSpan(getSpec());
+    }
+
+    /**
+     * 接地を探すタイヤの内側と外側の端。幅の端そのものだと、隣のブロックの面にちょうど
+     * 触れているだけで乗り上げるので、少し内へ寄せる。
+     */
+    private double[] tireGroundEdges() {
+        double[] span = tireSpan();
+        double inset = Math.min(TIRE_EDGE_INSET, (span[1] - span[0]) / 2.0);
+        return new double[]{span[0] + inset, span[1] - inset};
     }
 
     /** 車体（{@link CarBody}）の角のワールド座標。描画用。順番は {@link CarBody#corners()} と同じ。 */
@@ -1259,6 +1301,29 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     ClipContext.Block.COLLIDER,
                     ClipContext.Fluid.NONE,
                     this));
+            // タイヤには幅がある。内側と外側の端でも地面を探し、いちばん高いところに乗せる。
+            // 中心だけで見ると、台の端から半分はみ出したタイヤが台の下まで落ち、
+            // 内側の面が台の側面に刺さった（そこをタイヤの当たりが横へ押し返して車が揺れた）。
+            // 中心が壁の中なら壁のまま（据え置き）
+            if (!hit.isInside()) {
+                double outward = wheel.isLeft() ? -1.0 : 1.0;
+                for (double edge : tireGroundEdges()) {
+                    double ex = x + rightX * outward * edge;
+                    double ez = z + rightZ * outward * edge;
+                    BlockHitResult side = level().clip(new ClipContext(
+                            new Vec3(ex, from, ez),
+                            new Vec3(ex, bottom, ez),
+                            ClipContext.Block.COLLIDER,
+                            ClipContext.Fluid.NONE,
+                            this));
+                    if (side.getType() == HitResult.Type.MISS || side.isInside()) {
+                        continue;
+                    }
+                    if (hit.getType() == HitResult.Type.MISS || side.getLocation().y > hit.getLocation().y) {
+                        hit = side;
+                    }
+                }
+            }
 
             if (hit.getType() == HitResult.Type.MISS) {
                 // 階段の下りでは、縁を越えた直後の下の段がレイの先にある。1 段ぶん深く探して、

@@ -88,6 +88,8 @@ public final class CarBody {
     private static final double BOTTOM_OUT_TRAVEL = 0.03;
     /** 縮みきるまでの残りがこれより少ない輪は、先読みの当たりとして拾う [m]。1 刻みで落ちる距離より十分長く。 */
     private static final double BOTTOM_OUT_LOOKAHEAD = 1.0;
+    /** タイヤの当たりを取るのは、これより立っている車だけ（接地と同じ。約 70 度）。 */
+    private static final double TIRE_UPRIGHT_MIN = 0.34;
     /** これより深い重なりは押し出さない [m]（埋まっている）。 */
     private static final double MAX_DEPTH = 0.8;
 
@@ -163,6 +165,29 @@ public final class CarBody {
     /** 元の諸元といまの諸元が同じとき（実験用）。 */
     public static CarBody of(CarSpec spec) {
         return new CarBody(spec, spec);
+    }
+
+    /**
+     * タイヤの内側の端と外側の端 [m]。物理上のタイヤの位置（トレッドの半分）から外向きに測る。
+     * 負なら内側。NaN なら {@link #defaultTireSpan}。
+     */
+    private double tireInner = Double.NaN;
+    private double tireOuter = Double.NaN;
+
+    /**
+     * タイヤの幅を描画の寸法に合わせる。<b>幅は見た目の部品（ホイール・タイヤのメッシュ、幅の倍率、
+     * ずらし量）でしか決まらない</b>ので、描いている側が測って渡す。渡さなければ既定の幅。
+     */
+    public CarBody tireSpan(double inner, double outer) {
+        tireInner = inner;
+        tireOuter = outer;
+        return this;
+    }
+
+    /** 見た目の寸法が分からないとき（サーバーが動かす無人の車・実験）のタイヤの幅。半径の半分を、中心に振り分ける。 */
+    public static double[] defaultTireSpan(CarSpec spec) {
+        double half = spec.wheelRadius() * 0.25;
+        return new double[]{-half, half};
     }
 
     public double front() {
@@ -302,7 +327,12 @@ public final class CarBody {
         /** 低い段。真上へ持ち上げるだけ（摩擦・衝撃なし）。 */
         STEP,
         /** 縮みきったサスペンション。摩擦はタイヤの仕事なのでここでは掛けない。 */
-        WHEEL
+        WHEEL,
+        /**
+         * 登れない壁に入ったタイヤの縁。<b>壁へ向かう速さを止めるだけで、押し戻さない</b>（弾かない）。
+         * 摩擦も掛けない。
+         */
+        TIRE
     }
 
     /**
@@ -346,6 +376,8 @@ public final class CarBody {
                 ? stepBase(ground) : Double.NEGATIVE_INFINITY;
         List<Contact> contacts = findContacts(x, y, z, ax, field, stepBase);
         addBottomOutContacts(contacts, spec, state, ground, x, z);
+        double[] span = Double.isNaN(tireInner) ? defaultTireSpan(spec) : new double[]{tireInner, tireOuter};
+        addTireContacts(contacts, spec, state, x, z, field, span[0], span[1]);
         if (contacts.isEmpty()) {
             return result;
         }
@@ -385,7 +417,8 @@ public final class CarBody {
                 result.impact = Math.max(result.impact, approach + bias[i]);
                 continue;
             }
-            bias[i] = Math.min(MAX_BIAS, BAUMGARTE * Math.max(0.0, c.depth - SLOP) / dt);
+            // タイヤの縁は押し戻さない（入り込んだぶんを速度で戻すと、壁に当たったタイヤが弾かれる）
+            bias[i] = c.kind() == Kind.TIRE ? 0.0 : Math.min(MAX_BIAS, BAUMGARTE * Math.max(0.0, c.depth - SLOP) / dt);
             result.touching = true;
             result.contacts++;
             // 低い段に乗り上げるのは衝突ではない（音も揺れも出さない）
@@ -490,6 +523,124 @@ public final class CarBody {
             double pz = z + state.forwardZ() * forward + state.rightZ() * right;
             out.add(new Contact(px, groundHeight, pz, 0.0, 1.0, 0.0, depth, Kind.WHEEL));
         }
+    }
+
+    /**
+     * タイヤの縁を、登れない高さのブロックに当てる。
+     *
+     * <p>タイヤが地面を探すのは真下だけで、横の当たりは車体の箱が受け持っている。ところが
+     * <b>車体より低いところにあるタイヤだけが壁に入る</b>場面がある——前輪を幅 1 マスの溝に
+     * 落としたとき、車体は溝の向こうの台の上を通るので何にも当たらず、溝の底のタイヤが
+     * 台の中を進んでいった（タイヤは「探し始める位置が埋まっている＝壁」として溝の底の
+     * 高さを使い続けるので、埋まったことにも気づかない）。</p>
+     *
+     * <p>当てるのは、そのタイヤが登れない高さ（タイヤ下端 + {@link CarSpec#maxClimbStep}）を
+     * 超えるブロックだけ。登れる段は今までどおり接地の側で乗り越える（ここで当てると、
+     * 縁石に触れるたびにブレーキが掛かる）。点はタイヤの前後と斜め下前・斜め下後ろの 4 つを、
+     * 内側の面・真ん中・外側の面の 3 か所に置く（{@link #tireRims}）。止める向きはそのブロックの
+     * 外に出ている<b>横の</b>面のうち、いちばん浅いもの。上へは止めない（支えるのはサスペンション）。
+     * <b>壁へ向かう速さを止めるだけで、押し戻さない</b>（{@link Kind#TIRE}。押し戻すと弾かれる）。</p>
+     *
+     * <p><b>幅を持たせること。</b>真ん中の 1 枚だけでは、太いタイヤの外側が壁に入っても気づかない。</p>
+     */
+    private static void addTireContacts(List<Contact> out, CarSpec spec, CarState state, double x, double z,
+                                        BlockField field, double inner, double outer) {
+        if (Math.cos(state.pitch) * Math.cos(state.roll) <= TIRE_UPRIGHT_MIN) {
+            return;
+        }
+        double[][][] rims = tireRims(spec, state, x, z, inner, outer);
+        // 押すのは横だけ。上へ支えるのはサスペンションの仕事で、ここで上へ押すと二重になる
+        double[][] faces = {{-1, 0, 0}, {1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
+        for (Wheel wheel : Wheel.VALUES) {
+            double[][] rim = rims[wheel.ordinal()];
+            // 「前」の点は中心と同じ高さ。中心 − 半径 = タイヤ下端。そこから登坂限界まで上は登れる
+            double climbable = rim[0][1] - spec.wheelRadius() + spec.maxClimbStep();
+            for (double[] p : rim) {
+                double px = p[0];
+                double py = p[1];
+                double pz = p[2];
+                double[] box = field.boxAt(px, py, pz);
+                if (box == null || columnTop(field, px, box[4], pz) <= climbable) {
+                    continue;
+                }
+                double best = Double.MAX_VALUE;
+                double[] normal = null;
+                for (double[] n : faces) {
+                    double depth = n[0] < 0 ? px - box[0] : n[0] > 0 ? box[3] - px
+                            : n[2] < 0 ? pz - box[2] : box[5] - pz;
+                    if (depth < best && faceIsOpen(box, n, field)) {
+                        best = depth;
+                        normal = n;
+                    }
+                }
+                if (normal != null) {
+                    // 摩擦は掛けない（タイヤの横の力は物理のほうで出している。ここで掛けると、
+                    // 壁に擦れたタイヤが車を回すモーメントが余計に出る）
+                    out.add(new Contact(px, py, pz, normal[0], normal[1], normal[2], best, Kind.TIRE));
+                }
+            }
+        }
+    }
+
+    /**
+     * タイヤの当たりを見る点（ワールド）。{@code [輪][点][x, y, z]}。
+     *
+     * <p>1 枚の輪郭（前・斜め下前・斜め下後ろ・後ろ）を、内側の面・真ん中・外側の面の 3 か所に置く。
+     * 並びは {@code 面 × 4 + 輪郭の番号}（内側が 0〜3、真ん中が 4〜7、外側が 8〜11）。
+     * F3+B の描画もこれを使うので、当たり判定と見た目がずれない。</p>
+     *
+     * @param x     重心のシャシー基準面の位置（ワールド）。高さは {@code state.height}
+     * @param inner タイヤの内側の端 [m]。物理上のタイヤの位置から外向きに測る
+     * @param outer タイヤの外側の端 [m]。同上
+     */
+    public static double[][][] tireRims(CarSpec spec, CarState state, double x, double z,
+                                        double inner, double outer) {
+        double radius = spec.wheelRadius();
+        double forwardX = state.forwardX();
+        double forwardZ = state.forwardZ();
+        double diagonal = radius * Math.sqrt(0.5);
+        double[][] outline = {{radius, 0.0}, {diagonal, -diagonal}, {-diagonal, -diagonal}, {-radius, 0.0}};
+        double[] faces = {inner, (inner + outer) / 2.0, outer};
+        double[][][] out = new double[Wheel.COUNT][faces.length * outline.length][];
+        for (Wheel wheel : Wheel.VALUES) {
+            double forwardOffset = spec.wheelForwardOffset(wheel);
+            double rightOffset = spec.wheelRightOffset(wheel);
+            double forward = state.horizontalForwardOffset(forwardOffset);
+            double right = state.horizontalRightOffset(rightOffset);
+            double centerX = x + forwardX * forward + state.rightX() * right;
+            double centerZ = z + forwardZ * forward + state.rightZ() * right;
+            double centerY = state.hardpointHeight(forwardOffset, rightOffset)
+                    - state.suspensionLength[wheel.ordinal()];
+            // 外向き。左の輪は車体の左、右の輪は右
+            double outwardSign = wheel.isLeft() ? -1.0 : 1.0;
+            for (int f = 0; f < faces.length; f++) {
+                double sideX = state.rightX() * outwardSign * faces[f];
+                double sideZ = state.rightZ() * outwardSign * faces[f];
+                for (int i = 0; i < outline.length; i++) {
+                    out[wheel.ordinal()][f * outline.length + i] = new double[]{
+                            centerX + sideX + forwardX * outline[i][0],
+                            centerY + outline[i][1],
+                            centerZ + sideZ + forwardZ * outline[i][0]};
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 積み重なったブロックの柱の天面。{@code top} から上へ、すき間なく続くブロックをたどる。
+     * 1 ブロックとハーフを積んだ台は 2 つの箱なので、下の箱の天面だけを見ると
+     * 「登れる高さ」に見えてしまう。
+     */
+    private static double columnTop(BlockField field, double x, double top, double z) {
+        for (int i = 0; i < 8; i++) {
+            double[] above = field.boxAt(x, top + 0.01, z);
+            if (above == null) {
+                break;
+            }
+            top = above[4];
+        }
+        return top;
     }
 
     /**
