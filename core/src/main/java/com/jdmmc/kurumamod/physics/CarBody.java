@@ -596,6 +596,9 @@ public final class CarBody {
      * 見えているタイヤと当たりがずれ、見た目では離れている壁にタイヤが止められた。中心も同じ式
      * （{@code CarObjRenderer#renderWheels}）で置く。地面を探すサスペンションは今までどおり真下。</p>
      *
+     * <p><b>リジッドアクスルは、さらに軸の傾きぶん回す</b>（{@link CarSpec#solidAxleTilt}）。描画は両輪を
+     * 軸と一緒に傾けているので、当たりも各タイヤの中心まわりに同じ角度だけ回す。</p>
+     *
      * @param x     重心のシャシー基準面の位置（ワールド）。高さは {@code state.height}
      * @param inner タイヤの内側の端 [m]。物理上のタイヤの位置から外向きに測る
      * @param outer タイヤの外側の端 [m]。同上
@@ -617,11 +620,21 @@ public final class CarBody {
             double drop = -state.suspensionLength[wheel.ordinal()];
             // 外向き。左の輪は車体の左、右の輪は右
             double outwardSign = wheel.isLeft() ? -1.0 : 1.0;
+            // リジッドの軸の傾き。タイヤの横の軸は (cos, -sin)、縦の軸は (sin, cos)（車体の右・上で）
+            double tilt = 0.0;
+            if (spec.isSolidAxle(wheel)) {
+                Wheel leftWheel = wheel.isFront() ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
+                Wheel rightWheel = wheel.isFront() ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
+                tilt = spec.solidAxleTilt(state.suspensionLength[leftWheel.ordinal()], state.suspensionLength[rightWheel.ordinal()]);
+            }
+            double cos = Math.cos(tilt);
+            double sin = Math.sin(tilt);
             for (int f = 0; f < faces.length; f++) {
-                double side = rightOffset + outwardSign * faces[f];
+                double lateral = outwardSign * faces[f];
                 for (int i = 0; i < outline.length; i++) {
                     double along = forwardOffset + outline[i][0];
-                    double height = drop + outline[i][1];
+                    double side = rightOffset + lateral * cos + outline[i][1] * sin;
+                    double height = drop - lateral * sin + outline[i][1] * cos;
                     out[wheel.ordinal()][f * outline.length + i] = new double[]{
                             x + forward[0] * along + up[0] * height + right[0] * side,
                             state.height + forward[1] * along + up[1] * height + right[1] * side,

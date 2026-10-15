@@ -1530,6 +1530,10 @@ public final class CarPhysics {
                     ? (ground - previousGround) / dt
                     : 0.0;
             state.previousGroundHeight[index] = ground;
+            if (spec.isSolidAxle(wheel)) {
+                // リジッドは左右をまとめて下で解く
+                continue;
+            }
 
             double load = 0.0;
             if (compression > 0.0) {
@@ -1547,6 +1551,12 @@ public final class CarPhysics {
                 load = Math.max(0.0, Math.min(spec.staticWheelLoad(wheel) * MAX_LOAD_FACTOR, load));
             }
             state.wheelLoad[index] = load;
+        }
+
+        for (boolean front : new boolean[]{true, false}) {
+            if (spec.isSolidAxle(front ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT)) {
+                solveSolidAxle(spec, state, contact, front, dt);
+            }
         }
 
         applyAntiRollBars(spec, state);
@@ -1587,6 +1597,247 @@ public final class CarPhysics {
         // ±180 度に巻き取る。裏返って回り続けたときに角度が青天井に増えるのを防ぐ
         // （同期する float の精度が落ちるうえ、立ち直りの向きも決められなくなる）
         state.roll = wrapAngle(state.roll + state.rollRate * dt);
+    }
+
+    // ------------------------------------------------------------------
+    // リジッドアクスル
+    // ------------------------------------------------------------------
+
+    /**
+     * リジッドアクスル。左右の輪を 1 本の車軸として、荷重とタイヤの位置を解く。
+     *
+     * <p><b>軸に質量を持たせない。</b>独立懸架の輪と同じく、毎ステップ力の釣り合いで位置を決める。
+     * 質量を持たせて積分すると、軸とタイヤの組の固有振動数が高く、ゲームの刻み（12.5ms）では
+     * 荷重がでたらめになったり発散したりした（実験で確認。1ms で積分した質量ありの軸とは、
+     * 釣り合いで解いた軸の荷重が 1〜8 ポイントの差で一致した）。タイヤもたわまない拘束として扱うので、
+     * 車高は独立懸架と変わらない。</p>
+     *
+     * <p>軸の位置は左右のタイヤ中心の高さ {@code (wL, wR)} で表す。軸に働く力は、内側の 2 本のバネ
+     * （{@link CarSpec#SOLID_AXLE_SPRING_SPAN}）、タイヤの位置の縮みきり・伸びきり、スタビ（軸と車体の
+     * 傾きの差に掛かるねじり）、タイヤの接地力で、質量が無いので必ず釣り合う。場合は 3 つ:</p>
+     * <ol>
+     *   <li><b>両輪接地</b> … 位置は地面で決まる。荷重を釣り合いから求め、両方 0 以上なら終わり</li>
+     *   <li><b>片輪が浮く</b> … 接地している輪を支点に、浮いた輪の荷重が 0 になる高さを二分法で探す
+     *       （浮いた輪を上げるほどその側のバネが縮んで荷重が増えるので、単調）</li>
+     *   <li><b>両輪とも浮く</b> … タイヤの位置で伸びきった位置で吊る</li>
+     * </ol>
+     *
+     * <p>軸が釣り合っているので、車体が受ける力とモーメントは「タイヤの荷重がタイヤの位置に掛かる」
+     * と同じになる。そのため呼ぶ側は独立懸架と同じく {@code wheelLoad} を足し合わせればよい。</p>
+     */
+    private static void solveSolidAxle(CarSpec spec, CarState state, GroundContact contact, boolean front, double dt) {
+        Wheel left = front ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
+        Wheel right = front ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
+        SolidAxle axle = new SolidAxle(spec, state, left, right, dt);
+        double groundLeft = contact.groundHeight[left.ordinal()];
+        double groundRight = contact.groundHeight[right.ordinal()];
+        boolean hasLeft = groundLeft > Double.NEGATIVE_INFINITY;
+        boolean hasRight = groundRight > Double.NEGATIVE_INFINITY;
+        double radius = spec.wheelRadius();
+
+        double[] hang = axle.hanging();
+        boolean leftReaches = hasLeft && hang[0] < groundLeft + radius;
+        boolean rightReaches = hasRight && hang[1] < groundRight + radius;
+
+        double wL = hang[0];
+        double wR = hang[1];
+        if (leftReaches && rightReaches) {
+            double[] loads = axle.loads(groundLeft + radius, groundRight + radius);
+            if (loads[0] >= 0.0 && loads[1] >= 0.0) {
+                wL = groundLeft + radius;
+                wR = groundRight + radius;
+            } else {
+                // 荷重が負になった側が浮く。もう片方を支点に解く
+                boolean pivotLeft = loads[0] >= loads[1];
+                double[] pivot = pivotLeft
+                        ? axle.pivot(true, groundLeft + radius, groundRight + radius)
+                        : axle.pivot(false, groundRight + radius, groundLeft + radius);
+                if (pivot != null) {
+                    wL = pivot[0];
+                    wR = pivot[1];
+                } else {
+                    // 解けなければ両輪接地のまま（荷重は下で 0 に丸める）
+                    wL = groundLeft + radius;
+                    wR = groundRight + radius;
+                }
+            }
+        } else if (leftReaches || rightReaches) {
+            double[] pivot = leftReaches
+                    ? axle.pivot(true, groundLeft + radius, hasRight ? groundRight + radius : Double.NEGATIVE_INFINITY)
+                    : axle.pivot(false, groundRight + radius, hasLeft ? groundLeft + radius : Double.NEGATIVE_INFINITY);
+            if (pivot != null) {
+                wL = pivot[0];
+                wR = pivot[1];
+            }
+        }
+
+        double[] loads = axle.loads(wL, wR);
+        axle.remember(wL, wR);
+        double lmax = spec.suspensionMaxLength();
+        double cap = spec.staticWheelLoad(left) * MAX_LOAD_FACTOR;
+        for (int side = 0; side < 2; side++) {
+            Wheel wheel = side == 0 ? left : right;
+            double centre = side == 0 ? wL : wR;
+            double length = state.hardpointHeight(spec.wheelForwardOffset(wheel), spec.wheelRightOffset(wheel)) - centre;
+            // タイヤの位置での長さ。止めもタイヤの位置にあるので、独立懸架と同じ範囲に収まる
+            // （止めを押し込んだぶんのはみ出しは丸める）
+            state.suspensionLength[wheel.ordinal()] = Math.max(0.0, Math.min(lmax, length));
+            state.wheelLoad[wheel.ordinal()] = Math.max(0.0, Math.min(cap, loads[side]));
+        }
+    }
+
+    /** リジッドアクスル 1 本ぶんの力の計算。{@link #solveSolidAxle} の中だけで使う。 */
+    private static final class SolidAxle {
+        private final CarSpec spec;
+        private final CarState state;
+        private final Wheel left;
+        private final Wheel right;
+        private final double dt;
+        private final double halfTrack;
+        private final double springOffset;
+        private final double forward;
+
+        SolidAxle(CarSpec spec, CarState state, Wheel left, Wheel right, double dt) {
+            this.spec = spec;
+            this.state = state;
+            this.left = left;
+            this.right = right;
+            this.dt = dt;
+            this.halfTrack = spec.trackWidth() / 2.0;
+            this.springOffset = halfTrack * CarSpec.SOLID_AXLE_SPRING_SPAN;
+            this.forward = spec.wheelForwardOffset(left);
+        }
+
+        /** 左右のタイヤ中心が (wL, wR) のとき、右へ y の位置の軸の高さ。 */
+        private double axleHeight(double wL, double wR, double y) {
+            return (wL + wR) / 2.0 + (y / halfTrack) * (wR - wL) / 2.0;
+        }
+
+        /** 片側のバネの長さ。side は 0 が左、1 が右。 */
+        private double springLength(double wL, double wR, int side) {
+            double y = side == 0 ? -springOffset : springOffset;
+            return state.hardpointHeight(forward, y) - axleHeight(wL, wR, y);
+        }
+
+        /**
+         * 片側のバネとダンパーが車体を押し上げる力。押すだけで引かない。
+         * 縮みきりと伸びきりはここではなくタイヤの位置で止める（{@link #stopForce}）。
+         */
+        private double springForce(double length, int side) {
+            Wheel wheel = side == 0 ? left : right;
+            double lmax = spec.suspensionMaxLength();
+            double compression = lmax - length;
+            if (compression <= 0.0) {
+                return 0.0;
+            }
+            double previous = state.solidAxleSpringLength[wheel.ordinal()];
+            double speed = Double.isNaN(previous) ? 0.0 : (length - previous) / dt;
+            double force = spec.suspensionStiffness(wheel) * Math.min(compression, lmax)
+                    - spec.suspensionDamping(wheel, speed > 0.0) * speed;
+            return Math.max(0.0, force);
+        }
+
+        /**
+         * タイヤの位置の縮みきり（バンプストップ）と伸びきり（ショックの伸びきり）が車体を押し上げる力。
+         * 負なら伸びきって軸を吊っている。
+         *
+         * <p><b>止めはタイヤの位置に置く。</b>バネの位置（内側）に置くと、軸が傾いたときに外側のタイヤが
+         * それより大きく動き、ストロークを 27% 超えて車体へ食い込み、下へも同じだけ垂れた。
+         * タイヤの位置で動ける範囲を独立懸架と同じ 0〜ストロークにそろえる。硬さもバンプストップと同じ。</p>
+         */
+        private double stopForce(double wheelCentre, Wheel wheel) {
+            double lmax = spec.suspensionMaxLength();
+            double length = state.hardpointHeight(forward, spec.wheelRightOffset(wheel)) - wheelCentre;
+            if (length < 0.0) {
+                return spec.bumpStopStiffness(wheel) * -length;
+            }
+            if (length > lmax) {
+                return -spec.bumpStopStiffness(wheel) * (length - lmax);
+            }
+            return 0.0;
+        }
+
+        /**
+         * タイヤ中心が (wL, wR) のときの左右の接地荷重。軸の上下とロールの釣り合いから。
+         * 負なら、その輪は地面に引っ張られないと留まれない（＝浮く）。
+         */
+        double[] loads(double wL, double wR) {
+            double forceLeft = springForce(springLength(wL, wR, 0), 0);
+            double forceRight = springForce(springLength(wL, wR, 1), 1);
+            // スタビ: 軸が車体より左上がりなら、軸を右上がりへ戻すねじり（車体は左上がりへ引かれる）
+            double axleRoll = (wL - wR) / (2.0 * halfTrack);
+            double torque = spec.antiRollStiffness(left) * spec.trackWidth() * spec.trackWidth()
+                    * (axleRoll - Math.sin(state.roll));
+            double stopLeft = stopForce(wL, left);
+            double stopRight = stopForce(wR, right);
+            double sum = forceLeft + forceRight + stopLeft + stopRight;
+            double moment = springOffset * (forceLeft - forceRight) + halfTrack * (stopLeft - stopRight) + torque;
+            return new double[]{sum / 2.0 + moment / (2.0 * halfTrack), sum / 2.0 - moment / (2.0 * halfTrack)};
+        }
+
+        /**
+         * 両輪とも伸びきった位置（両輪とも浮いたとき）。タイヤの位置で伸びきるので、
+         * 軸は車体と平行になり、内側のバネもちょうど伸びきる（力 0、スタビのねじりも 0）。
+         */
+        double[] hanging() {
+            double lmax = spec.suspensionMaxLength();
+            return new double[]{
+                    state.hardpointHeight(forward, spec.wheelRightOffset(left)) - lmax,
+                    state.hardpointHeight(forward, spec.wheelRightOffset(right)) - lmax};
+        }
+
+        /**
+         * 片輪を支点に、もう片方の荷重が 0 になる高さを探す。
+         *
+         * @param pivotLeft 支点が左か
+         * @param pivotHeight 支点の輪のタイヤ中心の高さ
+         * @param freeFloor 浮く輪のタイヤ中心がこれより下へは行けない（地面）。無ければ負の無限大
+         * @return {wL, wR}。支点の荷重が負になる（その輪も浮く）なら null
+         */
+        double[] pivot(boolean pivotLeft, double pivotHeight, double freeFloor) {
+            int free = pivotLeft ? 1 : 0;
+            // 浮く輪の荷重は、その輪を上げるほど増える。下端は地面か、十分下
+            double lo = freeFloor > Double.NEGATIVE_INFINITY
+                    ? freeFloor
+                    : pivotHeight - 4.0 * spec.suspensionMaxLength() - spec.trackWidth();
+            if (freeLoad(pivotLeft, pivotHeight, lo, free) >= 0.0) {
+                // 下端でもう荷重が正なら、地面に着いたまま（呼ぶ側の判断と食い違うときの保険）
+                return together(pivotLeft, pivotHeight, lo, pivotLeft ? 0 : 1);
+            }
+            double step = 0.05;
+            double hi = lo + step;
+            for (int i = 0; i < 24 && freeLoad(pivotLeft, pivotHeight, hi, free) < 0.0; i++) {
+                lo = hi;
+                step *= 2.0;
+                hi = lo + step;
+            }
+            for (int i = 0; i < 40; i++) {
+                double mid = (lo + hi) / 2.0;
+                if (freeLoad(pivotLeft, pivotHeight, mid, free) < 0.0) {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+            }
+            return together(pivotLeft, pivotHeight, hi, pivotLeft ? 0 : 1);
+        }
+
+        private double freeLoad(boolean pivotLeft, double pivotHeight, double freeHeight, int free) {
+            return pivotLeft ? loads(pivotHeight, freeHeight)[free] : loads(freeHeight, pivotHeight)[free];
+        }
+
+        /** 支点の荷重が負でなければ {wL, wR}、負なら null。 */
+        private double[] together(boolean pivotLeft, double pivotHeight, double freeHeight, int pivotSide) {
+            double wL = pivotLeft ? pivotHeight : freeHeight;
+            double wR = pivotLeft ? freeHeight : pivotHeight;
+            return loads(wL, wR)[pivotSide] >= 0.0 ? new double[]{wL, wR} : null;
+        }
+
+        /** 次のステップのダンパーのために、いまのバネの長さを残す。 */
+        void remember(double wL, double wR) {
+            state.solidAxleSpringLength[left.ordinal()] = springLength(wL, wR, 0);
+            state.solidAxleSpringLength[right.ordinal()] = springLength(wL, wR, 1);
+        }
     }
 
     /**
@@ -1759,7 +2010,8 @@ public final class CarPhysics {
             Wheel left = axle == 0 ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
             Wheel right = axle == 0 ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
             double stiffness = spec.antiRollStiffness(left);
-            if (stiffness <= 0.0) {
+            // リジッドのスタビは軸と車体の傾きの差に効くので、軸と一緒に解いてある
+            if (stiffness <= 0.0 || spec.isSolidAxle(left)) {
                 continue;
             }
             int l = left.ordinal();

@@ -137,14 +137,29 @@ public final class CarState {
      */
     public final double[] previousGroundHeight = new double[Wheel.COUNT];
 
+    /**
+     * リジッドアクスルのバネの長さ [m]（前のステップ）。添字はそのバネの側の輪。
+     * ダンパーの速さを長さの差で取るのに使う（{@code CarPhysics#solveSolidAxle}）。
+     * 差で取るのは、車体の速さと軸の速さの両方が入り、テレポートしても跳ねないため。
+     * まだ無いときは NaN（ダンパーは効かせない）。
+     */
+    public final double[] solidAxleSpringLength = new double[Wheel.COUNT];
+
     public CarState() {
         java.util.Arrays.fill(brakeRelease, 1.0);
         java.util.Arrays.fill(previousGroundHeight, Double.NEGATIVE_INFINITY);
+        java.util.Arrays.fill(solidAxleSpringLength, Double.NaN);
     }
 
     // ---- 各輪 ----
 
-    /** 各輪の現在のサスペンション長 [m]。描画でタイヤを吊る位置に使う。 */
+    /**
+     * 各輪の現在のサスペンション長 [m]。描画でタイヤを吊る位置に使う。
+     *
+     * <p>独立懸架では [0, ストローク] に収まる。リジッドアクスルではタイヤの位置での長さなので、
+     * 軸が傾くとストロークの外へ出る（バネは内側にあるので、外側のタイヤはそれより大きく動く）。
+     * 左右の差がそのまま軸の傾きになる。</p>
+     */
     public final double[] suspensionLength = new double[Wheel.COUNT];
     /** 各輪の接地荷重 [N]。タイヤのグリップ上限を決める。 */
     public final double[] wheelLoad = new double[Wheel.COUNT];
