@@ -779,7 +779,8 @@ public final class CarPhysics {
         double slip = 0.0;
         for (Wheel wheel : Wheel.VALUES) {
             if (spec.driveShare(wheel) > 0.0) {
-                slip = Math.max(slip, state.wheelSlipRatio[wheel.ordinal()] / aidSlipScale(spec, contact, wheel));
+                double longitudinal = state.wheelSlipRatio[wheel.ordinal()] / aidSlipScale(spec, contact, wheel);
+                slip = Math.max(slip, Math.hypot(longitudinal, rearSlipAngleAsSlip(spec, state, contact, wheel)));
             }
         }
 
@@ -788,6 +789,33 @@ public final class CarPhysics {
         // 一気に切ると駆動力が断続して暴れるので、なましてから効かせる
         double response = 1.0 - Math.exp(-dt * TRACTION_CONTROL_RATE);
         state.tractionControlThrottle += (target - state.tractionControlThrottle) * response;
+    }
+
+    /**
+     * 後輪のスリップ角を、トラクションコントロールが見る縦の滑り率と同じ尺度へ直したもの。
+     * 横のピークの角度で 1 になる量を {@link #DEFAULT_PEAK_SLIP} 倍する。前輪と浮いた輪は 0。
+     *
+     * <p>縦の滑り率だけを見ていると、旋回中の後輪駆動で<b>後輪が横のグリップを使いきっていても
+     * 絞らない</b>。摩擦円の上では縦横は同じグリップの取り合いなので、残りの小さい後輪へ
+     * 駆動力を足せば、空転しなくても尻が出る（既定の車を FR にして舵＋全開で車体スリップ角 11〜19 度）。
+     * 縦と横を合わせた大きさで測れば、後輪が横に滑っているほど早く絞る。</p>
+     *
+     * <p>前輪は見ない。前輪のスリップ角は舵の上限（{@link #peakFrontSlipAngle}）がもとから
+     * ピークに抑えているので、ここで足すと曲がるたびにアクセルを絞るだけになる。</p>
+     */
+    private static double rearSlipAngleAsSlip(CarSpec spec, CarState state, GroundContact contact, Wheel wheel) {
+        if (wheel.isFront() || state.wheelLoad[wheel.ordinal()] <= 0.0) {
+            return 0.0;
+        }
+        double wheelForward = state.forwardSpeed - spec.wheelRightOffset(wheel) * state.yawRate;
+        double wheelRight = state.lateralSpeed + spec.wheelForwardOffset(wheel) * state.yawRate;
+        double steer = state.wheelSteerAngle[wheel.ordinal()];
+        double rolling = wheelForward * Math.cos(steer) + wheelRight * Math.sin(steer);
+        double sliding = -wheelForward * Math.sin(steer) + wheelRight * Math.cos(steer);
+        double slipAngle = Math.atan2(Math.abs(sliding), Math.max(Math.abs(rolling), SLIP_REFERENCE_SPEED));
+        // 横のピークの角度はグリップ ÷ 横剛性（どちらも荷重に比例するので荷重に依らない）
+        double peak = spec.tireFriction() * contact.gripScale(wheel) / spec.effectiveCorneringStiffness();
+        return slipAngle / Math.max(1e-3, peak) * DEFAULT_PEAK_SLIP;
     }
 
     /** 駆動輪の平均角速度 [rad/s]。 */
