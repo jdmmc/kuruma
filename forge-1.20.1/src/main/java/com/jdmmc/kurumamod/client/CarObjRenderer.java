@@ -573,6 +573,17 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                     -car.getRenderSuspensionLength(wheel, partialTick) + offset.y(),
                     -spec.wheelForwardOffset(wheel) + offset.z());
 
+            // リジッドアクスルは左右のタイヤが 1 本の軸に付いているので、軸の傾きぶん両輪とも傾く。
+            // 軸の傾きは左右のサス長の差から出る（サス長は 4 輪とも同期しているので、他人の車でも同じ）。
+            // 左が高い（左のサス長が短い）と軸は右下がりで、タイヤの上は右（+X）へ倒れる
+            if (spec.isSolidAxle(wheel)) {
+                Wheel leftWheel = wheel.isFront() ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
+                Wheel rightWheel = wheel.isFront() ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
+                double tilt = spec.solidAxleTilt(car.getRenderSuspensionLength(leftWheel, partialTick),
+                        car.getRenderSuspensionLength(rightWheel, partialTick));
+                pose.mulPose(Axis.ZP.rotation((float) -tilt));
+            }
+
             // キャンバー。負で「上が内側」（ネガティブキャンバー）になるよう、左右で符号を
             // 反転させる。Z 軸まわりの正回転はタイヤの上を左（-X）へ倒す。
             // 鏡像化より先に掛かるので、鏡像に倒れたりはしない

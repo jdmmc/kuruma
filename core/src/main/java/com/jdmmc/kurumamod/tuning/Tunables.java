@@ -98,6 +98,16 @@ public final class Tunables {
                     TunableParameter.linear("rear_anti_roll", 0, 20000, "%.0f",
                                     CarSpec::rearAntiRollStiffness, CarSpec.Builder::rearAntiRollStiffness)
                             .detail(Tunables::frontRollShare),
+                    // サスの形式。0 で独立懸架、1 でリジッドアクスル（左右を 1 本の車軸でつなぐ）。
+                    // リジッドは片輪が段に乗ると軸ごと傾き、内側のバネは軸の傾きに逆らう力が弱いので、
+                    // 対角の輪が浮きにくい（既定の車で、対角のねじれで浮き始める高さが 18cm → 前後リジッドで 30cm）。
+                    // 代わりに軸のロール剛性も下がり、舗装路のコーナーで車体がよく傾く（前後リジッドでロール約 2 倍）
+                    TunableParameter.linear("front_solid_axle", 0, 1, "%.0f",
+                                    CarSpec::frontSolidAxle, CarSpec.Builder::frontSolidAxle)
+                            .detail(spec -> detail(spec.isSolidAxle(Wheel.FRONT_LEFT) ? "solid_axle" : "independent")),
+                    TunableParameter.linear("rear_solid_axle", 0, 1, "%.0f",
+                                    CarSpec::rearSolidAxle, CarSpec.Builder::rearSolidAxle)
+                            .detail(spec -> detail(spec.isSolidAxle(Wheel.REAR_LEFT) ? "solid_axle" : "independent")),
                     // ロールセンター。重心高に対する %。横力のこの高さぶんはバネを通らず
                     // 直接タイヤへ移る（ロールを待たない）。スタビと同じく前を高くするとアンダーだが、
                     // こちらは<b>ロールを減らしながら</b>配分を動かす。補足はそのときの

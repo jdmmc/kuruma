@@ -38,6 +38,9 @@ package com.jdmmc.kurumamod.physics;
  *                             大きいほど柔らかく、伸び側（タイヤが下へ追いかける量）が増える
  * @param frontAntiRollStiffness 前輪のスタビライザー [N/m]。左右のサス変位の差に掛ける
  * @param rearAntiRollStiffness  後輪のスタビライザー [N/m]。同上
+ * @param frontSolidAxle       前軸の形式。0 で独立懸架、1 でリジッドアクスル（左右を 1 本の車軸でつなぐ）。
+ *                             {@link #isSolidAxle} を参照
+ * @param rearSolidAxle        後軸の形式。同上
  * @param frontRollCenter      前軸のロールセンター高。<b>重心高に対する割合</b>。0 で地面（すべての荷重移動がバネを通る）。
  *                             {@link #rollCenterHeight} を参照
  * @param rearRollCenter       後軸のロールセンター高。同上
@@ -106,6 +109,8 @@ public record CarSpec(
         double bodyClearance,
         double frontAntiRollStiffness,
         double rearAntiRollStiffness,
+        double frontSolidAxle,
+        double rearSolidAxle,
         double frontRollCenter,
         double rearRollCenter,
         double frontBumpDamping,
@@ -221,6 +226,13 @@ public record CarSpec(
 
     /** タイヤ 1 本の等価質量 [kg]。車輪の慣性 {@code I = m r^2 / 2} はここから決まる。 */
     private static final double WHEEL_MASS = 22.7;
+
+    /**
+     * リジッドアクスルのバネの間隔を、トレッドの何倍とするか。バネはタイヤより内側に付く
+     * （実車のリンク式でトレッドの 6〜7 割）。狭いほど軸の傾きに逆らう力が弱く、
+     * 対角の輪が浮きにくい（倍率の 2 乗で効く）。
+     */
+    public static final double SOLID_AXLE_SPRING_SPAN = 0.65;
 
     /**
      * 乗り越えられる段差の下限 [m]。
@@ -474,6 +486,28 @@ public record CarSpec(
     /** その輪が付いている軸のスタビライザーの強さ [N/m]。 */
     public double antiRollStiffness(Wheel wheel) {
         return wheel.isFront() ? frontAntiRollStiffness : rearAntiRollStiffness;
+    }
+
+    /**
+     * その輪が付いている軸がリジッドアクスルか。
+     *
+     * <p>リジッドは左右の輪を 1 本の車軸でつなぎ、バネはタイヤより内側
+     * （{@link #SOLID_AXLE_SPRING_SPAN}）で車軸と車体の間に入る。縮みきりと伸びきりはタイヤの位置にあり、
+     * タイヤが動ける範囲は独立懸架と同じ 0〜ストローク。片輪が段に乗ると軸ごと傾き、
+     * 内側のバネは軸の傾きに逆らう力が弱いので、対角の輪が浮きにくい。
+     * スタビは軸と車体の傾きの差に効く。解き方は {@code CarPhysics#solveSolidAxle}。</p>
+     */
+    public boolean isSolidAxle(Wheel wheel) {
+        return (wheel.isFront() ? frontSolidAxle : rearSolidAxle) >= 0.5;
+    }
+
+    /**
+     * リジッドアクスルの軸の、車体に対する傾き [rad]。左右のタイヤの位置でのサス長から。
+     * 正で「左が高い」（左のサス長が短い）＝軸は右下がりで、タイヤの上は右へ倒れる。
+     * 描画（{@code CarObjRenderer}）とタイヤの当たり判定（{@link CarBody#tireRims}）が同じ式で傾ける。
+     */
+    public double solidAxleTilt(double leftLength, double rightLength) {
+        return Math.atan2(rightLength - leftLength, trackWidth);
     }
 
     /**
@@ -1156,6 +1190,9 @@ public record CarSpec(
         // 前を強くするとアンダー、後ろを強くするとオーバーになる
         private double frontAntiRollStiffness = 2500.0;
         private double rearAntiRollStiffness = 1500.0;
+        // 既定は前後とも独立懸架。リジッドは段差で対角の輪が浮きにくい（オフロード向き）
+        private double frontSolidAxle = 0.0;
+        private double rearSolidAxle = 0.0;
         // ロールセンター。重心高に対する割合で持つ。前後同じ 40% なので配分はほぼ動かさず
         // （LLTD 56.9→56.5%）、ロールだけを 3.68→2.21°/G へ減らす。0 にすると入れる前と同じ
         private double frontRollCenter = 0.4;
@@ -1279,6 +1316,8 @@ public record CarSpec(
             bodyClearance = spec.bodyClearance;
             frontAntiRollStiffness = spec.frontAntiRollStiffness;
             rearAntiRollStiffness = spec.rearAntiRollStiffness;
+            frontSolidAxle = spec.frontSolidAxle;
+            rearSolidAxle = spec.rearSolidAxle;
             frontRollCenter = spec.frontRollCenter;
             rearRollCenter = spec.rearRollCenter;
             frontBumpDamping = spec.frontBumpDamping;
@@ -1380,6 +1419,16 @@ public record CarSpec(
 
         public Builder rearAntiRollStiffness(double value) {
             rearAntiRollStiffness = value;
+            return this;
+        }
+
+        public Builder frontSolidAxle(double value) {
+            frontSolidAxle = value;
+            return this;
+        }
+
+        public Builder rearSolidAxle(double value) {
+            rearSolidAxle = value;
             return this;
         }
 
@@ -1690,6 +1739,7 @@ public record CarSpec(
             return new CarSpec(
                     wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength, staticSag, bodyClearance,
                     frontAntiRollStiffness, rearAntiRollStiffness,
+                    frontSolidAxle, rearSolidAxle,
                     frontRollCenter, rearRollCenter,
                     frontBumpDamping, frontReboundDamping, rearBumpDamping, rearReboundDamping,
                     ackermann, frontToe, rearToe,
