@@ -60,6 +60,23 @@ public final class CarBody {
 
     /** 車体と地形の摩擦係数。 */
     private static final double FRICTION = 0.25;
+    /**
+     * 壁に当たったときに、壁に沿った速さを押された力積の何倍削るか（{@link #applyWallPenalty}）。
+     * 20m/s で当てて 1.5 秒後の速さは、10 度で 15.5m/s（摩擦だけなら 18.1）、20 度で 12.1m/s（16.3）。
+     * ハンドルで壁へ押し付けるほど効くので、押し付けたまま走るとここがいちばん削る。
+     * 0.75 では全開・フルロックで擦ったとき 15m/s から 3 秒で止まりかけた（6.7m/s）
+     */
+    private static final double WALL_HIT_PENALTY = 0.5;
+    /**
+     * 壁に触れているあいだ、壁に沿った速さを削り続ける減速度 [m/s²]。約 0.2G。
+     * 押す力に比例する分（{@link #WALL_HIT_PENALTY}）だけだと、軽く触れたまま走れば
+     * ほとんど減らず、壁に擦りつけて走るのがタダになる。<b>全開の加速より小さくしておくこと</b>——
+     * 6.0 では全開で壁に沿わせると 3 秒で止まり、壁から離れない限り走り出せなくなった。
+     * 全開・フルロックで擦ったとき、25m/s から 3 秒で 20.6m/s（摩擦だけなら 32.5）
+     */
+    private static final double WALL_SCRAPE_DECEL = 2.0;
+    /** 壁に沿った速さがこれ以下なら削らない [m/s]。壁際に止まっている車が震えないよう。 */
+    private static final double WALL_PENALTY_MIN_SPEED = 0.5;
     /** 力積を何周繰り返して足すか。 */
     private static final int ITERATIONS = 8;
     /** 重なりを押し戻す強さ（1 ステップで重なりの何割を戻す速度を上乗せするか）。 */
@@ -469,6 +486,8 @@ public final class CarBody {
             }
         }
 
+        applyWallPenalty(contacts, normalImpulse, v, mass, dt);
+
         state.forwardSpeed = dot(v, fh);
         state.lateralSpeed = dot(v, rh);
         state.verticalSpeed = v[1];
@@ -476,6 +495,64 @@ public final class CarBody {
         state.pitchRate = w[1];
         state.rollRate = w[2];
         return result;
+    }
+
+    /**
+     * 壁に当たった・擦った車から、<b>壁に沿った速さ</b>を削る。
+     *
+     * <p>摩擦だけ（係数 {@link #FRICTION}）だと、20m/s で 10 度から当たっても 0.9m/s しか落ちず、
+     * 壁に擦りつけて走るのがほぼタダだった。削る量は 2 つの足し算:</p>
+     * <ul>
+     *   <li><b>押された力積に比例する分</b>（{@link #WALL_HIT_PENALTY}）。深い角度で当たるほど、
+     *       ハンドルで壁へ押し付けるほど大きい。浅く触れれば少しで、境目の段差は無い</li>
+     *   <li><b>触れている間の一定の減速</b>（{@link #WALL_SCRAPE_DECEL}）。軽く触れたまま
+     *       並走しても減っていく</li>
+     * </ul>
+     *
+     * <p><b>重心にだけ掛けて、車は回さない。</b>摩擦係数そのものを上げると、角が当たった瞬間に
+     * 車が壁側へ振られる。罰としては理不尽なので、速さだけを削る。壁へ向かう速さはすでに当たりが
+     * 止めているので触らない。壁に沿った速さを逆向きにすることはない（止まるところで頭打ち）。</p>
+     *
+     * <p>対象は車体とタイヤの<b>横向きの</b>当たりだけ。床・低い段・縮みきったサスペンションは
+     * 含めない。車同士は {@code CarCollision} が運動量で解くので、ここ（ブロックとの当たり）には来ない。</p>
+     */
+    private static void applyWallPenalty(List<Contact> contacts, double[] normalImpulse, double[] v,
+                                         double mass, double dt) {
+        double nx = 0.0;
+        double nz = 0.0;
+        double impulse = 0.0;
+        boolean touching = false;
+        for (int i = 0; i < contacts.size(); i++) {
+            Contact c = contacts.get(i);
+            if (c.depth() < 0.0 || (c.kind() != Kind.BODY && c.kind() != Kind.TIRE) || Math.abs(c.ny()) > 0.5) {
+                continue;
+            }
+            double horizontal = Math.hypot(c.nx(), c.nz());
+            if (horizontal < 1.0e-9) {
+                continue;
+            }
+            touching = true;
+            nx += c.nx() / horizontal;
+            nz += c.nz() / horizontal;
+            impulse += normalImpulse[i] * horizontal;
+        }
+        double length = Math.hypot(nx, nz);
+        // 両側の壁に挟まれて向きが打ち消し合ったときは、沿う向きが決まらないので削らない
+        if (!touching || length < 1.0e-6) {
+            return;
+        }
+        nx /= length;
+        nz /= length;
+        double toward = v[0] * nx + v[2] * nz;
+        double tx = v[0] - toward * nx;
+        double tz = v[2] - toward * nz;
+        double speed = Math.hypot(tx, tz);
+        if (speed < WALL_PENALTY_MIN_SPEED) {
+            return;
+        }
+        double loss = Math.min(speed, WALL_HIT_PENALTY * impulse / mass + WALL_SCRAPE_DECEL * dt);
+        v[0] -= tx / speed * loss;
+        v[2] -= tz / speed * loss;
     }
 
     /**
