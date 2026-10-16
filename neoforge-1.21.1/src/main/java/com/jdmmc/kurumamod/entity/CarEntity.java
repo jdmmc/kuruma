@@ -817,6 +817,15 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             approachSyncedPose();
         }
 
+        // 起き上がり補助は姿勢の表し方を置き換える（ヨー +180 度・ピッチ π−p・ロール +π）。
+        // 同じ向きでも数字が飛ぶので、前の姿勢も同じ表し方へ揃えてから補間する
+        if (isOtherRepresentationCloser(prevRenderYaw, prevRenderPitch, prevRenderRoll,
+                renderYaw, renderPitch, renderRoll)) {
+            prevRenderYaw += 180.0F;
+            prevRenderPitch = wrapRadians(Mth.PI - prevRenderPitch);
+            prevRenderRoll = wrapRadians(prevRenderRoll + Mth.PI);
+        }
+
         if (!renderSnapshotReady) {
             renderSnapshotReady = true;
             prevRenderYaw = renderYaw;
@@ -863,6 +872,13 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         if (poseLerpSteps <= 0) {
             return;
         }
+        // 届いた姿勢が別の表し方に切り替わっていたら、寄せる前にこちらも揃える。
+        // 揃えずに寄せると、同じ向きのはずの車が数ティックかけてでんぐり返る
+        if (isOtherRepresentationCloser(renderYaw, renderPitch, renderRoll, yaw, pitch, roll)) {
+            renderYaw += 180.0F;
+            renderPitch = wrapRadians(Mth.PI - renderPitch);
+            renderRoll = wrapRadians(renderRoll + Mth.PI);
+        }
         float step = 1.0F / poseLerpSteps;
         renderYaw += Mth.wrapDegrees(yaw - renderYaw) * step;
         renderPitch = wrapRadians(renderPitch + wrapRadians(pitch - renderPitch) * step);
@@ -872,6 +888,24 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             renderSuspension[i] += (targetSuspension[i] - renderSuspension[i]) * step;
         }
         poseLerpSteps--;
+    }
+
+    /**
+     * 姿勢 (yaw, pitch, roll) を別の表し方（ヨー +180 度・ピッチ π−p・ロール +π。回転としては同じ）に
+     * 直したほうが、目標の姿勢に数字の上で近いか。ヨーは度、ピッチとロールはラジアン。
+     */
+    private static boolean isOtherRepresentationCloser(float yaw, float pitch, float roll,
+                                                      float targetYaw, float targetPitch, float targetRoll) {
+        float same = poseDistance(yaw, pitch, roll, targetYaw, targetPitch, targetRoll);
+        float other = poseDistance(yaw + 180.0F, Mth.PI - pitch, roll + Mth.PI, targetYaw, targetPitch, targetRoll);
+        return other < same;
+    }
+
+    private static float poseDistance(float yaw, float pitch, float roll,
+                                      float targetYaw, float targetPitch, float targetRoll) {
+        return Math.abs(Mth.wrapDegrees(targetYaw - yaw)) * Mth.DEG_TO_RAD
+                + Math.abs(wrapRadians(targetPitch - pitch))
+                + Math.abs(wrapRadians(targetRoll - roll));
     }
 
     /** 角度 [rad] を -π..π へ巻き取る。 */
@@ -938,7 +972,13 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * 現在のエンティティの状態から物理の状態を作り直す。
      */
     private void takeOverPhysics() {
-        state.yaw = getYRot() * Mth.DEG_TO_RAD;
+        // 向きは描いているのと同じ値から取る。クライアントの getYRot() はバニラの位置同期
+        // （1.4 度刻み・3 ティックかけて寄せる）を補間した途中の値で、ピッチ・ロール（同期値）とも
+        // 揃っていないので、乗った瞬間に車が水平に回った。サーバーの getYRot() は運転者の移動
+        // パケットそのもので、最初のティックはまだ同期値が無いので getYRot() のまま
+        float yaw = level().isClientSide ? entityData.get(DATA_YAW) : getYRot();
+        setYRot(yaw);
+        state.yaw = yaw * Mth.DEG_TO_RAD;
         state.forwardSpeed = entityData.get(DATA_SPEED);
         state.lateralSpeed = 0.0;
         state.yawRate = 0.0;
@@ -2390,7 +2430,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         // 席は車体に付いているので、車体と一緒に傾ける。ヨーだけで回していた頃は
         // 車がロールしても乗員は水平のまま浮いていて、一人称の視点だけが車体から取り残された
         Vec3 seat = toWorld(seatOffset(passenger).add(0.0, ridingOffset(passenger), 0.0),
-                getYRot(), getRenderPitch(), getRenderRoll());
+                hasLocalState() ? getYRot() : entityData.get(DATA_YAW), getRenderPitch(), getRenderRoll());
         move.accept(passenger, getX() + seat.x, getY() + seat.y, getZ() + seat.z);
     }
 
