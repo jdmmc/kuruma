@@ -165,6 +165,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
     /**
      * 各輪の路面。{@link RoadSurface} の並び順を 1 輪 4 ビットで詰めたもの（{@link #packSurfaces}）。
+     * 各 4 ビットの最上位は「その輪が浮いている」（{@link #isRenderWheelAirborne}）。
      *
      * <p><b>車 1 台で 1 つにしてはいけない。</b>以前は「いちばん滑りやすい輪」だけを配っていたので、
      * 前輪が土に乗った瞬間に、まだコンクリートの上で空転している後輪の煙まで土煙になった。
@@ -1753,12 +1754,22 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
 
     /** 1 輪ぶんの路面を詰めるビット数。{@link RoadSurface} が 16 種を超えたら広げること。 */
     private static final int SURFACE_BITS = 4;
+    /**
+     * 1 輪ぶんの 4 ビットのうち、最上位を「その輪が浮いている」に使う。路面は 6 種なので下の 3 ビットで足りる。
+     * <b>立っていると浮いている</b>（0 を接地にしておけば、まだ何も届いていない車は接地扱いになる）。
+     */
+    private static final int AIRBORNE_BIT = 1 << (SURFACE_BITS - 1);
+    private static final int SURFACE_MASK = AIRBORNE_BIT - 1;
 
     /** 4 輪の路面を 1 つの整数へ詰める。{@link CarStatePacket} は 2 バイトで運ぶ。 */
     private int packSurfaces() {
         int packed = 0;
         for (int i = 0; i < surfaces.length; i++) {
-            packed |= surfaces[i].ordinal() << (i * SURFACE_BITS);
+            int bits = surfaces[i].ordinal();
+            if (state.wheelLoad[i] <= 0.0) {
+                bits |= AIRBORNE_BIT;
+            }
+            packed |= bits << (i * SURFACE_BITS);
         }
         return packed;
     }
@@ -1783,7 +1794,22 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             return surfaces[wheel.ordinal()];
         }
         int packed = entityData.get(DATA_SURFACE);
-        return RoadSurface.byIndex((packed >> (wheel.ordinal() * SURFACE_BITS)) & ((1 << SURFACE_BITS) - 1));
+        return RoadSurface.byIndex((packed >> (wheel.ordinal() * SURFACE_BITS)) & SURFACE_MASK);
+    }
+
+    /**
+     * その輪が路面から浮いているか。
+     *
+     * <p>車輪の回転と車体の滑り角から組み立てる値（{@link #getRenderSlideSpeed}・{@link #getRenderScrubSpeed}）は、
+     * 空中でも計算できてしまう。<b>ジャンプ中にスキール音と砂利の音が鳴り続けた</b>ので、これで止める。
+     * 手元で解いていないときは、路面と一緒に配られたビットを見る。</p>
+     */
+    public boolean isRenderWheelAirborne(Wheel wheel) {
+        if (hasLocalState()) {
+            return state.wheelLoad[wheel.ordinal()] <= 0.0;
+        }
+        int packed = entityData.get(DATA_SURFACE);
+        return ((packed >> (wheel.ordinal() * SURFACE_BITS)) & AIRBORNE_BIT) != 0;
     }
 
     /**
@@ -2222,6 +2248,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 配られているので、<b>他人の車でも読める</b>。</p>
      */
     public double getRenderScrubSpeed(Wheel wheel) {
+        if (isRenderWheelAirborne(wheel)) {
+            return 0.0;
+        }
         double speed = Math.abs(getRenderSpeed());
         double slip = Math.min(1.0, Math.abs(getRenderSlipRatio(wheel)));
         double sideways = Math.abs(Math.sin(getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD));
@@ -2243,6 +2272,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * （土煙は滑らなくても舞う）が、こちらは<b>滑っていなければ 0</b>。</p>
      */
     public double getRenderSlideSpeed(Wheel wheel) {
+        if (isRenderWheelAirborne(wheel)) {
+            return 0.0;
+        }
         int index = wheel.ordinal();
         double forward = getRenderSpeed();
         double angularVelocity = hasLocalState()
