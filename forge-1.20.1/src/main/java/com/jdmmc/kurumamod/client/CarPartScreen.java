@@ -516,6 +516,19 @@ public class CarPartScreen extends Screen {
         minecraft.setScreen(parent);
     }
 
+    /**
+     * 運転に使うキーは画面へ渡さない。開いたまま運転できるので（{@link CarClientDriver#isDrivableScreen}）、
+     * 渡すとスペース（サイドブレーキ）でフォーカス中のボタンが押されたり、
+     * 矢印キーに割り当てた人のハンドルでフォーカスやスライダーが動いたりする。
+     */
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (CarClientDriver.isDrivingKey(keyCode, scanCode)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     /** セッティング画面と揃える。履かせた結果をその場で見られるように。 */
     @Override
     public boolean isPauseScreen() {

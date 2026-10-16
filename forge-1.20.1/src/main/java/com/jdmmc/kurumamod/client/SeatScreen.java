@@ -227,6 +227,19 @@ public final class SeatScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
+    /**
+     * 運転に使うキーは画面へ渡さない。開いたまま運転できるので（{@link CarClientDriver#isDrivableScreen}）、
+     * 渡すとスペース（サイドブレーキ）でフォーカス中のボタンが押されたり、
+     * 矢印キーに割り当てた人のハンドルでフォーカスやスライダーが動いたりする。
+     */
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (CarClientDriver.isDrivingKey(keyCode, scanCode)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     @Override
     public boolean isPauseScreen() {
         return false;
