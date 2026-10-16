@@ -21,7 +21,7 @@ public final class KurumaNetwork {
      * パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれるので、
      * 読み違えたまま遊べてしまうことがない。
      */
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     private KurumaNetwork() {
     }
@@ -38,6 +38,8 @@ public final class KurumaNetwork {
         registrar.playToClient(CourseLinesPacket.TYPE, CourseLinesPacket.STREAM_CODEC, CourseLinesPacket::handle);
         // 衝突だけは行きも帰りもある（運転者 → サーバー → 周りのクライアント）
         registrar.playBidirectional(CarImpactPacket.TYPE, CarImpactPacket.STREAM_CODEC, CarImpactPacket::handle);
+        // 車体が壁と擦れている合図（火花）。衝突と同じ道
+        registrar.playBidirectional(CarScrapePacket.TYPE, CarScrapePacket.STREAM_CODEC, CarScrapePacket::handle);
         registrar.playToClient(RaceStandingsPacket.TYPE, RaceStandingsPacket.STREAM_CODEC, RaceStandingsPacket::handle);
         // カーパックが足した車種。ログイン時と /reload 時に丸ごと配る
         registrar.playToClient(CarTypesPacket.TYPE, CarTypesPacket.STREAM_CODEC, CarTypesPacket::handle);

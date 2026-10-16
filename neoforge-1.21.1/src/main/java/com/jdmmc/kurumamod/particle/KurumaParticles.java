@@ -36,6 +36,13 @@ public final class KurumaParticles {
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> TIRE_SMOKE =
             PARTICLE_TYPES.register("tire_smoke", () -> new SimpleParticleType(false));
 
+    /**
+     * 車体が壁と擦れて飛ぶ火花。<b>登録は末尾に足すこと。</b>粒の種類にも番号が振られるので、
+     * 途中に挟むと後ろの番号がずれる。
+     */
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> SPARK =
+            PARTICLE_TYPES.register("spark", () -> new SimpleParticleType(false));
+
     private KurumaParticles() {
     }
 }

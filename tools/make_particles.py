@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""タイヤの白煙の粒の絵（tire_smoke_0.png 〜 tire_smoke_11.png）を描く。
+"""タイヤの白煙の粒の絵（tire_smoke_0.png 〜 tire_smoke_11.png）と、火花の筋（spark.png）を描く。
 
 バニラの big_smoke_* と同じ流儀（16px のドット絵・3 階調・膨らんでから崩れて消える
 12 コマ）で、**色だけ白い**もの。big_smoke は可視部の RGB が 0.5 前後の灰色なので、
@@ -74,13 +74,36 @@ def frame(index, layout, noise):
     return image
 
 
+def spark():
+    """火花の筋。横（u）が筋の幅、縦（v）が筋の長さ。上（v=0）が先頭で、後ろへ行くほど細く薄くなる。
+
+    色は白。火花の色（黄〜橙〜赤）は粒の頂点色（SparkParticle）が決める。芯は不透明で、
+    幅の端へ向かって柔らかく消える。
+    """
+    image = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    for y in range(SIZE):
+        along = (y + 0.5) / SIZE
+        # 先頭がいちばん太く濃い。尾は細く薄く
+        width = 0.5 * (1.0 - 0.65 * along)
+        strength = (1.0 - along) ** 0.8
+        for x in range(SIZE):
+            across = abs((x + 0.5) / SIZE - 0.5)
+            edge = max(0.0, 1.0 - across / max(width, 1e-6))
+            alpha = strength * edge ** 1.5
+            # 芯は白く、端は少しだけ暗く（白一色だと筋の輪郭が分からない）
+            tone = int(255 * (0.85 + 0.15 * edge))
+            image.putpixel((x, y), (tone, tone, tone, int(255 * min(1.0, alpha * 1.3))))
+    return image
+
+
 def main():
+    spark().save(f"{OUT}spark.png")
     rng = random.Random(20260929)
     layout = lobes(rng)
     noise = [[(rng.random(), rng.random(), rng.random()) for _ in range(SIZE)] for _ in range(SIZE)]
     for i in range(FRAMES):
         frame(i, layout, noise).save(f"{OUT}tire_smoke_{i}.png")
-    print(f"wrote {FRAMES} frames to {OUT}")
+    print(f"wrote {FRAMES} frames and spark.png to {OUT}")
 
 
 if __name__ == "__main__":

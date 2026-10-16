@@ -7,6 +7,7 @@ import com.jdmmc.kurumamod.client.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
 import com.jdmmc.kurumamod.client.CarSoundSet;
 import com.jdmmc.kurumamod.client.DustParticle;
+import com.jdmmc.kurumamod.client.SparkParticle;
 import com.jdmmc.kurumamod.client.KurumaMenuScreen;
 import com.jdmmc.kurumamod.client.ObjModel;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -201,6 +202,7 @@ public class Kurumamod {
                     sprites -> new DustParticle.Provider(sprites, DustParticle.DUST));
             event.registerSpriteSet(KurumaParticles.TIRE_SMOKE.get(),
                     sprites -> new DustParticle.Provider(sprites, DustParticle.TIRE_SMOKE));
+            event.registerSpriteSet(KurumaParticles.SPARK.get(), SparkParticle.Provider::new);
         }
 
         /**
