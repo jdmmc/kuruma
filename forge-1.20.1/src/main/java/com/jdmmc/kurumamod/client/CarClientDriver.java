@@ -12,6 +12,7 @@ import com.jdmmc.kurumamod.physics.CarInput;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.player.Input;
@@ -164,7 +165,7 @@ public final class CarClientDriver {
         // 調整画面（G）だけは開いたまま運転できる。挙動の変化を走りながら確かめる画面なので。
         // それ以外の画面は入力が画面に取られているので受け付けない
         if (minecraft.screen != null) {
-            if (minecraft.screen instanceof CarTuningScreen) {
+            if (isDrivableScreen(minecraft.screen)) {
                 car.setDriverInput(inputThroughScreen(minecraft));
             } else {
                 car.setDriverInput(CarInput.NONE);
@@ -215,6 +216,17 @@ public final class CarClientDriver {
         return new CarInput(isKeyDown(minecraft, options.keyUp), isKeyDown(minecraft, options.keyDown),
                 isKeyDown(minecraft, options.keyLeft), isKeyDown(minecraft, options.keyRight),
                 shiftUp, shiftDown, isKeyDown(minecraft, options.keyJump));
+    }
+
+    /**
+     * 開いたまま運転できる画面か。走りながら見て決める画面（セッティング・パーツ・メニュー・座席）。
+     *
+     * <p><b>入力欄（{@code EditBox}）のある画面を足してはいけない。</b>運転に使うキーを画面が握りつぶすので、
+     * W・A・S・D とスペースが打てなくなる（プリセットの名前を付ける画面がそう）。</p>
+     */
+    public static boolean isDrivableScreen(Screen screen) {
+        return screen instanceof CarTuningScreen || screen instanceof CarPartScreen
+                || screen instanceof KurumaMenuScreen || screen instanceof SeatScreen;
     }
 
     /** 画面を開いたまま運転するときに車へ渡すキーか。画面側がこれらを握りつぶすのに使う。 */
