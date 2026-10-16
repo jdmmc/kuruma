@@ -1021,7 +1021,10 @@ public final class CarPhysics {
     private static TireForces computeTireForces(CarSpec spec, CarState state, GroundContact contact,
                                                 CarInput input, double dt) {
         if (!state.isGrounded()) {
-            // 空中では車輪に路面からの反力が無い。回転はそのまま保つ（着地で滑り率が跳ねる）
+            // 空中では車輪に路面からの反力が無い。回転はそのまま保つ（着地で滑り率が跳ねる）。
+            // 摩擦の仕事率は 0 に戻す。踏み切りの値が残ると、跳んでいる間ずっと
+            // 空中にタイヤ痕が引かれ、煙も出続けた
+            java.util.Arrays.fill(state.wheelFrictionPower, 0.0);
             return TireForces.NONE;
         }
 
