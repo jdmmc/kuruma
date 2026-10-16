@@ -1972,6 +1972,12 @@ public final class CarPhysics {
         if (state.overturnedSeconds < RIGHTING_DELAY) {
             return;
         }
+        // 前後にひっくり返っている表し方（ピッチが 90 度を超える）なら、同じ姿勢の別の表し方へ
+        // 置き換える。そのまま 0 へ戻すと<b>前転して</b>起き上がる。置き換えればロールが主になり、
+        // 車体の前後軸まわりに横へ転がって起きる。鼻先の向きも変わらない
+        if (Math.abs(state.pitch) > Math.PI / 2.0) {
+            flipRepresentation(state);
+        }
         // ピッチとロールを 0 へ向かうまっすぐな向きに、残りが小さくなるほど緩めて回す
         double distance = Math.hypot(state.pitch, state.roll);
         if (distance < 1e-6) {
@@ -1990,6 +1996,23 @@ public final class CarPhysics {
         if (Math.abs(state.pitch) > RIGHTING_UPRIGHT_PITCH && Math.abs(state.pitch) < Math.PI - RIGHTING_UPRIGHT_PITCH) {
             state.pitch += state.pitchRate * dt;
         }
+    }
+
+    /**
+     * 姿勢を、同じ向きの別の表し方（ヨー +180 度・ピッチ π−p・ロール +π）へ置き換える。
+     *
+     * <p>描画はヨー → ピッチ → ロールの順に回すので、この 2 つは回転として完全に一致する
+     * （車体のどちらが前かも含めて）。前後の速度はヨーの向きで持っているので、ワールドでの
+     * 速度が変わらないよう前後・左右とも符号を返す。ピッチの角速度も向きが逆になる。
+     * 車体そのものは動いていないので、車輪の回転と切れ角には触らない。</p>
+     */
+    static void flipRepresentation(CarState state) {
+        state.yaw = wrapAngle(state.yaw + Math.PI);
+        state.pitch = wrapAngle(Math.PI - state.pitch);
+        state.roll = wrapAngle(state.roll + Math.PI);
+        state.pitchRate = -state.pitchRate;
+        state.forwardSpeed = -state.forwardSpeed;
+        state.lateralSpeed = -state.lateralSpeed;
     }
 
     /**
