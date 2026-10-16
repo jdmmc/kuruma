@@ -142,11 +142,11 @@ public final class Tunables {
                                     CarSpec::ackermann, CarSpec.Builder::ackermann)
                             .unit(0.01)
                             .detail(Tunables::ackermann),
-                    TunableParameter.linear("front_toe", -0.5, 0.5, "%.2f",
+                    TunableParameter.linear("front_toe", -1.5, 1.5, "%.2f",
                                     CarSpec::frontToe, CarSpec.Builder::frontToe)
                             .unit(Math.PI / 180.0)
                             .detail(spec -> toe(spec.frontToe())),
-                    TunableParameter.linear("rear_toe", -0.5, 0.5, "%.2f",
+                    TunableParameter.linear("rear_toe", -1.5, 1.5, "%.2f",
                                     CarSpec::rearToe, CarSpec.Builder::rearToe)
                             .unit(Math.PI / 180.0)
                             .detail(spec -> toe(spec.rearToe())),
