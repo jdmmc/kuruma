@@ -375,6 +375,25 @@ public final class CarBody {
         public boolean horizontal;
         /** 押されたうち、上下の成分があったか（床・天井）。 */
         public boolean vertical;
+        /**
+         * 車体が地形と擦れている速さ [m/s]。接点が当たった面に沿って動いている速さの最大。
+         * 擦っていなければ 0。火花に使う。壁だけでなく<b>底面</b>（腹を擦る・着地で底を打つ・縮みきった
+         * サスペンション）と、横転して屋根や側面で滑っているときも含む。<b>タイヤの縁も含める</b>——当たりの車体はトレッドの 9 割の幅しか
+         * 無いので、壁に沿わせると先に当たるのはタイヤで、車体だけ見ていると壁を擦っても火花が出なかった
+         * （見た目の車体はタイヤより外にある）。
+         */
+        public double scrapeSpeed;
+        /** いちばん速く擦れている接点（ワールド）。 */
+        public double scrapeX;
+        public double scrapeY;
+        public double scrapeZ;
+        /** その接点で壁が押し返す向き（水平・単位ベクトル）。床や天井なら 0。 */
+        public double scrapeNormalX;
+        public double scrapeNormalZ;
+        /** その接点が当たった面に沿って動いている速度（ワールド） [m/s]。 */
+        public double scrapeVelocityX;
+        public double scrapeVelocityY;
+        public double scrapeVelocityZ;
     }
 
     /**
@@ -487,6 +506,7 @@ public final class CarBody {
         }
 
         applyWallPenalty(contacts, normalImpulse, v, mass, dt);
+        findScrape(result, contacts, normalImpulse, arms, v, w, rotAxes);
 
         state.forwardSpeed = dot(v, fh);
         state.lateralSpeed = dot(v, rh);
@@ -495,6 +515,52 @@ public final class CarBody {
         state.pitchRate = w[1];
         state.rollRate = w[2];
         return result;
+    }
+
+    /**
+     * 車体のどこが、どれだけの速さで地形と擦れているかを {@code result} に書く（火花の出どころ）。
+     * 当たりを解いた<b>後の</b>速度で測る——解く前の速度には面へ向かう成分が残っている。
+     *
+     * <p>拾うのは車体（向きを問わない。壁・腹・横転した屋根や側面）、壁に当たったタイヤの縁、
+     * <b>実際に押し返した</b>縮みきったサスペンション（着地で底を打った）。最後のものは先読みの当たりで、
+     * 深さが負のまま入っているので、力積が出たかで見分ける。低い段への乗り上げは擦れではないので拾わない。</p>
+     */
+    private static void findScrape(Result result, List<Contact> contacts, double[] normalImpulse, double[][] arms,
+                                   double[] v, double[] w, double[][] rotAxes) {
+        for (int i = 0; i < contacts.size(); i++) {
+            Contact c = contacts.get(i);
+            boolean scraping = switch (c.kind()) {
+                case BODY -> c.depth() >= 0.0;
+                case TIRE -> c.depth() >= 0.0 && Math.abs(c.ny()) <= 0.5;
+                case WHEEL -> normalImpulse[i] > 0.0;
+                case STEP -> false;
+            };
+            if (!scraping) {
+                continue;
+            }
+            double horizontal = Math.hypot(c.nx(), c.nz());
+            double[] dir = {c.nx(), c.ny(), c.nz()};
+            double[] pv = pointVelocity(v, w, rotAxes, arms[i]);
+            double vn = dot(pv, dir);
+            double tx = pv[0] - dir[0] * vn;
+            double ty = pv[1] - dir[1] * vn;
+            double tz = pv[2] - dir[2] * vn;
+            double speed = Math.sqrt(tx * tx + ty * ty + tz * tz);
+            if (speed <= result.scrapeSpeed) {
+                continue;
+            }
+            result.scrapeSpeed = speed;
+            result.scrapeX = c.px();
+            result.scrapeY = c.py();
+            result.scrapeZ = c.pz();
+            // 火花を外へ散らす向き。床や天井（ほぼ上下の面）では水平に散らさない
+            boolean wall = Math.abs(c.ny()) <= 0.5 && horizontal > 1.0e-9;
+            result.scrapeNormalX = wall ? c.nx() / horizontal : 0.0;
+            result.scrapeNormalZ = wall ? c.nz() / horizontal : 0.0;
+            result.scrapeVelocityX = tx;
+            result.scrapeVelocityY = ty;
+            result.scrapeVelocityZ = tz;
+        }
     }
 
     /**

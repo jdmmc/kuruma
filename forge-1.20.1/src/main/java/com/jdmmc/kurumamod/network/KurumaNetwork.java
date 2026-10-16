@@ -18,7 +18,7 @@ public final class KurumaNetwork {
      * パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれるので、
      * 読み違えたまま遊べてしまうことがない。
      */
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Kurumamod.MODID, "main"),
@@ -110,6 +110,12 @@ public final class KurumaNetwork {
                 .encoder(GhostRidePacket::encode)
                 .decoder(GhostRidePacket::new)
                 .consumerMainThread(GhostRidePacket::handle)
+                .add();
+        // 車体が壁と擦れている合図（火花）。衝突と同じく運転者 → サーバー → 周りのクライアント
+        CHANNEL.messageBuilder(CarScrapePacket.class, id++)
+                .encoder(CarScrapePacket::encode)
+                .decoder(CarScrapePacket::new)
+                .consumerMainThread(CarScrapePacket::handle)
                 .add();
     }
 }

@@ -50,6 +50,21 @@ public final class CarClientPackets {
     }
 
     /**
+     * 壁と擦れている車から火花を出す。運転者本人は自分の画面で出しているので、
+     * 中継されて戻ってきたものは捨てる（衝突と同じ）。
+     */
+    public static void applyScrape(int entityId, float[] offset, float[] normal, float[] velocity,
+                                   float impact) {
+        if (Minecraft.getInstance().level == null) {
+            return;
+        }
+        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
+        if (entity instanceof CarEntity car && !car.isControlledByLocalInstance()) {
+            CarSparks.emit(car, offset, normal, velocity, impact);
+        }
+    }
+
+    /**
      * 衝突の合図を受け取る。
      *
      * <p><b>運転している本人のぶんは捨てる。</b>本人は物理を解いた時点で自分の画面に

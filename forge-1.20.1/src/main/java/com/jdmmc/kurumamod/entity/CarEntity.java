@@ -5,6 +5,7 @@ import com.jdmmc.kurumamod.Config;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.CarImpact;
+import com.jdmmc.kurumamod.client.CarSparks;
 import com.jdmmc.kurumamod.client.CarSeat;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.part.CarPart;
@@ -17,6 +18,7 @@ import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
 import com.jdmmc.kurumamod.network.CarPartsPacket;
 import com.jdmmc.kurumamod.network.CarPushPacket;
+import com.jdmmc.kurumamod.network.CarScrapePacket;
 import com.jdmmc.kurumamod.network.CarSpecPacket;
 import com.jdmmc.kurumamod.network.CarStatePacket;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
@@ -293,6 +295,13 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 毎ティック無駄なパケットが飛ぶ</b>ので両方に置いてある。</p>
      */
     private static final double IMPACT_MIN_SPEED = 2.5;
+    /**
+     * 車体が壁とこれより速く擦れたら火花を出す [m/s]（{@code CarSparks}）。
+     * ゆっくり押し付けているだけでは飛ばない。
+     */
+    public static final double SPARK_MIN_SPEED = 3.0;
+    /** 車同士でぶつかった火花を出す高さ（重心のシャシー基準面から） [m]。車体の真ん中あたり。 */
+    private static final double CAR_SPARK_HEIGHT = 0.25;
     /**
      * バニラの当たり判定の箱を、車体の箱（{@link CarHull}）の内側へさらに余らせる量 [m]。
      * サーバーが知っている姿勢は少し遅れて届くので、そのぶん小さくしておく。
@@ -1020,6 +1029,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         double impact = 0.0;
         boolean wall = false;
         boolean floor = false;
+        double scrapeSpeed = 0.0;
+        // 地形とぶつかった強さ（車体と、底を打ったサスペンション）。車同士のぶんは入れない
+        double terrainImpact = 0.0;
+        float[] scrapeOffset = null;
+        float[] scrapeNormal = null;
+        float[] scrapeVelocity = null;
         for (int i = 0; i < PHYSICS_SUBSTEPS; i++) {
             // 接地は物理の 1 刻みごとに探す。1 ティックに 1 回だと、20m/s では次に探すまでに 1m 進み、
             // その間に越えた段の縁を知らないまま新しい段の中を走って、スラブの坂でタイヤが床に埋まった
@@ -1027,6 +1042,16 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             CarPhysics.step(carSpec, state, groundContact, dt, input);
             CarBody.Result hit = body.solve(carSpec, state, groundContact, x, z, blockField, dt);
             impact = Math.max(impact, hit.impact);
+            terrainImpact = Math.max(terrainImpact, hit.impact);
+            // 火花は 1 ティックのうちいちばん速く擦れた刻みから出す。位置はその刻みの車からのずれで持つ
+            if (hit.scrapeSpeed > scrapeSpeed) {
+                scrapeSpeed = hit.scrapeSpeed;
+                scrapeOffset = new float[]{(float) (hit.scrapeX - x), (float) (hit.scrapeY - state.height),
+                        (float) (hit.scrapeZ - z)};
+                scrapeNormal = new float[]{(float) hit.scrapeNormalX, (float) hit.scrapeNormalZ};
+                scrapeVelocity = new float[]{(float) hit.scrapeVelocityX, (float) hit.scrapeVelocityY,
+                        (float) hit.scrapeVelocityZ};
+            }
             wall |= hit.horizontal;
             floor |= hit.vertical;
             x += state.velocityX() * dt;
@@ -1040,6 +1065,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         Vec3 velocity = new Vec3(x - getX(), state.height - getY(), z - getZ());
         setDeltaMovement(velocity);
         HullMove hullMove = moveCars(velocity);
+        float[][] carSparks = null;
         horizontalCollision = wall || hullMove.motion().horizontal;
         verticalCollision = floor;
         if (hullMove.car() != null) {
@@ -1051,8 +1077,19 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             impact = Math.max(impact, closing);
             // 相手が車なら運動量のやりとりで決める（壁と違って相手も動く）
             resolveCarImpact(other, motion);
+            if (closing >= IMPACT_MIN_SPEED) {
+                carSparks = carImpactSparks(other, motion, closing);
+            }
         }
         reportImpact(impact);
+        if (carSparks != null) {
+            // 車同士でぶつかったティックは、そちらを優先する（T ボーンなど、いちばん派手に散る場面）
+            reportScrape(carSparks[0], carSparks[1], carSparks[2], carSparks[3][0]);
+        } else if (scrapeOffset != null
+                && (scrapeSpeed >= SPARK_MIN_SPEED || terrainImpact >= IMPACT_MIN_SPEED)) {
+            reportScrape(scrapeOffset, scrapeNormal, scrapeVelocity,
+                    terrainImpact >= IMPACT_MIN_SPEED ? (float) terrainImpact : 0.0F);
+        }
         state.height = getY();
         unbury(body);
 
@@ -1384,6 +1421,38 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         } else {
             CarImpactPacket.broadcast(this, (float) impact);
         }
+    }
+
+    /**
+     * 車体が擦れた・ぶつかったことを火花に変える。衝突（{@link #reportImpact}）と同じく、
+     * 気づけるのは物理を解いている側だけなので、ここで拾って {@link CarScrapePacket} で周りへ配る。
+     * 運転者は自分の画面へ先に出す。
+     */
+    private void reportScrape(float[] offset, float[] normal, float[] velocity, float impact) {
+        if (level().isClientSide) {
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> CarSparks.emit(this, offset, normal, velocity, impact));
+            KurumaNetwork.CHANNEL.sendToServer(new CarScrapePacket(getId(), offset, normal, velocity, impact));
+        } else {
+            CarScrapePacket.broadcast(this, offset, normal, velocity, impact);
+        }
+    }
+
+    /**
+     * 車同士でぶつかったときの火花の出どころ。{@link #reportScrape} へ渡す形（ずれ・外向き・擦れる速度・強さ）。
+     *
+     * <p>接点は車同士の箱が押し出したときのもの（{@link CarHull.Motion}）。高さは車体の真ん中あたり
+     * （箱は高さの情報を持たない）。外向きは相手の面からこちらへ戻る向き、擦れる速度は相手に対する
+     * こちらの速さのうち、面に沿った成分。</p>
+     */
+    private float[][] carImpactSparks(CarEntity other, CarHull.Motion motion, double closing) {
+        double relativeX = state.velocityX() - other.worldVelocityX();
+        double relativeZ = state.velocityZ() - other.worldVelocityZ();
+        double toward = relativeX * motion.carNormalX + relativeZ * motion.carNormalZ;
+        return new float[][]{
+                {(float) (motion.contactX - getX()), (float) CAR_SPARK_HEIGHT, (float) (motion.contactZ - getZ())},
+                {(float) -motion.carNormalX, (float) -motion.carNormalZ},
+                {(float) (relativeX - toward * motion.carNormalX), 0.0F, (float) (relativeZ - toward * motion.carNormalZ)},
+                {(float) closing}};
     }
 
     /**
