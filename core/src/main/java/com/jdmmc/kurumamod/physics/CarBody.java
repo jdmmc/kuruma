@@ -739,6 +739,11 @@ public final class CarBody {
      * 見えているタイヤと当たりがずれ、見た目では離れている壁にタイヤが止められた。中心も同じ式
      * （{@code CarObjRenderer#renderWheels}）で置く。地面を探すサスペンションは今までどおり真下。</p>
      *
+     * <p><b>切れ角のぶん回す。</b>回さないと、ハンドルを切ったタイヤの当たりが真っすぐ前を向いたままになり、
+     * 見えているタイヤの角が壁に入っても止まらず、逆に見た目では離れた壁に止められた。角度は描画と同じく
+     * アッカーマンとトーで決まるぶん（{@link CarSpec#staticSteer}）。ロールや横力でずれるぶんは描画も
+     * 描かないので入れない。</p>
+     *
      * <p><b>リジッドアクスルは、さらに軸の傾きぶん回す</b>（{@link CarSpec#solidAxleTilt}）。描画は両輪を
      * 軸と一緒に傾けているので、当たりも各タイヤの中心まわりに同じ角度だけ回す。</p>
      *
@@ -772,12 +777,19 @@ public final class CarBody {
             }
             double cos = Math.cos(tilt);
             double sin = Math.sin(tilt);
+            // 切れ角。描画（CarObjRenderer#renderWheels）と同じ、幾何で決まるぶんだけ
+            double steer = spec.staticSteer(wheel, wheel.isFront() ? state.steerAngle : 0.0);
+            double steerCos = Math.cos(steer);
+            double steerSin = Math.sin(steer);
             for (int f = 0; f < faces.length; f++) {
                 double lateral = outwardSign * faces[f];
                 for (int i = 0; i < outline.length; i++) {
-                    double along = forwardOffset + outline[i][0];
-                    double side = rightOffset + lateral * cos + outline[i][1] * sin;
-                    double height = drop - lateral * sin + outline[i][1] * cos;
+                    // タイヤの中心まわりに、タイヤの上下の軸で回す（正で右へ向く）
+                    double ahead = outline[i][0] * steerCos - lateral * steerSin;
+                    double across = outline[i][0] * steerSin + lateral * steerCos;
+                    double along = forwardOffset + ahead;
+                    double side = rightOffset + across * cos + outline[i][1] * sin;
+                    double height = drop - across * sin + outline[i][1] * cos;
                     out[wheel.ordinal()][f * outline.length + i] = new double[]{
                             x + forward[0] * along + up[0] * height + right[0] * side,
                             state.height + forward[1] * along + up[1] * height + right[1] * side,
