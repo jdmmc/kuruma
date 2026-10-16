@@ -11,7 +11,22 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 [![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/)  
 [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
-🌐 [Website](https://kuruma.jdm-mc.com/) · 🚗 [Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
+🌐 [Website](https://kuruma.jdm-mc.com/) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
+
+***
+
+## 📦 Car packs
+
+### Official
+
+- **[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — the Toyota Land Cruiser Prado, a heavy off-road 4x4, and the Porsche 911, a rear-engined sports car
+- **[Example Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** — the template for making your own pack
+
+### Community
+
+- **[Dream Drift Pack](https://www.curseforge.com/minecraft/mc-mods/dream-drift-pack)** by LexusIS300 — the Mitsubishi Lancer Mk6, with swappable bumpers, spoilers, exhausts, tires and turbo
+
+Made a car pack? Tell us on **[Discord](https://discord.gg/q3YNqaveRd)** and we'll add it here.
 
 ***
 
@@ -84,7 +99,6 @@ Fully analog throttle, brake and steering — and the handbrake too: map a wheel
 
 **A car pack is a single jar. Put it in `mods/` and the cars are there.**
 
-- **[Basic Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — adds the Toyota Land Cruiser Prado, a heavy off-road 4x4, and the Porsche 911, a rear-engined sports car
 - **Make your own:** follow the **[Car Pack Creation Guide](https://kuruma.jdm-mc.com/guide.html)** (no Blender experience needed) and use the **[Example Car Pack](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** as your template. No coding, and no credit required
 
 ***
@@ -149,9 +163,25 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 **Forge 1.20.1（47.4.22+）／NeoForge 1.21.1（21.1+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
 
-[![公式サイト](https://img.shields.io/badge/%E5%85%AC%E5%BC%8F%E3%82%B5%E3%82%A4%E3%83%88-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-%E5%8F%82%E5%8A%A0%E3%81%99%E3%82%8B-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
+[![公式サイト](https://img.shields.io/badge/%E5%85%AC%E5%BC%8F%E3%82%B5%E3%82%A4%E3%83%88-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/)  
+[![Discord](https://img.shields.io/badge/Discord-%E5%8F%82%E5%8A%A0%E3%81%99%E3%82%8B-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
-🌐 [公式サイト](https://kuruma.jdm-mc.com/) · 🚗 [ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
+🌐 [公式サイト](https://kuruma.jdm-mc.com/) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
+
+***
+
+## 📦 カーパック
+
+### 公式
+
+- **[ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — トヨタ ランドクルーザー プラド（重量級のオフロード 4x4）と、ポルシェ 911（エンジンを後ろに積んだスポーツカー）
+- **[エグザンプルカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** — 自分でカーパックを作るときのひな型
+
+### コミュニティ
+
+- **[Dream Drift Pack](https://www.curseforge.com/minecraft/mc-mods/dream-drift-pack)**（作者: LexusIS300）— 三菱 ランサー Mk6。バンパー・スポイラー・マフラー・タイヤ・ターボを換装できる
+
+カーパックを作ったら **[Discord](https://discord.gg/q3YNqaveRd)** で教えてください。ここに載せます。
 
 ***
 
@@ -224,7 +254,6 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 **カーパックは jar ひとつ。`mods/` に入れるだけで車が増えます。**
 
-- **[ベーシックカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack)** — トヨタ ランドクルーザー プラド（重量級のオフロード 4x4）と、ポルシェ 911（エンジンを後ろに積んだスポーツカー）を追加
 - **自分で作るなら:** **[カーパック作成ガイド](https://kuruma.jdm-mc.com/guide.html)**（Blender 未経験でも大丈夫）を見ながら、**[エグザンプルカーパック](https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack)** をひな型に。コードは不要、クレジット表記も不要です
 
 ***
