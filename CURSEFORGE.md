@@ -8,8 +8,7 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 
 **Forge 1.20.1 (47.4.22+) / NeoForge 1.21.1 (21.1+) · No dependencies · Multiplayer · Wheel & gamepad**
 
-[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/)  
-[![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
+[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
 🌐 [Website](https://kuruma.jdm-mc.com/) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
@@ -163,8 +162,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 **Forge 1.20.1（47.4.22+）／NeoForge 1.21.1（21.1+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
 
-[![公式サイト](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/)  
-[![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
+[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
 🌐 [公式サイト](https://kuruma.jdm-mc.com/) · 💬 [Discord](https://discord.gg/q3YNqaveRd) · 𝕏 [@kurumamod](https://x.com/kurumamod)
 
