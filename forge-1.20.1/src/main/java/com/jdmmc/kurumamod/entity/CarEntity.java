@@ -7,6 +7,10 @@ import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.CarImpact;
 import com.jdmmc.kurumamod.client.CarSparks;
 import com.jdmmc.kurumamod.client.CarSeat;
+import com.jdmmc.kurumamod.debug.GroundLog;
+import com.jdmmc.kurumamod.debug.GroundSmoothing;
+import com.jdmmc.kurumamod.debug.GroundTrace;
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
@@ -293,6 +297,22 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 1 マスに 1 ブロックずつ上がる坂（45 度）は入らない——それは登れない決まり。
      */
     private static final double STAIR_SLOPE_MAX = Math.tan(Math.toRadians(35.0));
+    /**
+     * 地面をならす（{@link #smoothGround}）とき、混ぜてよいブロックの高さの差 [m]。roads の層ブロックの坂
+     * （1 マスに 1〜3 層）は入り、ハーフの段（50cm）・縁石・壁は入らない。
+     *
+     * <p>30cm にすると段 25cm・幅 1m の坂まで混ざり、階段の線より悪くなった（8m/s の登りで跳ねが 0 → 34 回）。</p>
+     */
+    private static final double SMOOTH_GROUND_LIMIT = 0.2;
+    /**
+     * 縁の高さを補間で決めた階段の線（{@link #stairSide}）が、真下の地面より下へ潜ってよい量 [m]。
+     *
+     * <p>縁での補間の高さは段の上と下のちょうど中間なので、線は段の天面より最大で段の半分だけ低くなる
+     * （roads の 1 層なら 3cm、混ぜてよい上限 {@link #SMOOTH_GROUND_LIMIT} の段でも 10cm）。
+     * 真下の地面と高いほうを取ると、補間した地面のほうが線より常に上にあるので、1 ブロックごとに
+     * 傾きが折れる補間の形に戻ってしまう。隣の縁石や壁にタイヤの端が乗ったときは、そちらを取る。</p>
+     */
+    private static final double STAIR_SINK_MAX = 0.1;
     /** 先読みで地面を調べる間隔 [m]。 */
     private static final double LOOKAHEAD_SPACING = 0.25;
     /** 先読みの斜面で登る高さ [m]。ハーフブロックの段。 */
@@ -388,6 +408,29 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 壁に食い込んだ輪を据え置くのに使う。
      */
     private final double[] previousGroundHeight = newGroundHeights();
+    /** 地面をならすときに、ブロックの列ごとの高さを覚えておく表（{@link #columnGround}）。輪ごとに作り直す。 */
+    private final Long2DoubleOpenHashMap groundColumns = newColumnTable();
+    /** 同じく、階段の線を探すとき用。1 段深くまでレイを飛ばすので、表を分ける。 */
+    private final Long2DoubleOpenHashMap stairColumns = newColumnTable();
+    /** 各輪へ渡した地面の出どころ。接地の記録（{@link GroundLog}）にだけ使う。 */
+    private final GroundLog.Source[] groundSources = new GroundLog.Source[Wheel.COUNT];
+    /** 各輪の真下の地面の高さ（線や斜面を足す前）。接地の記録にだけ使う。 */
+    private final double[] rawGroundHeight = newGroundHeights();
+    /** 次に {@link #setGroundHeight} へ渡す斜面が階段の線か（false なら先読み）。接地の記録にだけ使う。 */
+    private boolean aheadIsStair;
+    /** いま求めた階段の線が、縁の高さを補間で決めたものか（{@link #stairSide}）。 */
+    private boolean stairSmoothed;
+    /**
+     * {@link #stairSide} が結んだ 2 点。{@code high} の向きへの距離と高さ（反対側は負の距離）。
+     * {@link #stairHeight} が世界の座標に直して {@link #stairLine} へ入れる。
+     */
+    private double stairNearDistance, stairNearHeight, stairFarDistance, stairFarHeight;
+    /** いま求めた階段の線の両端 {x1, y1, z1, x2, y2, z2}。F3+B で描くためだけのもの。 */
+    private final double[] stairLine = new double[6];
+    /** いま調べている輪の真ん中。F3+B の線を置く場所。 */
+    private double probeX, probeZ;
+    /** 各輪へ渡した地面の少し前までの記録。F3+B で描く。クライアントで物理を解いたときだけ書く。 */
+    private final GroundTrace groundTrace = new GroundTrace();
     /**
      * 地面の中に埋まった輪（{@link #updateGroundContact}）。壁に当たった輪とは違い、
      * 上にある地面の天面まで少しずつ持ち上げる。
@@ -1064,6 +1107,14 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             updateGroundContact(x, z, dt);
             CarPhysics.step(carSpec, state, groundContact, dt, input);
             CarBody.Result hit = body.solve(carSpec, state, groundContact, x, z, blockField, dt);
+            if (GroundLog.active() && level().isClientSide) {
+                String[] surfaceNames = new String[Wheel.COUNT];
+                for (int w = 0; w < Wheel.COUNT; w++) {
+                    surfaceNames[w] = surfaces[w].surfaceName();
+                }
+                GroundLog.record(tickCount, i, x, z, dt, carSpec, state, groundContact,
+                        groundSources, rawGroundHeight, surfaceNames, hit);
+            }
             impact = Math.max(impact, hit.impact);
             terrainImpact = Math.max(terrainImpact, hit.impact);
             // 火花は 1 ティックのうちいちばん速く擦れた刻みから出す。位置はその刻みの車からのずれで持つ
@@ -1505,6 +1556,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         if (Math.cos(state.pitch) * Math.cos(state.roll) <= WHEEL_UPRIGHT_MIN) {
             for (Wheel wheel : Wheel.VALUES) {
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, 0.0);
+                groundSources[wheel.ordinal()] = GroundLog.Source.TILTED;
+                rawGroundHeight[wheel.ordinal()] = Double.NEGATIVE_INFINITY;
             }
             return;
         }
@@ -1535,6 +1588,11 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // 今のタイヤ下端。ここから登坂限界ぶん上までが「乗り越えられる」範囲
             double wheelBottom = top - state.suspensionLength[index] - spec.wheelRadius();
             double from = Math.max(wheelBottom + spec.maxClimbStep(), bottom + GROUND_RAY_MARGIN);
+            probeX = x;
+            probeZ = z;
+            // レイの範囲が輪ごとに違うので、覚えた高さは輪ごとに捨てる
+            groundColumns.clear();
+            stairColumns.clear();
 
             BlockHitResult hit = level().clip(new ClipContext(
                     new Vec3(x, from, z),
@@ -1566,6 +1624,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 }
             }
 
+            rawGroundHeight[index] = hit.getType() == HitResult.Type.MISS
+                    ? Double.NEGATIVE_INFINITY : hit.getLocation().y;
             if (hit.getType() == HitResult.Type.MISS) {
                 // 階段の下りでは、縁を越えた直後の下の段がレイの先にある。1 段ぶん深く探して、
                 // 階段なら段の角を結んだ斜面で渡す。崖なら今までどおり地面なし（落ちる）
@@ -1583,11 +1643,15 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                         surfaces[index] = surface;
                         double previous = previousGroundHeight[index];
                         double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
+                        aheadIsStair = true;
                         setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, stair, rise);
+                        groundSources[index] = GroundLog.Source.DEEP_STAIR;
+                        rawGroundHeight[index] = height;
                         continue;
                     }
                 }
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, rise);
+                groundSources[index] = GroundLog.Source.MISS;
                 continue;
             }
             if (!hit.isInside()) {
@@ -1605,6 +1669,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     double base = previous > Double.NEGATIVE_INFINITY ? previous : wheelBottom;
                     setGroundHeight(wheel, surface, tireGrip(surfaces[index]), tireRolling(surfaces[index]),
                             base, Double.NEGATIVE_INFINITY, rise);
+                    groundSources[index] = GroundLog.Source.BURIED;
                     continue;
                 }
             }
@@ -1612,6 +1677,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 // 起点が塞がっている＝登坂限界より上まで続く壁。乗せずに据え置く
                 groundContact.set(wheel, previousGroundHeight[index],
                         tireGrip(surfaces[index]), tireRolling(surfaces[index]));
+                groundSources[index] = GroundLog.Source.WALL_HOLD;
                 continue;
             }
 
@@ -1619,7 +1685,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // 他 MOD の道路ブロックはそのままアスファルトとして走れる
             RoadSurface surface = SurfaceLookup.of(level().getBlockState(hit.getBlockPos()));
             surfaces[index] = surface;
-            double height = hit.getLocation().y;
+            double height = smoothGround(hit.getLocation().x, hit.getLocation().z, from, bottom,
+                    hit.getLocation().y, groundColumns);
             double previous = previousGroundHeight[index];
             // 段の高さを測る基準。地面を見失っていた輪は、いまのタイヤ下端から
             double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
@@ -1627,6 +1694,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // 粗いもので、混ぜると地面が数 cm ずつ跳ね、ダンパーがそれを速度として拾って車を跳ね上げる
             double stair = stairHeight(x, z, from, bottom, height);
             double ahead = stair > Double.NEGATIVE_INFINITY ? stair : lookAhead(x, z, from, bottom, base, height);
+            aheadIsStair = stair > Double.NEGATIVE_INFINITY;
             setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, ahead, rise);
         }
     }
@@ -1649,19 +1717,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         double reach = Math.min(LOOKAHEAD_MAX, speed * LOOKAHEAD_SECONDS);
         double slope = LOOKAHEAD_RISE / reach;
         for (double distance = LOOKAHEAD_SPACING; distance <= reach + 1.0e-9; distance += LOOKAHEAD_SPACING) {
-            double px = x + velocityX / speed * distance;
-            double pz = z + velocityZ / speed * distance;
-            BlockHitResult hit = level().clip(new ClipContext(
-                    new Vec3(px, from, pz),
-                    new Vec3(px, bottom, pz),
-                    ClipContext.Block.COLLIDER,
-                    ClipContext.Fluid.NONE,
-                    this));
-            if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
-                continue;
-            }
-            double ground = hit.getLocation().y;
-            if (ground - base > CarBody.STEP_LIFT) {
+            double ground = probeGround(x, z, velocityX / speed, velocityZ / speed, distance, from, bottom, groundColumns);
+            if (Double.isNaN(ground) || ground - base > CarBody.STEP_LIFT) {
                 continue;
             }
             best = Math.max(best, ground - slope * distance);
@@ -1670,19 +1727,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         double downReach = Math.min(LOOKAHEAD_DOWN_MAX, speed * LOOKAHEAD_SECONDS);
         double downSlope = LOOKAHEAD_RISE / downReach;
         for (double distance = LOOKAHEAD_SPACING; distance <= downReach + 1.0e-9; distance += LOOKAHEAD_SPACING) {
-            double px = x - velocityX / speed * distance;
-            double pz = z - velocityZ / speed * distance;
-            BlockHitResult hit = level().clip(new ClipContext(
-                    new Vec3(px, from, pz),
-                    new Vec3(px, bottom, pz),
-                    ClipContext.Block.COLLIDER,
-                    ClipContext.Fluid.NONE,
-                    this));
-            if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
-                continue;
-            }
-            double ground = hit.getLocation().y;
-            if (ground - height > CarBody.STEP_LIFT) {
+            double ground = probeGround(x, z, -velocityX / speed, -velocityZ / speed, distance, from, bottom,
+                    groundColumns);
+            if (Double.isNaN(ground) || ground - height > CarBody.STEP_LIFT) {
                 continue;
             }
             best = Math.max(best, ground - downSlope * distance);
@@ -1707,31 +1754,77 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      *
      * <p>向きは車体の前後。止まっていても坂の形は変わらないので、速度の向きには依らない。</p>
      *
+     * <p><b>縁は補間する前の地面で探し、縁での高さは補間で決める</b>（地面の補間が入りのとき）。
+     * 補間した地面には段が無いので、そこで縁を探すと線がまったく作られず、ブロックの中心ごとに
+     * 傾きが折れる補間の面がそのまま地面になっていた。格子に沿ったゆるい坂（2 ブロックで 1 層）では
+     * 傾きが 1m ごとに 0 と 6.25% を行き来し、同じ道を走り比べると浮いていた時間が補間なしの 4.9% から
+     * 13.7% に増えた。縁での補間の高さは段の上と下の中間なので、格子に沿った坂では角を結んだ線と
+     * 平行な直線（半段低い）になる。斜めの道では、横のブロックを拾った高さが均される。</p>
+     *
      * @param height この輪の真下の地面
      */
     private double stairHeight(double x, double z, double from, double bottom, double height) {
         double dirX = state.forwardX();
         double dirZ = state.forwardZ();
         double deep = bottom - STAIR_STEP_MAX;
-        double[] ahead = stairEdges(x, z, dirX, dirZ, from, deep, height);
-        double[] behind = stairEdges(x, z, -dirX, -dirZ, from, deep, height);
+        // 段の高さは補間する前の、輪の真ん中で測る（補間した高さは段の途中の値になる）
+        double level = height;
+        if (GroundSmoothing.enabled()) {
+            double raw = rawGround(x, z, from, deep);
+            if (!Double.isNaN(raw)) {
+                level = raw;
+            }
+        }
+        double[] ahead = stairEdges(x, z, dirX, dirZ, from, deep, level);
+        double[] behind = stairEdges(x, z, -dirX, -dirZ, from, deep, level);
         // 後ろが高い（下り）か、前が高い（上り）か。谷ならどちらも立つので高いほう
-        return Math.max(stairSide(height, behind, ahead), stairSide(height, ahead, behind));
+        double down = stairSide(level, behind, ahead);
+        boolean downSmoothed = stairSmoothed;
+        double downNear = stairNearDistance, downNearHeight = stairNearHeight;
+        double downFar = stairFarDistance, downFarHeight = stairFarHeight;
+        double up = stairSide(level, ahead, behind);
+        if (down > up) {
+            stairSmoothed = downSmoothed;
+            // 下りは後ろが高い側。距離は後ろ向きに測ってある
+            setStairLine(x, z, -dirX, -dirZ, downNear, downNearHeight, downFar, downFarHeight);
+        } else if (up > Double.NEGATIVE_INFINITY) {
+            setStairLine(x, z, dirX, dirZ, stairNearDistance, stairNearHeight, stairFarDistance, stairFarHeight);
+        }
+        return Math.max(down, up);
+    }
+
+    private void setStairLine(double x, double z, double dirX, double dirZ,
+                              double near, double nearHeight, double far, double farHeight) {
+        stairLine[0] = x + dirX * near;
+        stairLine[1] = nearHeight;
+        stairLine[2] = z + dirZ * near;
+        stairLine[3] = x + dirX * far;
+        stairLine[4] = farHeight;
+        stairLine[5] = z + dirZ * far;
+    }
+
+    /** 各輪へ渡した地面の少し前までの記録（F3+B で描く）。 */
+    public GroundTrace groundTrace() {
+        return groundTrace;
     }
 
     /**
-     * 片側へ歩いて、段の縁を手前から 2 つまで探す。{縁 1 までの距離, その先の高さ, 縁 2 までの距離, その先の高さ}。
-     * 見つからなければ NaN。縁の位置は二分して 1〜2mm まで詰める（{@link #STAIR_EDGE_BISECTIONS}）。
+     * 片側へ歩いて、段の縁を手前から 2 つまで探す。{縁 1 までの距離, その先の高さ, 縁 2 までの距離, その先の高さ,
+     * 縁 1 での補間の高さ, 縁 2 での補間の高さ}。見つからなければ NaN。縁の位置は二分して 1〜2mm まで詰める
+     * （{@link #STAIR_EDGE_BISECTIONS}）。
+     *
+     * <p>縁は補間する前の地面で探す。補間の高さは、地面の補間が入りで、段が混ぜてよい高さ
+     * （{@link #SMOOTH_GROUND_LIMIT}）以下のときだけ。それ以外は NaN（段の角を使う）。</p>
      */
     private double[] stairEdges(double x, double z, double dirX, double dirZ, double from, double bottom,
                                 double height) {
-        double[] edges = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
+        double[] edges = {Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN};
         double level = height;
         double previous = 0.0;
         int found = 0;
         for (double distance = LOOKAHEAD_SPACING; distance <= STAIR_REACH + 1.0e-9 && found < 2;
              distance += distance < STAIR_NEAR_REACH - 1.0e-9 ? LOOKAHEAD_SPACING : STAIR_FAR_SPACING) {
-            double ground = probeGround(x, z, dirX, dirZ, distance, from, bottom);
+            double ground = rawGround(x + dirX * distance, z + dirZ * distance, from, bottom);
             if (Double.isNaN(ground)) {
                 break;
             }
@@ -1740,7 +1833,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 double far = distance;
                 for (int i = 0; i < STAIR_EDGE_BISECTIONS; i++) {
                     double middle = (near + far) / 2.0;
-                    double g = probeGround(x, z, dirX, dirZ, middle, from, bottom);
+                    double g = rawGround(x + dirX * middle, z + dirZ * middle, from, bottom);
                     if (!Double.isNaN(g) && Math.abs(g - level) <= STAIR_EPSILON) {
                         near = middle;
                     } else {
@@ -1748,14 +1841,20 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     }
                 }
                 // 縁は段差（不連続）でなければならない。なめらかな斜面は詰めても差が縮むので段とは見ない
-                double nearGround = probeGround(x, z, dirX, dirZ, near, from, bottom);
-                double farGround = probeGround(x, z, dirX, dirZ, far, from, bottom);
+                double nearGround = rawGround(x + dirX * near, z + dirZ * near, from, bottom);
+                double farGround = rawGround(x + dirX * far, z + dirZ * far, from, bottom);
                 if (Double.isNaN(nearGround) || Double.isNaN(farGround)
                         || Math.abs(farGround - nearGround) <= STAIR_EPSILON) {
                     break;
                 }
-                edges[found * 2] = (near + far) / 2.0;
+                double edge = (near + far) / 2.0;
+                edges[found * 2] = edge;
                 edges[found * 2 + 1] = ground;
+                if (GroundSmoothing.enabled() && Math.abs(ground - level) <= SMOOTH_GROUND_LIMIT) {
+                    // 段の上と下の中間を基準にならす（縁の上ではどちらの段とも言えない）
+                    edges[4 + found] = smoothGround(x + dirX * edge, z + dirZ * edge, from, bottom,
+                            (ground + level) / 2.0, stairColumns);
+                }
                 found++;
                 level = ground;
             }
@@ -1767,8 +1866,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     /**
      * {@code high} の側に高い段があるときの、段の角を結んだ線の高さ。斜面の長さ（段の幅）は、
      * 反対側の縁（こちらの段の始まり）か、高い側の次の縁（向こうの段の幅）から取る。
+     *
+     * <p>両端の縁に補間の高さ（{@link #stairEdges}）があれば、角の代わりにそれを結ぶ。そのときは
+     * 段の天面より下になることがあるので、天面で頭打ちにしない（{@link #stairSmoothed} が立つ）。</p>
      */
-    private static double stairSide(double height, double[] high, double[] low) {
+    private double stairSide(double height, double[] high, double[] low) {
+        stairSmoothed = false;
         double edge = high[0];
         double top = high[1];
         double rise = top - height;
@@ -1781,27 +1884,61 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // こちらの段は反対側の縁から始まる。その角（高さ height）から高い段の角まで
             run = edge + low[0];
             ground = height + rise * low[0] / run;
+            stairNearDistance = -low[0];
+            stairNearHeight = height;
+            stairFarDistance = edge;
+            stairFarHeight = top;
+            if (!Double.isNaN(low[4]) && !Double.isNaN(high[4])) {
+                // 縁での補間の高さどうしを結ぶ
+                ground = low[4] + (high[4] - low[4]) * low[0] / run;
+                stairSmoothed = true;
+                stairNearHeight = low[4];
+                stairFarHeight = high[4];
+            }
         } else if (!Double.isNaN(high[2]) && high[3] > top + STAIR_EPSILON) {
             // 階段の端の段。向こうの段の幅で同じ傾きの斜面を延ばす
             run = high[2] - edge;
             ground = top - rise / run * edge;
+            // 線は輪の位置まで延ばしてある。描くのは輪から向こうの段の縁まで
+            stairNearDistance = 0.0;
+            stairNearHeight = ground;
+            stairFarDistance = high[2];
+            stairFarHeight = high[3];
+            if (!Double.isNaN(high[4]) && !Double.isNaN(high[5])) {
+                ground = high[4] - (high[5] - high[4]) / run * edge;
+                stairSmoothed = true;
+                stairNearHeight = ground;
+                stairFarHeight = high[5];
+            }
         } else {
             return Double.NEGATIVE_INFINITY;
         }
         if (rise / run > STAIR_SLOPE_MAX) {
+            stairSmoothed = false;
             return Double.NEGATIVE_INFINITY;
         }
-        return Math.max(height, ground);
+        return stairSmoothed ? ground : Math.max(height, ground);
     }
 
-    /** 真下の地面の高さ。当たらない・起点が埋まっているときは NaN。 */
+    /**
+     * 輪の位置から {@code dir} へ {@code distance} 進んだところの地面の高さ。周りのブロックとならしたもの
+     * （{@link #smoothGround}）。当たらない・起点が埋まっているときは NaN。
+     *
+     * @param columns ブロックの列ごとの高さを覚えておく表。レイの範囲（{@code from}〜{@code bottom}）ごとに分ける
+     */
     private double probeGround(double x, double z, double dirX, double dirZ, double distance,
-                               double from, double bottom) {
+                               double from, double bottom, Long2DoubleOpenHashMap columns) {
         double px = x + dirX * distance;
         double pz = z + dirZ * distance;
+        double own = rawGround(px, pz, from, bottom);
+        return Double.isNaN(own) ? own : smoothGround(px, pz, from, bottom, own, columns);
+    }
+
+    /** その点の真下の地面の高さ（ならす前）。当たらない・起点が埋まっているときは NaN。 */
+    private double rawGround(double x, double z, double from, double bottom) {
         BlockHitResult hit = level().clip(new ClipContext(
-                new Vec3(px, from, pz),
-                new Vec3(px, bottom, pz),
+                new Vec3(x, from, z),
+                new Vec3(x, bottom, z),
                 ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.NONE,
                 this));
@@ -1809,6 +1946,65 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             return Double.NaN;
         }
         return hit.getLocation().y;
+    }
+
+    /**
+     * 地面を周りのブロックとならす。その点を囲む 4 つのブロックの中心の高さを双線形補間する。
+     *
+     * <p><b>斜めの道のため。</b>roads の層ブロックで作った坂は、ブロックごとに 1/16（6.25cm）刻みの
+     * 高さを持つ。格子に対して斜めに走ると、進む向きに沿っても層が上がったり下がったりし
+     * （隣のブロックの中心が後ろに来る）、タイヤ幅の端が横のブロックに乗ると 6cm 高い地面を拾う。
+     * 段の角を結んだ線（{@link #stairHeight}）は進む向きの 1 本の断面しかならさないので、これは消せない。
+     * 実際に既定の車で下ったときの記録では、縁を越えたときに地面が跳ぶ割合が格子に沿うと 1.6%、
+     * 30〜45 度では 17〜18% になり、1 分で 129 回、荷重が停車時の 4.5 倍とほぼ 0 の間を跳ねた。
+     * 補間すると、シミュレーションの斜めの道（6.25%・12.5%、26〜45 度）で跳びが 100〜200 回から 0〜24 回になる。</p>
+     *
+     * <p><b>高さの差が {@link #SMOOTH_GROUND_LIMIT} を超えるブロックは混ぜない</b>（その点の高さのまま）。
+     * 壁・縁石・ハーフの段・崖は今までどおり段として扱い、階段の線と先読みに任せる。</p>
+     *
+     * <p>開発用に Ctrl+J で切れる（{@link GroundSmoothing}）。切ると、その点の高さをそのまま返し、
+     * 階段の線も段の角を結ぶものに戻る。</p>
+     */
+    private double smoothGround(double x, double z, double from, double bottom, double own,
+                                Long2DoubleOpenHashMap columns) {
+        if (!GroundSmoothing.enabled()) {
+            return own;
+        }
+        double cx = x - 0.5;
+        double cz = z - 0.5;
+        int i0 = Mth.floor(cx);
+        int j0 = Mth.floor(cz);
+        double fx = cx - i0;
+        double fz = cz - j0;
+        double h00 = blendColumn(columnGround(i0, j0, from, bottom, columns), own);
+        double h10 = blendColumn(columnGround(i0 + 1, j0, from, bottom, columns), own);
+        double h01 = blendColumn(columnGround(i0, j0 + 1, from, bottom, columns), own);
+        double h11 = blendColumn(columnGround(i0 + 1, j0 + 1, from, bottom, columns), own);
+        return (h00 * (1.0 - fx) + h10 * fx) * (1.0 - fz) + (h01 * (1.0 - fx) + h11 * fx) * fz;
+    }
+
+    /** 混ぜてよいブロックの高さならそのまま、差が大きい・地面が無いならその点の高さ。 */
+    private static double blendColumn(double column, double own) {
+        return Double.isNaN(column) || Math.abs(column - own) > SMOOTH_GROUND_LIMIT ? own : column;
+    }
+
+    /** ブロックの列の中心での地面の高さ。輪を 1 つ調べる間は覚えておいて使い回す。地面が無ければ NaN。 */
+    private double columnGround(int blockX, int blockZ, double from, double bottom, Long2DoubleOpenHashMap columns) {
+        long key = ((long) blockX << 32) ^ (blockZ & 0xffffffffL);
+        double known = columns.get(key);
+        if (!Double.isNaN(known)) {
+            return known == Double.NEGATIVE_INFINITY ? Double.NaN : known;
+        }
+        double ground = rawGround(blockX + 0.5, blockZ + 0.5, from, bottom);
+        columns.put(key, Double.isNaN(ground) ? Double.NEGATIVE_INFINITY : ground);
+        return ground;
+    }
+
+    /** 覚えておく表。知らない列は NaN を返す（地面が無い列は負の無限大で覚える）。 */
+    private static Long2DoubleOpenHashMap newColumnTable() {
+        Long2DoubleOpenHashMap table = new Long2DoubleOpenHashMap();
+        table.defaultReturnValue(Double.NaN);
+        return table;
     }
 
     /**
@@ -1857,11 +2053,32 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         int index = wheel.ordinal();
         double limited;
         if (height - base <= CarBody.STEP_LIFT) {
-            // 低い段は先読みの斜面で登っているので、上がる速さは制限しない
-            limited = Math.max(height, ahead);
+            // 低い段は先読みの斜面で登っているので、上がる速さは制限しない。
+            // 縁の高さを補間で決めた階段の線は、真下の地面より少し下へ潜ってよい（STAIR_SINK_MAX）
+            limited = aheadIsStair && stairSmoothed
+                    ? Math.max(ahead, height - STAIR_SINK_MAX)
+                    : Math.max(height, ahead);
+            // 線が真下の地面より下でも、線を渡していれば線の出どころ
+            groundSources[index] = limited != height
+                    ? (aheadIsStair ? GroundLog.Source.STAIR : GroundLog.Source.AHEAD)
+                    : GroundLog.Source.FLAT;
         } else {
             limited = Math.min(height, Math.max(ahead, base + rise));
+            groundSources[index] = limited < height ? GroundLog.Source.RISE_LIMIT : GroundLog.Source.FLAT;
         }
+        if (level().isClientSide) {
+            double raw = rawGroundHeight[index];
+            groundTrace.add(index, probeX, probeZ, raw > Double.NEGATIVE_INFINITY ? raw : Double.NaN,
+                    limited > Double.NEGATIVE_INFINITY ? limited : Double.NaN, groundSources[index],
+                    aheadIsStair && stairSmoothed && limited != height);
+            if (aheadIsStair) {
+                groundTrace.setStair(index, stairLine[0], stairLine[1], stairLine[2],
+                        stairLine[3], stairLine[4], stairLine[5], stairSmoothed);
+            } else {
+                groundTrace.clearStair(index);
+            }
+        }
+        aheadIsStair = false;
         previousGroundHeight[index] = limited;
         groundContact.set(wheel, limited, gripScale, rollingScale);
     }
