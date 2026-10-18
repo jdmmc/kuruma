@@ -256,8 +256,31 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     private static final double BURIED_MAX_LIFT = 6.0;
     /** 接地を探すタイヤの端を、幅の端からどれだけ内へ寄せるか [m]。 */
     private static final double TIRE_EDGE_INSET = 0.03;
-    /** 階段を探す範囲 [m]。前後それぞれ。1 マスの段なら縁が 2 つ入る。 */
-    private static final double STAIR_REACH = 3.0;
+    /**
+     * 階段を探す範囲 [m]。前後それぞれ。<b>段の幅の 2 倍は要る。</b>
+     *
+     * <p>坂の入口では、段の角を結んだ線は 1 つ目の縁から段の幅ぶん手前で地面と交わる。2 つ目の縁
+     * （＝段の幅）が見えるのは 1 つ目の縁が「範囲 − 段の幅」まで近づいたときなので、それが段の幅より
+     * 遠くないと、見えた時点で線がもう足元より上にあり、<b>地面が一瞬で跳ね上がる</b>。3m では幅 2m の
+     * スラブの坂（14 度）の入口で 27cm 跳ね、8m/s で 4 輪の 4 割が浮いた（なめらかな坂では 0）。
+     * 8m なら幅 4m の段まで入る。</p>
+     */
+    private static final double STAIR_REACH = 8.0;
+    /**
+     * これより先は {@link #STAIR_FAR_SPACING} おきに調べる [m]。範囲を広げたぶんレイが増えるので、
+     * 遠くは粗くする（縁の位置は二分で詰めるので、粗くしても線の傾きは変わらない）。
+     */
+    private static final double STAIR_NEAR_REACH = 3.0;
+    /** 遠くの段を調べる間隔 [m]。段の幅（1 ブロック）より狭くしておけば縁を取りこぼさない。 */
+    private static final double STAIR_FAR_SPACING = 0.5;
+    /**
+     * 段の縁を詰める二分の回数。0.25m を 8 回で 1mm、0.5m でも 2mm。
+     *
+     * <p>3 回（3cm 幅）では縁の位置が ±1.5cm ずれ、段の角を越えるたびに地面が数 mm 跳ねた。ダンパーは
+     * 地面の動く速さを見るので、1/80 秒の刻みでは数 mm でも 0.5m/s になり、<b>段の角ごとに荷重が
+     * 1.6 倍に跳ねた</b>（坂の途中なのに 1m おきにガタつく）。</p>
+     */
+    private static final int STAIR_EDGE_BISECTIONS = 8;
     /**
      * これより小さい高さの違いは段と見ない [m]。roads の階層ブロックは 1/16（6.25cm）刻みなので、
      * どんな緩い坂でも段はこれより大きい。
@@ -1698,7 +1721,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
 
     /**
      * 片側へ歩いて、段の縁を手前から 2 つまで探す。{縁 1 までの距離, その先の高さ, 縁 2 までの距離, その先の高さ}。
-     * 見つからなければ NaN。縁の位置は二分して 1.5cm まで詰める。
+     * 見つからなければ NaN。縁の位置は二分して 1〜2mm まで詰める（{@link #STAIR_EDGE_BISECTIONS}）。
      */
     private double[] stairEdges(double x, double z, double dirX, double dirZ, double from, double bottom,
                                 double height) {
@@ -1707,7 +1730,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         double previous = 0.0;
         int found = 0;
         for (double distance = LOOKAHEAD_SPACING; distance <= STAIR_REACH + 1.0e-9 && found < 2;
-             distance += LOOKAHEAD_SPACING) {
+             distance += distance < STAIR_NEAR_REACH - 1.0e-9 ? LOOKAHEAD_SPACING : STAIR_FAR_SPACING) {
             double ground = probeGround(x, z, dirX, dirZ, distance, from, bottom);
             if (Double.isNaN(ground)) {
                 break;
@@ -1715,7 +1738,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             if (Math.abs(ground - level) > STAIR_EPSILON) {
                 double near = previous;
                 double far = distance;
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < STAIR_EDGE_BISECTIONS; i++) {
                     double middle = (near + far) / 2.0;
                     double g = probeGround(x, z, dirX, dirZ, middle, from, bottom);
                     if (!Double.isNaN(g) && Math.abs(g - level) <= STAIR_EPSILON) {
