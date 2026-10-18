@@ -115,6 +115,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         CarLights.renderEffects(car, model, partialTick, pose, buffer);
         if (entityRenderDispatcher.shouldRenderHitBoxes() && !car.isInvisible()) {
             renderHull(car, partialTick, pose, buffer);
+            renderGroundTrace(car, partialTick, pose, buffer);
         }
         // 名前タグなどはバニラに任せる
         super.render(car, entityYaw, partialTick, pose, buffer, packedLight);
@@ -745,6 +746,91 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             for (double[][] rim : rims) {
                 renderEdges(car, rim, rimEdges, 1.0F, 0.3F, 0.85F, partialTick, pose, buffer);
             }
+        }
+    }
+
+    /** F3+B の地面の線を、地面からどれだけ浮かせて描くか [m]。地面に埋もれて見えなくならないように。 */
+    private static final double GROUND_TRACE_LIFT = 0.03;
+
+    /**
+     * F3+B のときに、各輪へ渡した地面を線で描く（{@link com.jdmmc.kurumamod.debug.GroundTrace}）。
+     * 灰色が補間する前のブロックの高さ、色つきが実際に渡した地面（白: 真下の地面、紫: 縁の高さを補間で
+     * 決めた階段の線、水色: 段の角を結んだ階段の線、黄: 先読みの斜面、橙: 上がる速さの制限）。
+     * いま使っている階段の線は、両端の縁に縦の目印を付けて重ねる。
+     */
+    private static void renderGroundTrace(CarEntity car, float partialTick, PoseStack pose, MultiBufferSource buffer) {
+        com.jdmmc.kurumamod.debug.GroundTrace trace = car.groundTrace();
+        List<double[]> lines = new ArrayList<>();
+        for (int wheel = 0; wheel < Wheel.COUNT; wheel++) {
+            int count = trace.count(wheel);
+            for (int k = 1; k < count; k++) {
+                double x1 = trace.x(wheel, k - 1), z1 = trace.z(wheel, k - 1);
+                double x2 = trace.x(wheel, k), z2 = trace.z(wheel, k);
+                // 離れすぎた点（乗り直し・テレポート）は結ばない
+                if ((x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1) > 1.0) {
+                    continue;
+                }
+                double r1 = trace.raw(wheel, k - 1), r2 = trace.raw(wheel, k);
+                if (!Double.isNaN(r1) && !Double.isNaN(r2)) {
+                    lines.add(new double[]{x1, r1 + GROUND_TRACE_LIFT, z1, x2, r2 + GROUND_TRACE_LIFT, z2,
+                            0.5, 0.5, 0.5});
+                }
+                double g1 = trace.ground(wheel, k - 1), g2 = trace.ground(wheel, k);
+                if (!Double.isNaN(g1) && !Double.isNaN(g2)) {
+                    float[] c = groundTraceColor(trace.source(wheel, k), trace.smoothed(wheel, k));
+                    lines.add(new double[]{x1, g1 + GROUND_TRACE_LIFT, z1, x2, g2 + GROUND_TRACE_LIFT, z2,
+                            c[0], c[1], c[2]});
+                }
+            }
+            double[] stair = trace.stair(wheel);
+            if (!Double.isNaN(stair[0])) {
+                float[] c = groundTraceColor(com.jdmmc.kurumamod.debug.GroundLog.Source.STAIR, trace.stairSmoothed(wheel));
+                double lift = GROUND_TRACE_LIFT * 2.0;
+                lines.add(new double[]{stair[0], stair[1] + lift, stair[2], stair[3], stair[4] + lift, stair[5],
+                        c[0], c[1], c[2]});
+                // 縁の目印
+                lines.add(new double[]{stair[0], stair[1], stair[2], stair[0], stair[1] + 0.3, stair[2], c[0], c[1], c[2]});
+                lines.add(new double[]{stair[3], stair[4], stair[5], stair[3], stair[4] + 0.3, stair[5], c[0], c[1], c[2]});
+            }
+        }
+        renderLines(car, lines, partialTick, pose, buffer);
+    }
+
+    private static float[] groundTraceColor(com.jdmmc.kurumamod.debug.GroundLog.Source source, boolean smoothed) {
+        if (source == null) {
+            return new float[]{1.0F, 1.0F, 1.0F};
+        }
+        return switch (source) {
+            case STAIR, DEEP_STAIR -> smoothed ? new float[]{0.75F, 0.45F, 1.0F} : new float[]{0.1F, 0.9F, 0.9F};
+            case AHEAD -> new float[]{1.0F, 0.9F, 0.2F};
+            case RISE_LIMIT -> new float[]{1.0F, 0.55F, 0.1F};
+            case BURIED, WALL_HOLD -> new float[]{1.0F, 0.25F, 0.25F};
+            default -> new float[]{1.0F, 1.0F, 1.0F};
+        };
+    }
+
+    /** 世界の座標の線分 {x1, y1, z1, x2, y2, z2, 赤, 緑, 青} を描く。 */
+    private static void renderLines(CarEntity car, List<double[]> lines,
+                                    float partialTick, PoseStack pose, MultiBufferSource buffer) {
+        double originX = Mth.lerp(partialTick, car.xo, car.getX());
+        double originY = Mth.lerp(partialTick, car.yo, car.getY());
+        double originZ = Mth.lerp(partialTick, car.zo, car.getZ());
+        VertexConsumer consumer = buffer.getBuffer(RenderType.lines());
+        PoseStack.Pose entry = pose.last();
+        for (double[] line : lines) {
+            float ax = (float) (line[0] - originX), ay = (float) (line[1] - originY), az = (float) (line[2] - originZ);
+            float bx = (float) (line[3] - originX), by = (float) (line[4] - originY), bz = (float) (line[5] - originZ);
+            float dx = bx - ax, dy = by - ay, dz = bz - az;
+            float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+            if (length < 1.0e-6F) {
+                continue;
+            }
+            float nx = dx / length, ny = dy / length, nz = dz / length;
+            float red = (float) line[6], green = (float) line[7], blue = (float) line[8];
+            consumer.addVertex(entry.pose(), ax, ay, az).setColor(red, green, blue, 1.0F)
+                    .setNormal(entry, nx, ny, nz);
+            consumer.addVertex(entry.pose(), bx, by, bz).setColor(red, green, blue, 1.0F)
+                    .setNormal(entry, nx, ny, nz);
         }
     }
 

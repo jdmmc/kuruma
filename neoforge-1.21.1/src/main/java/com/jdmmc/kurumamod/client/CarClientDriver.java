@@ -3,6 +3,8 @@ package com.jdmmc.kurumamod.client;
 import net.neoforged.neoforge.network.PacketDistributor;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarTypes;
+import com.jdmmc.kurumamod.debug.GroundLog;
+import com.jdmmc.kurumamod.debug.GroundSmoothing;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CarPartRequestPacket;
 import com.jdmmc.kurumamod.network.CarTuningPacket;
@@ -87,6 +89,21 @@ public final class CarClientDriver {
             } else if (minecraft.screen == null) {
                 minecraft.setScreen(new SeatScreen(riding.getCarId()));
             }
+        }
+        while (KurumaKeys.TOGGLE_GROUND_LOG.consumeClick()) {
+            toggleGroundLog(minecraft);
+        }
+        while (KurumaKeys.TOGGLE_GROUND_SMOOTHING.consumeClick()) {
+            if (minecraft.player != null) {
+                minecraft.player.displayClientMessage(Component.translatable(GroundSmoothing.toggle()
+                        ? "message.kurumamod.ground_smoothing.on"
+                        : "message.kurumamod.ground_smoothing.off"), true);
+            }
+        }
+        // 降りたら接地の記録も止める。別の車の記録が同じファイルに混ざらないように。
+        // 一時停止（Esc）では止めない
+        if (GroundLog.active() && (player == null || !(player.getVehicle() instanceof CarEntity))) {
+            stopGroundLog(minecraft);
         }
         while (KurumaKeys.TOGGLE_CAMERA.consumeClick()) {
             CarCamera.cycleMode();
@@ -316,6 +333,43 @@ public final class CarClientDriver {
                 }
                 minecraft.setScreen(new CarTuningScreen());
             }
+        }
+    }
+
+    /** 接地の記録（{@link GroundLog}）を始める・止める。始められるのは運転しているときだけ。 */
+    private static void toggleGroundLog(Minecraft minecraft) {
+        if (minecraft.player == null) {
+            return;
+        }
+        if (GroundLog.active()) {
+            stopGroundLog(minecraft);
+            return;
+        }
+        CarEntity car = ridingCar(minecraft);
+        if (car == null || car.getControllingPassenger() != minecraft.player) {
+            minecraft.player.displayClientMessage(Component.translatable("message.kurumamod.need_car"), true);
+            return;
+        }
+        try {
+            java.nio.file.Path file = GroundLog.start(minecraft.gameDirectory.toPath().resolve("kuruma-groundlog"),
+                    car.getCarId().toString(), car.getSpec());
+            minecraft.player.displayClientMessage(Component.translatable(
+                    "message.kurumamod.ground_log.started", file.getFileName().toString(),
+                    KurumaKeys.TOGGLE_GROUND_LOG.getTranslatedKeyMessage()), false);
+        } catch (java.io.IOException e) {
+            minecraft.player.displayClientMessage(Component.translatable(
+                    "message.kurumamod.ground_log.failed", String.valueOf(e.getMessage())), false);
+        }
+    }
+
+    /** 接地の記録を止め、書いたファイルと秒数を知らせる。 */
+    private static void stopGroundLog(Minecraft minecraft) {
+        // 1 行が物理の 1 刻み（1 ティックに 4 刻み）
+        String seconds = String.format(java.util.Locale.ROOT, "%.1f", GroundLog.rows() / 80.0);
+        java.nio.file.Path file = GroundLog.stop();
+        if (file != null && minecraft.player != null) {
+            minecraft.player.displayClientMessage(Component.translatable(
+                    "message.kurumamod.ground_log.stopped", seconds, file.toAbsolutePath().toString()), false);
         }
     }
 

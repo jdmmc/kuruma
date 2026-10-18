@@ -125,6 +125,30 @@ public final class KurumaKeys {
             GLFW.GLFW_KEY_G,
             "key.categories.kurumamod");
 
+    /**
+     * 接地の記録（{@code GroundLog}）を始める・止める。既定は Ctrl+H。
+     * MOD メニュー（H）と同じキーに修飾キーを付けてある（{@link #OPEN_HEADLIGHT_SETTINGS} と同じ）。
+     */
+    public static final KeyMapping TOGGLE_GROUND_LOG = new KeyMapping(
+            "key.kurumamod.ground_log",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_H,
+            "key.categories.kurumamod");
+
+    /**
+     * 地面の補間（{@code GroundSmoothing}）を入り切りする。開発用。既定は Ctrl+J。
+     * コントローラの画面（J）と同じキーに修飾キーを付けてある。
+     */
+    public static final KeyMapping TOGGLE_GROUND_SMOOTHING = new KeyMapping(
+            "key.kurumamod.ground_smoothing",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_J,
+            "key.categories.kurumamod");
+
     /** コントローラの割り当て画面を開く。既定は J。 */
     public static final KeyMapping OPEN_CONTROLLER = new KeyMapping(
             "key.kurumamod.controller",
@@ -149,5 +173,7 @@ public final class KurumaKeys {
         event.register(CAMERA_CLOSER);
         event.register(CAMERA_FARTHER);
         event.register(OPEN_CONTROLLER);
+        event.register(TOGGLE_GROUND_LOG);
+        event.register(TOGGLE_GROUND_SMOOTHING);
     }
 }
