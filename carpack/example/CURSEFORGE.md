@@ -8,6 +8,8 @@
 A tall, boxy van — and a set of deep dish wheels to put on it.  
 It can be tuned in-game, so the numbers are a starting point, not something fixed.
 
+[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
+
 ## 🚗 Cars in this pack
 
 | Car | What it's like |
@@ -62,6 +64,10 @@ All rights reserved. Do not redistribute.
 
 [Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma) itself is a separate project with a separate license (nothing in this pack changes it).
 
+[![Join the KurumaMod Discord](https://kuruma.jdm-mc.com/img/cta-discord-en.png)](https://discord.gg/q3YNqaveRd)
+
+[![Visit the KurumaMod website](https://kuruma.jdm-mc.com/img/cta-website-en.png)](https://kuruma.jdm-mc.com/)
+
 ---
 
 # Kuruma - エグザンプルカーパック（日本語）
@@ -73,6 +79,8 @@ All rights reserved. Do not redistribute.
 
 背の高い箱形のバンと、それに履かせる深皿ホイールが 1 組。  
 ゲーム内でいじれるので、数字は「決められたもの」ではなく「初期値」です。
+
+[![公式サイト](https://img.shields.io/badge/%E5%85%AC%E5%BC%8F%E3%82%B5%E3%82%A4%E3%83%88-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-%E5%8F%82%E5%8A%A0%E3%81%99%E3%82%8B-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
 ## 🚗 入っている車
 
@@ -126,3 +134,7 @@ All rights reserved. Do not redistribute.
 無断転載を禁じます。
 
 [Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma) 本体は別のプロジェクトで、ライセンスも別です（このパックが変えるものではありません）。　　
+
+[![KurumaMod の Discord に参加する](https://kuruma.jdm-mc.com/img/cta-discord-ja.png)](https://discord.gg/q3YNqaveRd)
+
+[![KurumaMod の公式サイトを開く](https://kuruma.jdm-mc.com/img/cta-website-ja.png)](https://kuruma.jdm-mc.com/)
