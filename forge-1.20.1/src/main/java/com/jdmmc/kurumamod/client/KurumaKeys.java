@@ -138,7 +138,7 @@ public final class KurumaKeys {
             "key.categories.kurumamod");
 
     /**
-     * 地面の補間（{@code GroundSmoothing}）を入り切りする。開発用。既定は Ctrl+J。
+     * 地面の補間と階段の線の向き（{@code GroundSmoothing}）を順に切り替える。開発用。既定は Ctrl+J。
      * コントローラの画面（J）と同じキーに修飾キーを付けてある。
      */
     public static final KeyMapping TOGGLE_GROUND_SMOOTHING = new KeyMapping(

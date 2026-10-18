@@ -95,9 +95,8 @@ public final class CarClientDriver {
         }
         while (KurumaKeys.TOGGLE_GROUND_SMOOTHING.consumeClick()) {
             if (minecraft.player != null) {
-                minecraft.player.displayClientMessage(Component.translatable(GroundSmoothing.toggle()
-                        ? "message.kurumamod.ground_smoothing.on"
-                        : "message.kurumamod.ground_smoothing.off"), true);
+                minecraft.player.displayClientMessage(Component.translatable("message.kurumamod.ground_smoothing."
+                        + GroundSmoothing.cycle().name().toLowerCase(java.util.Locale.ROOT)), true);
             }
         }
         // 降りたら接地の記録も止める。別の車の記録が同じファイルに混ざらないように。
