@@ -20,7 +20,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.util.ObfuscationReflectionHelper;
 import org.joml.Matrix3f;
@@ -86,7 +85,8 @@ import java.util.List;
  *   <li>設定が切ってある（H のメニュー。既定は<b>切</b>——重いので、要る人が入れる）</li>
  *   <li>描画設定が「最高（Fabulous）」。この設定では {@code renderLevel} が自分で
  *       描き先を持ち替えるので、こちらの差し替えが上書きされる</li>
- *   <li>シェーダーパック（Iris / Oculus）が入っている。描画の入れ子を前提にしていない</li>
+ *   <li>シェーダーパックを使っている（Iris / Oculus）。描き直しを入れ子にすると画面全体が真っ黒になる。
+ *       <b>入っているだけ（パックを切っている）なら映す</b></li>
  *   <li>運転していない。<b>映すのは自分が運転している車のミラーだけ</b>——他人の車のぶんまで
  *       描くと、映っているのを誰も見ないまま台数ぶん重くなる</li>
  * </ul>
@@ -145,8 +145,6 @@ public final class MirrorRenderer {
     private static boolean rendering;
     /** 同じ理由で何度もログへ出さないための旗。 */
     private static String complaint;
-    /** シェーダーパックが入っているか。{@link ModList} は起動直後には引けないので遅延で見る。 */
-    private static Boolean shaderPack;
 
     private record Slot(String name, RenderTarget target) {
     }
@@ -409,11 +407,10 @@ public final class MirrorRenderer {
                     + "「きれい」以下にすると映る", null);
             return false;
         }
-        if (shaderPack == null) {
-            shaderPack = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
-        }
-        if (shaderPack) {
-            complain("シェーダーパック（Iris / Oculus）と一緒には使えない。ミラーは暗いガラスになる", null);
+        // Oculus / Iris が入っているだけなら映す。パックを実際に使っている間は、世界の描き直しを
+        // 入れ子にすると画面全体が真っ黒になった（Oculus で確認）。パックを切り替えたらその場で効く
+        if (HeadlightVolume.ShaderPacks.inUse()) {
+            complain("シェーダーパックを使っている間はミラーに映せない（画面が真っ黒になる）。ミラーは暗いガラスになる", null);
             return false;
         }
         return true;
