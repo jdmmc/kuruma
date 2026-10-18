@@ -22,6 +22,10 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.api.distmarker.Dist;
@@ -68,6 +72,11 @@ import java.util.Set;
  * <p>輪ごとにティックの終わりの接地点を点として積み、前の点と結んだ帯にする。
  * 帯の幅の向きは<b>点ごとに</b>持つ（その点へ来た向きに垂直）ので、隣り合う四角形が
  * 同じ辺を共有して、曲がっていても継ぎ目に隙間ができない。</p>
+ *
+ * <p><b>帯はブロックの格子で切り分け、一片ずつその下のブロックの天面に貼る</b>（{@link #addPatches}）。
+ * 物理が渡す地面（階段の線）は段の角を結んだ斜面で、縁の高さを補間で決めた線はブロックの天面より
+ * 最大で段の半分低い（{@code CarEntity#STAIR_SINK_MAX}）。その高さで帯を引くと、跡が天面の下に
+ * 埋まり、段をまたぐ四角形は角に刺さった。段の立ち上がりの面には描かない。</p>
  *
  * <h2>時間はティックで数える</h2>
  *
@@ -131,6 +140,13 @@ public final class CarSkidMarks {
      * <b>秒数に比例させること</b>——固定にすると、長くしたときに古い跡が途中で千切れる。
      */
     private static final int SEGMENTS_PER_SECOND = 820;
+    /**
+     * 帯 1 枚が何枚の四角形になるかの見込み。平らな路面では切り分けないので 1 枚。段をまたぐと
+     * 1 ティックに進む距離に応じて 2〜4 枚（30m/s で平均 3.5 片）。残しておく上限はこれを掛けた枚数で数える。
+     */
+    private static final int PATCHES_PER_SEGMENT = 2;
+    /** 天面を探す範囲 [m]。物理の接地点の上下これだけ。登れない段（1 ブロック）は入らない。 */
+    private static final double SURFACE_SEARCH = 0.6;
 
     /**
      * 接地点 1 つ。
@@ -143,16 +159,17 @@ public final class CarSkidMarks {
     }
 
     /**
-     * 帯の四角形 1 枚。{@code born} は付いたときのティック。
+     * 帯をブロックごとに切り分けた一片（四角形 1 枚。三角形なら最後の頂点を重ねる）。
+     * {@code vertices} は x, y, z, 不透明度 を 4 頂点ぶん。{@code born} は付いたときのティック。
      *
      * @param own 自分が運転している車の跡か。<b>描くときに設定を見て振り分ける</b>ので、
      *            メニューで消したときは残っている跡もその場で消える
      */
-    private record Segment(Point from, Point to, long born, boolean own) {
+    private record Patch(double[] vertices, long born, boolean own) {
     }
 
     /** 付いた順に並ぶので、古いものは先頭から捨てればよい。 */
-    private static final ArrayDeque<Segment> SEGMENTS = new ArrayDeque<>();
+    private static final ArrayDeque<Patch> SEGMENTS = new ArrayDeque<>();
     /** 車ごと・輪ごとの直前の点。滑っていない輪は null。 */
     private static final Map<Integer, Point[]> TRAILS = new HashMap<>();
     private static long ticks;
@@ -231,7 +248,7 @@ public final class CarSkidMarks {
         }
         Vec3 eye = camera.getPosition();
         Set<Integer> seen = new HashSet<>();
-        int limit = (int) Math.ceil(ClientConfig.skidMarkSeconds * SEGMENTS_PER_SECOND);
+        int limit = (int) Math.ceil(ClientConfig.skidMarkSeconds * SEGMENTS_PER_SECOND * PATCHES_PER_SEGMENT);
         for (Entity entity : level.entitiesForRendering()) {
             // 煙と同じく、車のモデルが描かれる範囲だけ（見えていない車の跡は要らない）
             if (!(entity instanceof CarEntity car) || car.isGhost() || !car.shouldRender(eye.x, eye.y, eye.z)) {
@@ -320,13 +337,144 @@ public final class CarSkidMarks {
             }
             Point point = new Point(x, y, z, sideX, sideZ, halfWidth, (float) (MAX_ALPHA * intensity));
             if (previous != null) {
-                while (SEGMENTS.size() >= limit) {
-                    SEGMENTS.pollFirst();
-                }
-                SEGMENTS.addLast(new Segment(previous, point, ticks, own));
+                addPatches(car, previous, point, own, limit);
             }
             trail[index] = point;
         }
+    }
+
+    /**
+     * {@code from} から {@code to} までの帯を、ブロックの格子で切り分けて積む。一片ずつ、その真ん中の下の
+     * ブロックの天面に置く（天面が見つからない片は描かない——崖の外や、登れない段の壁）。
+     */
+    private static void addPatches(CarEntity car, Point from, Point to, boolean own, int limit) {
+        // 帯の四角形。頂点ごとに x, z, 不透明度, 物理の接地点の高さ
+        double[][] quad = {
+                corner(from, -1.0), corner(to, -1.0), corner(to, 1.0), corner(from, 1.0)
+        };
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+        for (double[] v : quad) {
+            minX = Math.min(minX, Mth.floor(v[0]));
+            maxX = Math.max(maxX, Mth.floor(v[0]));
+            minZ = Math.min(minZ, Mth.floor(v[1]));
+            maxZ = Math.max(maxZ, Mth.floor(v[1]));
+        }
+        Level level = car.level();
+        java.util.List<double[][]> pieces = new java.util.ArrayList<>(4);
+        java.util.List<Double> tops = new java.util.ArrayList<>(4);
+        boolean flat = true;
+        for (int bx = minX; bx <= maxX; bx++) {
+            for (int bz = minZ; bz <= maxZ; bz++) {
+                double[][] piece = clip(quad, 0, bx, false);
+                piece = clip(piece, 0, bx + 1, true);
+                piece = clip(piece, 1, bz, false);
+                piece = clip(piece, 1, bz + 1, true);
+                if (piece.length < 3) {
+                    continue;
+                }
+                double cx = 0.0, cz = 0.0, cy = 0.0;
+                for (double[] v : piece) {
+                    cx += v[0];
+                    cz += v[1];
+                    cy += v[3];
+                }
+                cx /= piece.length;
+                cz /= piece.length;
+                cy /= piece.length;
+                double top = surfaceTop(level, car, cx, cz, cy - LIFT);
+                if (Double.isNaN(top)) {
+                    flat = false;
+                    continue;
+                }
+                if (!tops.isEmpty() && Math.abs(top - tops.get(0)) > 1.0e-3) {
+                    flat = false;
+                }
+                pieces.add(piece);
+                tops.add(top);
+            }
+        }
+        if (pieces.isEmpty()) {
+            return;
+        }
+        if (flat) {
+            // 平らな路面（ほとんどの場合）。切り分けずに 1 枚のまま置く
+            addPatch(quad, tops.get(0) + LIFT, own, limit);
+            return;
+        }
+        for (int i = 0; i < pieces.size(); i++) {
+            addPatch(pieces.get(i), tops.get(i) + LIFT, own, limit);
+        }
+    }
+
+    /**
+     * 凸多角形 1 つを高さ {@code y} に置いて積む。四角形ずつに割る（0-1-2-3、0-3-4-5、……。端数は最後の頂点を重ねる）。
+     * 切り分けた片はたいてい四角形か五角形なので、1〜2 枚で済む。
+     */
+    private static void addPatch(double[][] polygon, double y, boolean own, int limit) {
+        for (int k = 1; k + 1 < polygon.length; k += 2) {
+            double[] a = polygon[0], b = polygon[k], c = polygon[k + 1];
+            double[] d = polygon[Math.min(k + 2, polygon.length - 1)];
+            double[] vertices = {
+                    a[0], y, a[1], a[2],
+                    b[0], y, b[1], b[2],
+                    c[0], y, c[1], c[2],
+                    d[0], y, d[1], d[2]};
+            while (SEGMENTS.size() >= limit) {
+                SEGMENTS.pollFirst();
+            }
+            SEGMENTS.addLast(new Patch(vertices, ticks, own));
+        }
+    }
+
+    /** 点の左端（{@code side} = -1）か右端（+1）。{x, z, 不透明度, 高さ}。 */
+    private static double[] corner(Point point, double side) {
+        double offset = point.halfWidth() * side;
+        return new double[]{point.x() + point.sideX() * offset, point.z() + point.sideZ() * offset,
+                point.alpha(), point.y()};
+    }
+
+    /**
+     * 多角形を、軸 {@code axis}（0 = x、1 = z）の {@code bound} で切る（Sutherland–Hodgman）。
+     * {@code upper} なら {@code bound} 以下を、そうでなければ以上を残す。切り口の頂点は不透明度と高さも内分する。
+     */
+    private static double[][] clip(double[][] polygon, int axis, double bound, boolean upper) {
+        if (polygon.length == 0) {
+            return polygon;
+        }
+        java.util.List<double[]> out = new java.util.ArrayList<>(polygon.length + 2);
+        for (int i = 0; i < polygon.length; i++) {
+            double[] a = polygon[i];
+            double[] b = polygon[(i + 1) % polygon.length];
+            boolean aIn = upper ? a[axis] <= bound : a[axis] >= bound;
+            boolean bIn = upper ? b[axis] <= bound : b[axis] >= bound;
+            if (aIn) {
+                out.add(a);
+            }
+            if (aIn != bIn) {
+                double t = (bound - a[axis]) / (b[axis] - a[axis]);
+                double[] cut = new double[a.length];
+                for (int k = 0; k < a.length; k++) {
+                    cut[k] = a[k] + (b[k] - a[k]) * t;
+                }
+                cut[axis] = bound;
+                out.add(cut);
+            }
+        }
+        return out.toArray(new double[0][]);
+    }
+
+    /** その点の下のブロックの天面の高さ。{@code near} の上下 {@link #SURFACE_SEARCH} で探す。無ければ NaN。 */
+    private static double surfaceTop(Level level, Entity car, double x, double z, double near) {
+        BlockHitResult hit = level.clip(new ClipContext(
+                new Vec3(x, near + SURFACE_SEARCH, z),
+                new Vec3(x, near - SURFACE_SEARCH, z),
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                car));
+        if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+            return Double.NaN;
+        }
+        return hit.getLocation().y;
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -377,28 +525,23 @@ public final class CarSkidMarks {
         // 1.21 の PoseStack にはカメラの回転が入っていないので、描くときに回転を掛ける
             DEFERRED_MODEL_VIEW.set(event.getModelViewMatrix());
         }
-        for (Segment segment : SEGMENTS) {
-            if (!shows(segment.own())) {
+        for (Patch patch : SEGMENTS) {
+            if (!shows(patch.own())) {
                 continue;
             }
-            double remaining = lifetime - (now - segment.born());
+            double remaining = lifetime - (now - patch.born());
             float fade = (float) Mth.clamp(remaining / fadeTicks, 0.0, 1.0);
             if (fade <= 0.0F) {
                 continue;
             }
-            Point from = segment.from();
-            Point to = segment.to();
             // 面のまわりを一周する順（QUADS）
-            if (useDeferred) {
-                record(view, eye, from, -1.0, fade);
-                record(view, eye, to, -1.0, fade);
-                record(view, eye, to, 1.0, fade);
-                record(view, eye, from, 1.0, fade);
-            } else {
-                edge(consumer, matrix, from, -1.0, fade);
-                edge(consumer, matrix, to, -1.0, fade);
-                edge(consumer, matrix, to, 1.0, fade);
-                edge(consumer, matrix, from, 1.0, fade);
+            double[] v = patch.vertices();
+            for (int k = 0; k < 16; k += 4) {
+                if (useDeferred) {
+                    record(view, eye, v[k], v[k + 1], v[k + 2], (float) v[k + 3], fade);
+                } else {
+                    vertex(consumer, matrix, v[k], v[k + 1], v[k + 2], (float) v[k + 3], fade);
+                }
             }
         }
         if (!useDeferred) {
@@ -408,18 +551,17 @@ public final class CarSkidMarks {
     }
 
     /**
-     * パック使用中の跡の頂点を 1 つ記録する（{@link #edge} と同じ位置と色）。
+     * パック使用中の跡の頂点を 1 つ記録する（{@link #vertex} と同じ位置と色）。
      * カメラからの差を double のまま取ってから行列を掛けるので、原点から遠くても桁が落ちない。
      */
-    private static void record(Matrix4f view, Vec3 eye, Point point, double side, float fade) {
+    private static void record(Matrix4f view, Vec3 eye, double x, double y, double z, float alpha, float fade) {
         if ((deferredCount + 1) * 7 > deferred.length) {
             deferred = java.util.Arrays.copyOf(deferred, deferred.length * 2);
         }
-        double offset = point.halfWidth() * side;
         Vector3f position = view.transformPosition(new Vector3f(
-                (float) (point.x() + point.sideX() * offset - eye.x),
-                (float) (point.y() - eye.y),
-                (float) (point.z() + point.sideZ() * offset - eye.z)));
+                (float) (x - eye.x),
+                (float) (y - eye.y),
+                (float) (z - eye.z)));
         int o = deferredCount * 7;
         deferred[o] = position.x;
         deferred[o + 1] = position.y;
@@ -429,7 +571,7 @@ public final class CarSkidMarks {
         deferred[o + 3] = 0.0F;
         deferred[o + 4] = 0.0F;
         deferred[o + 5] = 0.0F;
-        deferred[o + 6] = point.alpha() * fade * (1.0F - SHADE);
+        deferred[o + 6] = alpha * fade * (1.0F - SHADE);
         deferredCount++;
     }
 
@@ -554,14 +696,10 @@ public final class CarSkidMarks {
         }
     }
 
-    /** 点の左端（{@code side} = -1）か右端（+1）に頂点を 1 つ積む。 */
-    private static void edge(VertexConsumer consumer, Matrix4f matrix, Point point, double side,
-                             float fade) {
-        double offset = point.halfWidth() * side;
-        consumer.addVertex(matrix,
-                        (float) (point.x() + point.sideX() * offset),
-                        (float) point.y(),
-                        (float) (point.z() + point.sideZ() * offset))
-                .setColor(SHADE, SHADE, SHADE, point.alpha() * fade);
+    /** 頂点を 1 つ積む。 */
+    private static void vertex(VertexConsumer consumer, Matrix4f matrix, double x, double y, double z,
+                               float alpha, float fade) {
+        consumer.addVertex(matrix, (float) x, (float) y, (float) z)
+                .setColor(SHADE, SHADE, SHADE, alpha * fade);
     }
 }
