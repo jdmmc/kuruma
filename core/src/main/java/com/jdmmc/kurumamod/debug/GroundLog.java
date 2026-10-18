@@ -110,7 +110,7 @@ public final class GroundLog {
                 spec.maxClimbStep()));
         writer.newLine();
         // 記録の途中で切り替えることもあるので、行ごとにも smooth 列で残す
-        writer.write("# smooth=" + (GroundSmoothing.enabled() ? 1 : 0));
+        writer.write("# smooth=" + GroundSmoothing.mode().code());
         writer.newLine();
         StringBuilder header = new StringBuilder(
                 "tick,sub,x,y,z,yaw,pitch,roll,v_fwd,v_lat,v_up,yaw_rate,slip,throttle,brake,handbrake,steer");
@@ -200,7 +200,7 @@ public final class GroundLog {
         }
         row.append(',').append(hit.vertical ? 1 : 0).append(',').append(hit.horizontal ? 1 : 0);
         num(row, hit.impact, 3);
-        row.append(',').append(GroundSmoothing.enabled() ? 1 : 0);
+        row.append(',').append(GroundSmoothing.mode().code());
         try {
             out.write(row.toString());
             out.newLine();

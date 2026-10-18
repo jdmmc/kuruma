@@ -313,6 +313,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 傾きが折れる補間の形に戻ってしまう。隣の縁石や壁にタイヤの端が乗ったときは、そちらを取る。</p>
      */
     private static final double STAIR_SINK_MAX = 0.1;
+    /**
+     * 階段の線を進む向きで引く（{@link #stairHeight}）のは、車がこれより速く動いているとき [m/s]。
+     * {@link #STAIR_TRAVEL_FULL_SPEED} までは車体の向きと混ぜる。止まりかけの速度の向きは当てにならない。
+     */
+    private static final double STAIR_TRAVEL_MIN_SPEED = 0.5;
+    private static final double STAIR_TRAVEL_FULL_SPEED = 2.0;
     /** 先読みで地面を調べる間隔 [m]。 */
     private static final double LOOKAHEAD_SPACING = 0.25;
     /** 先読みの斜面で登る高さ [m]。ハーフブロックの段。 */
@@ -1752,7 +1758,13 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 段差として登る）。急すぎるもの（{@link #STAIR_SLOPE_MAX} 超え、1 マスに 1 ブロックの坂など）も
      * 階段とは見ない。</p>
      *
-     * <p>向きは車体の前後。止まっていても坂の形は変わらないので、速度の向きには依らない。</p>
+     * <p><b>向きは車の進む向き</b>（止まりかけは車体の前後、{@link #STAIR_TRAVEL_MIN_SPEED}）。
+     * 線は引いた向きの 1 本の断面しかならさないので、ドリフト中に車体の向きで引くと、タイヤは断面を
+     * 横切るように動き、断面がずれるたびに見つかる縁が変わって線が跳ぶ。補間で縁の高さを決めた線でも、
+     * 実際の記録では浮いていた時間が横滑り 0〜10 度で 2〜3%、45 度超えで 17〜23% に増えた。
+     * 地形だけの計算では、進む向きで引けば横滑りに依らず真っすぐ走ったときと同じになる
+     * （6.25%・格子から 20 度の坂、横滑り 60 度で、傾きの変化の 95% 点が 11.9% → 1.3%）。
+     * Ctrl+J で車体の向きに戻せる（{@link GroundSmoothing.Mode#BODY}）。</p>
      *
      * <p><b>縁は補間する前の地面で探し、縁での高さは補間で決める</b>（地面の補間が入りのとき）。
      * 補間した地面には段が無いので、そこで縁を探すと線がまったく作られず、ブロックの中心ごとに
@@ -1766,6 +1778,24 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     private double stairHeight(double x, double z, double from, double bottom, double height) {
         double dirX = state.forwardX();
         double dirZ = state.forwardZ();
+        if (GroundSmoothing.alongTravel()) {
+            double velocityX = state.velocityX();
+            double velocityZ = state.velocityZ();
+            double speed = Math.hypot(velocityX, velocityZ);
+            if (speed > STAIR_TRAVEL_MIN_SPEED) {
+                // 前後の両方を探すので、後ろへ進んでいても線は同じ。車体の向きと揃えてから混ぜる
+                double sign = velocityX * dirX + velocityZ * dirZ < 0.0 ? -1.0 : 1.0;
+                double weight = Math.min(1.0,
+                        (speed - STAIR_TRAVEL_MIN_SPEED) / (STAIR_TRAVEL_FULL_SPEED - STAIR_TRAVEL_MIN_SPEED));
+                double mixX = dirX * (1.0 - weight) + sign * velocityX / speed * weight;
+                double mixZ = dirZ * (1.0 - weight) + sign * velocityZ / speed * weight;
+                double length = Math.hypot(mixX, mixZ);
+                if (length > 1.0e-6) {
+                    dirX = mixX / length;
+                    dirZ = mixZ / length;
+                }
+            }
+        }
         double deep = bottom - STAIR_STEP_MAX;
         // 段の高さは補間する前の、輪の真ん中で測る（補間した高さは段の途中の値になる）
         double level = height;
