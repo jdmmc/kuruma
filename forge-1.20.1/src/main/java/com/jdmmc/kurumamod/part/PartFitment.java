@@ -50,6 +50,13 @@ import java.util.Objects;
  * <p>序数で書くと、{@link PartSlot} に列挙子を足したときに保存済みの車の装着が
  * 別の場所へずれる。<b>知らない名前は読み飛ばす</b>（将来の版で保存されたデータを
  * 古い版で開いても、その場所のぶんが落ちるだけで済む）。</p>
+ *
+ * <h2>塗装もここに持つ</h2>
+ *
+ * <p>どの塗装か（{@link #paint()}）は部品ではないが、<b>プレイヤーが変えられる見た目で、車 1 台ごとの
+ * 状態</b>という点でキャンバー角と同じなので、同じ道（NBT・スポーンデータ・{@code CarPartsPacket}・
+ * アイテムの NBT）に乗せる。塗装の一覧は {@code vehicles/<car>.json}（クライアントだけが読む）にあるので、
+ * <b>サーバーは id を突き合わせずに覚えて配るだけ</b>。知らない id は描く側が既定の色に読み替える。</p>
  */
 public final class PartFitment {
 
@@ -118,7 +125,34 @@ public final class PartFitment {
     }
 
     /** 何も付けていない状態。<b>＝車種の既定の見た目。</b> */
-    public static final PartFitment EMPTY = new PartFitment(new EnumMap<>(PartSlot.class));
+    public static final PartFitment EMPTY = new PartFitment(new EnumMap<>(PartSlot.class), null);
+
+    /**
+     * 塗装の id の長さの上限。<b>サーバーは一覧を知らないので、形だけ見て押し込む。</b>
+     *
+     * <p>使える文字は小文字・数字・{@code _ - .} だけ。改造クライアントが長い文字列を送り付けて、
+     * 周りの人の NBT と通信を膨らませることがないように。</p>
+     */
+    public static final int PAINT_MAX_LENGTH = 64;
+
+    /** 塗装の id として受け付けられる形か。 */
+    public static boolean isValidPaint(@Nullable String paint) {
+        return paint != null && !paint.isEmpty() && paint.length() <= PAINT_MAX_LENGTH
+                && paint.chars().allMatch(c -> (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+                || c == '_' || c == '-' || c == '.');
+    }
+
+    /** 受け付けられない id は「指定なし」（＝既定の色）に読み替える。 */
+    @Nullable
+    private static String sanitizePaint(@Nullable String paint) {
+        return isValidPaint(paint) ? paint : null;
+    }
+
+    /**
+     * NBT の塗装のキー。<b>場所の名前と同じ階層に置く。</b>{@link PartSlot} の名前とはぶつからず、
+     * 古い版で開いても「知らない場所」として読み飛ばされる。
+     */
+    private static final String KEY_PAINT = "paint";
 
     private static final String KEY_ID = "Id";
     private static final String KEY_CAMBER = "Camber";
@@ -168,9 +202,34 @@ public final class PartFitment {
      * 包む必要が無いうえ、包むと {@link #with} が壊れる（下記）。
      */
     private final EnumMap<PartSlot, Setting> parts;
+    /** 塗装の id。null なら車種の既定の色。 */
+    @Nullable
+    private final String paint;
 
-    private PartFitment(EnumMap<PartSlot, Setting> parts) {
+    private PartFitment(EnumMap<PartSlot, Setting> parts, @Nullable String paint) {
         this.parts = parts;
+        this.paint = paint;
+    }
+
+    private static PartFitment of(EnumMap<PartSlot, Setting> parts, @Nullable String paint) {
+        return parts.isEmpty() && paint == null ? EMPTY : new PartFitment(parts, paint);
+    }
+
+    /** 塗装の id（{@code vehicles/<car>.json} の {@code paints[].id}）。null なら車種の既定の色。 */
+    @Nullable
+    public String paint() {
+        return paint;
+    }
+
+    /**
+     * 塗装だけ入れ替える。
+     *
+     * @param paint 塗装の id。<b>null で既定の色へ戻す</b>。受け付けられない形の id も null と同じ
+     */
+    public PartFitment withPaint(@Nullable String paint) {
+        EnumMap<PartSlot, Setting> next = new EnumMap<>(PartSlot.class);
+        next.putAll(parts);
+        return of(next, sanitizePaint(paint));
     }
 
     /** その場所の状態。何もしていなければ {@link Setting#NONE}（null は返さない）。 */
@@ -216,7 +275,7 @@ public final class PartFitment {
     }
 
     public boolean isEmpty() {
-        return parts.isEmpty();
+        return parts.isEmpty() && paint == null;
     }
 
     /**
@@ -248,7 +307,7 @@ public final class PartFitment {
                 next.put(slot, changed);
             }
         }
-        return next.isEmpty() ? EMPTY : new PartFitment(next);
+        return of(next, paint);
     }
 
     /** 1 か所だけ入れ替えた装着状態。 */
@@ -269,7 +328,7 @@ public final class PartFitment {
         } else {
             next.put(slot, setting);
         }
-        return new PartFitment(next);
+        return of(next, paint);
     }
 
     /**
@@ -366,6 +425,9 @@ public final class PartFitment {
             }
             tag.put(entry.getKey().getSerializedName(), slot);
         }
+        if (paint != null) {
+            tag.putString(KEY_PAINT, paint);
+        }
         return tag;
     }
 
@@ -382,7 +444,8 @@ public final class PartFitment {
                 parts.put(slot, setting);
             }
         }
-        return parts.isEmpty() ? EMPTY : new PartFitment(parts);
+        String paint = tag.getTagType(KEY_PAINT) == Tag.TAG_STRING ? sanitizePaint(tag.getString(KEY_PAINT)) : null;
+        return of(parts, paint);
     }
 
     /**
@@ -424,6 +487,9 @@ public final class PartFitment {
      *
      * <p>NBT と同じく場所の名前で引き、キーも小文字にしてある（手で読み書きされるため）。
      * 何もしていない場所は書かない。</p>
+     *
+     * <p><b>塗装は書かない。</b>プリセットは走りの設定を持ち運ぶもので、読み込むたびに色まで
+     * 塗り替わると、同じセッティングを別の色の車で使えなくなる。</p>
      */
     public JsonObject toJson() {
         JsonObject root = new JsonObject();
@@ -473,7 +539,7 @@ public final class PartFitment {
                 parts.put(slot, setting);
             }
         }
-        return parts.isEmpty() ? EMPTY : new PartFitment(parts);
+        return of(parts, null);
     }
 
     @Nullable
@@ -492,6 +558,10 @@ public final class PartFitment {
             buf.writeUtf(entry.getKey().getSerializedName());
             writeSetting(buf, entry.getValue());
         }
+        buf.writeBoolean(paint != null);
+        if (paint != null) {
+            buf.writeUtf(paint, PAINT_MAX_LENGTH);
+        }
     }
 
     public static PartFitment read(FriendlyByteBuf buf) {
@@ -507,7 +577,9 @@ public final class PartFitment {
                 parts.put(slot, setting);
             }
         }
-        return parts.isEmpty() ? EMPTY : new PartFitment(parts);
+        // 送り手は信用できない。形の合わない id は既定の色に読み替える
+        String paint = buf.readBoolean() ? sanitizePaint(buf.readUtf(PAINT_MAX_LENGTH)) : null;
+        return of(parts, paint);
     }
 
     public static void writeSetting(FriendlyByteBuf buf, Setting setting) {
@@ -556,16 +628,17 @@ public final class PartFitment {
     @Override
     public boolean equals(Object other) {
         return this == other
-                || (other instanceof PartFitment fitment && parts.equals(fitment.parts));
+                || (other instanceof PartFitment fitment && parts.equals(fitment.parts)
+                && Objects.equals(paint, fitment.paint));
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(parts);
+        return Objects.hash(parts, paint);
     }
 
     @Override
     public String toString() {
-        return "PartFitment" + parts;
+        return "PartFitment" + parts + (paint == null ? "" : " paint=" + paint);
     }
 }

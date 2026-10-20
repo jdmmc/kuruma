@@ -18,7 +18,7 @@ public final class KurumaNetwork {
      * パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれるので、
      * 読み違えたまま遊べてしまうことがない。
      */
-    private static final String PROTOCOL_VERSION = "3";
+    private static final String PROTOCOL_VERSION = "4";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Kurumamod.MODID, "main"),
@@ -116,6 +116,12 @@ public final class KurumaNetwork {
                 .encoder(CarScrapePacket::encode)
                 .decoder(CarScrapePacket::new)
                 .consumerMainThread(CarScrapePacket::handle)
+                .add();
+        // 塗装の要求。一覧はクライアントだけが知っているので、サーバーは形だけ見て覚えて配る
+        CHANNEL.messageBuilder(CarPaintRequestPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(CarPaintRequestPacket::encode)
+                .decoder(CarPaintRequestPacket::new)
+                .consumerMainThread(CarPaintRequestPacket::handle)
                 .add();
     }
 }

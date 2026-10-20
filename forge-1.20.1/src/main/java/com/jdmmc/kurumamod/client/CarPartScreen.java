@@ -42,6 +42,12 @@ import java.util.List;
  * 場所の切り替えは<b>2 つ以上あるときだけ</b>出す。1 つしかないうちから置くと、
  * 押せないタブが 1 枚あるだけの列になる。</p>
  *
+ * <h2>塗装も同じ列に並べる</h2>
+ *
+ * <p>塗装は部品ではないが、<b>「塗った車がどう見えるか」で選ぶ</b>点は同じなので、場所のタブの
+ * 最後に「塗装」のタブを足して、同じタイルの列で選ばせる。車種の {@code paints} が 2 つ以上
+ * あるときだけ出す（1 つでは選ぶものが無い）。</p>
+ *
  * <h2>装着中の印は毎フレーム車から読む</h2>
  *
  * <p>プリセット画面と違って、こちらは<b>サーバーへ要求を送る</b>——何を履けるか決めるのは
@@ -88,6 +94,8 @@ public class CarPartScreen extends Screen {
     private final Screen parent;
     /** いま並べている場所。場所が 2 つ以上あるときだけ画面から切り替えられる。 */
     private PartSlot slot = PartSlot.WHEEL;
+    /** 塗装のタブを開いているか。開いている間は {@link #slot} を見ない。 */
+    private boolean paintMode;
     private final List<PartTile> tiles = new ArrayList<>();
     private final List<LookSlider> sliders = new ArrayList<>();
 
@@ -110,6 +118,10 @@ public class CarPartScreen extends Screen {
         // 見ていた場所が意味を失った（ターボを外してブローオフのタブが消えた）ら、先頭へ戻す
         if (!lastShown.contains(slot)) {
             slot = lastShown.get(0);
+        }
+        // 塗装を選べない車に乗り換えたら、場所の列へ戻す
+        if (paintMode && !hasPaintTab()) {
+            paintMode = false;
         }
 
         List<Entry> entries = entries();
@@ -163,6 +175,9 @@ public class CarPartScreen extends Screen {
 
     /** いまの場所で出す調整値。 */
     private List<Adjustment> adjustments() {
+        if (paintMode) {
+            return List.of();
+        }
         if (slot == PartSlot.WHEEL) {
             return List.of(Adjustment.CAMBER, Adjustment.OFFSET, Adjustment.WIDTH);
         }
@@ -205,24 +220,63 @@ public class CarPartScreen extends Screen {
      */
     private void addSlotTabs() {
         List<PartSlot> shown = shownSlots();
-        if (shown.size() < 2) {
+        int count = tabCount();
+        if (count < 2) {
             return;
         }
-        int tabWidth = tabWidth(shown.size());
+        int tabWidth = tabWidth(count);
         int y = rowTop - ROW_STEP * (MAX_ROWS + 1);
-        int totalWidth = shown.size() * (tabWidth + TILE_GAP) - TILE_GAP;
+        int totalWidth = count * (tabWidth + TILE_GAP) - TILE_GAP;
         int left = (width - totalWidth) / 2;
         for (int i = 0; i < shown.size(); i++) {
             PartSlot value = shown.get(i);
             Button tab = addRenderableWidget(Button.builder(value.displayName(), button -> {
                         slot = value;
+                        paintMode = false;
                         scroll = 0;
                         rebuildWidgets();
                     })
                     .bounds(left + i * (tabWidth + TILE_GAP), y, tabWidth, 18)
                     .build());
-            tab.active = value != slot;
+            tab.active = paintMode || value != slot;
         }
+        if (hasPaintTab()) {
+            Button tab = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.part.paint"),
+                            button -> {
+                                paintMode = true;
+                                scroll = 0;
+                                rebuildWidgets();
+                            })
+                    .bounds(left + shown.size() * (tabWidth + TILE_GAP), y, tabWidth, 18)
+                    .build());
+            tab.active = !paintMode;
+        }
+    }
+
+    /** タブの枚数（場所 ＋ 塗装）。 */
+    private int tabCount() {
+        return shownSlots().size() + (hasPaintTab() ? 1 : 0);
+    }
+
+    /** 塗装のタブを出すか。<b>選べる色が 2 つ以上ある車だけ。</b> */
+    private static boolean hasPaintTab() {
+        return paints().size() >= 2;
+    }
+
+    /** 乗っている車の塗装の一覧。乗っていなければ空。 */
+    private static List<CarModel.Paint> paints() {
+        CarEntity car = CarClientDriver.driving();
+        return car == null ? List.of() : CarModel.get(car.getCarId()).paints();
+    }
+
+    /** いま塗られている塗装の id。塗装の無い車・乗っていなければ null。 */
+    @Nullable
+    private static String paintedId(@Nullable CarEntity car) {
+        if (car == null) {
+            return null;
+        }
+        CarModel.Paint paint = CarModel.get(car.getCarId()).paintOf(car.getFitment());
+        return paint == null ? null : paint.id();
     }
 
     /**
@@ -272,6 +326,13 @@ public class CarPartScreen extends Screen {
      */
     private List<Entry> entries() {
         List<Entry> entries = new ArrayList<>();
+        if (paintMode) {
+            // 先頭が新車の色。「純正」は置かない（先頭の色を選べばそれが純正）
+            for (CarModel.Paint paint : paints()) {
+                entries.add(new Entry(null, Component.translatable(paint.name()), null, paint));
+            }
+            return entries;
+        }
         // ホイールは「純正」、ターボとブローオフは「なし」（付いていないのが素の状態）
         entries.add(new Entry(null, Component.translatable(slot.emptyKey()), null));
         CarEntity car = CarClientDriver.driving();
@@ -359,8 +420,11 @@ public class CarPartScreen extends Screen {
         // 装着中かどうかは車から読む。押した結果が返ってきて初めてここが変わる
         CarEntity car = CarClientDriver.driving();
         ResourceLocation fitted = car == null ? null : car.getFitment().getPart(slot);
+        String painted = paintedId(car);
         for (PartTile tile : tiles) {
-            tile.update(car != null, sameId(tile.entry.id(), fitted));
+            tile.update(car != null, paintMode
+                    ? tile.entry.paint() != null && tile.entry.paint().id().equals(painted)
+                    : sameId(tile.entry.id(), fitted));
         }
         for (LookSlider slider : sliders) {
             slider.active = car != null;
@@ -373,7 +437,8 @@ public class CarPartScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
 
         graphics.drawString(font, title, TEXT_LEFT, TITLE_Y, 0xFFFFFFFF);
-        graphics.drawString(font, slot.displayName(), TEXT_LEFT, TITLE_Y + 12, ScreenStyle.ACCENT);
+        graphics.drawString(font, paintMode ? Component.translatable("screen.kurumamod.part.paint") : slot.displayName(),
+                TEXT_LEFT, TITLE_Y + 12, ScreenStyle.ACCENT);
         // 運転していないと換装できない。理由を出さないと、押せないタイルの意味が分からない
         graphics.drawString(font, Component.translatable(car == null
                         ? "screen.kurumamod.part.need_driving"
@@ -396,7 +461,7 @@ public class CarPartScreen extends Screen {
      * タブの上で止め、かぶらなければタイルの上まで使う。入りきらなければパネルが自分で縮む。</p>
      */
     private void renderInfo(GuiGraphics graphics, @Nullable CarEntity car, @Nullable ResourceLocation fitted) {
-        if (!PartInfoPanel.covers(slot)) {
+        if (paintMode || !PartInfoPanel.covers(slot)) {
             return;
         }
         PartTile shown = null;
@@ -421,7 +486,7 @@ public class CarPartScreen extends Screen {
         }
         int right = width - INFO_RIGHT_MARGIN;
         int bottom = rowTop - 6;
-        int tabCount = shownSlots().size();
+        int tabCount = tabCount();
         if (tabCount >= 2) {
             int tabsRight = width / 2 + (tabCount * (tabWidth(tabCount) + TILE_GAP) - TILE_GAP) / 2;
             if (right - PartInfoPanel.WIDTH < tabsRight + 4) {
@@ -500,7 +565,8 @@ public class CarPartScreen extends Screen {
     /** いまの状態をサーバーへ送る。調整値が変わったティックと、画面を閉じるとき。 */
     private void sendCurrent() {
         CarEntity car = CarClientDriver.driving();
-        if (car != null) {
+        // 塗装のタブには調整値が無い（塗装はタイルを押したときに送ってある）
+        if (car != null && !paintMode) {
             CarClientDriver.requestPart(slot, car.getFitment().get(slot));
         }
     }
@@ -541,8 +607,14 @@ public class CarPartScreen extends Screen {
      * @param id    部品の id。<b>null が「純正」</b>（何も履いていない状態）
      * @param label 画面に出す名前
      * @param pack  どのカーパックのものか。同梱のぶんは null（出さない）
+     * @param paint 塗装のタブのタイルなら、その塗装。部品のタイルは null
      */
-    private record Entry(@Nullable ResourceLocation id, Component label, @Nullable String pack) {
+    private record Entry(@Nullable ResourceLocation id, Component label, @Nullable String pack,
+                         @Nullable CarModel.Paint paint) {
+
+        Entry(@Nullable ResourceLocation id, Component label, @Nullable String pack) {
+            this(id, label, pack, null);
+        }
     }
 
     /**
@@ -812,6 +884,10 @@ public class CarPartScreen extends Screen {
 
         @Override
         public void onClick(double mouseX, double mouseY) {
+            if (entry.paint() != null) {
+                CarClientDriver.requestPaint(entry.paint().id());
+                return;
+            }
             CarClientDriver.requestPart(slot, settingWithPart(entry.id()));
         }
 
@@ -831,7 +907,9 @@ public class CarPartScreen extends Screen {
 
             float iconX = (left + right) / 2.0F;
             float iconY = (top + labelTop) / 2.0F;
-            switch (slot) {
+            if (entry.paint() != null) {
+                renderPaintIcon(graphics, iconX, iconY, entry.paint());
+            } else switch (slot) {
                 case TIRE -> renderTireIcon(graphics, iconX, iconY);
                 case TURBO -> renderTurboIcon(graphics, iconX, iconY);
                 case BLOWOFF -> renderBlowoffIcon(graphics, iconX, iconY);
@@ -934,6 +1012,33 @@ public class CarPartScreen extends Screen {
                 float reach = size * (0.9F + 0.25F * (i % 2));
                 GaugePainter.rect(graphics, centerX + size * 0.7F, y, centerX + size * 0.7F + reach, y + 1.6F, accent);
                 GaugePainter.rect(graphics, centerX - size * 0.7F - reach, y, centerX - size * 0.7F, y + 1.6F, accent);
+            }
+        }
+
+        /**
+         * 塗装の絵。<b>部品の絵と同じ横から見た車を、その色で塗る。</b>
+         *
+         * <p>色見本（{@code swatch}）が無い塗装は灰色の車に「?」。テクスチャから色を拾うことも
+         * できるが、窓や灯火の色まで混ざって濁るので、色はカーパックに書いてもらう。</p>
+         */
+        private void renderPaintIcon(GuiGraphics graphics, float centerX, float centerY, CarModel.Paint paint) {
+            float u = 6.0F;
+            int color = paint.swatch() != null ? 0xFF000000 | paint.swatch() : 0xFF6E6E6E;
+            float left = centerX - u * 3.0F;
+            float right = centerX + u * 3.0F;
+            float floor = centerY + u * 0.9F;
+            GaugePainter.rect(graphics, left, centerY - u * 0.3F, right, floor, color);
+            GaugePainter.rect(graphics, centerX - u * 1.4F, centerY - u * 1.3F, centerX + u * 1.2F,
+                    centerY - u * 0.3F, color);
+            // 窓。塗装の色が濃くても車の形に見えるように
+            GaugePainter.rect(graphics, centerX - u * 1.1F, centerY - u * 1.05F, centerX + u * 0.9F,
+                    centerY - u * 0.45F, 0xFF9FB4C8);
+            GaugePainter.arc(graphics, left + u * 1.3F, floor, 0.0F, u * 0.7F, 0.0F, 360.0F, COLOR_TIRE);
+            GaugePainter.arc(graphics, right - u * 1.3F, floor, 0.0F, u * 0.7F, 0.0F, 360.0F, COLOR_TIRE);
+            if (paint.swatch() == null) {
+                GaugePainter.flush(graphics);
+                graphics.drawString(font, "?", (int) centerX - font.width("?") / 2, (int) (centerY - u * 0.2F),
+                        0xFFFFFFFF, false);
             }
         }
 
