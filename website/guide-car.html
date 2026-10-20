@@ -103,7 +103,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-file">ファイル</span><b>フォルダの中身を jar に固めて、<code>mods/</code> に入れる。</b>フォルダごとではなく中身を固める → <a href="guide-ship.html#s-jar">配布の 1 章</a></li>
 <li><span class="where where-game">ゲーム</span><b>起動して、クリエイティブの「KurumaMod」タブから車を出して乗る。</b></li>
 </ol>
-<p class="ja">これで、自分の車体で、既定の車と同じように走る車が 1 台増えます。</p>
+<p class="ja">これで、自分の車体で、既定の諸元のまま走る車が 1 台増えます。</p>
 <ol class="steps en">
 <li><span class="where where-blender">Blender</span><b>Place the gauge.</b> → <a href="#s3">chapter 1</a></li>
 <li><span class="where where-blender">Blender</span><b>Model the body.</b> → <a href="#s4">chapter 2</a></li>
@@ -116,7 +116,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-file">File</span><b>Zip the folder's contents into a jar and put it in <code>mods/</code>.</b> Zip what is inside the folder, not the folder itself → <a href="guide-ship.html#s-jar">chapter 1 of Shipping</a></li>
 <li><span class="where where-game">Game</span><b>Start the game, take the car from the "KurumaMod" creative tab and get in.</b></li>
 </ol>
-<p class="en">You now have one more car: your body, driving like the default car.</p>
+<p class="en">You now have one more car: your body, driving on the default spec.</p>
 
 <h3 class="ja">必要なときだけ</h3>
 <h3 class="en">Only when you need it</h3>
@@ -1379,7 +1379,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "designRideHeight": 0.6019
 }</code></pre>
 <ul>
-<li><code>designWheelBase</code> … メッシュの前後のホイールアーチが何 m 離れているか（既定 3.12）。5.2m で作ってしまったなら <code>5.2</code> と書けば、既定の車の大きさに縮みます</li>
+<li><code>designWheelBase</code> … メッシュの前後のホイールアーチが何 m 離れているか（既定 3.12）。5.2m で作ってしまったなら <code>5.2</code> と書けば、ゲージの大きさに縮みます</li>
 <li><code>designRideHeight</code> … 車体をシャシー基準面から下げる量 [m]（既定 0.6019）。車体が埋まる・浮くときに直す</li>
 <li>どれも「この車の寸法」ではなく「メッシュの寸法」です。実際の寸法は諸元にあり、ゲームはその比でメッシュを拡大します</li>
 </ul>
@@ -1406,7 +1406,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "designRideHeight": 0.6019
 }</code></pre>
 <ul>
-<li><code>designWheelBase</code> — how far apart the front and rear arches are in your mesh, in m (default 3.12). If you built it at 5.2 m, write <code>5.2</code> and it shrinks to the default car's size</li>
+<li><code>designWheelBase</code> — how far apart the front and rear arches are in your mesh, in m (default 3.12). If you built it at 5.2 m, write <code>5.2</code> and it shrinks to the gauge's size</li>
 <li><code>designRideHeight</code> — how far to drop the body below the chassis plane, in m (default 0.6019). Change it if the body sinks or floats</li>
 <li>These describe the mesh, not the car. The car's real sizes are in the spec, and the game scales the mesh by the ratio</li>
 </ul>
@@ -1902,7 +1902,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <details class="more ja">
 <summary>変えたい項目だけ書きたい</summary>
 <div class="more-body">
-<p>書かなかった項目は既定値になります。既定の車から変えたいところだけ残せば十分です。KurumaMod の項目が増えても、古いパックはそのまま読めます。</p>
+<p>書かなかった項目は既定値になります。既定値から変えたいところだけ残せば十分です。KurumaMod の項目が増えても、古いパックはそのまま読めます。</p>
 <ul>
 <li>書ける項目の全リストは<a href="#sc">付録 A</a>。ここに無い項目（バネ定数や重心高のように、車重などから自動で決まる値）は書いても読まれない</li>
 <li><code>values</code> を使わず、いちばん外側に直接書いてもよい</li>
@@ -1912,7 +1912,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <details class="more en">
 <summary>Write only what you change</summary>
 <div class="more-body">
-<p>Anything you leave out takes the default, so keep only what differs from the default car. Old packs keep loading when KurumaMod adds parameters.</p>
+<p>Anything you leave out takes the default, so keep only what differs from the defaults. Old packs keep loading when KurumaMod adds parameters.</p>
 <ul>
 <li>Every key is listed in <a href="#sc">Appendix A</a>. Anything not there (such as spring rates or the centre of gravity height, which follow from mass and the like) is ignored even if written</li>
 <li>You may skip <code>values</code> and write the keys at the top level instead</li>
@@ -2113,7 +2113,9 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
 <p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="ja"><b>既定は、何も書かなかったときの値です。</b>寸法（<code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code>）の既定はゲージの寸法と同じです。KurumaMod の既定の車（S15）は諸元を 1 つも書いておらず、すべて既定値で走ります。</p>
 <p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="en"><b>A default is the value used when you leave the key out.</b> The size defaults (<code>wheel_base</code>, <code>track_width</code>, <code>wheel_radius</code>) match the gauge. KurumaMod's default car (the S15) writes no spec keys at all and runs entirely on the defaults.</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
