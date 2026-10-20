@@ -18,6 +18,15 @@
     ],
     "scale": 1.0
   },
+  "_paints": "塗装。先頭が新車の色。換装画面（G → 換装）の「塗装」タブで選ぶ。texture は車体のテクスチャまるごとの差し替え",
+  "paints": [
+    { "id": "blue", "name": "paint.kurumamod.blue", "texture": "kurumamod:textures/entity/s15.png", "swatch": "#051F8C" },
+    { "id": "red", "name": "paint.kurumamod.red", "texture": "kurumamod:textures/entity/s15_red.png", "swatch": "#B41018" },
+    { "id": "black", "name": "paint.kurumamod.black", "texture": "kurumamod:textures/entity/s15_black.png", "swatch": "#0E0E10" },
+    { "id": "white", "name": "paint.kurumamod.white", "texture": "kurumamod:textures/entity/s15_white.png", "swatch": "#ECECE8" },
+    { "id": "silver", "name": "paint.kurumamod.silver", "texture": "kurumamod:textures/entity/s15_silver.png", "swatch": "#96999E" },
+    { "id": "yellow", "name": "paint.kurumamod.yellow", "texture": "kurumamod:textures/entity/s15_yellow.png", "swatch": "#F0BE10" }
+  ],
   "wheel": {
     "model": "kurumamod:models/entity/wheel.obj",
     "texture": "kurumamod:textures/entity/wheel.png",

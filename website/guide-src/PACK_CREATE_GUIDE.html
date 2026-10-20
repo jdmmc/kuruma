@@ -288,6 +288,7 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>窓を透けさせたい</td><td><a href="#glass">車の 3 章</a></td></tr>
 <tr><td>ミラーに後ろを映したい</td><td><a href="#mirror">車の 3 章</a></td></tr>
 <tr><td>ハンドルを回したい（運転者の手が握る）</td><td><a href="#steering">車の 3 章</a></td></tr>
+<tr><td>車の色違いを選べるようにしたい</td><td><a href="#paint">車の 4 章</a></td></tr>
 <tr><td>エンジン音を変えたい</td><td><a href="#s-sound">車の 7 章</a></td></tr>
 <tr><td>走り（加速・曲がりかた）を決めたい</td><td><a href="#s-spec">車の 8 章</a></td></tr>
 <tr><td>ホイールを作って換装画面で選べるようにしたい</td><td><a href="#s6">ホイールの 1 章</a>・<a href="#s-parts">2 章</a></td></tr>
@@ -307,6 +308,7 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>Make the windows see-through</td><td><a href="#glass-en">Car guide, chapter 3</a></td></tr>
 <tr><td>Make the mirrors show what is behind</td><td><a href="#mirror-en">Car guide, chapter 3</a></td></tr>
 <tr><td>Make the steering wheel turn (held by the driver's hands)</td><td><a href="#steering-en">Car guide, chapter 3</a></td></tr>
+<tr><td>Let players pick the car's colour</td><td><a href="#paint-en">Car guide, chapter 4</a></td></tr>
 <tr><td>Change the engine sound</td><td><a href="#s-sound">Car guide, chapter 7</a></td></tr>
 <tr><td>Set how it drives (acceleration, handling)</td><td><a href="#s-spec">Car guide, chapter 8</a></td></tr>
 <tr><td>Make a wheel players can pick in the parts screen</td><td><a href="#s6">Wheel guide, chapters 1</a> and <a href="#s-parts">2</a></td></tr>
@@ -1574,6 +1576,47 @@ description = '''...'''              # description in the mod list
 </ol>
 <p class="en">Press <kbd>F3</kbd>+<kbd>T</kbd> in game and the body is textured.</p>
 
+<h3 id="paint" class="ja">色違いを選べるようにする（塗装）</h3>
+<h3 id="paint-en" class="en">Let players pick the colour (paints)</h3>
+<p class="ja">車体のテクスチャを色違いで何枚か用意すると、プレイヤーが換装画面の「塗装」タブで色を選べるようになります。選んだ色は<b>マルチプレイの他の人にも見え</b>、車をアイテムにして回収しても残ります。モデル（OBJ）は 1 つのままで、テクスチャだけを差し替えます。</p>
+<p class="en">Make a few colour versions of the body texture and players can pick one on the <b>Paint</b> tab of the parts screen. The chosen colour is <b>seen by everyone in multiplayer</b> and stays when the car is picked up as an item. The model (OBJ) stays the same; only the texture is swapped.</p>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>テクスチャを複製して、車体の色の部分だけを塗り替える。</b>UV の配置は変えないこと（同じモデルに貼るため）。窓・ライト・ミラーも同じテクスチャから色を取るので、そこは元のまま残す</li>
+<li><span class="where where-file">ファイル</span><b>PNG を並べて置く。</b>例: <code>assets/mypack/textures/entity/mycar_red.png</code>、<code>mycar_black.png</code></li>
+<li><span class="where where-file">ファイル</span><b>見た目の JSON に <code>paints</code> を書く。</b>並べた順に換装画面に出て、<b>先頭が新車の色</b>になります:
+<pre><code>"paints": [
+  { "id": "blue",  "name": "Blue",  "texture": "mypack:textures/entity/mycar.png",       "swatch": "#051F8C" },
+  { "id": "red",   "name": "Red",   "texture": "mypack:textures/entity/mycar_red.png",   "swatch": "#B41018" },
+  { "id": "black", "name": "Black", "texture": "mypack:textures/entity/mycar_black.png", "swatch": "#0E0E10" }
+]</code></pre></li>
+<li><span class="where where-game">ゲーム</span><kbd>F3</kbd>+<kbd>T</kbd> で読み直し、車に乗って <kbd>G</kbd> →「パーツ」→「塗装」タブ</li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Copy the texture and repaint only the body colour.</b> Keep the UV layout as it is (it goes on the same model). Windows, lights and mirrors take their colour from the same texture, so leave those parts alone</li>
+<li><span class="where where-file">File</span><b>Save the PNGs side by side.</b> For example <code>assets/mypack/textures/entity/mycar_red.png</code>, <code>mycar_black.png</code></li>
+<li><span class="where where-file">File</span><b>Write <code>paints</code> into the looks JSON.</b> They appear in the parts screen in this order, and <b>the first one is the factory colour</b>:
+<pre><code>"paints": [
+  { "id": "blue",  "name": "Blue",  "texture": "mypack:textures/entity/mycar.png",       "swatch": "#051F8C" },
+  { "id": "red",   "name": "Red",   "texture": "mypack:textures/entity/mycar_red.png",   "swatch": "#B41018" },
+  { "id": "black", "name": "Black", "texture": "mypack:textures/entity/mycar_black.png", "swatch": "#0E0E10" }
+]</code></pre></li>
+<li><span class="where where-game">Game</span>Reload with <kbd>F3</kbd>+<kbd>T</kbd>, get in the car, then <kbd>G</kbd> → <b>Parts</b> → <b>Paint</b> tab</li>
+</ol>
+<table class="ja">
+<tr><th>キー</th><th>必須</th><th>意味</th></tr>
+<tr><td><code>id</code></td><td>必須</td><td>塗装の名前。車の中で重ならないこと。<b>小文字・数字・<code>_ - .</code> だけ</b>、64 字まで。車に保存されるので、配ったあとは変えない</td></tr>
+<tr><td><code>texture</code></td><td>必須</td><td>車体のテクスチャ。<code>body.texture</code> と同じ書き方</td></tr>
+<tr><td><code>name</code></td><td></td><td>タイルに出す名前。そのままの文字でも、lang ファイルの翻訳キーでもよい。書かなければ <code>id</code></td></tr>
+<tr><td><code>swatch</code></td><td></td><td>タイルの色見本。<code>"#RRGGBB"</code>。書かなければ灰色の車に「?」</td></tr>
+</table>
+<table class="en">
+<tr><th>Key</th><th>Required</th><th>Meaning</th></tr>
+<tr><td><code>id</code></td><td>yes</td><td>The paint's name, unique within the car. <b>Lower-case letters, digits and <code>_ - .</code> only</b>, up to 64 characters. It is saved on the car, so don't change it after release</td></tr>
+<tr><td><code>texture</code></td><td>yes</td><td>The body texture, written like <code>body.texture</code></td></tr>
+<tr><td><code>name</code></td><td></td><td>Name shown on the tile. Plain text or a translation key from your lang file. Defaults to <code>id</code></td></tr>
+<tr><td><code>swatch</code></td><td></td><td>Colour sample on the tile, as <code>"#RRGGBB"</code>. Without it the tile shows a grey car with “?”</td></tr>
+</table>
+
 <h3 class="ja">必要なときだけ</h3>
 <h3 class="en">Only when you need it</h3>
 
@@ -1612,6 +1655,33 @@ description = '''...'''              # description in the mod list
 </details>
 
 <details class="more ja">
+<summary>塗装について、もう少し詳しく</summary>
+<div class="more-body">
+<ul>
+<li><b>「塗装」タブは、塗装を 2 つ以上書いた車にだけ出ます。</b>1 つだけでは選ぶものが無いためです</li>
+<li><b><code>paints</code> を書いた車では、<code>body.texture</code> の代わりに先頭の塗装が使われます。</b>先頭に元のテクスチャを置いておけば迷いません</li>
+<li><b>単色でなくてもかまいません。</b>ストライプ・ゼッケン・ラッピングも、テクスチャを描き分けるだけで同じように足せます</li>
+<li><b>色の名前を翻訳したいとき</b>は、<code>name</code> に翻訳キー（例 <code>paint.mypack.red</code>）を書き、<code>assets/mypack/lang/ja_jp.json</code> などにそのキーを足します</li>
+<li><b>パックを更新して塗装を消した・<code>id</code> を変えたとき</b>、その色を選んでいた車は先頭の色で描かれます。<code>id</code> を戻せば元の色に戻ります</li>
+<li><b>マルチプレイでは、見る人も同じカーパックを入れている必要があります。</b>サーバーが配るのは選んだ塗装の <code>id</code> だけで、画像は各自のパックから読むためです。パックが古い人には先頭の色で見えます</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>More about paints</summary>
+<div class="more-body">
+<ul>
+<li><b>The Paint tab only appears for cars with two or more paints.</b> With one there is nothing to choose</li>
+<li><b>When a car has <code>paints</code>, the first paint is used instead of <code>body.texture</code>.</b> Put your original texture first to avoid confusion</li>
+<li><b>It doesn't have to be a solid colour.</b> Stripes, race numbers and wraps work the same way: just draw them into the texture</li>
+<li><b>To translate colour names</b>, write a translation key in <code>name</code> (e.g. <code>paint.mypack.red</code>) and add that key to <code>assets/mypack/lang/en_us.json</code> and so on</li>
+<li><b>If an update removes a paint or changes its <code>id</code></b>, cars that had it are drawn in the first colour. Restore the <code>id</code> and they get their colour back</li>
+<li><b>In multiplayer, viewers need the same car pack.</b> The server only sends the chosen paint's <code>id</code>; each player loads the image from their own pack. Players with an older pack see the first colour</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
 <summary>テクスチャを使わず、マテリアルの色だけで塗り分けたい</summary>
 <div class="more-body">
 <p>できます。マテリアルの Base Color が、テクスチャの色に掛け合わされて出ます。テクスチャを白一色にしておけば、マテリアルの色がそのまま出ます。書き出した <code>.mtl</code> を OBJ と一緒に置いてください。色はこのファイルが運びます。</p>
@@ -1631,6 +1701,9 @@ description = '''...'''              # description in the mod list
 <li><b>テクスチャが暗い</b> … マテリアルの Base Color が Blender の既定の 0.8 グレーのまま。白にする</li>
 <li><b>マテリアルの色が出ず、全体が白い</b> … <code>.mtl</code> を OBJ と一緒に置いていない。マテリアルを使わないつもりなら、それで問題ない</li>
 <li><b>テクスチャが変わらない</b> … <kbd>F3</kbd>+<kbd>T</kbd> を押したか。<code>texture</code> のパスと名前空間（<code>mypack:</code>）が合っているか</li>
+<li><b>塗装を選んでも色が変わらない</b> … 車体の色をマテリアルの Base Color で付けていると、テクスチャを替えても同じ色が掛け合わされたままになる。色はテクスチャ側に持たせ、Base Color は白にする</li>
+<li><b>「塗装」タブが出ない</b> … <code>paints</code> が 2 つ以上あるか。<code>id</code> に大文字や空白が入っているとその塗装は読み飛ばされる（ログに理由が出る）</li>
+<li><b>窓やライトの色まで変わった</b> … それらも同じテクスチャから色を取っている。塗り替えるのは車体の色の部分だけにする</li>
 </ul>
 </div>
 </details>
@@ -1641,6 +1714,9 @@ description = '''...'''              # description in the mod list
 <li><b>The texture comes out dark</b> — the material's Base Color is still Blender's default 0.8 grey. Set it to white</li>
 <li><b>Material colours don't show; everything is white</b> — the <code>.mtl</code> is not next to the OBJ. If you don't use materials, that is fine</li>
 <li><b>The texture doesn't change</b> — did you press <kbd>F3</kbd>+<kbd>T</kbd>? Do the <code>texture</code> path and namespace (<code>mypack:</code>) match?</li>
+<li><b>Picking a paint doesn't change the colour</b> — if the body colour comes from the material's Base Color, it is still multiplied over the new texture. Keep the colour in the texture and set Base Color to white</li>
+<li><b>No Paint tab</b> — are there two or more <code>paints</code>? A paint whose <code>id</code> has capitals or spaces is skipped (the log says why)</li>
+<li><b>Windows or lights changed colour too</b> — they take their colour from the same texture. Repaint only the body colour</li>
 </ul>
 </div>
 </details>
@@ -2064,6 +2140,7 @@ description = '''...'''              # description in the mod list
 <tr><td><code>icon</code></td><td>車のモデルから作る</td><td>アイテムのアイコンの画像。テクスチャのパスを <code>.png</code> まで書く（例 <code>mypack:textures/item/kei.png</code>）</td></tr>
 <tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">7 章</a>）</td></tr>
 <tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>paints</code></td><td>なし</td><td>選べる色違いのテクスチャ。先頭が新車の色（<a href="#paint">4 章</a>）</td></tr>
 </table>
 <p><b>アイコンは用意しなくても構いません。</b><code>icon</code> を書かなければ、車のモデルを斜め前から写した絵が自動で作られます。自分で描いた絵にしたいときだけ、PNG を <code>assets/&lt;パック&gt;/textures/item/</code> に置いて <code>icon</code> に書きます。正方形で、32×32 か 64×64 がおすすめ。持ち物・手に持ったとき・地面に落ちたときのどれにもこの絵が出ます。パスを間違えると、自動で作った絵に戻ってログに残ります。</p>
 <p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">8 章</a>）。</p>
@@ -2092,6 +2169,7 @@ description = '''...'''              # description in the mod list
 <tr><td><code>icon</code></td><td>made from the car model</td><td>Image for the item icon. Write the texture path including <code>.png</code> (e.g. <code>mypack:textures/item/kei.png</code>)</td></tr>
 <tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 7</a>)</td></tr>
 <tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td><code>paints</code></td><td>none</td><td>Colour versions of the body texture players can pick. The first is the factory colour (<a href="#paint-en">chapter 4</a>)</td></tr>
 </table>
 <p><b>You do not have to make an icon.</b> Without <code>icon</code>, a picture of your car model seen from the front corner is made automatically. Only if you want your own drawing, put a PNG under <code>assets/&lt;pack&gt;/textures/item/</code> and name it in <code>icon</code>. Make it square; 32×32 or 64×64 works well. The same picture is used in the inventory, in the hand and when dropped on the ground. If the path is wrong, the automatic picture is used and the log says so.</p>
 <p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>).</p>

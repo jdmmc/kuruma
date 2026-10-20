@@ -78,7 +78,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
 
     @Override
     public ResourceLocation getTextureLocation(CarEntity car) {
-        return CarModel.get(car.getCarId()).bodyTexture();
+        return CarModel.get(car.getCarId()).bodyTexture(car.getFitment());
     }
 
     @Override
@@ -305,6 +305,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                             MultiBufferSource buffer, int packedLight, int lod) {
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
+        // 塗装で変わる。灯火・鏡・ガラスも同じテクスチャから色を取る
+        ResourceLocation texture = model.bodyTexture(car.getFitment());
 
         // ここでは不透明な面だけ。ガラスは renderGlass が最後に描く。
         // GPU に置いたまま描けるならそうする（CarMeshes。シェーダーパック中などは以前の描き方）
@@ -313,13 +315,13 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         if (HeadlightVolume.ShaderPacks.renderingShadowPass()) {
             // シェーダーパックが太陽・月の影を描いている最中は、サスペンション（susp*）を落とさない
             bodyMesh.renderShadowCaster(pose.last(),
-                    buffer.getBuffer(RenderType.entityCutoutNoCull(model.bodyTexture())),
+                    buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
                     packedLight, OverlayTexture.NO_OVERLAY);
         } else if (meshes()) {
-            CarMeshes.draw(bodyMesh, false, false, model.bodyTexture(), pose.last(), packedLight);
+            CarMeshes.draw(bodyMesh, false, false, texture, pose.last(), packedLight);
         } else {
             bodyMesh.render(pose.last(),
-                    buffer.getBuffer(solid(model.bodyTexture())),
+                    buffer.getBuffer(solid(texture)),
                     packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F, null, false,
                     ObjModel.Pass.OPAQUE);
         }
@@ -328,26 +330,26 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         // 数が少ないので間引かず、GPU にも置かない（車ごとに出すものが違う）
         ObjModel body = ObjModel.get(model.bodyModel());
         CarModel.BodyParts parts = model.bodyParts(car.getEffectiveFitment(), body.optionalNames());
-        body.renderOptional(pose.last(), buffer.getBuffer(solid(model.bodyTexture())),
+        body.renderOptional(pose.last(), buffer.getBuffer(solid(texture)),
                 packedLight, OverlayTexture.NO_OVERLAY, parts.shown(), ObjModel.Pass.OPAQUE);
 
         // ハンドル。本体の面からは外してあるので、ここが描かないと穴が開く
-        drawSteeringWheel(car, model, spec, body, pose, buffer.getBuffer(solid(model.bodyTexture())),
+        drawSteeringWheel(car, model, spec, body, pose, buffer.getBuffer(solid(texture)),
                 packedLight, ObjModel.Pass.OPAQUE);
 
         // 灯火は車体と同じ姿勢・同じ拡大率で描く。位置も向きもメッシュから読むので、
         // ここで車体と同じ変換の中に入れておけば JSON に座標を書かなくて済む
         if (ghostPass != null) {
             // ゴーストは光らせない。レンズは車体のパスから外してあるので、ただの面として埋める
-            body.renderLightsPlain(pose.last(), buffer.getBuffer(solid(model.bodyTexture())),
+            body.renderLightsPlain(pose.last(), buffer.getBuffer(solid(texture)),
                     packedLight, OverlayTexture.NO_OVERLAY);
             pose.popPose();
             return;
         }
-        CarLights.renderLenses(car, body, pose, buffer, packedLight, model.bodyTexture());
+        CarLights.renderLenses(car, body, pose, buffer, packedLight, texture);
 
         // 鏡面も同じ変換の中で描く。<b>車体のパスから外してあるので、ここが描かないと穴が開く</b>
-        MirrorRenderer.renderSurfaces(car, body, pose, buffer, packedLight, model.bodyTexture());
+        MirrorRenderer.renderSurfaces(car, body, pose, buffer, packedLight, texture);
 
         pose.popPose();
     }
@@ -368,7 +370,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
-        var consumer = buffer.getBuffer(clear(model.bodyTexture()));
+        var consumer = buffer.getBuffer(clear(model.bodyTexture(car.getFitment())));
         // 乗っている車を一人称で見ているときは、ガラスを薄くする（INSIDE_GLASS_ALPHA）。
         // ゴーストの濃さが入っていることもあるので、上書きせずに掛けて戻す
         float outside = ObjModel.alphaScale;

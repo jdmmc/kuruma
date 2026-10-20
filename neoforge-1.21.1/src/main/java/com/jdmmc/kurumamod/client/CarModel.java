@@ -89,6 +89,7 @@ import java.util.Set;
  *                          書かなかった部品は名前の決まり {@code part_<部品のパス>} で探す
  * @param icon              アイテムのアイコンの画像（{@code icon}。テクスチャのパスを拡張子込みで書く）。
  *                          null なら車のモデルから焼いた絵を使う（{@code CarIcons}）
+ * @param paints            塗装の一覧（{@code paints}）。<b>先頭が新車の色</b>。空なら {@code body.texture} だけ
  */
 public record CarModel(
         ResourceLocation bodyModel,
@@ -133,7 +134,8 @@ public record CarModel(
         float shadowRadius,
         CarSoundSet sounds,
         Map<ResourceLocation, PartObjects> partObjects,
-        @org.jetbrains.annotations.Nullable ResourceLocation icon) {
+        @org.jetbrains.annotations.Nullable ResourceLocation icon,
+        List<Paint> paints) {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -158,6 +160,58 @@ public record CarModel(
         public PartObjects {
             show = List.copyOf(show);
         }
+    }
+
+    /**
+     * 塗装 1 つ。{@code vehicles/<car>.json} の {@code paints}。
+     *
+     * <pre>
+     * "paints": [
+     *   { "id": "blue", "name": "paint.kurumamod.blue", "texture": "kurumamod:textures/entity/s15.png", "swatch": "#051F8C" },
+     *   { "id": "red",  "name": "Red", "texture": "kurumamod:textures/entity/s15_red.png", "swatch": "#B4141E" }
+     * ]
+     * </pre>
+     *
+     * <p><b>塗り替えるのは車体のテクスチャまるごと。</b>単色だけでなく、ステッカーやラッピングも
+     * 同じ書き方で足せる。UV は車体の OBJ のものをそのまま使うので、元のテクスチャと同じ配置で描くこと。
+     * ガラス・灯火・鏡も同じテクスチャから色を取るので、塗る場所以外は元のまま残す。</p>
+     *
+     * @param id      塗装の id。車ごとに一意。<b>小文字・数字・{@code _ - .} だけ</b>（{@link PartFitment#isValidPaint}）
+     * @param name    画面に出す名前。翻訳キーでもそのままの文字でもよい（キーが無ければそのまま出る）。
+     *                書かなければ id
+     * @param texture 車体のテクスチャ
+     * @param swatch  換装画面の色見本（0xRRGGBB）。null なら灰色の見本に「?」
+     */
+    public record Paint(String id, String name, ResourceLocation texture,
+                        @org.jetbrains.annotations.Nullable Integer swatch) {
+    }
+
+    /**
+     * その装着状態で使う塗装。<b>指定が無い・知らない id なら先頭（新車の色）</b>。塗装が 1 つも無ければ null。
+     *
+     * <p>知らない id は、カーパックを更新して消えた色や、手元のパックが古くて知らない色。
+     * 落とさずに先頭へ読み替えるだけなので、入れ直せば元の色に戻る。</p>
+     */
+    @org.jetbrains.annotations.Nullable
+    public Paint paintOf(PartFitment fitment) {
+        if (paints.isEmpty()) {
+            return null;
+        }
+        String id = fitment.paint();
+        if (id != null) {
+            for (Paint paint : paints) {
+                if (paint.id().equals(id)) {
+                    return paint;
+                }
+            }
+        }
+        return paints.get(0);
+    }
+
+    /** その装着状態で車体に貼るテクスチャ。塗装が無い車は {@code body.texture}。 */
+    public ResourceLocation bodyTexture(PartFitment fitment) {
+        Paint paint = paintOf(fitment);
+        return paint != null ? paint.texture() : bodyTexture;
     }
 
     /** いま出す部品の形。 */
@@ -287,7 +341,8 @@ public record CarModel(
                 1.4F,
                 CarSoundSet.NONE,
                 Map.of(),
-                null);
+                null,
+                List.of());
     }
 
     // ------------------------------------------------------------------
@@ -337,7 +392,74 @@ public record CarModel(
                 (float) number(root, "shadowRadius", base.shadowRadius()),
                 CarSoundSet.parse(child(root, "sounds")),
                 parsePartObjects(child(root, "parts"), location),
-                icon(root, location));
+                icon(root, location),
+                parsePaints(root, location));
+    }
+
+    /**
+     * {@code paints}。<b>読めない塗装はその 1 つだけ捨ててログに残す</b>（車の見た目まで既定へ落とさない）。
+     * id の重なりは先に書いたほうを使う。
+     */
+    private static List<Paint> parsePaints(JsonObject root, ResourceLocation location) {
+        if (!root.has("paints")) {
+            return List.of();
+        }
+        if (!root.get("paints").isJsonArray()) {
+            LOGGER.warn("{} の paints は配列で書いてください（塗装を無視します）", location);
+            return List.of();
+        }
+        List<Paint> paints = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        JsonArray array = root.getAsJsonArray("paints");
+        for (int i = 0; i < array.size(); i++) {
+            if (!array.get(i).isJsonObject()) {
+                LOGGER.warn("{} の paints[{}] を読めません（その塗装だけ無視します）", location, i);
+                continue;
+            }
+            JsonObject entry = array.get(i).getAsJsonObject();
+            String id = entry.has("id") && entry.get("id").isJsonPrimitive() ? entry.get("id").getAsString() : null;
+            if (!PartFitment.isValidPaint(id)) {
+                LOGGER.warn("{} の paints[{}].id は小文字・数字・_ - . の {} 字以内で書いてください（その塗装だけ無視します）: {}",
+                        location, i, PartFitment.PAINT_MAX_LENGTH, entry.get("id"));
+                continue;
+            }
+            if (!seen.add(id)) {
+                LOGGER.warn("{} の paints に id \"{}\" が 2 つあります（後のほうを無視します）", location, id);
+                continue;
+            }
+            ResourceLocation texture = entry.has("texture") && entry.get("texture").isJsonPrimitive()
+                    ? ResourceLocation.tryParse(entry.get("texture").getAsString()) : null;
+            if (texture == null) {
+                LOGGER.warn("{} の paints[{}]（{}）に texture がありません（その塗装だけ無視します）", location, i, id);
+                continue;
+            }
+            String name = entry.has("name") && entry.get("name").isJsonPrimitive()
+                    ? entry.get("name").getAsString() : id;
+            paints.add(new Paint(id, name, texture, swatch(entry, location, id)));
+        }
+        return List.copyOf(paints);
+    }
+
+    /** {@code swatch}（{@code "#RRGGBB"}）。読めなければ見本無し。 */
+    @org.jetbrains.annotations.Nullable
+    private static Integer swatch(JsonObject entry, ResourceLocation location, String id) {
+        if (!entry.has("swatch")) {
+            return null;
+        }
+        String raw = entry.get("swatch").isJsonPrimitive() ? entry.get("swatch").getAsString().trim() : "";
+        if (raw.startsWith("#")) {
+            raw = raw.substring(1);
+        }
+        if (raw.length() == 6) {
+            try {
+                return Integer.parseInt(raw, 16);
+            } catch (NumberFormatException ignored) {
+                // 下で知らせる
+            }
+        }
+        LOGGER.warn("{} の塗装 {} の swatch は \"#RRGGBB\" で書いてください（色見本を出しません）: {}",
+                location, id, entry.get("swatch"));
+        return null;
     }
 
     /**

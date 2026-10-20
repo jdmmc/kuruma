@@ -297,6 +297,21 @@ public final class CarClientDriver {
         KurumaNetwork.CHANNEL.sendToServer(new CarPartRequestPacket(car.getId(), slot, setting));
     }
 
+    /**
+     * 塗装を<b>要求</b>する。運転していなければ何もしない。
+     *
+     * <p>部品と同じく手元では反映せず、{@code CarPartsPacket} が戻ってきて変わる。</p>
+     *
+     * @param paint 塗装の id。null で既定の色へ戻す
+     */
+    public static void requestPaint(@Nullable String paint) {
+        CarEntity car = driving;
+        if (car == null) {
+            return;
+        }
+        KurumaNetwork.CHANNEL.sendToServer(new com.jdmmc.kurumamod.network.CarPaintRequestPacket(car.getId(), paint));
+    }
+
     /** 調整画面の値をサーバー側の車へ送る。運転していなければ何もしない。 */
     public static void sendTuningToServer() {
         CarEntity car = driving;
