@@ -654,5 +654,6 @@
   "screen.kurumamod.seat.section.body": "ボディ",
   "screen.kurumamod.seat.section.seat": "座席",
   "screen.kurumamod.seat.section.steering": "ハンドル",
-  "screen.kurumamod.seat.wheel.gauge_note": "ゲージどおりに作ったホイールなら、ここを調整する必要はないはずです"
+  "screen.kurumamod.seat.wheel.gauge_note": "ゲージどおりに作ったホイールなら、ここを調整する必要はないはずです",
+  "screen.kurumamod.seat.gauge_legend": "水色の線: Blender のゲージ。ゲージどおりに作った車体なら、タイヤハウスがこの輪に重なる"
 }
