@@ -57,7 +57,7 @@
 .gdoc table { border-collapse: collapse; width: 100%; margin: 0 0 24px; font-size: 14.5px; display: block; overflow-x: auto; }
 .gdoc th, .gdoc td { border-bottom: 1px solid var(--line); padding: 11px 14px 11px 0; text-align: left; vertical-align: top; line-height: 1.6; }
 .gdoc th { font-weight: 500; color: var(--grey); white-space: nowrap; border-bottom: 2px solid var(--black); font-size: 13px; }
-.gdoc #sc td:not(:last-child), .gdoc #sd td:not(:last-child), .gdoc #se td:not(:last-child) { white-space: nowrap; }
+.gdoc #sc td:not(:last-child), .gdoc #se td:not(:last-child), .gdoc #se-wheel td:not(:last-child), .gdoc #se-tire td:not(:last-child) { white-space: nowrap; }
 
 /* 手順（サイトの .steps カードとは別物） */
 .gdoc ol.steps { display: block; list-style: decimal; padding-left: 1.6em; margin: 0 0 20px; counter-reset: none; }

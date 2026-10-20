@@ -991,6 +991,7 @@ GPAGES = [
     ("prep", "guide-prep.html", ("Setup", "準備")),
     ("car", "guide-car.html", ("Car", "車")),
     ("wheel", "guide-wheel.html", ("Wheel", "ホイール")),
+    ("tire", "guide-tire.html", ("Tyre", "タイヤ")),
     ("parts", "guide-parts.html", ("Parts", "パーツ")),
     ("ship", "guide-ship.html", ("Shipping", "配布")),
 ]
@@ -999,7 +1000,8 @@ GTITLE = {
     "home": (("Car Pack Guide", "カーパック作成ガイド"), ("From a mesh in Blender to a car you can drive in Minecraft. No Java, and no Blender experience needed.", "Blender で作った車を、Minecraft の中で走らせるまで。Java も Blender の経験も要りません。")),
     "prep": (("Get set up", "制作の準備"), ("Copy the example pack and set up your own car pack folder.", "見本のパックをコピーして、自分のカーパックフォルダを用意する。")),
     "car": (("Make a car", "車を作る"), ("Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.", "車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）。")),
-    "wheel": (("Make a wheel", "ホイールを作る"), ("The wheel model, and turning wheels and tyres into parts players can pick.", "ホイールのモデルと、換装画面で選べるホイール・タイヤの部品にする方法。")),
+    "wheel": (("Make a wheel", "ホイールを作る"), ("The wheel model, and turning it into a part players can pick.", "ホイールのモデルと、換装画面で選べる部品にする方法。")),
+    "tire": (("Make a tyre", "タイヤを作る"), ("The tyre model, and tyres that change grip on each surface.", "タイヤのモデルと、路面ごとのグリップが変わるタイヤの部品。")),
     "parts": (("Make parts", "パーツを作る"), ("Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.", "ターボとブローオフバルブ、エアロやフェンダーなどの外装パーツ、マフラー。")),
     "ship": (("Ship it", "配布する"), ("Pack your car pack folder into a jar and share it, and fix what does not work.", "カーパックフォルダを jar に固めて配る。うまく動かないときの直しかた。")),
 }

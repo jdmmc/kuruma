@@ -79,7 +79,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <p><span data-l="en">From a mesh in Blender to a car you can drive in Minecraft. No Java, and no Blender experience needed.</span><span data-l="ja">Blender で作った車を、Minecraft の中で走らせるまで。Java も Blender の経験も要りません。</span></p>
   </div>
 </section>
-<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html" aria-current="page"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html" aria-current="page"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout solo">
   
@@ -95,7 +95,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <span class="card-d en">Copy the ExampleCarPack and set up your own car pack folder</span>
   </a>
 <p class="step-k ja">作る</p><p class="step-k en">Make</p>
-<div class="cards cards-3">
+<div class="cards">
   <a class="card" href="guide-car.html">
     <span class="card-t ja">車を作る</span><span class="card-t en">Make a car</span>
     <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
@@ -103,8 +103,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   </a>
   <a class="card" href="guide-wheel.html">
     <span class="card-t ja">ホイールを作る</span><span class="card-t en">Make a wheel</span>
-    <span class="card-d ja">タイヤのモデルと、換装画面で選べるホイール部品にする方法</span>
-    <span class="card-d en">The wheel model, and turning it into a wheel part players can pick in the parts screen</span>
+    <span class="card-d ja">ホイール（リム）のモデルと、換装画面で選べるホイール部品にする方法。見た目だけの部品</span>
+    <span class="card-d en">The wheel (rim) model, and turning it into a wheel part players can pick in the parts screen. Looks only</span>
+  </a>
+  <a class="card" href="guide-tire.html">
+    <span class="card-t ja">タイヤを作る</span><span class="card-t en">Make a tyre</span>
+    <span class="card-d ja">タイヤのモデルと、路面ごとのグリップが変わるタイヤ部品にする方法（ダート用・オフロード用など）</span>
+    <span class="card-d en">The tyre model, and turning it into a tyre part whose grip changes by surface (gravel, mud-terrain and so on)</span>
   </a>
   <a class="card" href="guide-parts.html">
     <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
@@ -134,7 +139,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td>エンジン音を変えたい</td><td><a href="guide-car.html#s-sound">車の 7 章</a></td></tr>
 <tr><td>走り（加速・曲がりかた）を決めたい</td><td><a href="guide-car.html#s-spec">車の 8 章</a></td></tr>
 <tr><td>ホイールを作って換装画面で選べるようにしたい</td><td><a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-wheel.html#s-parts">2 章</a></td></tr>
-<tr><td>性能の違うタイヤを作りたい</td><td><a href="guide-wheel.html#s-tire">ホイールの 3 章</a></td></tr>
+<tr><td>タイヤの見た目（トレッド）を作りたい</td><td><a href="guide-tire.html#s-tire-model">タイヤの 1 章</a></td></tr>
+<tr><td>性能の違うタイヤを作りたい</td><td><a href="guide-tire.html#s-tire">タイヤの 2 章</a></td></tr>
 <tr><td>ターボ・ブローオフバルブを作りたい</td><td><a href="guide-parts.html#s-turbo">パーツの 1 章</a></td></tr>
 <tr><td>ウイング・バンパーなどの外装パーツを作りたい</td><td><a href="guide-parts.html#s-body">パーツの 2 章</a></td></tr>
 <tr><td>マフラーを作りたい</td><td><a href="guide-parts.html#s-exhaust">パーツの 3 章</a></td></tr>
@@ -154,7 +160,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td>Change the engine sound</td><td><a href="guide-car.html#s-sound">Car guide, chapter 7</a></td></tr>
 <tr><td>Set how it drives (acceleration, handling)</td><td><a href="guide-car.html#s-spec">Car guide, chapter 8</a></td></tr>
 <tr><td>Make a wheel players can pick in the parts screen</td><td><a href="guide-wheel.html#s6">Wheel guide, chapters 1</a> and <a href="guide-wheel.html#s-parts">2</a></td></tr>
-<tr><td>Make tyres with different grip</td><td><a href="guide-wheel.html#s-tire">Wheel guide, chapter 3</a></td></tr>
+<tr><td>Model a tyre (its tread)</td><td><a href="guide-tire.html#s-tire-model">Tyre guide, chapter 1</a></td></tr>
+<tr><td>Make tyres with different grip</td><td><a href="guide-tire.html#s-tire">Tyre guide, chapter 2</a></td></tr>
 <tr><td>Make a turbo or blow-off valve</td><td><a href="guide-parts.html#s-turbo">Parts guide, chapter 1</a></td></tr>
 <tr><td>Make body parts such as wings and bumpers</td><td><a href="guide-parts.html#s-body">Parts guide, chapter 2</a></td></tr>
 <tr><td>Make an exhaust</td><td><a href="guide-parts.html#s-exhaust">Parts guide, chapter 3</a></td></tr>

@@ -79,10 +79,10 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <p><span data-l="en">Body model, lights, glass and mirrors, file layout and JSON, sounds, and the spec.</span><span data-l="ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）。</span></p>
   </div>
 </section>
-<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
-  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">9. Checklist</span><span data-l="ja">9. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a><a href="#sd"><span data-l="en">Appendix B. Ignored values</span><span data-l="ja">付録 B. 読まれない値</span></a></nav>
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">9. Checklist</span><span data-l="ja">9. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a></nav>
   <div class="gdoc"><section class="gsec" id="s-car-min">
 <h2 class="ja">最小の車を作る</h2>
 <h2 class="en">Make a minimal car</h2>
@@ -1258,29 +1258,51 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <p class="ja">できあがりの形:</p>
 <p class="en">What you end up with:</p>
 <pre class="ja"><code>mypack.jar
-├── META-INF/mods.toml              ← Forge 1.20.1 用
-├── META-INF/neoforge.mods.toml     ← NeoForge 1.21.1 用
+├── META-INF/
+│   ├── mods.toml                 ← Forge 1.20.1 用
+│   └── neoforge.mods.toml        ← NeoForge 1.21.1 用
 ├── pack.mcmeta
-├── assets/mypack/                  ← 見た目
-│   ├── models/entity/ae86.obj
-│   ├── models/entity/ae86.mtl
-│   ├── textures/entity/ae86.png
-│   ├── vehicles/ae86.json
-│   └── lang/ja_jp.json, en_us.json
-└── data/mypack/                    ← 走り
-    └── cars/ae86.json</code></pre>
+├── assets/                       ← 見た目
+│   └── mypack/
+│       ├── lang/
+│       │   ├── en_us.json
+│       │   └── ja_jp.json
+│       ├── models/
+│       │   └── entity/
+│       │       ├── ae86.obj
+│       │       └── ae86.mtl
+│       ├── textures/
+│       │   └── entity/
+│       │       └── ae86.png
+│       └── vehicles/
+│           └── ae86.json
+└── data/                         ← 走り
+    └── mypack/
+        └── cars/
+            └── ae86.json</code></pre>
 <pre class="en"><code>mypack.jar
-├── META-INF/mods.toml              &lt;- for Forge 1.20.1
-├── META-INF/neoforge.mods.toml     &lt;- for NeoForge 1.21.1
+├── META-INF/
+│   ├── mods.toml                 &lt;- for Forge 1.20.1
+│   └── neoforge.mods.toml        &lt;- for NeoForge 1.21.1
 ├── pack.mcmeta
-├── assets/mypack/                  &lt;- looks
-│   ├── models/entity/ae86.obj
-│   ├── models/entity/ae86.mtl
-│   ├── textures/entity/ae86.png
-│   ├── vehicles/ae86.json
-│   └── lang/en_us.json, ja_jp.json
-└── data/mypack/                    &lt;- handling
-    └── cars/ae86.json</code></pre>
+├── assets/                       &lt;- looks
+│   └── mypack/
+│       ├── lang/
+│       │   ├── en_us.json
+│       │   └── ja_jp.json
+│       ├── models/
+│       │   └── entity/
+│       │       ├── ae86.obj
+│       │       └── ae86.mtl
+│       ├── textures/
+│       │   └── entity/
+│       │       └── ae86.png
+│       └── vehicles/
+│           └── ae86.json
+└── data/                         &lt;- handling
+    └── mypack/
+        └── cars/
+            └── ae86.json</code></pre>
 
 <p class="ja"><b>名前がずれてもエラーは出ません。</b>車種 id <code>mypack:ae86</code> から、次の 3 つが決まります。1 つでもずれると、黙って既定の姿や名前になります。</p>
 <p class="en"><b>A mismatched name gives no error.</b> The car id <code>mypack:ae86</code> fixes these three names; if one is off, the car quietly gets the default body or name.</p>
@@ -1882,8 +1904,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <div class="more-body">
 <p>書かなかった項目は既定値になります。既定の車から変えたいところだけ残せば十分です。KurumaMod の項目が増えても、古いパックはそのまま読めます。</p>
 <ul>
-<li>書ける項目の全リストは<a href="#sc">付録 A</a></li>
-<li>書いても読まれない値（車重などから自動で決まるもの）は<a href="#sd">付録 B</a></li>
+<li>書ける項目の全リストは<a href="#sc">付録 A</a>。ここに無い項目（バネ定数や重心高のように、車重などから自動で決まる値）は書いても読まれない</li>
 <li><code>values</code> を使わず、いちばん外側に直接書いてもよい</li>
 </ul>
 </div>
@@ -1893,8 +1914,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <div class="more-body">
 <p>Anything you leave out takes the default, so keep only what differs from the default car. Old packs keep loading when KurumaMod adds parameters.</p>
 <ul>
-<li>Every key is listed in <a href="#sc">Appendix A</a></li>
-<li>Values that are ignored even if written (they follow from mass and the like) are in <a href="#sd">Appendix B</a></li>
+<li>Every key is listed in <a href="#sc">Appendix A</a>. Anything not there (such as spring rates or the centre of gravity height, which follow from mass and the like) is ignored even if written</li>
 <li>You may skip <code>values</code> and write the keys at the top level instead</li>
 </ul>
 </div>
@@ -1997,7 +2017,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><b>直したのに走りが変わらない</b> … <code>/reload</code> を打ったか。すでに置いてある車は置いたときの諸元のまま。クリエイティブタブから出し直す</li>
 <li><b>その車種がタブから消えた</b> … JSON が壊れている。<code>values</code> に <code>"parts"</code> のような数でないものが混ざっていないか。理由はログに出る</li>
 <li><b>舵が異常に切れる・効かない</b> … 角度を度で書いていないか（ラジアンで書く）</li>
-<li><b>書いた値が効かない</b> … 車重などから自動で決まる値かもしれない（<a href="#sd">付録 B</a>）。見た目の JSON（<code>assets/</code>）に書いていないか</li>
+<li><b>書いた値が効かない</b> … <a href="#sc">付録 A</a> に無い項目かもしれない（車重などから自動で決まる値は書けない）。見た目の JSON（<code>assets/</code>）に書いていないか</li>
 </ul>
 </div>
 </details>
@@ -2008,7 +2028,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><b>An edit changes nothing</b> — did you run <code>/reload</code>? A car already placed keeps the spec it was placed with; take a fresh one from the creative tab</li>
 <li><b>The car vanished from the tab</b> — the JSON is broken. Is something that is not a number, like <code>"parts"</code>, inside <code>values</code>? The reason is in the log</li>
 <li><b>Steering is wild or dead</b> — did you write an angle in degrees? Use radians</li>
-<li><b>A value has no effect</b> — it may be one that follows from mass and the like (<a href="#sd">Appendix B</a>). Or did you put it in the looks JSON under <code>assets/</code>?</li>
+<li><b>A value has no effect</b> — it may not be in <a href="#sc">Appendix A</a> (values that follow from mass and the like cannot be written). Or did you put it in the looks JSON under <code>assets/</code>?</li>
 </ul>
 </div>
 </details>
@@ -2322,33 +2342,6 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>handbrake_press</code></td><td>Handbrake press time</td><td>s</td><td>0</td><td>0 – 1</td></tr>
 <tr><td><code>traction_control</code></td><td>Traction control</td><td>strength (0 = off)</td><td>1</td><td>0 – 1</td></tr>
 </table>
-</section><section class="gsec" id="sd">
-<h2 class="ja">付録 B. 書いても読まれない値</h2>
-<h2 class="en">Appendix B. Values ignored even if you write them</h2>
-<p class="ja"><b>他の諸元から決まる値は、書いても黙って捨てられます。</b>KurumaMod が計算します。</p>
-<p class="en"><b>Values that follow from other values are silently dropped.</b> KurumaMod computes them.</p>
-<table class="ja">
-<tr><th>決まるもの</th><th>何から</th></tr>
-<tr><td>バネ・バンプストップ・ダンパーの係数（減衰比は付録 A）</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code> / <code>static_sag</code></td></tr>
-<tr><td>重心高</td><td>停車時の車高</td></tr>
-<tr><td>慣性モーメント 3 つ</td><td><code>mass</code> と <code>wheel_base</code> / <code>track_width</code></td></tr>
-<tr><td>車輪の慣性・登坂できる段差・終減速比</td><td><code>wheel_radius</code></td></tr>
-<tr><td>制動配分</td><td><code>weight_distribution</code> と重心高とホイールベース</td></tr>
-<tr><td>ブレーキとサイドブレーキの効き</td><td><code>friction</code></td></tr>
-<tr><td>変速点・バックの最高速</td><td><code>redline_rpm</code> とギア比</td></tr>
-</table>
-<table class="en">
-<tr><th>Derived</th><th>From</th></tr>
-<tr><td>Springs, bump stops, damper coefficients (the ratios are in Appendix A)</td><td><code>mass</code> / <code>weight_distribution</code> / <code>stroke</code> / <code>static_sag</code></td></tr>
-<tr><td>Centre of gravity height</td><td>Static ride height</td></tr>
-<tr><td>All three moments of inertia</td><td><code>mass</code> with <code>wheel_base</code> / <code>track_width</code></td></tr>
-<tr><td>Wheel inertia, climbable step, final drive</td><td><code>wheel_radius</code></td></tr>
-<tr><td>Brake bias</td><td><code>weight_distribution</code>, CG height and wheelbase</td></tr>
-<tr><td>Brake and handbrake authority</td><td><code>friction</code></td></tr>
-<tr><td>Shift points, reverse top speed</td><td><code>redline_rpm</code> and the gear ratios</td></tr>
-</table>
-<p class="ja">そのため「タイヤ半径を変えたらファイナルも直す」「寸法を変えたら慣性も」といった<b>組み合わせの手直しは要りません</b>。半径を変えればギアリングも車高も登坂力も一緒に動きます。</p>
-<p class="en">So there is no cross-checking to do — no "I changed the tyre radius, now fix the final drive", no "I changed the dimensions, now fix the inertia". Change the radius and the gearing, ride height and climbing ability all move with it.</p>
 </section><div class="gfoot">
   <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code>・<code>modeling_tools/blender_wheel_gauge.py</code>・<code>modeling_tools/blender_tire_gauge.py</code>。</p>
   <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code>, <code>modeling_tools/blender_wheel_gauge.py</code> and <code>modeling_tools/blender_tire_gauge.py</code>.</p>
