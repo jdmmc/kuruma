@@ -92,7 +92,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h3 class="ja">最小のホイールを作る</h3>
 <h3 class="en">Make a minimal wheel</h3>
 <ol class="steps ja">
-<li><span class="where where-blender">Blender</span><b>新しいファイルで、ゲージを置く。</b><code>Scripting</code> タブで <code>modeling_tools/blender_wheel_gauge.py</code> を実行する。半径 0.45m の輪・車軸の線・地面・表を示す矢印が置かれる</li>
+<li><span class="where where-blender">Blender</span><b>新しいファイルで、ゲージを置く。</b><code>Scripting</code> タブで <code>modeling_tools/blender_wheel_gauge.py</code> を実行する。寸法は同梱の TE37 に合わせてあり、リムの外形（半径 0.352m・幅 0.32m）・デザイン面の限界・嵌まるタイヤの断面（外径 0.45m）・車軸の線・地面・表を示す矢印が置かれる。<b>リムは外形の円柱の中へ収める</b></li>
 <li><span class="where where-blender">Blender</span><b>ゲージの輪に収まるように、ホイールを作る。</b>原点は車軸の中心に置く。円柱から作るなら、先に <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> で回して軸を左右（X）へ向ける</li>
 <li><span class="where where-blender">Blender</span><b>ホイールの表（デザイン面）を +X へ向ける。</b>ゲージの矢印の側。作るのは左側用の 1 つだけ</li>
 <li><span class="where where-blender">Blender</span><b>タイヤも作るなら、ホイールとは別のオブジェクトにして、名前を <code>Tire</code> にする。</b>リムだけで作るなら、この手順は要らない</li>
@@ -101,7 +101,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </ol>
 <p class="ja">これで、ホイールのモデルができました。換装画面で選べるようにするのは <a href="#s-parts">2 章</a>、自分の車に最初から履かせるのは下の「自分の車に最初から履かせたい」です。</p>
 <ol class="steps en">
-<li><span class="where where-blender">Blender</span><b>In a new file, place the gauge.</b> Run <code>modeling_tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab. It places a 0.45 m radius ring, the axle line, the ground and an arrow marking the outer face</li>
+<li><span class="where where-blender">Blender</span><b>In a new file, place the gauge.</b> Run <code>modeling_tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab. Sized after the bundled TE37, it places the rim envelope (0.352 m radius, 0.32 m wide), the limit for the design face, the section of the tyre that fits on it (0.45 m outer radius), the axle line, the ground and an arrow marking the outer face. <b>Keep the rim inside the envelope</b></li>
 <li><span class="where where-blender">Blender</span><b>Model the wheel to fit inside the gauge ring,</b> with the origin at the centre of the axle. If you start from a cylinder, first rotate it with <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> so its axis runs left–right (X)</li>
 <li><span class="where where-blender">Blender</span><b>Point the face of the wheel (the design side) towards +X</b>, the side the gauge arrow points to. Build the left-hand wheel only</li>
 <li><span class="where where-blender">Blender</span><b>If you model a tyre too, make it a separate object from the wheel and name it <code>Tire</code>.</b> Skip this if you only build the rim</li>
@@ -557,7 +557,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <summary>見た目（トレッドの形）も変えたい</summary>
 <div class="more-body">
 <ol>
-<li>Blender でタイヤだけのメッシュを作る。原点・回転軸・表の向きはホイールと同じ（<a href="#s6">1 章</a>）。大きさは自由</li>
+<li>Blender の新しいファイルで <code>modeling_tools/blender_tire_gauge.py</code> を実行し、タイヤだけのメッシュを作る。ゲージは同梱の TE37 のタイヤの寸法（外径 0.45m・内径 0.334m・幅 0.38m）と断面。原点・回転軸はホイールと同じ（<a href="#s6">1 章</a>）。描くときに伸び縮みするので大きさは比だけが効くが、ゲージに合わせれば TE37 と同じ見た目になる</li>
 <li>OBJ とテクスチャを置く。<code>assets/mypack/models/entity/my_tire.obj</code> と <code>assets/mypack/textures/entity/my_tire.png</code></li>
 <li>見た目のファイルを置く。<code>assets/mypack/car_parts/my_tire.json</code>（部品と同じファイル名）。<b>必ず <code>"tire"</code> の中に書く</b>:
 <pre><code>{
@@ -574,7 +574,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <summary>Change the looks (tread) too</summary>
 <div class="more-body">
 <ol>
-<li>Model the tyre alone in Blender. Origin, spin axis and outer face are the same as a wheel (<a href="#s6">chapter 1</a>). Any size will do</li>
+<li>In a new Blender file, run <code>modeling_tools/blender_tire_gauge.py</code> and model the tyre alone. The gauge shows the bundled TE37 tyre (0.45 m outer radius, 0.334 m inner radius, 0.38 m wide) and its section. Origin and spin axis are the same as a wheel (<a href="#s6">chapter 1</a>). The tyre is stretched to fit when drawn, so only the proportions matter, but matching the gauge gives the same look as the TE37</li>
 <li>Put the OBJ and texture in your pack: <code>assets/mypack/models/entity/my_tire.obj</code> and <code>assets/mypack/textures/entity/my_tire.png</code></li>
 <li>Add the looks file <code>assets/mypack/car_parts/my_tire.json</code> (same file name as the part). <b>Always write it inside <code>"tire"</code></b>:
 <pre><code>{
@@ -796,8 +796,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>parts.&lt;part id&gt;.show</code></td><td>array of object names</td><td>Objects shown while that part is fitted (names starting with <code>part_</code> only)</td></tr>
 </table>
 </section><div class="gfoot">
-  <p class="ja">KurumaMod — 諸元の全項目は<a href="guide-car.html#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code> と <code>modeling_tools/blender_wheel_gauge.py</code>。</p>
-  <p class="en">KurumaMod — every spec key is in <a href="guide-car.html#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code> and <code>modeling_tools/blender_wheel_gauge.py</code>.</p>
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="guide-car.html#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code>・<code>modeling_tools/blender_wheel_gauge.py</code>・<code>modeling_tools/blender_tire_gauge.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="guide-car.html#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code>, <code>modeling_tools/blender_wheel_gauge.py</code> and <code>modeling_tools/blender_tire_gauge.py</code>.</p>
 </div></div>
 </div>
 
