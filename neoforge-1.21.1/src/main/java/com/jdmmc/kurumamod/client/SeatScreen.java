@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.entity.CarEntity;
+import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -8,10 +10,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
- * 座席とハンドルの位置を合わせるデバッグ画面。Ctrl+G（{@link KurumaKeys#OPEN_SEAT_DEBUG}）で開く。
+ * 座席とハンドルの位置、車体とホイールのデザイン寸法を合わせるデバッグ画面。
+ * Ctrl+G（{@link KurumaKeys#OPEN_SEAT_DEBUG}）で開く。
  *
  * <p>座席（{@code vehicles/car.json} の {@code seat}）は、乗って一人称で見ないと決められない。
  * JSON を書き換えて F3+T で読み直すのを繰り返す代わりに、ここで動かしてその場で見る。
@@ -25,33 +30,58 @@ import java.util.Locale;
  * <p><b>ハンドル</b>（{@code steering.offset}）も同じ画面で動かす。ハンドルの位置は座席から
  * 見て決めるもので、片方ずつ別の画面で合わせると行き来することになる。動かせるのは位置だけで、
  * 回す中心と軸はメッシュから読む（{@code SteeringWheelAxis}）。</p>
+ *
+ * <p><b>デザイン寸法</b>（{@code designWheelBase}・{@code designRideHeight}・{@code designWheelRadius}）は
+ * 2 ページ目。メッシュが何 m で作られているかの申告で、間違えると車体やタイヤが小さく／大きく描かれる。
+ * 座席の位置は車体の大きさが決まってから合わせるものなので、同じ画面に置いてある。
+ * {@link CarModel#setDesignOverride} で、座席と同じく<b>このクライアントだけ・ゲームを閉じるまで</b>効く。</p>
  */
 public final class SeatScreen extends Screen {
 
+    /** 何を動かすか。{@link #SEAT} と {@link #STEERING} は 1 ページ目、{@link #DESIGN} は 2 ページ目。 */
+    private enum Group {
+        SEAT, STEERING, DESIGN
+    }
+
     /**
-     * 1 行ぶん。何を動かすか（{@code steering} が false なら座席、true ならハンドル）、
-     * どの値か（0: X 右、1: Y 上、2: Z 後ろ [m]、{@link #TILT}: ハンドルの傾き [度]）、
+     * 1 行ぶん。何を動かすか、どの値か（座席・ハンドルは 0: X 右、1: Y 上、2: Z 後ろ [m]、
+     * {@link #TILT}: ハンドルの傾き [度]。デザイン寸法は {@link #WHEEL_BASE} など）、
      * 動かせる範囲と、−／＋ 1 回の量（Shift でその 10 倍。スライダーもこの刻み）。
      */
-    private record Row(boolean steering, String key, int axis, double min, double max, double step) {
+    private record Row(Group group, String key, int axis, double min, double max, double step) {
     }
 
     /** {@link Row#axis} のうち、ハンドルの傾き [度]。 */
     private static final int TILT = 3;
 
+    /** {@link Row#axis} のうち、デザイン寸法の 3 つ。 */
+    private static final int WHEEL_BASE = 0;
+    private static final int RIDE_HEIGHT = 1;
+    private static final int WHEEL_RADIUS = 2;
+
     /**
      * ハンドルは座席から見て位置を決めるので、同じ画面に並べる。範囲が狭いのは、
      * メッシュの位置からの<b>ずれ</b>だから（座席は車の原点からの位置）。
      */
-    private static final Row[] ROWS = {
-            new Row(false, "x", 0, -1.5, 1.5, 0.01),
-            new Row(false, "y", 1, -1.5, 1.5, 0.01),
-            new Row(false, "z", 2, -2.5, 2.5, 0.01),
-            new Row(true, "x", 0, -0.5, 0.5, 0.01),
-            new Row(true, "y", 1, -0.5, 0.5, 0.01),
-            new Row(true, "z", 2, -0.5, 0.5, 0.01),
-            new Row(true, "tilt", TILT, -30.0, 30.0, 0.5),
+    private static final Row[] SEAT_ROWS = {
+            new Row(Group.SEAT, "x", 0, -1.5, 1.5, 0.01),
+            new Row(Group.SEAT, "y", 1, -1.5, 1.5, 0.01),
+            new Row(Group.SEAT, "z", 2, -2.5, 2.5, 0.01),
+            new Row(Group.STEERING, "x", 0, -0.5, 0.5, 0.01),
+            new Row(Group.STEERING, "y", 1, -0.5, 0.5, 0.01),
+            new Row(Group.STEERING, "z", 2, -0.5, 0.5, 0.01),
+            new Row(Group.STEERING, "tilt", TILT, -30.0, 30.0, 0.5),
     };
+
+    /** デザイン寸法。メッシュの作りの申告なので、範囲は広めに取ってある。 */
+    private static final Row[] DESIGN_ROWS = {
+            new Row(Group.DESIGN, "wheel_base", WHEEL_BASE, 0.5, 8.0, 0.01),
+            new Row(Group.DESIGN, "ride_height", RIDE_HEIGHT, -0.5, 2.0, 0.005),
+            new Row(Group.DESIGN, "wheel_radius", WHEEL_RADIUS, 0.05, 2.0, 0.005),
+    };
+
+    /** いま開いているページ（0: 座席・ハンドル、1: デザイン寸法）。開き直しても前のページから。 */
+    private static int page;
 
     // 1080p の GUI スケール自動（高さ 270）に収まるよう詰めてある。行を足すならここを見直す
     private static final int ROW_HEIGHT = 21;
@@ -60,9 +90,11 @@ public final class SeatScreen extends Screen {
     private static final int SLIDER_WIDTH = 200;
     private static final int BUTTON_WIDTH = 20;
     private static final int ROW_WIDTH = LABEL_WIDTH + BUTTON_WIDTH + 4 + SLIDER_WIDTH + 4 + BUTTON_WIDTH + 4 + BUTTON_WIDTH;
+    /** 下のボタンの位置は 1 ページ目（行が多い方）に揃える。ページを替えてもボタンが動かないように。 */
+    private static final int BOTTOM_ROW = SEAT_ROWS.length + 2;
 
     private final ResourceLocation carId;
-    private final Slider[] sliders = new Slider[ROWS.length];
+    private final List<Slider> sliders = new ArrayList<>();
     /** 「コピーした」を出しておく残りのフレーム数。 */
     private int copiedFrames;
 
@@ -71,29 +103,51 @@ public final class SeatScreen extends Screen {
         this.carId = carId;
     }
 
+    private static Row[] rows() {
+        return page == 0 ? SEAT_ROWS : DESIGN_ROWS;
+    }
+
     private CarModel.Vec3 current(Row row) {
-        return row.steering() ? CarSeat.currentSteering(carId) : CarSeat.current(carId);
+        return row.group() == Group.STEERING ? CarSeat.currentSteering(carId) : CarSeat.current(carId);
     }
 
     private static double component(CarModel.Vec3 v, Row row) {
         return row.axis() == 0 ? v.x() : row.axis() == 1 ? v.y() : v.z();
     }
 
+    private static double component(CarModel.Design d, Row row) {
+        return row.axis() == WHEEL_BASE ? d.wheelBase() : row.axis() == RIDE_HEIGHT ? d.rideHeight() : d.wheelRadius();
+    }
+
     private double get(Row row) {
+        if (row.group() == Group.DESIGN) {
+            return component(CarModel.get(carId).design(), row);
+        }
         return row.axis() == TILT ? CarSeat.currentSteeringTilt(carId) : component(current(row), row);
     }
 
     private double original(Row row) {
-        CarModel model = CarModel.get(carId);
+        CarModel model = CarModel.fromJson(carId);
+        if (row.group() == Group.DESIGN) {
+            return component(model.design(), row);
+        }
         if (row.axis() == TILT) {
             return model.steeringTilt();
         }
-        return component(row.steering() ? model.steeringOffset() : model.seatOffset(), row);
+        return component(row.group() == Group.STEERING ? model.steeringOffset() : model.seatOffset(), row);
     }
 
     private void set(Row row, double value) {
         // 0.1mm（傾きは 0.0001 度）単位に丸める（浮動小数の端数が JSON へ出ないよう）
         double v = Math.round(Mth.clamp(value, row.min(), row.max()) * 10000.0) / 10000.0;
+        if (row.group() == Group.DESIGN) {
+            CarModel.Design now = CarModel.get(carId).design();
+            CarModel.setDesignOverride(carId, new CarModel.Design(
+                    row.axis() == WHEEL_BASE ? v : now.wheelBase(),
+                    row.axis() == RIDE_HEIGHT ? v : now.rideHeight(),
+                    row.axis() == WHEEL_RADIUS ? v : now.wheelRadius()));
+            return;
+        }
         if (row.axis() == TILT) {
             CarSeat.setSteeringTiltOverride(carId, v);
             return;
@@ -103,7 +157,7 @@ public final class SeatScreen extends Screen {
                 row.axis() == 0 ? v : now.x(),
                 row.axis() == 1 ? v : now.y(),
                 row.axis() == 2 ? v : now.z());
-        if (row.steering()) {
+        if (row.group() == Group.STEERING) {
             CarSeat.setSteeringOverride(carId, next);
         } else {
             CarSeat.setOverride(carId, next);
@@ -120,12 +174,14 @@ public final class SeatScreen extends Screen {
 
     @Override
     protected void init() {
+        sliders.clear();
+        Row[] rows = rows();
         int x = left() + LABEL_WIDTH;
-        for (int i = 0; i < ROWS.length; i++) {
-            Row row = ROWS[i];
+        for (int i = 0; i < rows.length; i++) {
+            Row row = rows[i];
             int y = rowY(i);
             Slider slider = new Slider(x + BUTTON_WIDTH + 4, y, SLIDER_WIDTH, 20, row);
-            sliders[i] = slider;
+            sliders.add(slider);
             addRenderableWidget(Button.builder(Component.literal("-"), button -> nudge(row, slider, -1))
                     .bounds(x, y, BUTTON_WIDTH, 20).build());
             addRenderableWidget(slider);
@@ -137,24 +193,36 @@ public final class SeatScreen extends Screen {
                     })
                     .bounds(x + BUTTON_WIDTH + 4 + SLIDER_WIDTH + 4 + BUTTON_WIDTH + 4, y, BUTTON_WIDTH, 20).build());
         }
-        int bottom = rowY(ROWS.length + 2) + 2;
+        // 4 つ並べて 412。実効幅 427 の画面にも収まる
+        int bottom = rowY(BOTTOM_ROW) + 2;
+        addRenderableWidget(Button.builder(Component.translatable(page == 0
+                        ? "screen.kurumamod.seat.page.design" : "screen.kurumamod.seat.page.seat"), button -> {
+                    page = 1 - page;
+                    rebuildWidgets();
+                })
+                .bounds(width / 2 - 206, bottom, 100, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.seat.copy"), button -> {
                     if (minecraft != null) {
                         minecraft.keyboardHandler.setClipboard(json());
                         copiedFrames = 60;
                     }
                 })
-                .bounds(width / 2 - 154, bottom, 100, 20).build());
+                .bounds(width / 2 - 102, bottom, 100, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.seat.reset_all"), button -> {
-                    CarSeat.clearOverride(carId);
-                    CarSeat.clearSteeringOverride(carId);
+                    // 戻すのは開いているページの分だけ
+                    if (page == 0) {
+                        CarSeat.clearOverride(carId);
+                        CarSeat.clearSteeringOverride(carId);
+                    } else {
+                        CarModel.clearDesignOverride(carId);
+                    }
                     for (Slider slider : sliders) {
                         slider.sync();
                     }
                 })
-                .bounds(width / 2 - 50, bottom, 100, 20).build());
+                .bounds(width / 2 + 2, bottom, 100, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(width / 2 + 54, bottom, 100, 20).build());
+                .bounds(width / 2 + 106, bottom, 100, 20).build());
     }
 
     private void nudge(Row row, Slider slider, int direction) {
@@ -162,9 +230,9 @@ public final class SeatScreen extends Screen {
         slider.sync();
     }
 
-    /** カーパックの {@code vehicles/<車>.json} にそのまま貼れる行（座席とハンドル）。 */
+    /** カーパックの {@code vehicles/<車>.json} にそのまま貼れる行（開いているページの分）。 */
     private String json() {
-        return seatJson() + ",\n" + steeringJson();
+        return page == 0 ? seatJson() + ",\n" + steeringJson() : designJson();
     }
 
     private String seatJson() {
@@ -174,6 +242,13 @@ public final class SeatScreen extends Screen {
     private String steeringJson() {
         return "\"steering\": { \"offset\": " + array(CarSeat.currentSteering(carId))
                 + ", \"tilt\": " + number(CarSeat.currentSteeringTilt(carId)) + " }";
+    }
+
+    private String designJson() {
+        CarModel.Design d = CarModel.get(carId).design();
+        return "\"designWheelBase\": " + number(d.wheelBase())
+                + ", \"designRideHeight\": " + number(d.rideHeight())
+                + ", \"designWheelRadius\": " + number(d.wheelRadius());
     }
 
     private static String array(CarModel.Vec3 v) {
@@ -190,15 +265,13 @@ public final class SeatScreen extends Screen {
         return s.equals("-0.0") ? "0.0" : s;
     }
 
-    /**
-     * 1.21 の {@code Screen#render} は先に背景（暗幕とぼかし）を描く。一人称の見え方を見ながら
-     * 動かす画面なので描かない。
-     */
-    @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        if (minecraft == null || minecraft.level == null) {
-            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+    /** いま乗っている車（この画面の車種なら）。乗っていなければ null。 */
+    private CarEntity ridingCar() {
+        if (minecraft != null && minecraft.player != null
+                && minecraft.player.getVehicle() instanceof CarEntity car && car.getCarId().equals(carId)) {
+            return car;
         }
+        return null;
     }
 
     @Override
@@ -214,26 +287,42 @@ public final class SeatScreen extends Screen {
                     String.format(Locale.ROOT, "%.3f", eye)));
         }
         graphics.drawCenteredString(font, sub, width / 2, 21, 0xAAAAAA);
+        Row[] rows = rows();
         int left = left();
-        for (int i = 0; i < ROWS.length; i++) {
-            Row row = ROWS[i];
+        for (int i = 0; i < rows.length; i++) {
+            Row row = rows[i];
             // JSON の値から動かした項目は黄色（調整画面と同じ）
             boolean changed = Math.abs(get(row) - original(row)) > 1.0e-6;
-            Component label = Component.translatable(row.steering()
-                            ? "screen.kurumamod.seat.group.steering" : "screen.kurumamod.seat.group.seat")
-                    .append(" ").append(Component.translatable("screen.kurumamod.seat." + row.key()));
+            Component label = row.group() == Group.DESIGN
+                    ? Component.translatable("screen.kurumamod.seat.design." + row.key())
+                    : Component.translatable(row.group() == Group.STEERING
+                                    ? "screen.kurumamod.seat.group.steering" : "screen.kurumamod.seat.group.seat")
+                            .append(" ").append(Component.translatable("screen.kurumamod.seat." + row.key()));
             graphics.drawString(font, label, left, rowY(i) + 6, changed ? 0xFFFF55 : 0xFFFFFF);
         }
-        graphics.drawCenteredString(font, Component.literal(seatJson()), width / 2, rowY(ROWS.length) + 6, 0xFFFFFF);
-        graphics.drawCenteredString(font, Component.literal(steeringJson()), width / 2, rowY(ROWS.length + 1) + 2, 0xFFFFFF);
+        if (page == 0) {
+            graphics.drawCenteredString(font, Component.literal(seatJson()), width / 2, rowY(rows.length) + 6, 0xFFFFFF);
+            graphics.drawCenteredString(font, Component.literal(steeringJson()), width / 2, rowY(rows.length + 1) + 2, 0xFFFFFF);
+        } else {
+            graphics.drawCenteredString(font, Component.literal(designJson()), width / 2, rowY(rows.length) + 6, 0xFFFFFF);
+            graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.design.note"),
+                    width / 2, rowY(rows.length) + 20, 0xAAAAAA);
+            // 履いているホイール部品が自分の designRadius を持っていると、車種の値は使われない
+            CarEntity car = ridingCar();
+            if (car != null && CarPartModel.wheelOf(CarModel.fromJson(carId), car.getEffectiveFitment()).designRadius()
+                    != CarModel.fromJson(carId).designWheelRadius()) {
+                graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.design.part_radius"),
+                        width / 2, rowY(rows.length) + 32, 0xFF7755);
+            }
+        }
         // 「コピーした」は説明の行に重ねて出す（縦に余裕が無い）
         if (copiedFrames > 0) {
             copiedFrames--;
             graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.copied"),
-                    width / 2, rowY(ROWS.length + 2) + 26, 0x55FF55);
+                    width / 2, rowY(BOTTOM_ROW) + 26, 0x55FF55);
         } else {
             graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.hint"),
-                    width / 2, rowY(ROWS.length + 2) + 26, 0xAAAAAA);
+                    width / 2, rowY(BOTTOM_ROW) + 26, 0xAAAAAA);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }
@@ -249,6 +338,17 @@ public final class SeatScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    /**
+     * 1.21 の {@code Screen#render} は先に背景（暗幕とぼかし）を描く。一人称の見え方を見ながら
+     * 動かす画面なので描かない。
+     */
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (minecraft == null || minecraft.level == null) {
+            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+        }
     }
 
     @Override
@@ -272,6 +372,10 @@ public final class SeatScreen extends Screen {
 
         @Override
         protected void updateMessage() {
+            if (row.group() == Group.DESIGN) {
+                setMessage(Component.literal(designText()));
+                return;
+            }
             if (row.axis() != TILT) {
                 setMessage(Component.literal(String.format(Locale.ROOT, "%.3f m", get(row))));
                 return;
@@ -283,6 +387,20 @@ public final class SeatScreen extends Screen {
                 text += String.format(Locale.ROOT, "  (%.1f°)", column + get(row));
             }
             setMessage(Component.literal(text));
+        }
+
+        /** 値だけでは何倍に描かれるのか分からないので、拡大率も添える（小さい値ほど大きく描かれる）。 */
+        private String designText() {
+            double v = get(row);
+            String text = String.format(Locale.ROOT, "%.3f m", v);
+            if (row.axis() == WHEEL_BASE) {
+                text += String.format(Locale.ROOT, "  (×%.3f)", CarSpec.DEFAULT.wheelBase() / v);
+            } else if (row.axis() == WHEEL_RADIUS) {
+                CarEntity car = ridingCar();
+                double radius = car != null ? car.getSpec().wheelRadius() : CarSpec.DEFAULT.wheelRadius();
+                text += String.format(Locale.ROOT, "  (×%.3f)", radius / v);
+            }
+            return text;
         }
 
         @Override

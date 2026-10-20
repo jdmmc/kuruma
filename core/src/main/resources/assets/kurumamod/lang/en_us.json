@@ -627,7 +627,7 @@
   "message.kurumamod.ground_smoothing.body": "Ground smoothing: on, stair line along the body",
   "message.kurumamod.ground_smoothing.travel": "Ground smoothing: on, stair line along travel",
   "message.kurumamod.ground_smoothing.off": "Ground smoothing: off",
-  "screen.kurumamod.seat.title": "Seat and steering wheel position (debug)",
+  "screen.kurumamod.seat.title": "Seat, steering wheel and design size (debug)",
   "screen.kurumamod.seat.group.seat": "Seat",
   "screen.kurumamod.seat.group.steering": "Wheel",
   "screen.kurumamod.seat.x": "X right",
@@ -638,5 +638,12 @@
   "screen.kurumamod.seat.copy": "Copy JSON",
   "screen.kurumamod.seat.copied": "Copied to the clipboard",
   "screen.kurumamod.seat.reset_all": "Reset all",
-  "screen.kurumamod.seat.hint": "Only on this client until you quit. Paste the lines into vehicles/<car>.json. Shift + -/+ moves 10 cm"
+  "screen.kurumamod.seat.hint": "Only on this client until you quit. Paste the lines into vehicles/<car>.json. Shift + -/+ moves 10 steps",
+  "screen.kurumamod.seat.page.design": "Design size",
+  "screen.kurumamod.seat.page.seat": "Seat / wheel",
+  "screen.kurumamod.seat.design.wheel_base": "Wheelbase",
+  "screen.kurumamod.seat.design.ride_height": "Ride height",
+  "screen.kurumamod.seat.design.wheel_radius": "Tire radius",
+  "screen.kurumamod.seat.design.note": "Size the mesh was built at. A smaller value draws it bigger",
+  "screen.kurumamod.seat.design.part_radius": "The fitted wheel part has its own designRadius, so the tire radius has no effect"
 }
