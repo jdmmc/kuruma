@@ -295,7 +295,48 @@ public record CarModel(
      * <b>カーパックを外したセーブデータでも、既定の見た目で走れる。</b></p>
      */
     public static CarModel get(ResourceLocation carId) {
+        CarModel model = fromJson(carId);
+        Design design = DESIGN_OVERRIDES.get(carId);
+        return design == null ? model : model.withDesign(design);
+    }
+
+    /** JSON に書かれたままの定義（座席の調整画面で動かしたデザイン寸法を被せる前）。 */
+    public static CarModel fromJson(ResourceLocation carId) {
         return CACHE.computeIfAbsent(carId, CarModel::load);
+    }
+
+    /**
+     * メッシュの作りの寸法（{@code designWheelBase}・{@code designRideHeight}・{@code designWheelRadius}）。
+     * 座席の調整画面（Ctrl+G）で動かすときにまとめて扱う。
+     */
+    public record Design(double wheelBase, double rideHeight, double wheelRadius) {
+    }
+
+    public Design design() {
+        return new Design(designWheelBase, designRideHeight, designWheelRadius);
+    }
+
+    /**
+     * 座席の調整画面（{@code SeatScreen}）で動かしたデザイン寸法。車種ごと。JSON の値より優先する。
+     * <b>このクライアントだけ・ゲームを閉じるまで</b>（座席の上書きと同じ。決まった値は JSON へ書く）。
+     * F3+T で JSON を読み直しても残る。
+     */
+    private static final Map<ResourceLocation, Design> DESIGN_OVERRIDES = new HashMap<>();
+
+    public static void setDesignOverride(ResourceLocation carId, Design design) {
+        DESIGN_OVERRIDES.put(carId, design);
+    }
+
+    /** JSON の値へ戻す。 */
+    public static void clearDesignOverride(ResourceLocation carId) {
+        DESIGN_OVERRIDES.remove(carId);
+    }
+
+    private CarModel withDesign(Design design) {
+        return new CarModel(bodyModel, bodyTexture, wheelModel, wheelTexture,
+                design.wheelBase(), design.wheelRadius(), design.rideHeight(),
+                bodyOffset, bodyScale, wheelOffset, wheelScale, camber, wheelRimRadius,
+                seatOffset, steeringOffset, steeringTilt, shadowRadius, sounds, partObjects, icon, paints);
     }
 
     /**

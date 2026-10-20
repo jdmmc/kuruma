@@ -627,7 +627,7 @@
   "message.kurumamod.ground_smoothing.body": "地面の補間: 入（階段の線は車体の向き）",
   "message.kurumamod.ground_smoothing.travel": "地面の補間: 入（階段の線は進む向き）",
   "message.kurumamod.ground_smoothing.off": "地面の補間: 切",
-  "screen.kurumamod.seat.title": "座席とハンドルの位置（デバッグ）",
+  "screen.kurumamod.seat.title": "座席・ハンドル・デザイン寸法（デバッグ）",
   "screen.kurumamod.seat.group.seat": "座席",
   "screen.kurumamod.seat.group.steering": "ハンドル",
   "screen.kurumamod.seat.x": "X 右",
@@ -638,5 +638,12 @@
   "screen.kurumamod.seat.copy": "JSON をコピー",
   "screen.kurumamod.seat.copied": "クリップボードにコピーしました",
   "screen.kurumamod.seat.reset_all": "全部戻す",
-  "screen.kurumamod.seat.hint": "このクライアントだけ・ゲームを閉じるまで有効。vehicles/<車>.json に貼ってください。Shift+−／＋で 10cm"
+  "screen.kurumamod.seat.hint": "このクライアントだけ・ゲームを閉じるまで有効。vehicles/<車>.json に貼ってください。Shift+−／＋で 10 刻み",
+  "screen.kurumamod.seat.page.design": "デザイン寸法",
+  "screen.kurumamod.seat.page.seat": "座席・ハンドル",
+  "screen.kurumamod.seat.design.wheel_base": "ホイールベース",
+  "screen.kurumamod.seat.design.ride_height": "車高",
+  "screen.kurumamod.seat.design.wheel_radius": "タイヤ半径",
+  "screen.kurumamod.seat.design.note": "メッシュが作られた寸法。値を小さくするほど大きく描かれる",
+  "screen.kurumamod.seat.design.part_radius": "履いているホイール部品が designRadius を持っているので、タイヤ半径は効きません"
 }
