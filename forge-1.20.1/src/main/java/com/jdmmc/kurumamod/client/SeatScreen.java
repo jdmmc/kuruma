@@ -327,6 +327,48 @@ public final class SeatScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
+    /** 一人称でドラッグしたときの回り方 [度／画面の 1 ピクセル]。 */
+    private static final double LOOK_DEGREES_PER_PIXEL = 0.15;
+
+    /**
+     * 何も無いところをドラッグしたら視点を動かす。先にウィジェットへ渡すこと（スライダーをつまんだ指が
+     * カメラも動かしては困る）。
+     *
+     * <p>三人称はセッティング画面（G）と同じく車のまわりを回す（{@link CarChaseCamera#orbit}）。
+     * <b>一人称は頭の向きを回す</b>——座席は運転席から見回して決めるもので、{@code orbit} は一人称では
+     * 効かないため。マウスの移動は GUI の座標で来るので、画面の倍率を掛けて実際のピクセルへ戻す。</p>
+     */
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (super.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
+        if (minecraft == null || minecraft.player == null) {
+            return false;
+        }
+        if (minecraft.options.getCameraType().isFirstPerson()) {
+            // Entity#turn は渡した値に 0.15 を掛けて度にする
+            double pixels = minecraft.getWindow().getGuiScale();
+            minecraft.player.turn(dragX * pixels * LOOK_DEGREES_PER_PIXEL / 0.15,
+                    dragY * pixels * LOOK_DEGREES_PER_PIXEL / 0.15);
+        } else {
+            CarChaseCamera.orbit(dragX, dragY);
+        }
+        return true;
+    }
+
+    /** ホイールで寄り引き（三人称だけ。セッティング画面と同じ）。 */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (super.mouseScrolled(mouseX, mouseY, delta)) {
+            return true;
+        }
+        if (minecraft != null && !minecraft.options.getCameraType().isFirstPerson()) {
+            CarChaseCamera.zoom(delta);
+        }
+        return true;
+    }
+
     /**
      * 運転に使うキーは画面へ渡さない。開いたまま運転できるので（{@link CarClientDriver#isDrivableScreen}）、
      * 渡すとスペース（サイドブレーキ）でフォーカス中のボタンが押されたり、

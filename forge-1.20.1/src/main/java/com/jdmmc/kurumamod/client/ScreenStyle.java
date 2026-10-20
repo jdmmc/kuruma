@@ -43,9 +43,9 @@ final class ScreenStyle {
     }
 
     /**
-     * いま開いているのが<b>車をいじる画面</b>（換装・セッティング）か。
+     * いま開いているのが<b>車をいじる画面</b>（換装・セッティング・座席の調整）か。
      *
-     * <p>この 2 つは同じ扱いをする:</p>
+     * <p>これらは同じ扱いをする（座席の調整画面は、三人称で車の大きさを見ながら合わせるため）:</p>
      *
      * <ul>
      *   <li><b>車の HUD を引っ込める</b>……どちらも下端を使うので、出したままだとタイルや
@@ -57,7 +57,8 @@ final class ScreenStyle {
      */
     static boolean isCarScreen() {
         Screen screen = Minecraft.getInstance().screen;
-        return screen instanceof CarPartScreen || screen instanceof CarTuningScreen;
+        return screen instanceof CarPartScreen || screen instanceof CarTuningScreen
+                || screen instanceof SeatScreen;
     }
 
     /**
