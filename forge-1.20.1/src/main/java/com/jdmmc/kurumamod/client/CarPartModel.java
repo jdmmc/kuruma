@@ -44,9 +44,9 @@ import java.util.Optional;
  * </pre>
  *
  * <p><b>{@code designRadius} は「このメッシュが何 m の半径で作られているか」。</b>
- * {@code CarModel.designWheelRadius} と同じ役目で、書いておけば描画側が
- * 諸元のタイヤ半径へ正規化する（＝調整画面でタイヤ半径を変えても部品が追従する）。
- * 車のホイールと同じ半径で作ったなら書かなくてよい。</p>
+ * 描画側が諸元のタイヤ半径へ正規化する
+ * （＝調整画面でタイヤ半径を変えても部品が追従する）。<b>ゲージどおりに作ったなら書かなくてよい</b>
+ * （{@link CarModel#GAUGE_WHEEL_RADIUS}）。メッシュを持たない部品は車のメッシュを描くので、車の値を引き継ぐ。</p>
  *
  * <p><b>{@code scale} の Y・Z（直径）を触ると接地が崩れる</b>のも車のホイールと同じ。
  * 接地点は物理のタイヤ半径から決まっていて、この補正を物理は知らないため。太さ（X）だけなら安全。</p>
@@ -88,6 +88,12 @@ public record CarPartModel(
             null, null);
 
     private static final Logger LOGGER = LogUtils.getLogger();
+
+    /**
+     * ホイールの純正。<b>車種が {@code default_parts.wheel} を書かなかったときはこれが付いているものとして描く。</b>
+     * 車の見た目の JSON がホイールのメッシュを直接書いている（以前の書き方）なら、そちらが純正。
+     */
+    public static final ResourceLocation STOCK_WHEEL = new ResourceLocation(com.jdmmc.kurumamod.Kurumamod.MODID, "te37");
 
     /** 何も書かれていない定義。＝すべて車種の既定のまま。 */
     private static final CarPartModel EMPTY =
@@ -173,22 +179,88 @@ public record CarPartModel(
      * <p><b>知らない部品も既定へ落とす。</b>カーパックを外しても既定のホイールで走れて、
      * 入れ直せば元に戻る（装着状態は id を覚えたままなので）。</p>
      */
-    public static Wheel wheelOf(CarModel car, PartFitment parts) {
-        ResourceLocation partId = parts.getPart(PartSlot.WHEEL);
-        CarPartModel part = partId == null ? EMPTY : get(partId);
+    public static Wheel wheelOf(ResourceLocation carId, CarModel car, PartFitment parts) {
+        Layers layers = layers(carId, car, parts);
+        CarPartModel mesh = layers.mesh();
         return new Wheel(
-                part.model != null ? part.model : car.wheelModel(),
-                part.texture != null ? part.texture : car.wheelTexture(),
-                offsetOf(car, part, parts.getOffset(PartSlot.WHEEL)),
-                scaleOf(car, part, parts.getWidth(PartSlot.WHEEL)),
-                // 重ねる順は「プレイヤーの上書き → 部品（カーパック）の指定 → 車種の指定」。
+                mesh != null ? mesh.model : car.wheelModel(),
+                mesh != null && mesh.texture != null ? mesh.texture : car.wheelTexture(),
+                offsetOf(car, layers, parts.getOffset(PartSlot.WHEEL)),
+                scaleOf(car, layers, parts.getWidth(PartSlot.WHEEL)),
+                // 重ねる順は「プレイヤーの上書き → 履いた部品 → 純正の部品 → 車種の指定」。
                 // パックが角度を書いていればそれが既定値になり、上書きを消せばそこへ戻る
-                camberOf(car, part, parts.getCamber(PartSlot.WHEEL)),
-                // 0 や負を書かれると拡大率が壊れる（見えなくなる／裏返る）ので既定へ落とす
-                part.designRadius != null && part.designRadius > 0.0
-                        ? part.designRadius : car.designWheelRadius(),
-                // リムの半径はホイールのメッシュに付いた値なので、メッシュを差し替えた部品なら部品の値だけを見る
-                part.model != null ? positive(part.rimRadius) : positive(car.wheelRimRadius()));
+                camberOf(car, layers, parts.getCamber(PartSlot.WHEEL)),
+                // 大きさとリムの半径はメッシュに付いた値なので、描くメッシュの持ち主の値だけを見る
+                mesh != null ? designRadiusOf(mesh) : car.wheelDesignRadius(),
+                mesh != null ? positive(mesh.rimRadius) : positive(car.wheelRimRadius()));
+    }
+
+    /**
+     * ホイールの見た目の重なり。<b>履いた部品 → 純正の部品 → 車</b>の順に、書いてある値が勝つ。
+     *
+     * <p>純正の部品を挟むのは、<b>メッシュを持たない部品（角度と太さだけの {@code deep_dish}）が
+     * 純正のメッシュを描く</b>ため。車の値まで落とすと、{@code default_parts.wheel} で自分のホイールを
+     * 純正にした車でも TE37 が描かれる。</p>
+     *
+     * @param fitted 履いた部品。何も履いていない・純正と同じなら空
+     * @param stock  純正の部品。無ければ（ホイールを直接書いた以前の車）空
+     */
+    private record Layers(CarPartModel fitted, CarPartModel stock, @Nullable ResourceLocation meshOwner) {
+
+        /** 描くメッシュを持っている定義。どちらも持っていなければ null（車の JSON のメッシュを描く）。 */
+        @Nullable
+        CarPartModel mesh() {
+            return fitted.model != null ? fitted : stock.model != null ? stock : null;
+        }
+    }
+
+    private static Layers layers(ResourceLocation carId, CarModel car, PartFitment parts) {
+        ResourceLocation stockId = stockWheel(carId, car);
+        CarPartModel stock = stockId == null ? EMPTY : get(stockId);
+        ResourceLocation fittedId = parts.getPart(PartSlot.WHEEL);
+        // 初期装備は装着状態へ解決済みで来るので、純正と同じなら重ねない
+        boolean ownFitted = fittedId != null && !fittedId.equals(stockId) && !PartFitment.isNone(fittedId);
+        CarPartModel fitted = ownFitted ? get(fittedId) : EMPTY;
+        ResourceLocation owner = fitted.model != null ? fittedId : stock.model != null ? stockId : null;
+        return new Layers(fitted, stock, owner);
+    }
+
+    /**
+     * その車の純正ホイール。諸元の {@code default_parts.wheel}、無ければ {@link #STOCK_WHEEL}。
+     * 車の見た目の JSON がメッシュを直接書いている（以前の書き方）なら、そちらが純正なので null。
+     */
+    @Nullable
+    public static ResourceLocation stockWheel(ResourceLocation carId, CarModel car) {
+        com.jdmmc.kurumamod.car.CarType.DefaultPart defaults =
+                com.jdmmc.kurumamod.car.CarTypes.get(carId).defaultPart(PartSlot.WHEEL);
+        if (defaults != null) {
+            return defaults.part();
+        }
+        return usesStockWheel(car) ? STOCK_WHEEL : null;
+    }
+
+    /**
+     * いま描いているホイールのメッシュを持つ部品（座席の調整画面が大きさとリムの半径を動かす相手）。
+     * 車の JSON のメッシュを描いているなら null。
+     */
+    @Nullable
+    public static ResourceLocation meshOwner(ResourceLocation carId, CarModel car, PartFitment parts) {
+        return layers(carId, car, parts).meshOwner();
+    }
+
+    /**
+     * 描くメッシュが何 m で作られているか。<b>大きさはメッシュに付いた値</b>なので、メッシュの持ち主の値だけを見る
+     * （書いていなければゲージの値。車の値は車のメッシュの大きさで、部品のメッシュとは関係ない）。
+     * 0 や負を書かれると拡大率が壊れる（見えなくなる／裏返る）ので書かなかったことにする。
+     */
+    private static double designRadiusOf(CarPartModel mesh) {
+        Double written = positive(mesh.designRadius);
+        return written != null ? written : CarModel.GAUGE_WHEEL_RADIUS;
+    }
+
+    /** 車の見た目の JSON がホイールのメッシュを直接書いていない（＝純正は {@link #STOCK_WHEEL}）か。 */
+    public static boolean usesStockWheel(CarModel car) {
+        return CarModel.DEFAULT_WHEEL_MODEL.equals(car.wheelModel());
     }
 
     private static @Nullable Double positive(@Nullable Double value) {
@@ -217,11 +289,12 @@ public record CarPartModel(
      * <p><b>プレイヤーの上書きがいちばん強い。</b>無ければ部品の指定、それも無ければ車種の指定。
      * 上書きを消せばパックの値へ戻る、という関係をここ 1 か所で決めている。</p>
      */
-    private static double camberOf(CarModel car, CarPartModel part, @Nullable Double override) {
+    private static double camberOf(CarModel car, Layers layers, @Nullable Double override) {
         if (override != null) {
             return override;
         }
-        return part.camber != null ? part.camber : car.camber();
+        return layers.fitted().camber != null ? layers.fitted().camber
+                : layers.stock().camber != null ? layers.stock().camber : car.camber();
     }
 
     /**
@@ -230,8 +303,8 @@ public record CarPartModel(
      * <p>上書きは<b>実車と同じ向きの mm</b>（小さいほど外）で来るので、ここで
      * 「外向きに何 m」へ直す。向きを裏返す場所をこの 1 か所に閉じ込めてある。</p>
      */
-    private static CarModel.Vec3 offsetOf(CarModel car, CarPartModel part, @Nullable Double override) {
-        CarModel.Vec3 base = part.offset != null ? part.offset : car.wheelOffset();
+    private static CarModel.Vec3 offsetOf(CarModel car, Layers layers, @Nullable Double override) {
+        CarModel.Vec3 base = baseOffset(car, layers);
         return override == null ? base
                 : new CarModel.Vec3(-override / 1000.0, base.y(), base.z());
     }
@@ -242,21 +315,29 @@ public record CarPartModel(
      * <p>Y・Z（直径）には触らない——接地点は物理のタイヤ半径から決まっていて、
      * 見た目だけ大きくしても物理は知らないため。</p>
      */
-    private static CarModel.Vec3 scaleOf(CarModel car, CarPartModel part, @Nullable Double override) {
-        CarModel.Vec3 base = part.scale != null ? part.scale : car.wheelScale();
+    private static CarModel.Vec3 scaleOf(CarModel car, Layers layers, @Nullable Double override) {
+        CarModel.Vec3 base = baseScale(car, layers);
         return override == null ? base : new CarModel.Vec3(override, base.y(), base.z());
     }
 
-    /** その部品が指定している太さの倍率。指定していなければ車種の値。<b>上書きの戻り先。</b> */
-    public static double defaultWidth(CarModel car, PartFitment parts) {
-        CarPartModel part = partOf(parts);
-        return part.scale != null ? part.scale.x() : car.wheelScale().x();
+    private static CarModel.Vec3 baseOffset(CarModel car, Layers layers) {
+        return layers.fitted().offset != null ? layers.fitted().offset
+                : layers.stock().offset != null ? layers.stock().offset : car.wheelOffset();
     }
 
-    /** その部品が指定しているキャンバー角。指定していなければ車種の値。<b>上書きの戻り先。</b> */
-    public static double defaultCamber(CarModel car, PartFitment parts) {
-        CarPartModel part = partOf(parts);
-        return part.camber != null ? part.camber : car.camber();
+    private static CarModel.Vec3 baseScale(CarModel car, Layers layers) {
+        return layers.fitted().scale != null ? layers.fitted().scale
+                : layers.stock().scale != null ? layers.stock().scale : car.wheelScale();
+    }
+
+    /** 部品が指定している太さの倍率。指定していなければ車種の値。<b>上書きの戻り先。</b> */
+    public static double defaultWidth(ResourceLocation carId, CarModel car, PartFitment parts) {
+        return baseScale(car, layers(carId, car, parts)).x();
+    }
+
+    /** 部品が指定しているキャンバー角。指定していなければ車種の値。<b>上書きの戻り先。</b> */
+    public static double defaultCamber(ResourceLocation carId, CarModel car, PartFitment parts) {
+        return camberOf(car, layers(carId, car, parts), null);
     }
 
     /**
@@ -264,21 +345,54 @@ public record CarPartModel(
      *
      * <p>JSON は「外向きに何 m」で書くので、<b>実車と同じ向きの mm</b>へ直して返す。</p>
      */
-    public static double defaultOffset(CarModel car, PartFitment parts) {
-        CarPartModel part = partOf(parts);
-        CarModel.Vec3 base = part.offset != null ? part.offset : car.wheelOffset();
-        return -base.x() * 1000.0;
+    public static double defaultOffset(ResourceLocation carId, CarModel car, PartFitment parts) {
+        return -baseOffset(car, layers(carId, car, parts)).x() * 1000.0;
     }
 
-    /** いま履いている部品の見た目の定義。履いていなければ「何も書かれていない」定義。 */
-    private static CarPartModel partOf(PartFitment parts) {
-        ResourceLocation partId = parts.getPart(PartSlot.WHEEL);
-        return partId == null ? EMPTY : get(partId);
-    }
-
-    /** その部品の見た目の定義。まだ読んでいなければ読む。 */
+    /** その部品の見た目の定義。まだ読んでいなければ読む。座席の調整画面で動かした大きさがあれば被せる。 */
     public static CarPartModel get(ResourceLocation partId) {
+        CarPartModel model = fromJson(partId);
+        MeshOverride mesh = MESH_OVERRIDES.get(partId);
+        if (mesh == null) {
+            return model;
+        }
+        // 太さは X だけ。Y・Z（直径）は接地が崩れるので書いてあったまま
+        CarModel.Vec3 scale = mesh.width() == null ? model.scale
+                : new CarModel.Vec3(mesh.width(), model.scale != null ? model.scale.y() : 1.0,
+                        model.scale != null ? model.scale.z() : 1.0);
+        return new CarPartModel(model.model, model.texture, model.offset, scale,
+                mesh.camber(), mesh.designRadius(), mesh.rimRadius(), model.tire, model.exhaust);
+    }
+
+    /** JSON に書かれたままの定義（座席の調整画面で動かした値を被せる前）。 */
+    public static CarPartModel fromJson(ResourceLocation partId) {
         return CACHE.computeIfAbsent(partId, CarPartModel::load);
+    }
+
+    /**
+     * ホイールの JSON の値の上書き（座席の調整画面の 3 ページ目）。
+     *
+     * @param camber    キャンバー角の既定値 [度]。null なら書いていない（車の値へ落ちる）
+     * @param width     太さの既定値（{@code scale} の X）。null なら書いていない
+     * @param rimRadius null なら測る
+     */
+    public record MeshOverride(@Nullable Double camber, @Nullable Double width,
+                               double designRadius, @Nullable Double rimRadius) {
+    }
+
+    /**
+     * 部品ごとの上書き。<b>このクライアントだけ・ゲームを閉じるまで</b>（座席の上書きと同じ。決まった値は JSON へ書く）。
+     * F3+T で JSON を読み直しても残る。
+     */
+    private static final Map<ResourceLocation, MeshOverride> MESH_OVERRIDES = new HashMap<>();
+
+    public static void setMeshOverride(ResourceLocation partId, MeshOverride mesh) {
+        MESH_OVERRIDES.put(partId, mesh);
+    }
+
+    /** JSON の値へ戻す。 */
+    public static void clearMeshOverride(ResourceLocation partId) {
+        MESH_OVERRIDES.remove(partId);
     }
 
     /**

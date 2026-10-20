@@ -3,7 +3,7 @@
     python tools/make_tires.py
 
 タイヤは回転体なので、Blender で作るより式で作るほうが寸法を揃えやすい。
-寸法はノーマルタイヤ（models/entity/wheel.obj の Tire）と同じ: 内径 0.334m・外径 0.450m・幅 約 0.38m。
+寸法はノーマルタイヤ（models/entity/tire.obj）と同じ: 内径 0.334m・外径 0.450m・幅 約 0.38m。
 内径と外径は描くときにホイールへ合わせ直される（ObjModel#fitRadially）ので、比だけが効く。
 
 座標は OBJ のまま（車軸が X、半径が Y・Z）。ObjModel が読み込み時に X と Z を反転するが、

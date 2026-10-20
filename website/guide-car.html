@@ -194,7 +194,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>タブに車が出ない</b> … <code>data/mypack/cars/ae86.json</code> の場所か、JSON の書き方が違う。理由はログに出る</li>
 <li><b>出てくるが、既定の車の姿のまま</b> … 見た目の JSON のファイル名が諸元と違う。または <code>body.model</code> のパスか名前空間（<code>mypack:</code>）が違う</li>
 <li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっていない</li>
-<li><b>車体が大きすぎ・小さすぎ・タイヤとずれる</b> … ゲージに合わせて作れていない。<code>designWheelBase</code> と <code>designWheelRadius</code> に実際の寸法を書く（<a href="#s9">6 章</a>）</li>
+<li><b>車体が大きすぎ・小さすぎ・タイヤとずれる</b> … ゲージに合わせて作れていない。<code>designWheelBase</code> に実際の寸法を書く（<a href="#s9">6 章</a>）</li>
 </ul>
 <p>ほかの症状は<a href="guide-ship.html#s11">配布の 3 章</a>にあります。</p>
 </div>
@@ -207,7 +207,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>No car in the tab</b> — <code>data/mypack/cars/ae86.json</code> is in the wrong place or not valid JSON. The reason is in the log</li>
 <li><b>It appears, but with the default car's body</b> — the look JSON's file name differs from the spec's, or the <code>body.model</code> path or namespace (<code>mypack:</code>) is wrong</li>
 <li><b>The display name shows as <code>ae86</code></b> — the lang key is not <code>car.mypack.ae86</code></li>
-<li><b>The body is too big, too small, or off from the wheels</b> — it does not match the gauge. Write your real sizes into <code>designWheelBase</code> and <code>designWheelRadius</code> (<a href="#s9">chapter 6</a>)</li>
+<li><b>The body is too big, too small, or off from the wheels</b> — it does not match the gauge. Write your real size into <code>designWheelBase</code> (<a href="#s9">chapter 6</a>)</li>
 </ul>
 <p>Other symptoms are in <a href="guide-ship.html#s11">chapter 3 of Shipping</a>.</p>
 </div>
@@ -298,13 +298,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>ゲージに合わせずに作りたい（作ってしまった）</summary>
 <div class="more-body">
-<p>それでも動きます。実際に作った寸法を、見た目の JSON の <code>designWheelBase</code>（ホイールアーチの前後の距離）と <code>designWheelRadius</code>（タイヤの半径）に書きます（<a href="#s9">6 章</a>）。ゲームがその比で車体を拡大・縮小して、ゲージの大きさに合わせます。</p>
+<p>それでも動きます。実際に作った寸法を、見た目の JSON の <code>designWheelBase</code>（ホイールアーチの前後の距離）に書きます（<a href="#s9">6 章</a>）。ゲームがその比で車体を拡大・縮小して、ゲージの大きさに合わせます。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Build without matching the gauge (or you already did)</summary>
 <div class="more-body">
-<p>It still works. Write the sizes you actually built into <code>designWheelBase</code> (distance between the arches) and <code>designWheelRadius</code> (wheel radius) in the look JSON (<a href="#s9">chapter 6</a>). The game scales the body by that ratio to fit the gauge size.</p>
+<p>It still works. Write the sizes you actually built into <code>designWheelBase</code> (distance between the arches) in the look JSON (<a href="#s9">chapter 6</a>). The game scales the body by that ratio to fit the gauge size.</p>
 </div>
 </details>
 
@@ -696,7 +696,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>ハンドルの位置や傾きを、座席に合わせて直したい</summary>
 <div class="more-body">
-<p>ゲームの中で <kbd>Ctrl</kbd>+<kbd>G</kbd>（座席とハンドルの位置）を開くと、乗ったまま座席とハンドルを動かせます。ハンドルは位置（X・Y・Z）と角度を動かせ、角度は正でコラムが起きます（ハンドルの面が寝る）。決まったら「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> に貼ります。</p>
+<p>ゲームの中で <kbd>Ctrl</kbd>+<kbd>G</kbd> を開き、「車の JSON」の「座席」「ハンドル」を選ぶと、乗ったまま座席とハンドルを動かせます。ハンドルは位置（X・Y・Z）と角度を動かせ、角度は正でコラムが起きます（ハンドルの面が寝る）。決まったら「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> に貼ります。</p>
 <pre><code>"seat": [0.5, -0.55, 0.2],
 "steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
 <p><code>offset</code> は <code>seat</code> と同じ向き（+X 右・+Y 上・-Z 前、メートル）。画面で動かした値はその場で効きますが、自分の画面だけで、ゲームを閉じると消えます。モデルを直すより手早く合わせられます。</p>
@@ -705,7 +705,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more en">
 <summary>Adjust the wheel's position or angle to suit the seat</summary>
 <div class="more-body">
-<p>In game, <kbd>Ctrl</kbd>+<kbd>G</kbd> (seat and steering wheel position) lets you move the seat and the wheel while sitting in the car. The wheel can be moved (X, Y, Z) and tilted; a positive tilt stands the column up (the wheel face lies flatter). When it looks right, press "Copy JSON" and paste into <code>vehicles/&lt;car&gt;.json</code>.</p>
+<p>In game, open <kbd>Ctrl</kbd>+<kbd>G</kbd> and pick "Seat" or "Steering" under "Car JSON" to move the seat and the steering wheel while sitting in the car. The wheel can be moved (X, Y, Z) and tilted; a positive tilt stands the column up (the wheel face lies flatter). When it looks right, press "Copy JSON" and paste into <code>vehicles/&lt;car&gt;.json</code>.</p>
 <pre><code>"seat": [0.5, -0.55, 0.2],
 "steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
 <p><code>offset</code> uses the same directions as <code>seat</code> (+X right, +Y up, -Z forward, metres). Changes made on the screen apply at once, but only on your screen and only until you quit. It is quicker than editing the model.</p>
@@ -1228,9 +1228,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-file">ファイル</span><b>見た目の JSON を書く。</b><code>assets/mypack/vehicles/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする:
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
-             "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" }
+             "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
 <li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">8 章</a>で詰める）:
 <pre><code>{
@@ -1246,9 +1244,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-file">File</span><b>Write the looks JSON.</b> Rename <code>assets/mypack/vehicles/sample.json</code> to <code>ae86.json</code> and make it:
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
-             "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" }
+             "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
 <li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 8</a>):
 <pre><code>{
@@ -1356,16 +1352,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" },
 
   "designWheelBase": 3.12,
-  "designWheelRadius": 0.45,
   "designRideHeight": 0.6019
 }</code></pre>
 <ul>
 <li><code>designWheelBase</code> … メッシュの前後のホイールアーチが何 m 離れているか（既定 3.12）。5.2m で作ってしまったなら <code>5.2</code> と書けば、既定の車の大きさに縮みます</li>
-<li><code>designWheelRadius</code> … メッシュのタイヤが何 m の半径で作られているか（既定 0.45）</li>
 <li><code>designRideHeight</code> … 車体をシャシー基準面から下げる量 [m]（既定 0.6019）。車体が埋まる・浮くときに直す</li>
 <li>どれも「この車の寸法」ではなく「メッシュの寸法」です。実際の寸法は諸元にあり、ゲームはその比でメッシュを拡大します</li>
 </ul>
@@ -1387,16 +1379,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" },
 
   "designWheelBase": 3.12,
-  "designWheelRadius": 0.45,
   "designRideHeight": 0.6019
 }</code></pre>
 <ul>
 <li><code>designWheelBase</code> — how far apart the front and rear arches are in your mesh, in m (default 3.12). If you built it at 5.2 m, write <code>5.2</code> and it shrinks to the default car's size</li>
-<li><code>designWheelRadius</code> — the radius your mesh's tyre was built at, in m (default 0.45)</li>
 <li><code>designRideHeight</code> — how far to drop the body below the chassis plane, in m (default 0.6019). Change it if the body sinks or floats</li>
 <li>These describe the mesh, not the car. The car's real sizes are in the spec, and the game scales the mesh by the ratio</li>
 </ul>
@@ -1442,39 +1430,27 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </details>
 
 <details class="more ja">
-<summary>タイヤの見た目を変えたい（自前のタイヤ・ずらす・太さ・キャンバー）</summary>
+<summary>タイヤが車体からはみ出す・引っ込む・前後にずれる</summary>
 <div class="more-body">
-<p>見た目の JSON の <code>wheel</code> に書きます。</p>
-<pre><code>"wheel": { "model": "mypack:models/entity/ae86_wheel.obj",
-           "texture": "mypack:textures/entity/ae86_wheel.png",
-           "offset": [0.03, 0.0, 0.0],
-           "scale": [1.2, 1.0, 1.0],
-           "camber": -2.0 }</code></pre>
+<p><b>見た目の JSON にはホイールの項目がありません。</b>タイヤの位置は諸元の寸法が決めます。物理はその位置にタイヤがあるものとして走りを解いているので、見た目だけでタイヤを動かすことはできません。</p>
 <ul>
-<li><code>model</code> / <code>texture</code> … 自前のタイヤ。<code>kurumamod:</code> で始めれば KurumaMod のものを借りられる</li>
-<li><code>offset</code> … タイヤをずらす [m]。<b>X は「外向き」</b>（左右で向きが反転する）。X は −0.05〜0.10 に丸められる</li>
-<li><code>scale</code> … X が太さ（0.5〜2.5 に丸められる）。<b>Y・Z（直径）は 1 のままにする。</b>直径はゲームの調整画面のタイヤ半径で変える</li>
-<li><code>camber</code> … キャンバー角 [度]。負で上が内側。−30〜10 に丸められる。見た目だけで、グリップは変わらない</li>
+<li><b>幅</b> … 諸元のトレッド（<code>data/mypack/cars/&lt;車&gt;.json</code> の <code>track_width</code>）。幅の広い車は、物理的にもトレッドが広い</li>
+<li><b>前後</b> … 諸元のホイールベース（<code>wheel_base</code>）。車体のほうを合わせるなら <code>designWheelBase</code>（上の「車体の大きさ・位置を合わせたい」）</li>
+<li>どちらもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">8 章</a>）</li>
+<li>どのホイールを履かせるか、キャンバー、太さ、ツラ（少し出す・引っ込める）は、ホイールの JSON に書く（<a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-wheel.html#s-parts">2 章</a>）。プレイヤーは換装画面で変えられる</li>
 </ul>
-<p>プレイヤーは換装画面で太さ・キャンバー・オフセットを変えられます。ここに書くのはその最初の値です。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Change how the wheels look (own wheel, offset, width, camber)</summary>
+<summary>The wheels stick out, sit too far in, or are off front to back</summary>
 <div class="more-body">
-<p>Write it in <code>wheel</code> in the looks JSON.</p>
-<pre><code>"wheel": { "model": "mypack:models/entity/ae86_wheel.obj",
-           "texture": "mypack:textures/entity/ae86_wheel.png",
-           "offset": [0.03, 0.0, 0.0],
-           "scale": [1.2, 1.0, 1.0],
-           "camber": -2.0 }</code></pre>
+<p><b>The looks JSON has no wheel entries.</b> Where the wheels sit is set by the spec's dimensions. The physics solves the driving with the wheels at that position, so they cannot be moved for looks alone.</p>
 <ul>
-<li><code>model</code> / <code>texture</code> — your own wheel. Start the path with <code>kurumamod:</code> to borrow KurumaMod's</li>
-<li><code>offset</code> — shift the wheels, in m. <b>X is "outward"</b> (it flips between sides). X is clamped to −0.05–0.10</li>
-<li><code>scale</code> — X is width (clamped to 0.5–2.5). <b>Leave Y and Z (diameter) at 1.</b> Change the diameter with the tyre radius in the game's tuning screen</li>
-<li><code>camber</code> — camber in degrees; negative leans the top inward. Clamped to −30–10. Looks only; grip does not change</li>
+<li><b>Width</b> — the spec's track (<code>track_width</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>). A wide car has a wide track in physics too</li>
+<li><b>Front to back</b> — the spec's wheelbase (<code>wheel_base</code>). To fit the body instead, use <code>designWheelBase</code> ("Make the body the right size and position" above)</li>
+<li>Both can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 8</a>)</li>
+<li>Which wheel to fit, camber, width and the offset (pushing it slightly in or out) go in the wheel's JSON (<a href="guide-wheel.html#s6">Wheel guide chapter 1</a> and <a href="guide-wheel.html#s-parts">2</a>). Players can change them in the parts screen</li>
 </ul>
-<p>Players can change width, camber and offset in the parts screen; what you write here is the starting value.</p>
 </div>
 </details>
 
@@ -1488,13 +1464,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>body.texture</code></td><td>既定の車</td><td>車体のテクスチャ</td></tr>
 <tr><td><code>body.offset</code></td><td><code>[0,0,0]</code></td><td>車体をずらす [m]（+X 右・+Y 上・−Z 前）</td></tr>
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>車体の大きさの微調整。数字 1 つか <code>[x,y,z]</code>。上へ伸びる</td></tr>
-<tr><td><code>wheel.model</code></td><td>既定のタイヤ</td><td>タイヤの OBJ</td></tr>
-<tr><td><code>wheel.texture</code></td><td>既定のタイヤ</td><td>タイヤのテクスチャ</td></tr>
-<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>タイヤをずらす [m]。X は外向き（−0.05〜0.10）</td></tr>
-<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td>X は太さ（0.5〜2.5）。Y・Z は 1 のまま</td></tr>
-<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>キャンバー角 [度]（−30〜10）。見た目だけ</td></tr>
+<tr><td><code>wheel</code>（<code>model</code>・<code>texture</code>・<code>offset</code>・<code>camber</code>・<code>scale</code>・<code>rimRadius</code>）、<code>designWheelRadius</code></td><td>—</td><td>以前の書き方（読める）。いまはホイールの JSON に書き、諸元の <code>default_parts.wheel</code> で指す（書かなければ TE37）。タイヤの位置は諸元のトレッド・ホイールベース</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>メッシュのホイールアーチが何 m 離れているか</td></tr>
-<tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td>メッシュのタイヤが何 m の半径で作られているか</td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
@@ -1517,13 +1488,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>body.texture</code></td><td>built-in car</td><td>Body texture</td></tr>
 <tr><td><code>body.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the body [m] (+X right, +Y up, −Z forward)</td></tr>
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>Fine size adjustment; one number or <code>[x,y,z]</code>. Grows upward</td></tr>
-<tr><td><code>wheel.model</code></td><td>built-in wheel</td><td>Wheel OBJ</td></tr>
-<tr><td><code>wheel.texture</code></td><td>built-in wheel</td><td>Wheel texture</td></tr>
-<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the wheels [m]. X is outward (−0.05–0.10)</td></tr>
-<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td>X is width (0.5–2.5). Leave Y and Z at 1</td></tr>
-<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>Camber in degrees (−30–10). Looks only</td></tr>
+<tr><td><code>wheel</code> (<code>model</code>, <code>texture</code>, <code>offset</code>, <code>camber</code>, <code>scale</code>, <code>rimRadius</code>), <code>designWheelRadius</code></td><td>—</td><td>The older way (still read). Now write them in the wheel's JSON and point to it with <code>default_parts.wheel</code> in the spec (left out, the TE37). Wheel position comes from the spec's track and wheelbase</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>How far apart the arches are in your mesh</td></tr>
-<tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td>The radius your mesh's tyre was built at</td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
@@ -1650,7 +1616,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっているか</li>
 <li><b>車体だけ大きい・小さい</b> … <code>designWheelBase</code> がメッシュの実寸か</li>
 <li><b>車体が埋まる・浮く</b> … <code>designRideHeight</code>。メッシュの原点が地面の高さにあるか</li>
-<li><b>タイヤが大きすぎる・小さすぎる</b> … <code>designWheelRadius</code> がメッシュの実寸か</li>
+<li><b>タイヤが大きすぎる・小さすぎる</b> … ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> がメッシュの実寸か</li>
 <li><b>調整画面で寸法を変えたらタイヤがフェンダーからはみ出した</b> … 仕様。タイヤは諸元に合わせて動き、車体は動かない。車体も合わせるなら <code>body.scale</code></li>
 <li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">8 章</a>）</li>
 </ul>
@@ -1667,7 +1633,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>The display name is just <code>ae86</code></b> — is the lang key <code>car.mypack.ae86</code>?</li>
 <li><b>Only the body is too big or small</b> — is <code>designWheelBase</code> the real size of your mesh?</li>
 <li><b>The body sinks or floats</b> — <code>designRideHeight</code>. Is the mesh origin at ground level?</li>
-<li><b>Wheels too big or small</b> — is <code>designWheelRadius</code> the real size of your mesh?</li>
+<li><b>Wheels too big or small</b> — for a wheel not built to the gauge, is <code>designRadius</code> inside <code>wheel</code> the real size of your mesh?</li>
 <li><b>After changing sizes in the tuning screen, the wheels stick out of the fenders</b> — expected. Wheels follow the spec; the body does not. Use <code>body.scale</code> to match the body</li>
 <li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>)</li>
 </ul>
@@ -2098,13 +2064,13 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h3 class="en">Before loading it in game</h3>
 <ul class="chk ja">
 <li>JSON に書いたパスが、実際のファイル名と同じ</li>
-<li><code>designWheelBase</code> / <code>designWheelRadius</code> が<b>メッシュの実寸</b></li>
+<li><code>designWheelBase</code> が<b>メッシュの実寸</b></li>
 <li>リソースパックで試すなら、ゲームで有効にした</li>
 <li>見た目を直したら <kbd>F3</kbd>+<kbd>T</kbd>、<code>data/</code> を直したら <code>/reload</code></li>
 </ul>
 <ul class="chk en">
 <li>The paths in the JSON match the actual file names</li>
-<li><code>designWheelBase</code> and <code>designWheelRadius</code> are <b>your mesh's real sizes</b></li>
+<li><code>designWheelBase</code> is <b>your mesh's real size</b></li>
 <li>If testing with a resource pack, it is enabled in game</li>
 <li><kbd>F3</kbd>+<kbd>T</kbd> after changing looks, <code>/reload</code> after changing <code>data/</code></li>
 </ul>

@@ -59,7 +59,20 @@ import java.util.Set;
  * 見た目（{@code assets/}）から諸元を動かすことはできない——できるようにすると、車の寸法が
  * リソースパック次第になってしまう。</p>
  *
- * <h2>{@code designWheelRadius} は「メッシュが何 m で作られているか」</h2>
+ * <h2>車の JSON はホイールの項目を持たない</h2>
+ *
+ * <p>ホイールのメッシュ・テクスチャ・大きさ・キャンバー・太さ・ツラはホイールの JSON
+ * （{@code assets/<ns>/car_parts/<id>.json}）にだけ書く。車は諸元側の {@code default_parts.wheel} で
+ * どれを純正にするかを指し、書かなければ TE37（{@code CarPartModel#STOCK_WHEEL}）が純正になる。
+ * <b>タイヤの位置は物理の寸法（ホイールベース・トレッド・タイヤ半径）が決める</b>ので、車体のほうを
+ * {@code designWheelBase}・{@code designRideHeight}・{@code body.offset}・{@code body.scale} でタイヤに合わせる。
+ * 見た目だけでタイヤを動かすと、描いたタイヤと物理が接地させているタイヤの位置が食い違う。</p>
+ *
+ * <p>{@code wheel} ブロック（{@code model}・{@code texture}・{@code offset}・{@code scale}・{@code camber}・
+ * {@code rimRadius}）と一番外の {@code designWheelRadius} はすべて以前の書き方で、配布済みのパックのために読む。
+ * {@code wheel.model} が {@link #DEFAULT_WHEEL_MODEL} 以外ならそれが純正になる。</p>
+ *
+ * <h2>{@code designWheelRadius}（以前の書き方）は「ホイールのメッシュが何 m で作られているか」</h2>
  *
  * <p>{@link CarSpec#wheelRadius()} と名前が似ているが<b>別の数字</b>。</p>
  *
@@ -71,12 +84,14 @@ import java.util.Set;
  * <p>前者を後者で割ったものが拡大率になる。おかげで<b>タイヤを特定の大きさちょうどで
  * 作る必要がない</b>——作った寸法をここに書けば、描画側がその比で正規化する。</p>
  *
+ * <p>書かなければゲージの {@link #GAUGE_WHEEL_RADIUS}。部品のほうでは同じものを {@code designRadius} と呼ぶ。</p>
+ *
  * <p>その<b>上に</b>手で決める {@code wheelScale} が乗るが、<b>こちらで直径（Y・Z）を
  * 変えると接地が崩れる</b>。接地点は物理のタイヤ半径から決まっていて、見た目だけ大きく
  * しても物理は知らないため。太さ（X）だけなら安全。</p>
  *
  * @param designWheelBase   メッシュのホイールアーチの間隔 [m]。<b>既定の 2.6m との比</b>で正規化する
- * @param designWheelRadius メッシュが作られたときのタイヤ半径 [m]。直径ではない
+ * @param wheelDesignRadius ホイールのメッシュが作られたときのタイヤ半径 [m]（以前の書き方の {@code designWheelRadius}）。直径ではない
  * @param designRideHeight  メッシュが作られたときの車高 [m]。車体をシャシー基準面から下げる量
  * @param bodyOffset        車体の平行移動 [m]。エンティティ空間（+X 右・+Y 上・-Z 前）
  * @param bodyScale         車体の拡大率。原点が地面なので、上げると<b>上へ伸びる</b>
@@ -97,7 +112,7 @@ public record CarModel(
         ResourceLocation wheelModel,
         ResourceLocation wheelTexture,
         double designWheelBase,
-        double designWheelRadius,
+        double wheelDesignRadius,
         double designRideHeight,
         Vec3 bodyOffset,
         Vec3 bodyScale,
@@ -306,14 +321,14 @@ public record CarModel(
     }
 
     /**
-     * メッシュの作りの寸法（{@code designWheelBase}・{@code designRideHeight}・{@code designWheelRadius}）。
+     * 車体メッシュの作りの寸法（{@code designWheelBase}・{@code designRideHeight}）。
      * 座席の調整画面（Ctrl+G）で動かすときにまとめて扱う。
      */
-    public record Design(double wheelBase, double rideHeight, double wheelRadius) {
+    public record Design(double wheelBase, double rideHeight) {
     }
 
     public Design design() {
-        return new Design(designWheelBase, designRideHeight, designWheelRadius);
+        return new Design(designWheelBase, designRideHeight);
     }
 
     /**
@@ -332,9 +347,10 @@ public record CarModel(
         DESIGN_OVERRIDES.remove(carId);
     }
 
+
     private CarModel withDesign(Design design) {
         return new CarModel(bodyModel, bodyTexture, wheelModel, wheelTexture,
-                design.wheelBase(), design.wheelRadius(), design.rideHeight(),
+                design.wheelBase(), wheelDesignRadius, design.rideHeight(),
                 bodyOffset, bodyScale, wheelOffset, wheelScale, camber, wheelRimRadius,
                 seatOffset, steeringOffset, steeringTilt, shadowRadius, sounds, partObjects, icon, paints);
     }
@@ -356,6 +372,18 @@ public record CarModel(
     }
 
     /**
+     * ホイールのゲージ（{@code tools/blender_wheel_gauge.py}）のタイヤ半径 [m]。{@code designRadius} を
+     * 書かなかったホイールのメッシュはこの大きさで作られたものとみなす。
+     *
+     * <p>物理の既定のタイヤ半径（{@code CarSpec.DEFAULT}）とは別に持つ。今は同じ 0.45 だが、
+     * 諸元の既定を変えたときに見た目の基準まで一緒にずれないように。</p>
+     */
+    public static final double GAUGE_WHEEL_RADIUS = 0.45;
+
+    /** 同梱のホイール（TE37）のメッシュ。車の JSON がホイールを直接書いていなければこれのまま。 */
+    public static final ResourceLocation DEFAULT_WHEEL_MODEL = ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "models/entity/wheel.obj");
+
+    /**
      * 既定の定義。JSON が無い・壊れている場合と、書かれていない項目に使う。
      *
      * <p>寸法を {@link CarSpec#DEFAULT} から取るのは、<b>今あるモデルが既定の諸元ちょうどで
@@ -365,10 +393,10 @@ public record CarModel(
         return new CarModel(
                 ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "models/entity/s15.obj"),
                 ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "textures/entity/s15.png"),
-                ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "models/entity/wheel.obj"),
+                DEFAULT_WHEEL_MODEL,
                 ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "textures/entity/wheel.png"),
                 CarSpec.DEFAULT.wheelBase(),
-                CarSpec.DEFAULT.wheelRadius(),
+                GAUGE_WHEEL_RADIUS,
                 CarSpec.DEFAULT.staticRideHeight(),
                 Vec3.ZERO,
                 Vec3.ONE,
@@ -419,7 +447,8 @@ public record CarModel(
                 location(wheel, "model", base.wheelModel()),
                 location(wheel, "texture", base.wheelTexture()),
                 number(root, "designWheelBase", base.designWheelBase()),
-                number(root, "designWheelRadius", base.designWheelRadius()),
+                // ホイールを直接書いていた頃の書き方。いまはホイール部品の designRadius に書く
+                number(root, "designWheelRadius", base.wheelDesignRadius()),
                 number(root, "designRideHeight", base.designRideHeight()),
                 vector(body, "offset", Vec3.ZERO),
                 vector(body, "scale", Vec3.ONE),
