@@ -245,27 +245,15 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </details>
 
 <details class="more ja">
-<summary>ゲームの中で、車への付け方や半径を合わせたい</summary>
+<summary>ゲームの中で、キャンバー・太さ・半径を合わせたい</summary>
 <div class="more-body">
-<p>車に乗って <kbd>Ctrl</kbd>+<kbd>G</kbd> を開きます。上のタブが貼り先のファイルで、乗ったまま動かして、その場で見た目を確かめられます（自分の画面だけ・ゲームを閉じるまで）。</p>
-<ul>
-<li><b>タイヤの位置（幅・前後）</b> … 諸元のトレッド・ホイールベースで決まる。調整画面（<kbd>G</kbd>）で動かし、諸元に書く</li>
-<li><b>「ホイールの JSON」</b> … いま描いているホイールのキャンバー・太さ・スケール（<code>designRadius</code>）・ビード半径。コピー先はタブに出ているホイールの <code>car_parts/&lt;部品&gt;.json</code> の <code>wheel</code>。スケールとビード半径は、ゲージどおりに作ったなら触らない。タイヤがリムに食い込む・浮くときは、ビード半径を動かす</li>
-<li>灰色の行は、換装画面で変えた値や部品の指定が勝っていて、動かしても見えない。換装画面で「R」を押して戻すと動くようになる</li>
-<li>「JSON をコピー」は、開いているタブのファイルにそのまま貼れる形でコピーする。<code>wheel</code> はブロックごと置き換えて貼る</li>
-</ul>
+<p><kbd>Ctrl</kbd>+<kbd>G</kbd> の「ホイールの JSON」で、乗ったまま動かせます。手順は<a href="#s-wheel-debug">2 章の「ゲームの中で調整する」</a>にあります。タイヤの位置（幅・前後）は諸元のトレッド・ホイールベースで決まるので、調整画面（<kbd>G</kbd>）で動かします。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Fit the wheel to the car, or set the radii, in game</summary>
+<summary>Set camber, width and radii in game</summary>
 <div class="more-body">
-<p>Sit in the car and open <kbd>Ctrl</kbd>+<kbd>G</kbd>. The tabs at the top are the files you paste into. Move the values while seated and see the result straight away (your screen only, until you close the game).</p>
-<ul>
-<li><b>Wheel position (width, front to back)</b> — set by the spec's track and wheelbase. Move them in the tuning screen (<kbd>G</kbd>) and write them into the spec</li>
-<li><b>"Wheel JSON"</b> — camber, width, scale (<code>designRadius</code>) and bead radius of the wheel being drawn. They go into <code>wheel</code> in the <code>car_parts/&lt;part&gt;.json</code> named on the tab. Leave the scale and bead radius alone if you built to the gauge. If the tyre cuts into the rim or floats off it, move the bead radius</li>
-<li>Grey rows are overridden by values changed in the parts screen or by the part itself, so moving them shows nothing. Press "R" in the parts screen to clear the override</li>
-<li>"Copy JSON" copies text you can paste straight into the open tab's file. Replace the whole <code>wheel</code> block when pasting</li>
-</ul>
+<p>The "Wheel JSON" tab of <kbd>Ctrl</kbd>+<kbd>G</kbd> moves them while you sit in the car. The steps are in <a href="#s-wheel-debug">"Adjust it in game" in chapter 2</a>. Wheel position (width, front to back) comes from the spec's track and wheelbase, so move those in the tuning screen (<kbd>G</kbd>).</p>
 </div>
 </details>
 
@@ -338,6 +326,66 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 
 <p class="ja">見本パックの <code>sample_wheel</code> が、この形そのものです。</p>
 <p class="en">The example pack's <code>sample_wheel</code> is exactly this setup.</p>
+
+<figure>
+<div class="anno"><img src="img/blender-wheel.png" alt="Blender: the TE37 rim inside the wheel gauge, seen from the top, front, right and in perspective" loading="lazy"></div>
+<figcaption class="ja">図 13. 同梱の TE37 をゲージ（<code>blender_wheel_gauge.py</code>）に重ねたところ。<b>リムが円柱の中に収まり、両端のフランジが円柱の端の面に来ています</b>。原点は車軸の中心（リムの幅の真ん中）、表は +X。センターキャップ（<code>WeelCap</code>）は別オブジェクトでかまいません。タイヤは作らず、ゲームが嵌めます</figcaption>
+<figcaption class="en">Fig. 13. The bundled TE37 laid over the gauge (<code>blender_wheel_gauge.py</code>). <b>The rim sits inside the cylinder, with its flanges on the cylinder's end faces.</b> The origin is the axle centre (the middle of the rim's width) and the face points to +X. The centre cap (<code>WeelCap</code>) may be a separate object. No tyre is modelled; the game fits one.</figcaption>
+</figure>
+
+<h3 class="ja" id="s-wheel-debug">ゲームの中で調整する</h3>
+<h3 class="en">Adjust it in game</h3>
+<p class="ja">キャンバー・太さの最初の値や、タイヤの嵌まり具合は、ゲームの中で見ながら決められます。JSON を書き換えて読み直すのを繰り返す必要はありません。</p>
+<p class="en">The starting camber and width, and how the tyre sits on the rim, can be set while watching in game. No need to keep editing the JSON and reloading.</p>
+<div class="box tip ja">
+<span class="lbl">ゲージどおりに作ったなら、基本的に変更は要りません</span>
+<p>この調整は、<b>ゲージ（<code>blender_wheel_gauge.py</code>）どおりの大きさで作られなかったメッシュのためのもの</b>です。ゲージに収めて作ったホイールなら、スケールもビード半径もそのままで標準のタイヤがぴったり嵌まります。キャンバーと太さは好みの最初の値を決めたいときだけ動かします。</p>
+</div>
+<div class="box tip en">
+<span class="lbl">Built to the gauge? You normally change nothing here</span>
+<p>This is <b>for meshes that were not built at the gauge's size</b> (<code>blender_wheel_gauge.py</code>). A wheel kept inside the gauge takes the standard tyre exactly with the scale and bead radius left as they are. Move camber and width only if you want different starting values.</p>
+</div>
+<ol class="steps ja">
+<li><span class="where where-game">ゲーム</span><b>車を出して乗り、自分のホイールを履かせる。</b><kbd>G</kbd> →「パーツ」→「ホイール」で選ぶ（純正にしてあれば、そのままでよい）</li>
+<li><span class="where where-game">ゲーム</span><b><kbd>Ctrl</kbd>+<kbd>G</kbd> を押し、上の「ホイールの JSON」のタブを開く。</b>タブに貼り先のファイル名（<code>my_wheel.json</code>）が出る</li>
+<li><span class="where where-game">ゲーム</span><b>スライダーか −／＋ で動かし、その場で見る。</b><kbd>Shift</kbd> を押しながらだと 10 刻み。三人称（<kbd>F5</kbd>）ならドラッグで車のまわりを回して見られる
+<ul>
+<li><b>キャンバー・太さ</b> … 換装画面のスライダーの最初の値になる</li>
+<li><b>スケール</b> … ホイールの大きさ（<code>designRadius</code>）。ゲージどおりに作ったなら 0.45 のまま</li>
+<li><b>ビード半径</b> … タイヤの内側を置く半径。タイヤがリムに食い込む・浮くときだけ動かす。書いていなければ「測定」と出る</li>
+</ul></li>
+<li><span class="where where-game">ゲーム</span><b>「JSON をコピー」を押す。</b>モデルとテクスチャも入った <code>"wheel"</code> のブロックがコピーされる</li>
+<li><span class="where where-file">ファイル</span><b><code>assets/mypack/car_parts/my_wheel.json</code> の <code>"wheel"</code> のブロックと置き換えて貼る。</b><kbd>F3</kbd>+<kbd>T</kbd> で読み直して確かめる</li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-game">Game</span><b>Spawn a car, get in and fit your wheel.</b> Pick it under <kbd>G</kbd> → "Parts" → "Wheels" (skip this if it is already the stock wheel)</li>
+<li><span class="where where-game">Game</span><b>Press <kbd>Ctrl</kbd>+<kbd>G</kbd> and open the "Wheel JSON" tab at the top.</b> The tab shows the file to paste into (<code>my_wheel.json</code>)</li>
+<li><span class="where where-game">Game</span><b>Move the sliders or −/+ and watch the result.</b> Hold <kbd>Shift</kbd> for steps of 10. In third person (<kbd>F5</kbd>) you can drag to look around the car
+<ul>
+<li><b>Camber, Width</b> — become the starting values of the parts-screen sliders</li>
+<li><b>Scale</b> — the wheel's size (<code>designRadius</code>). Leave it at 0.45 if you built to the gauge</li>
+<li><b>Bead radius</b> — where the tyre's inner edge sits. Move it only if the tyre cuts into or floats off the rim. Shows "measured" when not written</li>
+</ul></li>
+<li><span class="where where-game">Game</span><b>Press "Copy JSON".</b> It copies the <code>"wheel"</code> block, model and texture included</li>
+<li><span class="where where-file">File</span><b>Replace the <code>"wheel"</code> block in <code>assets/mypack/car_parts/my_wheel.json</code> with it.</b> Press <kbd>F3</kbd>+<kbd>T</kbd> to reload and check</li>
+</ol>
+
+<figure>
+<div class="anno"><img src="img/adjust-wheel-debug.jpg" alt="The Wheel JSON tab of the in-game look adjustment screen, with camber, width, scale and bead radius sliders over the car" loading="lazy"></div>
+<figcaption class="ja">図 14. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ホイールの JSON」のタブ。上がキャンバー・太さ・スケール・ビード半径、その下がコピーされる JSON、いちばん下に貼り先のファイル名が出ます。ゲームは止まらないので、車を見ながら動かせます</figcaption>
+<figcaption class="en">Fig. 14. The "Wheel JSON" tab of <kbd>Ctrl</kbd>+<kbd>G</kbd>. Camber, width, scale and bead radius at the top, the JSON that gets copied below them, and the file to paste into at the bottom. The game keeps running, so you can watch the car as you move them.</figcaption>
+</figure>
+
+<ul class="ja">
+<li>動かした値は<b>自分の画面だけ・ゲームを閉じるまで</b>。ほかの人や保存データには影響しない</li>
+<li>各行の「R」で JSON の値に戻る（JSON に書いていない項目は、書いていない状態に戻る）</li>
+<li>灰色の行は、換装画面で変えた値や部品の指定が勝っていて、動かしても見えない。換装画面で「R」を押して戻すと動くようになる</li>
+</ul>
+<ul class="en">
+<li>Changes apply <b>on your screen only, until you close the game</b>. Other players and saves are not affected</li>
+<li>"R" on a row goes back to the JSON's value (an entry the JSON does not write goes back to unwritten)</li>
+<li>Grey rows are overridden by values changed in the parts screen or by the part itself, so moving them shows nothing. Press "R" in the parts screen to clear the override</li>
+</ul>
 
 <h3 class="ja">必要なときだけ</h3>
 <h3 class="en">Only when you need it</h3>
@@ -774,7 +822,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
 <tr><td><code>model</code></td><td>id</td><td>KurumaMod 標準のタイヤ</td><td>タイヤの OBJ（タイヤだけ。原点は車軸の中心）</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/wheel.png</code></td><td>タイヤのテクスチャ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/tire.png</code></td><td>タイヤのテクスチャ</td></tr>
 <tr><td><code>innerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの内径 [m]。測った値がおかしいときだけ書く</td></tr>
 <tr><td><code>outerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの外径 [m]。同上</td></tr>
 </table>
@@ -792,7 +840,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
 <tr><td><code>model</code></td><td>id</td><td>KurumaMod's own tyre</td><td>Tyre OBJ (tyre only, origin at the axle centre)</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/wheel.png</code></td><td>Tyre texture</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/tire.png</code></td><td>Tyre texture</td></tr>
 <tr><td><code>innerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's inner tyre radius [m]. Only write it if the measured one is wrong</td></tr>
 <tr><td><code>outerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's outer tyre radius [m]. Likewise</td></tr>
 </table>
