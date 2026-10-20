@@ -1,5 +1,5 @@
 {
-  "_comment": "自前のメッシュを持つホイールの見本。素性は付ける場所と並び順だけ",
+  "_comment": "部品の素性。ホイールは見た目だけの部品なので、付ける場所と並び順だけ。見た目は assets/<pack>/car_parts/sample_wheel.json",
   "_comment_cars": "\"cars\": [\"kurumamod_example_carpack:sample\"] と書けば、その車種の換装画面にだけ並ぶ。書かなければどの車種にも並ぶ",
 
   "slot": "wheel",
