@@ -79,7 +79,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <p><span data-l="en">Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.</span><span data-l="ja">ターボとブローオフバルブ、エアロやフェンダーなどの外装パーツ、マフラー。</span></p>
   </div>
 </section>
-<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-parts.html" aria-current="page"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html" aria-current="page"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
   <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-turbo"><span data-l="en">1. Turbos and blow-off valves</span><span data-l="ja">1. ターボとブローオフバルブ</span></a><a href="#s-body"><span data-l="en">2. Body parts</span><span data-l="ja">2. 外装パーツ</span></a><a href="#s-exhaust"><span data-l="en">3. Exhausts</span><span data-l="ja">3. マフラー</span></a><a href="#s-chk-parts"><span data-l="en">4. Checklist</span><span data-l="ja">4. チェックリスト</span></a><a href="#se"><span data-l="en">Appendix A. Part keys</span><span data-l="ja">付録 A. 部品の全項目</span></a></nav>
@@ -266,8 +266,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 
 <figure>
 <img src="img/guide-3.jpg" loading="lazy" alt="Four rear wing part objects overlapping inside the S15 model in Blender, all visible in the outliner">
-<figcaption class="ja">図 15. S15 の .blend。ウイングの部品 4 つ（<code>part_rear_wing-…</code>）が<b>車体と同じモデルの中に重なって入っています</b>。アウトライナーで全部を表示（目のアイコンが開いた状態）にしたまま書き出します。ゲームでは付けている 1 つだけが描かれます</figcaption>
-<figcaption class="en">Fig. 15. The S15 .blend. Four wing part objects (<code>part_rear_wing-…</code>) <b>overlap inside the same model as the body</b>. Export with all of them visible in the outliner (eye icon open); in game only the fitted one is drawn.</figcaption>
+<figcaption class="ja">図 16. S15 の .blend。ウイングの部品 4 つ（<code>part_rear_wing-…</code>）が<b>車体と同じモデルの中に重なって入っています</b>。アウトライナーで全部を表示（目のアイコンが開いた状態）にしたまま書き出します。ゲームでは付けている 1 つだけが描かれます</figcaption>
+<figcaption class="en">Fig. 16. The S15 .blend. Four wing part objects (<code>part_rear_wing-…</code>) <b>overlap inside the same model as the body</b>. Export with all of them visible in the outliner (eye icon open); in game only the fitted one is drawn.</figcaption>
 </figure>
 
 <h3 class="ja">付ける場所（<code>slot</code>）</h3>
@@ -634,8 +634,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </section><section class="gsec" id="se">
 <h2 class="ja">付録 A. 部品の全項目</h2>
 <h2 class="en">Appendix A. Every part key</h2>
+<p class="ja">ホイールとタイヤの項目は、<a href="guide-wheel.html#se-wheel">ホイールの付録 A</a>・<a href="guide-tire.html#se-tire">タイヤの付録 A</a>にあります。</p>
+<p class="en">Wheel and tyre keys are in <a href="guide-wheel.html#se-wheel">the Wheel guide's Appendix A</a> and <a href="guide-tire.html#se-tire">the Tyre guide's Appendix A</a>.</p>
 <h4 class="ja">素性 — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
-<h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
 <tr><td><code>slot</code></td><td>文字列</td><td><b>必須</b></td><td>付ける場所。<code>"wheel"</code>・<code>"tire"</code>・<code>"turbo"</code>・<code>"blowoff"</code>・<code>"front_bumper"</code>・<code>"side_skirt"</code>・<code>"fender"</code>・<code>"rear_wing"</code>・<code>"rear_diffuser"</code>・<code>"exhaust"</code></td></tr>
@@ -645,12 +646,10 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1）</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
-<tr><td><code>tire.stiffness</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。横・縦の剛性の倍率（よれやすさ。0.3〜3.0）</td></tr>
-<tr><td><code>tire.grip.&lt;路面&gt;</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。その路面でのグリップの倍率。路面は <code>paved</code>・<code>dirt</code>・<code>gravel</code>・<code>sand</code>・<code>snow</code>・<code>ice</code></td></tr>
-<tr><td><code>tire.rolling.&lt;路面&gt;</code></td><td>数字</td><td><code>1</code></td><td>タイヤだけ。その路面での転がり抵抗の倍率</td></tr>
 <tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="#s-body">パーツの 2 章</a>）</td></tr>
 <tr><td><code>aero.angle</code></td><td>数字</td><td><code>0.5</code></td><td>外装パーツだけ。調整していないときの角度（0〜1）</td></tr>
 </table>
+<h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
 <tr><td><code>slot</code></td><td>string</td><td><b>required</b></td><td>Where it fits: <code>"wheel"</code>, <code>"tire"</code>, <code>"turbo"</code>, <code>"blowoff"</code>, <code>"front_bumper"</code>, <code>"side_skirt"</code>, <code>"fender"</code>, <code>"rear_wing"</code>, <code>"rear_diffuser"</code> or <code>"exhaust"</code></td></tr>
@@ -660,49 +659,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1)</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
-<tr><td><code>tire.stiffness</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Scale on lateral and longitudinal stiffness (tread squirm; 0.3 to 3.0)</td></tr>
-<tr><td><code>tire.grip.&lt;surface&gt;</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Grip on that surface. Surfaces: <code>paved</code>, <code>dirt</code>, <code>gravel</code>, <code>sand</code>, <code>snow</code>, <code>ice</code></td></tr>
-<tr><td><code>tire.rolling.&lt;surface&gt;</code></td><td>number</td><td><code>1</code></td><td>Tyres only. Rolling resistance on that surface</td></tr>
 <tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
 <tr><td><code>aero.angle</code></td><td>number</td><td><code>0.5</code></td><td>Body parts only. Default angle (0 to 1)</td></tr>
-</table>
-<h4 class="ja">見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"wheel": { ... }</code> の中。入れ子を省いて、いちばん外側に書いてもよい。<b>ホイールだけ</b>。ターボとブローオフには要らない）</h4>
-<h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting). <b>Wheels only</b>; turbos and blow-off valves need none</h4>
-<table class="ja">
-<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>その車の純正ホイールのもの</td><td>ホイールの OBJ</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td>その車の純正ホイールのもの</td><td>ホイールのテクスチャ</td></tr>
-<tr><td><code>designRadius</code></td><td>数字</td><td><code>0.45</code>（ゲージ）。<code>model</code> を書かない部品はその車の純正ホイールのもの</td><td><b>メッシュが何 m の半径で作られているか</b>。ゲージどおりなら書かない</td></tr>
-<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車の純正ホイールのもの（無ければ 0）</td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
-<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車の純正ホイールのもの（無ければ 1）</td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
-<tr><td><code>camber</code></td><td>数字</td><td>その車の純正ホイールのもの（無ければ 0）</td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
-<tr><td><code>rimRadius</code></td><td>数字</td><td>（測る）</td><td>タイヤの内径（ビード）を置く半径 [m]（メッシュの寸法）。<a href="guide-wheel.html#s-tire">3 章</a></td></tr>
-</table>
-<h4 class="ja">タイヤの見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"tire": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
-<table class="ja">
-<tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>KurumaMod 標準のタイヤ</td><td>タイヤの OBJ（タイヤだけ。原点は車軸の中心）</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/tire.png</code></td><td>タイヤのテクスチャ</td></tr>
-<tr><td><code>innerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの内径 [m]。測った値がおかしいときだけ書く</td></tr>
-<tr><td><code>outerRadius</code></td><td>数字</td><td>（測る）</td><td>メッシュのタイヤの外径 [m]。同上</td></tr>
-</table>
-<table class="en">
-<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>the car's stock wheel's</td><td>Wheel OBJ</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td>the car's stock wheel's</td><td>Wheel texture</td></tr>
-<tr><td><code>designRadius</code></td><td>number</td><td><code>0.45</code> (the gauge). A part without <code>model</code> takes the car's stock wheel's</td><td><b>The radius the mesh was built at, in m</b>. Leave it out if you followed the gauge</td></tr>
-<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's stock wheel's (0 if none)</td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
-<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's stock wheel's (1 if none)</td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
-<tr><td><code>camber</code></td><td>number</td><td>the car's stock wheel's (0 if none)</td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
-<tr><td><code>rimRadius</code></td><td>number</td><td>(measured)</td><td>Radius where the tyre's bead sits [m], in mesh units. <a href="guide-wheel.html#s-tire">Chapter 3</a></td></tr>
-</table>
-<h4 class="en">Tyre looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"tire": { ... }</code>; <b>not at the top level</b>)</h4>
-<table class="en">
-<tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>KurumaMod's own tyre</td><td>Tyre OBJ (tyre only, origin at the axle centre)</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td><code>kurumamod:textures/entity/tire.png</code></td><td>Tyre texture</td></tr>
-<tr><td><code>innerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's inner tyre radius [m]. Only write it if the measured one is wrong</td></tr>
-<tr><td><code>outerRadius</code></td><td>number</td><td>(measured)</td><td>The mesh's outer tyre radius [m]. Likewise</td></tr>
 </table>
 <h4 class="ja">マフラーの音 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"exhaust": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
 <table class="ja">
@@ -725,13 +683,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h4 class="ja">車の側 — 初期装備（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> のいちばん外側）と対応（<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>）</h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>意味</th></tr>
-<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true。<code>wheel</code> は書かなければ <code>kurumamod:te37</code></td></tr>
+<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true。ホイールとタイヤの既定はそれぞれのページの付録</td></tr>
 <tr><td><code>parts.&lt;部品 id&gt;.show</code></td><td>オブジェクト名の配列</td><td>その部品を付けたときに出すオブジェクト（<code>part_</code> で始まる名前だけ）</td></tr>
 </table>
 <h4 class="en">On the car — default parts (top level of <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) and mapping (<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>)</h4>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Meaning</th></tr>
-<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true. <code>wheel</code> defaults to <code>kurumamod:te37</code></td></tr>
+<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true. For wheel and tyre defaults, see the appendix on their pages</td></tr>
 <tr><td><code>parts.&lt;part id&gt;.show</code></td><td>array of object names</td><td>Objects shown while that part is fitted (names starting with <code>part_</code> only)</td></tr>
 </table>
 </section><div class="gfoot">
