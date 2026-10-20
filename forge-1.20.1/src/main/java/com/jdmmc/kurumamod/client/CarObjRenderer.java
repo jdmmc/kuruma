@@ -28,7 +28,7 @@ import java.util.List;
  * <ul>
  *   <li>車体 … <b>原点は地面の高さ・前後輪の中点・左右中央</b>。
  *       大きさは JSON の {@code bodyScale}（既定 1.0 ＝ メッシュのまま）</li>
- *   <li>タイヤ … <b>原点は車軸の中心、回転軸は左右方向</b>。半径を {@code designWheelRadius} に書く。
+ *   <li>タイヤ … <b>原点は車軸の中心、回転軸は左右方向</b>。ゲージと違う半径で作ったら {@code wheel.designRadius} に書く。
  *       <b>左側用を 1 つだけ</b>作る（右側は鏡像にして描く）。Blender で前方を -Y に向けると
  *       +X が車体の左になるので、<b>ホイールの表を +X へ向けて作る</b>のがこれにあたる</li>
  * </ul>
@@ -233,7 +233,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         }
 
         // タイヤ。太さは半径の半分を見込む（車体からはみ出すのは外側だけ）
-        CarModel.Vec3 offset = CarPartModel.wheelOf(model, car.getEffectiveFitment()).offset();
+        CarModel.Vec3 offset = CarPartModel.wheelOf(car.getCarId(), model, car.getEffectiveFitment()).offset();
         double radius = spec.wheelRadius();
         for (Wheel wheel : Wheel.VALUES) {
             double outward = wheel.isLeft() ? -offset.x() : offset.x();
@@ -516,7 +516,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
 
         // 履いている部品と車種の定義を重ねた結果。何も履いていなければ車種の値がそのまま返る。
         // 重ね合わせは CarPartModel に寄せてあるので、ここは「部品があれば／無ければ」を知らない
-        CarPartModel.Wheel look = CarPartModel.wheelOf(model, car.getEffectiveFitment());
+        CarPartModel.Wheel look = CarPartModel.wheelOf(car.getCarId(), model, car.getEffectiveFitment());
         CarModel.Vec3 offset = look.offset();
 
         // 拡大率は 2 段構え。メッシュが作られた半径から諸元の半径へ正規化したうえで、
@@ -530,34 +530,27 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         float scaleY = (float) (scale * wheelScale.y());
         float scaleZ = (float) (scale * wheelScale.z());
 
-        // タイヤ。タイヤ部品を履いておらず、ホイールのメッシュにタイヤが付属していれば、今までどおり
-        // メッシュを丸ごと描く（既存のパックの見た目はそのまま）。それ以外はホイールをタイヤ抜きで描き、
-        // タイヤ（選んだもの、無ければ MOD 標準）を、内径がリムへ・外径がメッシュのタイヤ半径へ来るよう
-        // 半径方向に合わせ直して描く。拡大はホイールと同じ pose が受け持つので、物理のタイヤ半径に接地する
+        // タイヤ。ホイールは必ずタイヤ抜きで描き、タイヤ（選んだもの、無ければ MOD 標準）を、内径がリムへ・
+        // 外径がメッシュのタイヤ半径へ来るよう半径方向に合わせ直して描く。拡大はホイールと同じ pose が
+        // 受け持つので、物理のタイヤ半径に接地する。
+        // ホイールのメッシュに付属したタイヤ（tire で始まるオブジェクト。リムだけで作る前の作り方）は描かない。
+        // 描くとビードの位置も太さも動かせず、タイヤ部品と見た目がばらばらになる。付属のタイヤの内径は
+        // ビードの位置としてだけ使う（beadRadius）ので、嵌まる位置は元のタイヤとほぼ同じになる
         ObjModel wheelMesh = ObjModel.get(look.model());
         CarPartModel.Tire tire = CarPartModel.tireOf(car.getEffectiveFitment());
-        boolean attachedTire = tire == null && wheelMesh.hasTire();
-        ObjModel tireMesh = null;
-        ResourceLocation tireTexture = null;
-        if (!attachedTire) {
-            CarPartModel.Tire chosen = tire != null ? tire : CarPartModel.DEFAULT_TIRE;
-            tireMesh = ObjModel.fittedTire(chosen.model(), chosen.innerRadius(), chosen.outerRadius(),
-                    beadRadius(look, wheelMesh), look.designRadius()).lod(lod);
-            tireTexture = chosen.texture();
-        }
+        CarPartModel.Tire chosen = tire != null ? tire : CarPartModel.DEFAULT_TIRE;
+        ObjModel tireMesh = ObjModel.fittedTire(chosen.model(), chosen.innerRadius(), chosen.outerRadius(),
+                beadRadius(look, wheelMesh), look.designRadius()).lod(lod);
+        ResourceLocation tireTexture = chosen.texture();
         // 寸法を測り終えてから間引いた版へ（ビードの半径などは元のメッシュで測る）
         ObjModel wheelDrawn = wheelMesh.lod(lod);
 
         // タイヤの当たり判定の幅を、描いている寸法に合わせる（物理は見た目の部品を知らないので）。
         // メッシュの X は左の輪の向きで、外向きは -X。下の pose.translate と pose.scale と同じ式
         double[] meshBounds = wheelMesh.bounds();
-        double minX = meshBounds[0];
-        double maxX = meshBounds[3];
-        if (tireMesh != null) {
-            double[] tireBounds = tireMesh.bounds();
-            minX = Math.min(minX, tireBounds[0]);
-            maxX = Math.max(maxX, tireBounds[3]);
-        }
+        double[] tireBounds = tireMesh.bounds();
+        double minX = Math.min(meshBounds[0], tireBounds[0]);
+        double maxX = Math.max(meshBounds[3], tireBounds[3]);
         car.setVisualTireSpan(offset.x() - maxX * scaleX, offset.x() - minX * scaleX);
         // シェーダーパックが太陽・月の影を描いている最中は、ホイール（リム）を描かずタイヤだけ描く。
         // タイヤの影は落ち、スポークの影は落ちない
@@ -618,18 +611,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             // 理由は ObjModel#render の javadoc にある。ここより外側の回転は鏡像化された
             // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
             // ホイールの表裏が逆に見えるときはこの条件を反転させる
-            if (attachedTire && shadowPass) {
-                wheelDrawn.renderTireOnly(pose.last(),
-                        buffer.getBuffer(RenderType.entityCutoutNoCull(look.texture())),
-                        packedLight, OverlayTexture.NO_OVERLAY, !wheel.isLeft());
-            } else if (attachedTire) {
-                drawMesh(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
-            } else {
-                if (!shadowPass) {
-                    drawRim(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
-                }
-                drawMesh(tireMesh, tireTexture, pose, buffer, packedLight, !wheel.isLeft());
+            if (!shadowPass) {
+                drawRim(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
             }
+            drawMesh(tireMesh, tireTexture, pose, buffer, packedLight, !wheel.isLeft());
             pose.popPose();
         }
     }
@@ -640,7 +625,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      * <p>書かれていればその値。無ければ、付属のタイヤがあればその内径（作った人が嵌めた位置そのもの）、
      * それも無ければリムの外縁の {@link CarPartModel#BEAD_RATIO} 倍。</p>
      */
-    private static double beadRadius(CarPartModel.Wheel look, ObjModel wheelMesh) {
+    static double beadRadius(CarPartModel.Wheel look, ObjModel wheelMesh) {
         if (look.rimRadius() != null) {
             return look.rimRadius();
         }

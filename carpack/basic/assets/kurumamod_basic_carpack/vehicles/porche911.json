@@ -6,13 +6,7 @@
     "texture": "kurumamod_basic_carpack:textures/entity/porche911.png"
   },
 
-  "wheel": {
-    "model": "kurumamod:models/entity/wheel.obj",
-    "texture": "kurumamod:textures/entity/wheel.png"
-  },
-
   "designWheelBase": 3.12,
-  "designWheelRadius": 0.45,
 
   "_seat": "左ハンドル（ステアリングがメッシュの左側にある）なので X は負。目線がルーフの 8 割ほどに来る高さ",
   "seat": [-0.49, -0.62, 0.05],

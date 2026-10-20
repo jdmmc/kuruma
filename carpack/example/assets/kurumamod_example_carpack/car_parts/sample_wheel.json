@@ -1,10 +1,9 @@
 {
   "_comment": "自前のメッシュを持つホイールの見本。メッシュは半径 0.45m・原点は車軸の中心・表は +X（左側用）で作ってある",
-  "_comment_radius": "designRadius はメッシュを作った半径。これがあれば、どの車種のどのタイヤ半径にも自動で合う",
+  "_comment_radius": "ゲージどおり（半径 0.45m）に作ったので designRadius は書いていない。違う大きさで作ったら wheel の中に \"designRadius\": 作った半径 を書く",
 
   "wheel": {
     "model": "kurumamod_example_carpack:models/entity/wheel-sample.obj",
-    "texture": "kurumamod_example_carpack:textures/entity/wheel-sample.png",
-    "designRadius": 0.45
+    "texture": "kurumamod_example_carpack:textures/entity/wheel-sample.png"
   }
 }

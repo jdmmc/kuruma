@@ -1520,9 +1520,11 @@ public final class ObjModel {
                         -parseFloat(token[1]), parseFloat(token[2]), -parseFloat(token[3])});
                 // OBJ の V は下が 0、Minecraft は上が 0
                 case "vt" -> uvs.add(new float[]{parseFloat(token[1]), 1.0F - parseFloat(token[2])});
-                case "mtllib" -> materials.putAll(loadMaterials(location, line.substring(7).trim(), resources));
+                case "mtllib" -> materials.putAll(loadMaterials(location, rest(line, token), resources));
                 case "usemtl" -> {
-                    String next = line.substring(7).trim();
+                    // Blender は空のマテリアルスロットを「usemtl 」（名前なし）と書く。行を trim した後なので
+                    // substring(7) だと範囲外で落ち、モデルごと読めなくなる
+                    String next = rest(line, token);
                     // 同じオブジェクトの中でもマテリアルが変われば区切る。マテリアル名が役目を持てるので
                     if (groupName != null && out.size() > groupStart && !next.equals(materialName)) {
                         groups.add(new Group(groupName, materialName, groupStart / FACE_FLOATS,
@@ -1771,5 +1773,10 @@ public final class ObjModel {
 
     private static float parseFloat(String token) {
         return Float.parseFloat(token);
+    }
+
+    /** 行の先頭のキーワードより後ろ（名前に空白を含んでよい）。何も無ければ空文字。 */
+    private static String rest(String line, String[] token) {
+        return token.length > 1 ? line.substring(token[0].length()).trim() : "";
     }
 }

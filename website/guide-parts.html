@@ -670,12 +670,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting). <b>Wheels only</b>; turbos and blow-off valves need none</h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>その車種の <code>wheel.model</code></td><td>ホイールの OBJ</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td>その車種の <code>wheel.texture</code></td><td>ホイールのテクスチャ</td></tr>
-<tr><td><code>designRadius</code></td><td>数字</td><td>その車種の <code>designWheelRadius</code></td><td><b>メッシュが何 m の半径で作られているか</b></td></tr>
-<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車種の <code>wheel.offset</code></td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
-<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車種の <code>wheel.scale</code></td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
-<tr><td><code>camber</code></td><td>数字</td><td>その車種の <code>wheel.camber</code></td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
+<tr><td><code>model</code></td><td>id</td><td>その車の純正ホイールのもの</td><td>ホイールの OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>その車の純正ホイールのもの</td><td>ホイールのテクスチャ</td></tr>
+<tr><td><code>designRadius</code></td><td>数字</td><td><code>0.45</code>（ゲージ）。<code>model</code> を書かない部品はその車の純正ホイールのもの</td><td><b>メッシュが何 m の半径で作られているか</b>。ゲージどおりなら書かない</td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車の純正ホイールのもの（無ければ 0）</td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
+<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車の純正ホイールのもの（無ければ 1）</td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
+<tr><td><code>camber</code></td><td>数字</td><td>その車の純正ホイールのもの（無ければ 0）</td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
 <tr><td><code>rimRadius</code></td><td>数字</td><td>（測る）</td><td>タイヤの内径（ビード）を置く半径 [m]（メッシュの寸法）。<a href="guide-wheel.html#s-tire">3 章</a></td></tr>
 </table>
 <h4 class="ja">タイヤの見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"tire": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
@@ -688,12 +688,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </table>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>the car's <code>wheel.model</code></td><td>Wheel OBJ</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td>the car's <code>wheel.texture</code></td><td>Wheel texture</td></tr>
-<tr><td><code>designRadius</code></td><td>number</td><td>the car's <code>designWheelRadius</code></td><td><b>The radius the mesh was built at, in m</b></td></tr>
-<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's <code>wheel.offset</code></td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
-<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's <code>wheel.scale</code></td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
-<tr><td><code>camber</code></td><td>number</td><td>the car's <code>wheel.camber</code></td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
+<tr><td><code>model</code></td><td>id</td><td>the car's stock wheel's</td><td>Wheel OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>the car's stock wheel's</td><td>Wheel texture</td></tr>
+<tr><td><code>designRadius</code></td><td>number</td><td><code>0.45</code> (the gauge). A part without <code>model</code> takes the car's stock wheel's</td><td><b>The radius the mesh was built at, in m</b>. Leave it out if you followed the gauge</td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's stock wheel's (0 if none)</td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
+<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's stock wheel's (1 if none)</td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
+<tr><td><code>camber</code></td><td>number</td><td>the car's stock wheel's (0 if none)</td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
 <tr><td><code>rimRadius</code></td><td>number</td><td>(measured)</td><td>Radius where the tyre's bead sits [m], in mesh units. <a href="guide-wheel.html#s-tire">Chapter 3</a></td></tr>
 </table>
 <h4 class="en">Tyre looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"tire": { ... }</code>; <b>not at the top level</b>)</h4>
@@ -725,13 +725,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h4 class="ja">車の側 — 初期装備（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> のいちばん外側）と対応（<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>）</h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>意味</th></tr>
-<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true</td></tr>
+<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true。<code>wheel</code> は書かなければ <code>kurumamod:te37</code></td></tr>
 <tr><td><code>parts.&lt;部品 id&gt;.show</code></td><td>オブジェクト名の配列</td><td>その部品を付けたときに出すオブジェクト（<code>part_</code> で始まる名前だけ）</td></tr>
 </table>
 <h4 class="en">On the car — default parts (top level of <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) and mapping (<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>)</h4>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Meaning</th></tr>
-<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true</td></tr>
+<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true. <code>wheel</code> defaults to <code>kurumamod:te37</code></td></tr>
 <tr><td><code>parts.&lt;part id&gt;.show</code></td><td>array of object names</td><td>Objects shown while that part is fitted (names starting with <code>part_</code> only)</td></tr>
 </table>
 </section><div class="gfoot">

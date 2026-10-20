@@ -333,9 +333,17 @@ public class CarPartScreen extends Screen {
             }
             return entries;
         }
-        // ホイールは「純正」、ターボとブローオフは「なし」（付いていないのが素の状態）
-        entries.add(new Entry(null, Component.translatable(slot.emptyKey()), null));
         CarEntity car = CarClientDriver.driving();
+        // 先頭は「何も選んでいない」状態。純正の部品があればその名前を出し、小さく「純正」と添える
+        // （何が付くのか分からないと押せない）。無ければ、ホイールは「純正」、ターボとブローオフは「なし」
+        ResourceLocation stock = car == null ? null : stockPart(car, slot);
+        CarPart stockPart = stock == null ? null : CarParts.get(stock);
+        if (stockPart != null) {
+            entries.add(new Entry(null, stockPart.displayName(),
+                    Component.translatable("screen.kurumamod.part.stock").getString()));
+        } else {
+            entries.add(new Entry(null, Component.translatable(slot.emptyKey()), null));
+        }
         // 外せる初期装備のある場所だけ「なし」を足す（純正＝初期装備、なし＝何も付けない）
         CarType.DefaultPart defaults = car == null ? null : CarTypes.get(car.getCarId()).defaultPart(slot);
         if (defaults != null && defaults.removable()) {
@@ -348,6 +356,10 @@ public class CarPartScreen extends Screen {
         java.util.Set<String> available = model == null ? java.util.Set.of()
                 : ObjModel.get(model.bodyModel()).optionalNames();
         for (CarPart part : CarParts.forSlot(slot, car == null ? null : car.getCarId())) {
+            // 純正と同じものは先頭にあるので並べない（同じものが 2 つ並ぶと、どちらを押すか迷う）
+            if (stockPart != null && part.id().equals(stock)) {
+                continue;
+            }
             if (slot.isBodyPart() && model != null && !model.hasPartObjects(part.id(), part.slot(), available)) {
                 continue;
             }
@@ -357,6 +369,19 @@ public class CarPartScreen extends Screen {
                     Kurumamod.MODID.equals(namespace) ? null : namespace));
         }
         return entries;
+    }
+
+    /**
+     * その車のその場所の純正の部品。初期装備（{@code default_parts}）があればそれ、ホイールで書いていなければ
+     * TE37（{@link CarPartModel#STOCK_WHEEL}）。どちらでもなければ null（純正は「何も付いていない」）。
+     */
+    @Nullable
+    private static ResourceLocation stockPart(CarEntity car, PartSlot slot) {
+        CarType.DefaultPart defaults = CarTypes.get(car.getCarId()).defaultPart(slot);
+        if (defaults != null) {
+            return defaults.part();
+        }
+        return slot == PartSlot.WHEEL ? CarPartModel.stockWheel(car.getCarId(), CarModel.get(car.getCarId())) : null;
     }
 
     /** 表示範囲に入るタイルだけ並べ、外れたものは隠す。 */
@@ -629,8 +654,8 @@ public class CarPartScreen extends Screen {
         /** キャンバー角 [度]。負で「上が内側」。 */
         CAMBER(PartFitment.CAMBER_MIN, PartFitment.CAMBER_MAX, 0.5, 1.0, "camber", "%.1f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
-                return CarPartModel.defaultCamber(model, fitment);
+            double packDefault(ResourceLocation carId, CarModel model, PartFitment fitment, PartSlot slot) {
+                return CarPartModel.defaultCamber(carId, model, fitment);
             }
 
             @Override
@@ -648,8 +673,8 @@ public class CarPartScreen extends Screen {
         /** ホイールオフセット [mm]。<b>実車と同じ向きで、小さいほど外へ出る。</b> */
         OFFSET(PartFitment.OFFSET_MIN, PartFitment.OFFSET_MAX, 1.0, 1.0, "offset", "%.0f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
-                return CarPartModel.defaultOffset(model, fitment);
+            double packDefault(ResourceLocation carId, CarModel model, PartFitment fitment, PartSlot slot) {
+                return CarPartModel.defaultOffset(carId, model, fitment);
             }
 
             @Override
@@ -673,8 +698,8 @@ public class CarPartScreen extends Screen {
         WIDTH(PartFitment.WIDTH_MIN * 100.0, PartFitment.WIDTH_MAX * 100.0, 5.0, 0.01,
                 "width", "%.0f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
-                return CarPartModel.defaultWidth(model, fitment);
+            double packDefault(ResourceLocation carId, CarModel model, PartFitment fitment, PartSlot slot) {
+                return CarPartModel.defaultWidth(carId, model, fitment);
             }
 
             @Override
@@ -696,7 +721,7 @@ public class CarPartScreen extends Screen {
          */
         ANGLE(PartFitment.ANGLE_MIN * 100.0, PartFitment.ANGLE_MAX * 100.0, 5.0, 0.01, "angle", "%.0f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
+            double packDefault(ResourceLocation carId, CarModel model, PartFitment fitment, PartSlot slot) {
                 ResourceLocation id = fitment.getPart(slot);
                 CarPart part = id == null ? null : CarParts.get(id);
                 return part == null || part.aero() == null ? 0.5 : part.aero().defaultAngle();
@@ -720,7 +745,7 @@ public class CarPartScreen extends Screen {
          */
         TONE(PartFitment.TONE_MIN * 100.0, PartFitment.TONE_MAX * 100.0, 5.0, 0.01, "tone", "%.0f") {
             @Override
-            double packDefault(CarModel model, PartFitment fitment, PartSlot slot) {
+            double packDefault(ResourceLocation carId, CarModel model, PartFitment fitment, PartSlot slot) {
                 CarPartModel.Exhaust exhaust = CarPartModel.exhaustOf(fitment);
                 return exhaust == null ? 0.0 : exhaust.defaultTone();
             }
@@ -764,7 +789,7 @@ public class CarPartScreen extends Screen {
         }
 
         /** 部品（カーパック）が指定している値。<b>内部の単位</b>。 */
-        abstract double packDefault(CarModel model, PartFitment fitment, PartSlot slot);
+        abstract double packDefault(ResourceLocation carId, CarModel model, PartFitment fitment, PartSlot slot);
 
         /** プレイヤーの上書き。<b>内部の単位</b>。していなければ null。 */
         @Nullable
@@ -834,7 +859,7 @@ public class CarPartScreen extends Screen {
         private double defaultValue() {
             CarEntity car = CarClientDriver.driving();
             return car == null ? 0.0 : adjustment.toDisplay(
-                    adjustment.packDefault(CarModel.get(car.getCarId()), car.getEffectiveFitment(), slot));
+                    adjustment.packDefault(car.getCarId(), CarModel.get(car.getCarId()), car.getEffectiveFitment(), slot));
         }
 
         @Override

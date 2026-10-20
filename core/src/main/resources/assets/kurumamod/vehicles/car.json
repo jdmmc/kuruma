@@ -1,6 +1,5 @@
 {
   "designWheelBase": 3.17,
-  "designWheelRadius": 0.45,
   "shadowRadius": 1.4,
   "_seat": "運転席の位置 [m]。+X 右・+Y 上・-Z 前。助手席は左右反転で置かれる",
   "seat": [
@@ -27,17 +26,6 @@
     { "id": "silver", "name": "paint.kurumamod.silver", "texture": "kurumamod:textures/entity/s15_silver.png", "swatch": "#96999E" },
     { "id": "yellow", "name": "paint.kurumamod.yellow", "texture": "kurumamod:textures/entity/s15_yellow.png", "swatch": "#F0BE10" }
   ],
-  "wheel": {
-    "model": "kurumamod:models/entity/wheel.obj",
-    "texture": "kurumamod:textures/entity/wheel.png",
-    "offset": [
-      0.0,
-      0.0,
-      0.0
-    ],
-    "scale": 1.0,
-    "camber": 0.0
-  },
   "_parts": "部品とオブジェクトの対応。マフラーは名前の決まり（part_<場所>-<部品名>）と違う名前なのでここに書く",
   "parts": {
     "kurumamod:stock_muffler": {

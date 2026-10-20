@@ -5,14 +5,7 @@
     "scale": 1.074
   },
 
-  "wheel": {
-    "model": "kurumamod:models/entity/wheel.obj",
-    "texture": "kurumamod:textures/entity/wheel.png",
-    "camber": -0.5
-  },
-
   "designWheelBase": 3.50,
-  "designWheelRadius": 0.45,
   "designRideHeight": 0.430,
   
   "seat": [0.47, -0.20, 0.15],

@@ -640,7 +640,7 @@ description = '''...'''              # description in the mod list
 <li><b>タブに車が出ない</b> … <code>data/mypack/cars/ae86.json</code> の場所か、JSON の書き方が違う。理由はログに出る</li>
 <li><b>出てくるが、既定の車の姿のまま</b> … 見た目の JSON のファイル名が諸元と違う。または <code>body.model</code> のパスか名前空間（<code>mypack:</code>）が違う</li>
 <li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっていない</li>
-<li><b>車体が大きすぎ・小さすぎ・タイヤとずれる</b> … ゲージに合わせて作れていない。<code>designWheelBase</code> と <code>designWheelRadius</code> に実際の寸法を書く（<a href="#s9">6 章</a>）</li>
+<li><b>車体が大きすぎ・小さすぎ・タイヤとずれる</b> … ゲージに合わせて作れていない。<code>designWheelBase</code> に実際の寸法を書く（<a href="#s9">6 章</a>）</li>
 </ul>
 <p>ほかの症状は<a href="#s11">配布の 3 章</a>にあります。</p>
 </div>
@@ -653,7 +653,7 @@ description = '''...'''              # description in the mod list
 <li><b>No car in the tab</b> — <code>data/mypack/cars/ae86.json</code> is in the wrong place or not valid JSON. The reason is in the log</li>
 <li><b>It appears, but with the default car's body</b> — the look JSON's file name differs from the spec's, or the <code>body.model</code> path or namespace (<code>mypack:</code>) is wrong</li>
 <li><b>The display name shows as <code>ae86</code></b> — the lang key is not <code>car.mypack.ae86</code></li>
-<li><b>The body is too big, too small, or off from the wheels</b> — it does not match the gauge. Write your real sizes into <code>designWheelBase</code> and <code>designWheelRadius</code> (<a href="#s9">chapter 6</a>)</li>
+<li><b>The body is too big, too small, or off from the wheels</b> — it does not match the gauge. Write your real size into <code>designWheelBase</code> (<a href="#s9">chapter 6</a>)</li>
 </ul>
 <p>Other symptoms are in <a href="#s11">chapter 3 of Shipping</a>.</p>
 </div>
@@ -746,13 +746,13 @@ description = '''...'''              # description in the mod list
 <details class="more ja">
 <summary>ゲージに合わせずに作りたい（作ってしまった）</summary>
 <div class="more-body">
-<p>それでも動きます。実際に作った寸法を、見た目の JSON の <code>designWheelBase</code>（ホイールアーチの前後の距離）と <code>designWheelRadius</code>（タイヤの半径）に書きます（<a href="#s9">6 章</a>）。ゲームがその比で車体を拡大・縮小して、ゲージの大きさに合わせます。</p>
+<p>それでも動きます。実際に作った寸法を、見た目の JSON の <code>designWheelBase</code>（ホイールアーチの前後の距離）に書きます（<a href="#s9">6 章</a>）。ゲームがその比で車体を拡大・縮小して、ゲージの大きさに合わせます。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Build without matching the gauge (or you already did)</summary>
 <div class="more-body">
-<p>It still works. Write the sizes you actually built into <code>designWheelBase</code> (distance between the arches) and <code>designWheelRadius</code> (wheel radius) in the look JSON (<a href="#s9">chapter 6</a>). The game scales the body by that ratio to fit the gauge size.</p>
+<p>It still works. Write the sizes you actually built into <code>designWheelBase</code> (distance between the arches) in the look JSON (<a href="#s9">chapter 6</a>). The game scales the body by that ratio to fit the gauge size.</p>
 </div>
 </details>
 
@@ -1148,7 +1148,7 @@ description = '''...'''              # description in the mod list
 <details class="more ja">
 <summary>ハンドルの位置や傾きを、座席に合わせて直したい</summary>
 <div class="more-body">
-<p>ゲームの中で <kbd>Ctrl</kbd>+<kbd>G</kbd>（座席とハンドルの位置）を開くと、乗ったまま座席とハンドルを動かせます。ハンドルは位置（X・Y・Z）と角度を動かせ、角度は正でコラムが起きます（ハンドルの面が寝る）。決まったら「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> に貼ります。</p>
+<p>ゲームの中で <kbd>Ctrl</kbd>+<kbd>G</kbd> を開き、「車の JSON」の「座席」「ハンドル」を選ぶと、乗ったまま座席とハンドルを動かせます。ハンドルは位置（X・Y・Z）と角度を動かせ、角度は正でコラムが起きます（ハンドルの面が寝る）。決まったら「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> に貼ります。</p>
 <pre><code>"seat": [0.5, -0.55, 0.2],
 "steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
 <p><code>offset</code> は <code>seat</code> と同じ向き（+X 右・+Y 上・-Z 前、メートル）。画面で動かした値はその場で効きますが、自分の画面だけで、ゲームを閉じると消えます。モデルを直すより手早く合わせられます。</p>
@@ -1157,7 +1157,7 @@ description = '''...'''              # description in the mod list
 <details class="more en">
 <summary>Adjust the wheel's position or angle to suit the seat</summary>
 <div class="more-body">
-<p>In game, <kbd>Ctrl</kbd>+<kbd>G</kbd> (seat and steering wheel position) lets you move the seat and the wheel while sitting in the car. The wheel can be moved (X, Y, Z) and tilted; a positive tilt stands the column up (the wheel face lies flatter). When it looks right, press "Copy JSON" and paste into <code>vehicles/&lt;car&gt;.json</code>.</p>
+<p>In game, open <kbd>Ctrl</kbd>+<kbd>G</kbd> and pick "Seat" or "Steering" under "Car JSON" to move the seat and the steering wheel while sitting in the car. The wheel can be moved (X, Y, Z) and tilted; a positive tilt stands the column up (the wheel face lies flatter). When it looks right, press "Copy JSON" and paste into <code>vehicles/&lt;car&gt;.json</code>.</p>
 <pre><code>"seat": [0.5, -0.55, 0.2],
 "steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
 <p><code>offset</code> uses the same directions as <code>seat</code> (+X right, +Y up, -Z forward, metres). Changes made on the screen apply at once, but only on your screen and only until you quit. It is quicker than editing the model.</p>
@@ -1380,18 +1380,18 @@ description = '''...'''              # description in the mod list
 <h3 class="en">Make a minimal wheel</h3>
 <ol class="steps ja">
 <li><span class="where where-blender">Blender</span><b>新しいファイルで、ゲージを置く。</b><code>Scripting</code> タブで <code>modeling_tools/blender_wheel_gauge.py</code> を実行する。寸法は同梱の TE37 に合わせてあり、リムの外形（半径 0.352m・幅 0.32m）・デザイン面の限界・嵌まるタイヤの断面（外径 0.45m）・車軸の線・地面・表を示す矢印が置かれる。<b>リムは外形の円柱の中へ収める</b></li>
-<li><span class="where where-blender">Blender</span><b>ゲージの輪に収まるように、ホイールを作る。</b>原点は車軸の中心に置く。円柱から作るなら、先に <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> で回して軸を左右（X）へ向ける</li>
+<li><span class="where where-blender">Blender</span><b>円柱に収まるように、リムだけを作る。</b>両端のフランジを円柱の端の面に合わせる。幅はどのホイールも同じ 0.32m（規格）なので、細い・太いを作り分けない（太さは換装画面のスライダーで変える）。原点は車軸の中心、つまりリムの幅の真ん中に置く。円柱から作るなら、先に <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> で回して軸を左右（X）へ向ける</li>
 <li><span class="where where-blender">Blender</span><b>ホイールの表（デザイン面）を +X へ向ける。</b>ゲージの矢印の側。作るのは左側用の 1 つだけ</li>
-<li><span class="where where-blender">Blender</span><b>タイヤも作るなら、ホイールとは別のオブジェクトにして、名前を <code>Tire</code> にする。</b>リムだけで作るなら、この手順は要らない</li>
+<li><span class="where where-blender">Blender</span><b>タイヤは作らない。</b>タイヤは描くときに自動で嵌まる（換装画面で選んだタイヤ、選んでいなければ KurumaMod 標準のタイヤ）</li>
 <li><span class="where where-blender">Blender</span><b>ゲージを除いてホイールだけを選び、OBJ に書き出す。</b>「Selected Only」を入れ、「Triangulated Mesh」は入れない（設定の全体は<a href="#s8">車の 5 章</a>と同じ）</li>
 <li><span class="where where-file">ファイル</span><b>書き出したファイルとテクスチャを置く。</b><code>assets/mypack/models/entity/my_wheel.obj</code>（<code>.mtl</code> も一緒に）と <code>assets/mypack/textures/entity/my_wheel.png</code></li>
 </ol>
 <p class="ja">これで、ホイールのモデルができました。換装画面で選べるようにするのは <a href="#s-parts">2 章</a>、自分の車に最初から履かせるのは下の「自分の車に最初から履かせたい」です。</p>
 <ol class="steps en">
 <li><span class="where where-blender">Blender</span><b>In a new file, place the gauge.</b> Run <code>modeling_tools/blender_wheel_gauge.py</code> from the <code>Scripting</code> tab. Sized after the bundled TE37, it places the rim envelope (0.352 m radius, 0.32 m wide), the limit for the design face, the section of the tyre that fits on it (0.45 m outer radius), the axle line, the ground and an arrow marking the outer face. <b>Keep the rim inside the envelope</b></li>
-<li><span class="where where-blender">Blender</span><b>Model the wheel to fit inside the gauge ring,</b> with the origin at the centre of the axle. If you start from a cylinder, first rotate it with <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> so its axis runs left–right (X)</li>
+<li><span class="where where-blender">Blender</span><b>Model only the rim, inside the cylinder,</b> with both flanges on the cylinder's end faces. Every wheel has the same 0.32 m width (a fixed standard), so do not build narrow or wide rims; width is set with the slider in the parts screen. Put the origin at the axle centre, which is the middle of the rim's width. If you start from a cylinder, first rotate it with <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> so its axis runs left–right (X)</li>
 <li><span class="where where-blender">Blender</span><b>Point the face of the wheel (the design side) towards +X</b>, the side the gauge arrow points to. Build the left-hand wheel only</li>
-<li><span class="where where-blender">Blender</span><b>If you model a tyre too, make it a separate object from the wheel and name it <code>Tire</code>.</b> Skip this if you only build the rim</li>
+<li><span class="where where-blender">Blender</span><b>Do not model a tyre.</b> One is fitted automatically when drawn: the tyre picked in the parts screen, or KurumaMod's standard tyre if none is picked</li>
 <li><span class="where where-blender">Blender</span><b>Select only the wheel (not the gauge) and export it as OBJ.</b> Tick "Selected Only" and leave "Triangulated Mesh" off (the full settings are the same as <a href="#s8">chapter 5 of the Car guide</a>)</li>
 <li><span class="where where-file">File</span><b>Put the exported file and the texture in your pack:</b> <code>assets/mypack/models/entity/my_wheel.obj</code> (with its <code>.mtl</code>) and <code>assets/mypack/textures/entity/my_wheel.png</code></li>
 </ol>
@@ -1444,79 +1444,114 @@ description = '''...'''              # description in the mod list
 <details class="more ja">
 <summary>自分の車に最初から履かせたい</summary>
 <div class="more-body">
-<p>車の見た目の定義 <code>assets/mypack/vehicles/&lt;車&gt;.json</code> の <code>wheel</code> にモデルとテクスチャを書き、作った半径を <code>designWheelRadius</code>（<code>wheel</code> の外、いちばん外側）に書きます:</p>
+<p>ホイールを部品にして（<a href="#s-parts">2 章</a>）、車の諸元の JSON <code>data/mypack/cars/&lt;車&gt;.json</code> の <code>default_parts</code> で指します。換装画面ではこれが「純正」になります:</p>
 <pre><code>{
-  "body":  { "model": "mypack:models/entity/my_car.obj",
-             "texture": "mypack:textures/entity/my_car.png" },
-  "wheel": { "model": "mypack:models/entity/my_wheel.obj",
-             "texture": "mypack:textures/entity/my_wheel.png" },
-  "designWheelRadius": 0.45
+  "values": { ... },
+  "default_parts": { "wheel": "mypack:my_wheel" }
 }</code></pre>
-<p>このファイルのほかの項目は<a href="#s9">車の 6 章</a>にあります。</p>
+<ul>
+<li>書かなければ、KurumaMod の TE37 が純正になる</li>
+<li>ほかの車には履かせたくないなら、部品の <code>data/mypack/car_parts/my_wheel.json</code> に <code>"cars": ["mypack:&lt;車&gt;"]</code> を書く</li>
+<li>車の見た目の JSON（<code>vehicles/</code>）にはホイールのモデルを書かない。ホイールの項目は何も書かない（タイヤの位置は諸元のトレッド・ホイールベースが決める）</li>
+</ul>
 </div>
 </details>
 <details class="more en">
 <summary>Fit it to my own car</summary>
 <div class="more-body">
-<p>In the car's looks file <code>assets/mypack/vehicles/&lt;car&gt;.json</code>, set the model and texture under <code>wheel</code>, and write the radius you built at as <code>designWheelRadius</code> (outside <code>wheel</code>, at the top level):</p>
+<p>Make the wheel a part (<a href="#s-parts">chapter 2</a>) and point to it from <code>default_parts</code> in the car's spec JSON <code>data/mypack/cars/&lt;car&gt;.json</code>. It becomes "Stock" in the parts screen:</p>
 <pre><code>{
-  "body":  { "model": "mypack:models/entity/my_car.obj",
-             "texture": "mypack:textures/entity/my_car.png" },
-  "wheel": { "model": "mypack:models/entity/my_wheel.obj",
-             "texture": "mypack:textures/entity/my_wheel.png" },
-  "designWheelRadius": 0.45
+  "values": { ... },
+  "default_parts": { "wheel": "mypack:my_wheel" }
 }</code></pre>
-<p>The rest of this file is in <a href="#s9">chapter 6 of the Car guide</a>.</p>
+<ul>
+<li>Left out, KurumaMod's TE37 is the stock wheel</li>
+<li>To keep it off other cars, add <code>"cars": ["mypack:&lt;car&gt;"]</code> to the part file <code>data/mypack/car_parts/my_wheel.json</code></li>
+<li>Do not name the wheel model in the car's looks JSON (<code>vehicles/</code>). No wheel entries go there at all (the spec's track and wheelbase decide where the wheels sit)</li>
+</ul>
 </div>
 </details>
 
 <details class="more ja">
 <summary>ゲージと違う大きさで作りたい</summary>
 <div class="more-body">
-<p>大きさは自由です。作った半径（m）を、車に履かせるなら <code>designWheelRadius</code>、部品にするなら <code>designRadius</code>（<a href="#s-parts">2 章</a>）に書きます。ゲームは、この値と車のタイヤ半径の比で拡大して描きます。</p>
+<p>大きさは自由です。作った半径（m）を、ホイールの見た目のファイル <code>assets/mypack/car_parts/my_wheel.json</code>（<a href="#s-parts">2 章</a>）の <code>wheel</code> の中に <code>"designRadius"</code> で書きます。ゲームは、この値と車のタイヤ半径の比で拡大して描きます。書かなければゲージの 0.45 とみなします。</p>
+<pre><code>"wheel": { "model": "mypack:models/entity/my_wheel.obj",
+           "texture": "mypack:textures/entity/my_wheel.png",
+           "designRadius": 0.30 }</code></pre>
 <p>ゲーム内の調整画面でタイヤ半径を変えると、見た目もそのまま追従します。タイヤは接地したまま、車体だけが上がります（リフトアップ）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Build it at a different size from the gauge</summary>
 <div class="more-body">
-<p>Any size is fine. Write the radius you built at (in m) as <code>designWheelRadius</code> when fitting it to a car, or as <code>designRadius</code> when making it a part (<a href="#s-parts">chapter 2</a>). The game scales the mesh by the ratio between this value and the car's tyre radius.</p>
+<p>Any size is fine. Write the radius you built at (in m) as <code>"designRadius"</code> inside <code>wheel</code> in the wheel's looks file <code>assets/mypack/car_parts/my_wheel.json</code> (<a href="#s-parts">chapter 2</a>). The game scales the mesh by the ratio between this value and the car's tyre radius. Left out, it is taken as the gauge's 0.45.</p>
+<pre><code>"wheel": { "model": "mypack:models/entity/my_wheel.obj",
+           "texture": "mypack:textures/entity/my_wheel.png",
+           "designRadius": 0.30 }</code></pre>
 <p>Change the tyre radius in the in-game tuning screen and the model follows: the tyres stay on the ground and the body rises (a lift-up).</p>
 </div>
 </details>
 
 <details class="more ja">
-<summary>タイヤを作らず、KurumaMod のタイヤを使いたい</summary>
+<summary>ホイールごと KurumaMod のものを使いたい</summary>
 <div class="more-body">
-<p>リムだけで作れば、KurumaMod 標準のタイヤが自動で嵌まります。ホイールごと借りるなら、モデルを <code>kurumamod:models/entity/wheel.obj</code>、テクスチャを <code>kurumamod:textures/entity/wheel.png</code> にします（<a href="#s9">車の 6 章</a>）。</p>
+<p>何も書かなければ、KurumaMod の TE37（部品の id は <code>kurumamod:te37</code>）が純正になります。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Skip the tyre and use KurumaMod's</summary>
+<summary>Use KurumaMod's whole wheel</summary>
 <div class="more-body">
-<p>Build only the rim and KurumaMod's own tyre is fitted automatically. To borrow the whole wheel, use <code>kurumamod:models/entity/wheel.obj</code> as the model and <code>kurumamod:textures/entity/wheel.png</code> as the texture (<a href="#s9">chapter 6 of the Car guide</a>).</p>
+<p>Write nothing: KurumaMod's TE37 (part id <code>kurumamod:te37</code>) is the stock wheel.</p>
 </div>
 </details>
 
 <details class="more ja">
-<summary>仕組みを知りたい（なぜタイヤに <code>Tire</code> と名前を付けるのか）</summary>
+<summary>仕組みを知りたい（なぜリムだけでよいのか）</summary>
 <div class="more-body">
-<p>換装画面でタイヤ（<a href="#s-tire">3 章</a>）を選ぶと、ゲームは <code>tire</code> で始まる名前（大文字小文字は問わない）のオブジェクトを隠し、選んだタイヤをリムに嵌めて描きます。</p>
+<p>リムもタイヤも、ビードからビードまでの幅を同じ 0.32m（ゲージの円柱）で作る約束になっています。だから、どのリムにどのタイヤを嵌めても幅が合います。</p>
 <ul>
-<li>タイヤを選んでいない（ノーマル）ときは、あなたのタイヤがそのまま出る</li>
-<li>名前が無いと、タイヤもホイールの一部として描かれたままになり、選んだタイヤと重なって見える</li>
+<li>タイヤは、内径がリムのいちばん外側の半径の 95% へ、外径が車のタイヤ半径へ来るように伸び縮みして描かれる。リムを大きく作るほどサイドウォールが薄くなる（インチアップ）</li>
+<li>太さのスライダーは、リムとタイヤに一緒に効く。だからメッシュで太さを作り分ける必要がない</li>
 <li>シェーダーパックの影は、タイヤだけが落とす。地面にスポークの模様が出ない</li>
+</ul>
+<p>以前は、ホイールにタイヤも一緒に作り、名前を <code>Tire</code> にする作り方でした。この作り方のホイールも読めますが、<code>tire</code> で始まる名前のオブジェクトは描かれず、選んだタイヤ（選んでいなければ KurumaMod 標準のタイヤ）が嵌まります。付属のタイヤの内径は、タイヤを嵌める位置としてだけ使われます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How it works (why the rim alone is enough)</summary>
+<div class="more-body">
+<p>Rims and tyres are both built to the same 0.32 m bead-to-bead width (the gauge cylinder). So any tyre fits any rim.</p>
+<ul>
+<li>The tyre is stretched so its inner edge sits at 95% of the rim's outermost radius and its outer edge at the car's tyre radius. A bigger rim gives thinner sidewalls (plus-sizing)</li>
+<li>The Width slider acts on the rim and tyre together, so there is no need to build different widths into the mesh</li>
+<li>With shader packs, only the tyre casts a shadow, so no spoke pattern appears on the ground</li>
+</ul>
+<p>Wheels used to be built with their own tyre as a separate object named <code>Tire</code>. Such wheels still load, but objects whose name starts with <code>tire</code> are not drawn; the picked tyre (or KurumaMod's standard tyre) is fitted instead. The built-in tyre's inner edge is only used to place the fitted tyre.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ゲームの中で、車への付け方や半径を合わせたい</summary>
+<div class="more-body">
+<p>車に乗って <kbd>Ctrl</kbd>+<kbd>G</kbd> を開きます。上のタブが貼り先のファイルで、乗ったまま動かして、その場で見た目を確かめられます（自分の画面だけ・ゲームを閉じるまで）。</p>
+<ul>
+<li><b>タイヤの位置（幅・前後）</b> … 諸元のトレッド・ホイールベースで決まる。調整画面（<kbd>G</kbd>）で動かし、諸元に書く</li>
+<li><b>「ホイールの JSON」</b> … いま描いているホイールのキャンバー・太さ・スケール（<code>designRadius</code>）・ビード半径。コピー先はタブに出ているホイールの <code>car_parts/&lt;部品&gt;.json</code> の <code>wheel</code>。スケールとビード半径は、ゲージどおりに作ったなら触らない。タイヤがリムに食い込む・浮くときは、ビード半径を動かす</li>
+<li>灰色の行は、換装画面で変えた値や部品の指定が勝っていて、動かしても見えない。換装画面で「R」を押して戻すと動くようになる</li>
+<li>「JSON をコピー」は、開いているタブのファイルにそのまま貼れる形でコピーする。<code>wheel</code> はブロックごと置き換えて貼る</li>
 </ul>
 </div>
 </details>
 <details class="more en">
-<summary>How it works (why name the tyre <code>Tire</code>)</summary>
+<summary>Fit the wheel to the car, or set the radii, in game</summary>
 <div class="more-body">
-<p>When a tyre (<a href="#s-tire">chapter 3</a>) is picked in the parts screen, the game hides any object whose name starts with <code>tire</code> (in any case) and draws the picked tyre on the rim instead.</p>
+<p>Sit in the car and open <kbd>Ctrl</kbd>+<kbd>G</kbd>. The tabs at the top are the files you paste into. Move the values while seated and see the result straight away (your screen only, until you close the game).</p>
 <ul>
-<li>With no tyre picked (Normal), your own tyre is drawn as it is</li>
-<li>Without the name, your tyre stays part of the wheel and shows through the picked one</li>
-<li>With shader packs, only the tyre casts a shadow, so no spoke pattern appears on the ground</li>
+<li><b>Wheel position (width, front to back)</b> — set by the spec's track and wheelbase. Move them in the tuning screen (<kbd>G</kbd>) and write them into the spec</li>
+<li><b>"Wheel JSON"</b> — camber, width, scale (<code>designRadius</code>) and bead radius of the wheel being drawn. They go into <code>wheel</code> in the <code>car_parts/&lt;part&gt;.json</code> named on the tab. Leave the scale and bead radius alone if you built to the gauge. If the tyre cuts into the rim or floats off it, move the bead radius</li>
+<li>Grey rows are overridden by values changed in the parts screen or by the part itself, so moving them shows nothing. Press "R" in the parts screen to clear the override</li>
+<li>"Copy JSON" copies text you can paste straight into the open tab's file. Replace the whole <code>wheel</code> block when pasting</li>
 </ul>
 </div>
 </details>
@@ -1525,12 +1560,13 @@ description = '''...'''              # description in the mod list
 <summary>うまくいかないとき</summary>
 <div class="more-body">
 <ul>
-<li><b>タイヤが大きすぎる・小さすぎる</b> … <code>designWheelRadius</code>（部品なら <code>designRadius</code>）が、作った半径になっていない</li>
+<li><b>タイヤが大きすぎる・小さすぎる</b> … ゲージと違う大きさで作ったのに、<code>wheel</code> の中に <code>designRadius</code> を書いていない（または作った半径になっていない）</li>
 <li><b>回るとぶれる・地面に埋まる・浮く</b> … 原点が車軸の中心にない。タイヤの底に置いていないか見る</li>
 <li><b>タイヤが横倒しで転がる</b> … 回転軸が左右（X）を向いていない。<kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd> で回す</li>
 <li><b>右側のタイヤの表が内側を向く</b> … 表が +X を向いていない。左側用として作り直す（右側は MOD が鏡像にして描く）</li>
 <li><b>1 か所にタイヤが 2 本描かれる</b> … 左右 2 つ作っている。左側用の 1 つだけにする</li>
-<li><b>選んだタイヤと自分のタイヤが重なる</b> … タイヤのオブジェクト名が <code>tire</code> で始まっていない</li>
+<li><b>タイヤがリムに食い込む・リムとの間に隙間がある</b> … リムの幅がゲージの円柱と合っていない。フランジを円柱の両端の面に合わせる</li>
+<li><b>タイヤが二重に描かれる</b> … リムと一緒にタイヤも作っている。タイヤを消してリムだけにする</li>
 <li><b>全体が白い</b> … <code>.mtl</code> を置いていないか、マテリアルが無い。形が正しければ問題ない（色の付け方は<a href="#s7">車の 4 章</a>）</li>
 </ul>
 </div>
@@ -1539,12 +1575,13 @@ description = '''...'''              # description in the mod list
 <summary>When it doesn't work</summary>
 <div class="more-body">
 <ul>
-<li><b>Wheels too big or too small</b> — <code>designWheelRadius</code> (or <code>designRadius</code> for a part) is not the radius you built at</li>
+<li><b>Wheels too big or too small</b> — you built at a size other than the gauge but did not write <code>designRadius</code> inside <code>wheel</code> (or it is not the radius you built at)</li>
 <li><b>Wobbles as it spins, sinks into the ground, or floats</b> — the origin is not at the axle centre. Check it is not at the bottom of the tyre</li>
 <li><b>Rolls on its side</b> — the spin axis does not run left–right (X). Rotate with <kbd>R</kbd> <kbd>Y</kbd> <kbd>9</kbd> <kbd>0</kbd></li>
 <li><b>The right-hand wheels face inward</b> — the face is not towards +X. Rebuild it as the left-hand wheel (the mod mirrors it for the right)</li>
 <li><b>Two tyres drawn in one place</b> — you modelled both sides. Keep only the left-hand one</li>
-<li><b>Your tyre shows through the picked one</b> — the tyre object's name does not start with <code>tire</code></li>
+<li><b>The tyre cuts into the rim, or there is a gap between them</b> — the rim's width does not match the gauge cylinder. Put the flanges on the cylinder's end faces</li>
+<li><b>Two tyres drawn on one wheel</b> — you modelled a tyre along with the rim. Delete it and keep only the rim</li>
 <li><b>Everything is white</b> — no <code>.mtl</code>, or no material. Harmless if the shape is right (colouring is in <a href="#s7">chapter 4 of the Car guide</a>)</li>
 </ul>
 </div>
@@ -1867,9 +1904,7 @@ description = '''...'''              # description in the mod list
 <li><span class="where where-file">ファイル</span><b>見た目の JSON を書く。</b><code>assets/mypack/vehicles/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする:
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
-             "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" }
+             "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
 <li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">8 章</a>で詰める）:
 <pre><code>{
@@ -1885,9 +1920,7 @@ description = '''...'''              # description in the mod list
 <li><span class="where where-file">File</span><b>Write the looks JSON.</b> Rename <code>assets/mypack/vehicles/sample.json</code> to <code>ae86.json</code> and make it:
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
-             "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" }
+             "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
 <li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 8</a>):
 <pre><code>{
@@ -1995,16 +2028,12 @@ description = '''...'''              # description in the mod list
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" },
 
   "designWheelBase": 3.12,
-  "designWheelRadius": 0.45,
   "designRideHeight": 0.6019
 }</code></pre>
 <ul>
 <li><code>designWheelBase</code> … メッシュの前後のホイールアーチが何 m 離れているか（既定 3.12）。5.2m で作ってしまったなら <code>5.2</code> と書けば、既定の車の大きさに縮みます</li>
-<li><code>designWheelRadius</code> … メッシュのタイヤが何 m の半径で作られているか（既定 0.45）</li>
 <li><code>designRideHeight</code> … 車体をシャシー基準面から下げる量 [m]（既定 0.6019）。車体が埋まる・浮くときに直す</li>
 <li>どれも「この車の寸法」ではなく「メッシュの寸法」です。実際の寸法は諸元にあり、ゲームはその比でメッシュを拡大します</li>
 </ul>
@@ -2026,16 +2055,12 @@ description = '''...'''              # description in the mod list
 <pre><code>{
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" },
-  "wheel": { "model": "kurumamod:models/entity/wheel.obj",
-             "texture": "kurumamod:textures/entity/wheel.png" },
 
   "designWheelBase": 3.12,
-  "designWheelRadius": 0.45,
   "designRideHeight": 0.6019
 }</code></pre>
 <ul>
 <li><code>designWheelBase</code> — how far apart the front and rear arches are in your mesh, in m (default 3.12). If you built it at 5.2 m, write <code>5.2</code> and it shrinks to the default car's size</li>
-<li><code>designWheelRadius</code> — the radius your mesh's tyre was built at, in m (default 0.45)</li>
 <li><code>designRideHeight</code> — how far to drop the body below the chassis plane, in m (default 0.6019). Change it if the body sinks or floats</li>
 <li>These describe the mesh, not the car. The car's real sizes are in the spec, and the game scales the mesh by the ratio</li>
 </ul>
@@ -2081,39 +2106,27 @@ description = '''...'''              # description in the mod list
 </details>
 
 <details class="more ja">
-<summary>タイヤの見た目を変えたい（自前のタイヤ・ずらす・太さ・キャンバー）</summary>
+<summary>タイヤが車体からはみ出す・引っ込む・前後にずれる</summary>
 <div class="more-body">
-<p>見た目の JSON の <code>wheel</code> に書きます。</p>
-<pre><code>"wheel": { "model": "mypack:models/entity/ae86_wheel.obj",
-           "texture": "mypack:textures/entity/ae86_wheel.png",
-           "offset": [0.03, 0.0, 0.0],
-           "scale": [1.2, 1.0, 1.0],
-           "camber": -2.0 }</code></pre>
+<p><b>見た目の JSON にはホイールの項目がありません。</b>タイヤの位置は諸元の寸法が決めます。物理はその位置にタイヤがあるものとして走りを解いているので、見た目だけでタイヤを動かすことはできません。</p>
 <ul>
-<li><code>model</code> / <code>texture</code> … 自前のタイヤ。<code>kurumamod:</code> で始めれば KurumaMod のものを借りられる</li>
-<li><code>offset</code> … タイヤをずらす [m]。<b>X は「外向き」</b>（左右で向きが反転する）。X は −0.05〜0.10 に丸められる</li>
-<li><code>scale</code> … X が太さ（0.5〜2.5 に丸められる）。<b>Y・Z（直径）は 1 のままにする。</b>直径はゲームの調整画面のタイヤ半径で変える</li>
-<li><code>camber</code> … キャンバー角 [度]。負で上が内側。−30〜10 に丸められる。見た目だけで、グリップは変わらない</li>
+<li><b>幅</b> … 諸元のトレッド（<code>data/mypack/cars/&lt;車&gt;.json</code> の <code>track_width</code>）。幅の広い車は、物理的にもトレッドが広い</li>
+<li><b>前後</b> … 諸元のホイールベース（<code>wheel_base</code>）。車体のほうを合わせるなら <code>designWheelBase</code>（上の「車体の大きさ・位置を合わせたい」）</li>
+<li>どちらもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">8 章</a>）</li>
+<li>どのホイールを履かせるか、キャンバー、太さ、ツラ（少し出す・引っ込める）は、ホイールの JSON に書く（<a href="#s6">ホイールの 1 章</a>・<a href="#s-parts">2 章</a>）。プレイヤーは換装画面で変えられる</li>
 </ul>
-<p>プレイヤーは換装画面で太さ・キャンバー・オフセットを変えられます。ここに書くのはその最初の値です。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Change how the wheels look (own wheel, offset, width, camber)</summary>
+<summary>The wheels stick out, sit too far in, or are off front to back</summary>
 <div class="more-body">
-<p>Write it in <code>wheel</code> in the looks JSON.</p>
-<pre><code>"wheel": { "model": "mypack:models/entity/ae86_wheel.obj",
-           "texture": "mypack:textures/entity/ae86_wheel.png",
-           "offset": [0.03, 0.0, 0.0],
-           "scale": [1.2, 1.0, 1.0],
-           "camber": -2.0 }</code></pre>
+<p><b>The looks JSON has no wheel entries.</b> Where the wheels sit is set by the spec's dimensions. The physics solves the driving with the wheels at that position, so they cannot be moved for looks alone.</p>
 <ul>
-<li><code>model</code> / <code>texture</code> — your own wheel. Start the path with <code>kurumamod:</code> to borrow KurumaMod's</li>
-<li><code>offset</code> — shift the wheels, in m. <b>X is "outward"</b> (it flips between sides). X is clamped to −0.05–0.10</li>
-<li><code>scale</code> — X is width (clamped to 0.5–2.5). <b>Leave Y and Z (diameter) at 1.</b> Change the diameter with the tyre radius in the game's tuning screen</li>
-<li><code>camber</code> — camber in degrees; negative leans the top inward. Clamped to −30–10. Looks only; grip does not change</li>
+<li><b>Width</b> — the spec's track (<code>track_width</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>). A wide car has a wide track in physics too</li>
+<li><b>Front to back</b> — the spec's wheelbase (<code>wheel_base</code>). To fit the body instead, use <code>designWheelBase</code> ("Make the body the right size and position" above)</li>
+<li>Both can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 8</a>)</li>
+<li>Which wheel to fit, camber, width and the offset (pushing it slightly in or out) go in the wheel's JSON (<a href="#s6">Wheel guide chapter 1</a> and <a href="#s-parts">2</a>). Players can change them in the parts screen</li>
 </ul>
-<p>Players can change width, camber and offset in the parts screen; what you write here is the starting value.</p>
 </div>
 </details>
 
@@ -2127,13 +2140,8 @@ description = '''...'''              # description in the mod list
 <tr><td><code>body.texture</code></td><td>既定の車</td><td>車体のテクスチャ</td></tr>
 <tr><td><code>body.offset</code></td><td><code>[0,0,0]</code></td><td>車体をずらす [m]（+X 右・+Y 上・−Z 前）</td></tr>
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>車体の大きさの微調整。数字 1 つか <code>[x,y,z]</code>。上へ伸びる</td></tr>
-<tr><td><code>wheel.model</code></td><td>既定のタイヤ</td><td>タイヤの OBJ</td></tr>
-<tr><td><code>wheel.texture</code></td><td>既定のタイヤ</td><td>タイヤのテクスチャ</td></tr>
-<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>タイヤをずらす [m]。X は外向き（−0.05〜0.10）</td></tr>
-<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td>X は太さ（0.5〜2.5）。Y・Z は 1 のまま</td></tr>
-<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>キャンバー角 [度]（−30〜10）。見た目だけ</td></tr>
+<tr><td><code>wheel</code>（<code>model</code>・<code>texture</code>・<code>offset</code>・<code>camber</code>・<code>scale</code>・<code>rimRadius</code>）、<code>designWheelRadius</code></td><td>—</td><td>以前の書き方（読める）。いまはホイールの JSON に書き、諸元の <code>default_parts.wheel</code> で指す（書かなければ TE37）。タイヤの位置は諸元のトレッド・ホイールベース</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>メッシュのホイールアーチが何 m 離れているか</td></tr>
-<tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td>メッシュのタイヤが何 m の半径で作られているか</td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
@@ -2156,13 +2164,8 @@ description = '''...'''              # description in the mod list
 <tr><td><code>body.texture</code></td><td>built-in car</td><td>Body texture</td></tr>
 <tr><td><code>body.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the body [m] (+X right, +Y up, −Z forward)</td></tr>
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>Fine size adjustment; one number or <code>[x,y,z]</code>. Grows upward</td></tr>
-<tr><td><code>wheel.model</code></td><td>built-in wheel</td><td>Wheel OBJ</td></tr>
-<tr><td><code>wheel.texture</code></td><td>built-in wheel</td><td>Wheel texture</td></tr>
-<tr><td><code>wheel.offset</code></td><td><code>[0,0,0]</code></td><td>Shift the wheels [m]. X is outward (−0.05–0.10)</td></tr>
-<tr><td><code>wheel.scale</code></td><td><code>1.0</code></td><td>X is width (0.5–2.5). Leave Y and Z at 1</td></tr>
-<tr><td><code>wheel.camber</code></td><td><code>0.0</code></td><td>Camber in degrees (−30–10). Looks only</td></tr>
+<tr><td><code>wheel</code> (<code>model</code>, <code>texture</code>, <code>offset</code>, <code>camber</code>, <code>scale</code>, <code>rimRadius</code>), <code>designWheelRadius</code></td><td>—</td><td>The older way (still read). Now write them in the wheel's JSON and point to it with <code>default_parts.wheel</code> in the spec (left out, the TE37). Wheel position comes from the spec's track and wheelbase</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>How far apart the arches are in your mesh</td></tr>
-<tr><td><code>designWheelRadius</code></td><td><code>0.45</code></td><td>The radius your mesh's tyre was built at</td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
@@ -2289,7 +2292,7 @@ description = '''...'''              # description in the mod list
 <li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっているか</li>
 <li><b>車体だけ大きい・小さい</b> … <code>designWheelBase</code> がメッシュの実寸か</li>
 <li><b>車体が埋まる・浮く</b> … <code>designRideHeight</code>。メッシュの原点が地面の高さにあるか</li>
-<li><b>タイヤが大きすぎる・小さすぎる</b> … <code>designWheelRadius</code> がメッシュの実寸か</li>
+<li><b>タイヤが大きすぎる・小さすぎる</b> … ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> がメッシュの実寸か</li>
 <li><b>調整画面で寸法を変えたらタイヤがフェンダーからはみ出した</b> … 仕様。タイヤは諸元に合わせて動き、車体は動かない。車体も合わせるなら <code>body.scale</code></li>
 <li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">8 章</a>）</li>
 </ul>
@@ -2306,7 +2309,7 @@ description = '''...'''              # description in the mod list
 <li><b>The display name is just <code>ae86</code></b> — is the lang key <code>car.mypack.ae86</code>?</li>
 <li><b>Only the body is too big or small</b> — is <code>designWheelBase</code> the real size of your mesh?</li>
 <li><b>The body sinks or floats</b> — <code>designRideHeight</code>. Is the mesh origin at ground level?</li>
-<li><b>Wheels too big or small</b> — is <code>designWheelRadius</code> the real size of your mesh?</li>
+<li><b>Wheels too big or small</b> — for a wheel not built to the gauge, is <code>designRadius</code> inside <code>wheel</code> the real size of your mesh?</li>
 <li><b>After changing sizes in the tuning screen, the wheels stick out of the fenders</b> — expected. Wheels follow the spec; the body does not. Use <code>body.scale</code> to match the body</li>
 <li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>)</li>
 </ul>
@@ -2743,13 +2746,13 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <h3 class="en">Before loading it in game</h3>
 <ul class="chk ja">
 <li>JSON に書いたパスが、実際のファイル名と同じ</li>
-<li><code>designWheelBase</code> / <code>designWheelRadius</code> が<b>メッシュの実寸</b></li>
+<li><code>designWheelBase</code> が<b>メッシュの実寸</b></li>
 <li>リソースパックで試すなら、ゲームで有効にした</li>
 <li>見た目を直したら <kbd>F3</kbd>+<kbd>T</kbd>、<code>data/</code> を直したら <code>/reload</code></li>
 </ul>
 <ul class="chk en">
 <li>The paths in the JSON match the actual file names</li>
-<li><code>designWheelBase</code> and <code>designWheelRadius</code> are <b>your mesh's real sizes</b></li>
+<li><code>designWheelBase</code> is <b>your mesh's real size</b></li>
 <li>If testing with a resource pack, it is enabled in game</li>
 <li><kbd>F3</kbd>+<kbd>T</kbd> after changing looks, <code>/reload</code> after changing <code>data/</code></li>
 </ul>
@@ -2782,12 +2785,11 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><span class="where where-blender">Blender</span><b>ホイールのモデルを作って置く。</b>作り方は <a href="#s6">1 章</a>。ここでは <code>assets/mypack/models/entity/my_wheel.obj</code> と <code>assets/mypack/textures/entity/my_wheel.png</code> に置いたとする</li>
 <li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_wheel.json</code>（ファイル名が部品名）:
 <pre><code>{ "slot": "wheel" }</code></pre></li>
-<li><span class="where where-file">ファイル</span><b>見た目のファイルを置く。</b><code>assets/mypack/car_parts/my_wheel.json</code>（部品と同じファイル名）。<code>designRadius</code> は作った半径（ゲージどおりなら 0.45）:
+<li><span class="where where-file">ファイル</span><b>見た目のファイルを置く。</b><code>assets/mypack/car_parts/my_wheel.json</code>（部品と同じファイル名）。ゲージどおりに作ったなら、大きさは書かなくてよい:
 <pre><code>{
   "wheel": {
     "model": "mypack:models/entity/my_wheel.obj",
-    "texture": "mypack:textures/entity/my_wheel.png",
-    "designRadius": 0.45
+    "texture": "mypack:textures/entity/my_wheel.png"
   }
 }</code></pre></li>
 <li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_wheel": "マイホイール"</code></li>
@@ -2797,12 +2799,11 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><span class="where where-blender">Blender</span><b>Build the wheel model and put it in your pack.</b> See <a href="#s6">chapter 1</a>. Here it is at <code>assets/mypack/models/entity/my_wheel.obj</code> and <code>assets/mypack/textures/entity/my_wheel.png</code></li>
 <li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_wheel.json</code> (the file name is the part name):
 <pre><code>{ "slot": "wheel" }</code></pre></li>
-<li><span class="where where-file">File</span><b>Add the looks file</b> <code>assets/mypack/car_parts/my_wheel.json</code> (same file name as the part). <code>designRadius</code> is the radius you built at (0.45 if you followed the gauge):
+<li><span class="where where-file">File</span><b>Add the looks file</b> <code>assets/mypack/car_parts/my_wheel.json</code> (same file name as the part). If you built to the gauge, there is no size to write:
 <pre><code>{
   "wheel": {
     "model": "mypack:models/entity/my_wheel.obj",
-    "texture": "mypack:textures/entity/my_wheel.png",
-    "designRadius": 0.45
+    "texture": "mypack:textures/entity/my_wheel.png"
   }
 }</code></pre></li>
 <li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_wheel": "My Wheels"</code></li>
@@ -2823,7 +2824,6 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
   "wheel": {
     "model": "mypack:models/entity/my_wheel.obj",
     "texture": "mypack:textures/entity/my_wheel.png",
-    "designRadius": 0.45,
     "offset": [0.02, 0.0, 0.0],
     "scale": [1.3, 1.0, 1.0],
     "camber": -4.0
@@ -2846,7 +2846,6 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
   "wheel": {
     "model": "mypack:models/entity/my_wheel.obj",
     "texture": "mypack:textures/entity/my_wheel.png",
-    "designRadius": 0.45,
     "offset": [0.02, 0.0, 0.0],
     "scale": [1.3, 1.0, 1.0],
     "camber": -4.0
@@ -2951,7 +2950,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><b>換装画面に並ばない</b> … <code>data/</code> 側のファイルが無いか、<code>slot</code> が書かれていない（ログに出る）。<code>cars</code> で絞っているなら、乗っている車種が入っているか見る</li>
 <li><b>並ぶが、見た目が変わらない</b> … <code>assets/</code> 側のファイル名が <code>data/</code> 側と違う。または <code>"wheel": { ... }</code> の中のキーの綴りが違う</li>
 <li><b>名前が <code>my_wheel</code> のまま出る</b> … lang のキーが <code>part.&lt;パック&gt;.&lt;部品名&gt;</code> になっていない</li>
-<li><b>大きすぎる・小さすぎる</b> … <code>designRadius</code> が作った半径になっていない</li>
+<li><b>大きすぎる・小さすぎる</b> … ゲージと違う大きさで作ったのに、<code>designRadius</code> を書いていない（または作った半径になっていない）</li>
 <li><b>付けても走りが変わらない</b> … ホイールは見た目だけの部品。グリップを変えたいならタイヤ（<a href="#s-tire">3 章</a>）</li>
 </ul>
 </div>
@@ -2963,7 +2962,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><b>Not in the parts screen</b> — the <code>data/</code> file is missing, or has no <code>slot</code> (the log says so). If you use <code>cars</code>, check the car you are in is listed</li>
 <li><b>Listed, but the looks do not change</b> — the <code>assets/</code> file name differs from the <code>data/</code> one, or a key inside <code>"wheel": { ... }</code> is misspelt</li>
 <li><b>The name shows as <code>my_wheel</code></b> — the lang key is not <code>part.&lt;pack&gt;.&lt;part&gt;</code></li>
-<li><b>Too big or too small</b> — <code>designRadius</code> is not the radius you built at</li>
+<li><b>Too big or too small</b> — you built at a size other than the gauge but did not write <code>designRadius</code> (or it is not the radius you built at)</li>
 <li><b>Driving does not change</b> — wheels are looks only. To change grip, make a tyre (<a href="#s-tire">chapter 3</a>)</li>
 </ul>
 </div>
@@ -3146,7 +3145,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>車体だけ大きい／小さい</td><td><code>designWheelBase</code> をメッシュの実寸にする。微調整は <code>body.scale</code></td></tr>
 <tr><td>車体が地面に埋まる／浮く</td><td><code>designRideHeight</code> を見る。原点は車体の底ではなく地面の高さに</td></tr>
 <tr><td>タイヤが前後にずれる</td><td><code>designWheelBase</code> を見る。ゲームで前後の荷重配分を動かしたなら、それで正しい（車体は追従しない）</td></tr>
-<tr><td>タイヤが大きすぎ／小さすぎ</td><td><code>designWheelRadius</code> をメッシュの実寸にする。部品のホイールなら部品の <code>designRadius</code></td></tr>
+<tr><td>タイヤが大きすぎ／小さすぎ</td><td>ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> をメッシュの実寸にする（車でも部品でも同じ）</td></tr>
 <tr><td>タイヤが横倒し／転がりかたが変</td><td>回転軸を X に。原点を車軸の中心に</td></tr>
 <tr><td>右のタイヤだけ内側を向く</td><td>左側用として作る。表を +X へ</td></tr>
 <tr><td>前後が逆／左右が鏡像</td><td>書き出しの <code>Forward Axis</code> を既定に戻す</td></tr>
@@ -3158,7 +3157,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>Body too big / too small</td><td>Set <code>designWheelBase</code> to your mesh's real size. Fine-tune with <code>body.scale</code></td></tr>
 <tr><td>Body sunk into or floating above the ground</td><td>Check <code>designRideHeight</code>. The origin belongs at ground level, not the underside of the body</td></tr>
 <tr><td>Wheels sit too far forward or back</td><td>Check <code>designWheelBase</code>. If you moved the weight distribution in game, this is correct (the body does not follow)</td></tr>
-<tr><td>Wheels too big / too small</td><td>Set <code>designWheelRadius</code> to your mesh's real size. For a wheel part, its <code>designRadius</code></td></tr>
+<tr><td>Wheels too big / too small</td><td>For a wheel not built to the gauge, set <code>designRadius</code> inside <code>wheel</code> to your mesh's real size (same for cars and parts)</td></tr>
 <tr><td>Wheels lie on their side / roll oddly</td><td>Make X the spin axis. Put the origin at the axle centre</td></tr>
 <tr><td>Only the right wheels face inward</td><td>Build it as the left wheel, face towards +X</td></tr>
 <tr><td>Front and back swapped / mirrored</td><td>Put <code>Forward Axis</code> in the exporter back to the default</td></tr>
@@ -3341,7 +3340,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <summary>見た目（トレッドの形）も変えたい</summary>
 <div class="more-body">
 <ol>
-<li>Blender の新しいファイルで <code>modeling_tools/blender_tire_gauge.py</code> を実行し、タイヤだけのメッシュを作る。ゲージは同梱の TE37 のタイヤの寸法（外径 0.45m・内径 0.334m・幅 0.38m）と断面。原点・回転軸はホイールと同じ（<a href="#s6">1 章</a>）。描くときに伸び縮みするので大きさは比だけが効くが、ゲージに合わせれば TE37 と同じ見た目になる</li>
+<li>Blender の新しいファイルで <code>modeling_tools/blender_tire_gauge.py</code> を実行し、タイヤだけのメッシュを作る。ゲージは同梱の TE37 のタイヤの寸法（外径 0.45m・内径 0.334m・幅 0.38m）と断面。原点・回転軸はホイールと同じ（<a href="#s6">1 章</a>）。描くときに伸び縮みするので大きさは比だけが効くが、ゲージに合わせれば TE37 と同じ見た目になる。<b>ビードからビードまでは内径の円柱の幅（0.32m）に合わせる</b>——リムと同じ規格なので、これでどのホイールにも嵌まる</li>
 <li>OBJ とテクスチャを置く。<code>assets/mypack/models/entity/my_tire.obj</code> と <code>assets/mypack/textures/entity/my_tire.png</code></li>
 <li>見た目のファイルを置く。<code>assets/mypack/car_parts/my_tire.json</code>（部品と同じファイル名）。<b>必ず <code>"tire"</code> の中に書く</b>:
 <pre><code>{
@@ -3358,7 +3357,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <summary>Change the looks (tread) too</summary>
 <div class="more-body">
 <ol>
-<li>In a new Blender file, run <code>modeling_tools/blender_tire_gauge.py</code> and model the tyre alone. The gauge shows the bundled TE37 tyre (0.45 m outer radius, 0.334 m inner radius, 0.38 m wide) and its section. Origin and spin axis are the same as a wheel (<a href="#s6">chapter 1</a>). The tyre is stretched to fit when drawn, so only the proportions matter, but matching the gauge gives the same look as the TE37</li>
+<li>In a new Blender file, run <code>modeling_tools/blender_tire_gauge.py</code> and model the tyre alone. The gauge shows the bundled TE37 tyre (0.45 m outer radius, 0.334 m inner radius, 0.38 m wide) and its section. Origin and spin axis are the same as a wheel (<a href="#s6">chapter 1</a>). The tyre is stretched to fit when drawn, so only the proportions matter, but matching the gauge gives the same look as the TE37. <b>Match the bead-to-bead width to the inner cylinder (0.32 m)</b>: rims use the same standard, so the tyre fits every wheel</li>
 <li>Put the OBJ and texture in your pack: <code>assets/mypack/models/entity/my_tire.obj</code> and <code>assets/mypack/textures/entity/my_tire.png</code></li>
 <li>Add the looks file <code>assets/mypack/car_parts/my_tire.json</code> (same file name as the part). <b>Always write it inside <code>"tire"</code></b>:
 <pre><code>{
@@ -3378,7 +3377,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <p>タイヤの内径（ビード）を置く半径は、次の順に決まります。</p>
 <ol>
 <li>ホイールの見た目のファイルに <code>rimRadius</code>（メッシュの寸法・m）が書いてあれば、その値</li>
-<li>無ければ、ホイールに付けたタイヤ（<code>Tire</code>）の内径</li>
+<li>無ければ、ホイールに付けたタイヤ（<code>Tire</code>。リムだけで作る前の作り方）の内径</li>
 <li>それも無ければ、リムのいちばん外側の半径の 95%</li>
 </ol>
 <p>位置が合わないときは、ホイールの見た目のファイル <code>assets/mypack/car_parts/my_wheel.json</code> の <code>wheel</code> に <code>rimRadius</code> を書きます:</p>
@@ -3386,7 +3385,6 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
   "wheel": {
     "model": "mypack:models/entity/my_wheel.obj",
     "texture": "mypack:textures/entity/my_wheel.png",
-    "designRadius": 0.45,
     "rimRadius": 0.33
   }
 }</code></pre>
@@ -3398,7 +3396,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <p>The radius where the tyre's inner edge (bead) sits is chosen in this order:</p>
 <ol>
 <li><code>rimRadius</code> in the wheel's looks file, if written (mesh units, m)</li>
-<li>otherwise, the inner edge of the tyre you modelled on the wheel (<code>Tire</code>)</li>
+<li>otherwise, the inner edge of a tyre modelled on the wheel (<code>Tire</code>, the older way of building wheels)</li>
 <li>otherwise, 95% of the rim's outermost radius</li>
 </ol>
 <p>If tyres sit wrong, add <code>rimRadius</code> under <code>wheel</code> in the wheel's looks file <code>assets/mypack/car_parts/my_wheel.json</code>:</p>
@@ -3406,7 +3404,6 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
   "wheel": {
     "model": "mypack:models/entity/my_wheel.obj",
     "texture": "mypack:textures/entity/my_wheel.png",
-    "designRadius": 0.45,
     "rimRadius": 0.33
   }
 }</code></pre>
@@ -3445,7 +3442,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <li><b>タブに並ぶが、走りがノーマルと同じ</b> … <code>"tire": { ... }</code> が書かれていない（ログに出る）</li>
 <li><b>一部の路面だけ効かない</b> … 路面の名前の綴りが違う。知らない名前はログに出て無視される</li>
 <li><b>見た目が KurumaMod 標準のタイヤのまま</b> … 見た目のファイルで <code>"tire": { ... }</code> の中に書いていない。または <code>assets/</code> 側のファイル名が <code>data/</code> 側と違う</li>
-<li><b>選んだタイヤと、ホイールに付いていたタイヤが重なる</b> … ホイールのタイヤのオブジェクト名が <code>tire</code> で始まっていない（<a href="#s6">1 章</a>）</li>
+<li><b>選んだタイヤと、ホイールに付いていたタイヤが重なる</b> … ホイールにタイヤも作ってある。リムだけにする（<a href="#s6">1 章</a>）</li>
 <li><b>サイドウォールが厚すぎる・薄すぎる</b> … 上の「タイヤの嵌まる位置を直したい」。それでも合わないときは、タイヤの見た目の <code>"tire"</code> に <code>innerRadius</code> / <code>outerRadius</code>（メッシュのタイヤの内径・外径 [m]）を書く</li>
 </ul>
 </div>
@@ -3457,7 +3454,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <li><b>Listed, but drives like Normal</b> — <code>"tire": { ... }</code> is missing (the log says so)</li>
 <li><b>Only some surfaces have no effect</b> — a surface name is misspelt. Unknown names are logged and ignored</li>
 <li><b>Still looks like KurumaMod's standard tyre</b> — the looks file is not written inside <code>"tire": { ... }</code>, or the <code>assets/</code> file name differs from the <code>data/</code> one</li>
-<li><b>The picked tyre and the wheel's own tyre overlap</b> — the wheel's tyre object name does not start with <code>tire</code> (<a href="#s6">chapter 1</a>)</li>
+<li><b>The picked tyre and the wheel's own tyre overlap</b> — the wheel has a tyre modelled on it. Keep only the rim (<a href="#s6">chapter 1</a>)</li>
 <li><b>Sidewalls too thick or too thin</b> — see "Fix where tyres sit on my own wheel" above. If that is not enough, write <code>innerRadius</code> / <code>outerRadius</code> (the mesh tyre's inner and outer radius [m]) inside the tyre's <code>"tire"</code></li>
 </ul>
 </div>
@@ -4339,12 +4336,12 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <h4 class="en">Looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"wheel": { ... }</code>, or at the top level without the nesting). <b>Wheels only</b>; turbos and blow-off valves need none</h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>その車種の <code>wheel.model</code></td><td>ホイールの OBJ</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td>その車種の <code>wheel.texture</code></td><td>ホイールのテクスチャ</td></tr>
-<tr><td><code>designRadius</code></td><td>数字</td><td>その車種の <code>designWheelRadius</code></td><td><b>メッシュが何 m の半径で作られているか</b></td></tr>
-<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車種の <code>wheel.offset</code></td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
-<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車種の <code>wheel.scale</code></td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
-<tr><td><code>camber</code></td><td>数字</td><td>その車種の <code>wheel.camber</code></td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
+<tr><td><code>model</code></td><td>id</td><td>その車の純正ホイールのもの</td><td>ホイールの OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>その車の純正ホイールのもの</td><td>ホイールのテクスチャ</td></tr>
+<tr><td><code>designRadius</code></td><td>数字</td><td><code>0.45</code>（ゲージ）。<code>model</code> を書かない部品はその車の純正ホイールのもの</td><td><b>メッシュが何 m の半径で作られているか</b>。ゲージどおりなら書かない</td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>その車の純正ホイールのもの（無ければ 0）</td><td>平行移動 [m]。X は外向き。X はオフセットのスライダーの既定値（−0.05 〜 0.10。外れたら端へ丸める）</td></tr>
+<tr><td><code>scale</code></td><td>数字 1 つ or <code>[x,y,z]</code></td><td>その車の純正ホイールのもの（無ければ 1）</td><td>X は太さ（スライダーの既定値。0.5 〜 2.5 に丸める）。Y・Z は触らない</td></tr>
+<tr><td><code>camber</code></td><td>数字</td><td>その車の純正ホイールのもの（無ければ 0）</td><td>キャンバー角 [度]。スライダーの既定値（−30 〜 10 に丸める）</td></tr>
 <tr><td><code>rimRadius</code></td><td>数字</td><td>（測る）</td><td>タイヤの内径（ビード）を置く半径 [m]（メッシュの寸法）。<a href="#s-tire">3 章</a></td></tr>
 </table>
 <h4 class="ja">タイヤの見た目 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"tire": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
@@ -4357,12 +4354,12 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </table>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>model</code></td><td>id</td><td>the car's <code>wheel.model</code></td><td>Wheel OBJ</td></tr>
-<tr><td><code>texture</code></td><td>id</td><td>the car's <code>wheel.texture</code></td><td>Wheel texture</td></tr>
-<tr><td><code>designRadius</code></td><td>number</td><td>the car's <code>designWheelRadius</code></td><td><b>The radius the mesh was built at, in m</b></td></tr>
-<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's <code>wheel.offset</code></td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
-<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's <code>wheel.scale</code></td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
-<tr><td><code>camber</code></td><td>number</td><td>the car's <code>wheel.camber</code></td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
+<tr><td><code>model</code></td><td>id</td><td>the car's stock wheel's</td><td>Wheel OBJ</td></tr>
+<tr><td><code>texture</code></td><td>id</td><td>the car's stock wheel's</td><td>Wheel texture</td></tr>
+<tr><td><code>designRadius</code></td><td>number</td><td><code>0.45</code> (the gauge). A part without <code>model</code> takes the car's stock wheel's</td><td><b>The radius the mesh was built at, in m</b>. Leave it out if you followed the gauge</td></tr>
+<tr><td><code>offset</code></td><td><code>[x,y,z]</code></td><td>the car's stock wheel's (0 if none)</td><td>Translation [m]. X points outward; it is the offset slider's default (−0.05 to 0.10, clamped)</td></tr>
+<tr><td><code>scale</code></td><td>one number or <code>[x,y,z]</code></td><td>the car's stock wheel's (1 if none)</td><td>X is width (the slider's default, clamped to 0.5–2.5). Leave Y/Z alone</td></tr>
+<tr><td><code>camber</code></td><td>number</td><td>the car's stock wheel's (0 if none)</td><td>Camber [degrees]. The slider's default (clamped to −30 to 10)</td></tr>
 <tr><td><code>rimRadius</code></td><td>number</td><td>(measured)</td><td>Radius where the tyre's bead sits [m], in mesh units. <a href="#s-tire">Chapter 3</a></td></tr>
 </table>
 <h4 class="en">Tyre looks — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code> (inside <code>"tire": { ... }</code>; <b>not at the top level</b>)</h4>
@@ -4394,13 +4391,13 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <h4 class="ja">車の側 — 初期装備（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code> のいちばん外側）と対応（<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>）</h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>意味</th></tr>
-<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true</td></tr>
+<tr><td><code>default_parts.&lt;場所&gt;</code></td><td>部品 id or <code>{"part": id, "removable": 真偽}</code></td><td>何も付けていないときの部品。<code>removable</code> の既定は true。<code>wheel</code> は書かなければ <code>kurumamod:te37</code></td></tr>
 <tr><td><code>parts.&lt;部品 id&gt;.show</code></td><td>オブジェクト名の配列</td><td>その部品を付けたときに出すオブジェクト（<code>part_</code> で始まる名前だけ）</td></tr>
 </table>
 <h4 class="en">On the car — default parts (top level of <code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) and mapping (<code>assets/&lt;pack&gt;/vehicles/&lt;car&gt;.json</code>)</h4>
 <table class="en">
 <tr><th>Key</th><th>Type</th><th>Meaning</th></tr>
-<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true</td></tr>
+<tr><td><code>default_parts.&lt;slot&gt;</code></td><td>part id or <code>{"part": id, "removable": bool}</code></td><td>The part fitted when nothing is chosen. <code>removable</code> defaults to true. <code>wheel</code> defaults to <code>kurumamod:te37</code></td></tr>
 <tr><td><code>parts.&lt;part id&gt;.show</code></td><td>array of object names</td><td>Objects shown while that part is fitted (names starting with <code>part_</code> only)</td></tr>
 </table>
 </section>

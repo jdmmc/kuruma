@@ -1,0 +1,7 @@
+{
+  "_comment": "ホイールの定義はここだけ。ゲージ（tools/blender_wheel_gauge.py）どおりに作ってあるので designRadius は書かない",
+  "wheel": {
+    "model": "kurumamod:models/entity/wheel.obj",
+    "texture": "kurumamod:textures/entity/wheel.png"
+  }
+}

@@ -255,7 +255,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>車体だけ大きい／小さい</td><td><code>designWheelBase</code> をメッシュの実寸にする。微調整は <code>body.scale</code></td></tr>
 <tr><td>車体が地面に埋まる／浮く</td><td><code>designRideHeight</code> を見る。原点は車体の底ではなく地面の高さに</td></tr>
 <tr><td>タイヤが前後にずれる</td><td><code>designWheelBase</code> を見る。ゲームで前後の荷重配分を動かしたなら、それで正しい（車体は追従しない）</td></tr>
-<tr><td>タイヤが大きすぎ／小さすぎ</td><td><code>designWheelRadius</code> をメッシュの実寸にする。部品のホイールなら部品の <code>designRadius</code></td></tr>
+<tr><td>タイヤが大きすぎ／小さすぎ</td><td>ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> をメッシュの実寸にする（車でも部品でも同じ）</td></tr>
 <tr><td>タイヤが横倒し／転がりかたが変</td><td>回転軸を X に。原点を車軸の中心に</td></tr>
 <tr><td>右のタイヤだけ内側を向く</td><td>左側用として作る。表を +X へ</td></tr>
 <tr><td>前後が逆／左右が鏡像</td><td>書き出しの <code>Forward Axis</code> を既定に戻す</td></tr>
@@ -267,7 +267,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>Body too big / too small</td><td>Set <code>designWheelBase</code> to your mesh's real size. Fine-tune with <code>body.scale</code></td></tr>
 <tr><td>Body sunk into or floating above the ground</td><td>Check <code>designRideHeight</code>. The origin belongs at ground level, not the underside of the body</td></tr>
 <tr><td>Wheels sit too far forward or back</td><td>Check <code>designWheelBase</code>. If you moved the weight distribution in game, this is correct (the body does not follow)</td></tr>
-<tr><td>Wheels too big / too small</td><td>Set <code>designWheelRadius</code> to your mesh's real size. For a wheel part, its <code>designRadius</code></td></tr>
+<tr><td>Wheels too big / too small</td><td>For a wheel not built to the gauge, set <code>designRadius</code> inside <code>wheel</code> to your mesh's real size (same for cars and parts)</td></tr>
 <tr><td>Wheels lie on their side / roll oddly</td><td>Make X the spin axis. Put the origin at the axle centre</td></tr>
 <tr><td>Only the right wheels face inward</td><td>Build it as the left wheel, face towards +X</td></tr>
 <tr><td>Front and back swapped / mirrored</td><td>Put <code>Forward Axis</code> in the exporter back to the default</td></tr>
