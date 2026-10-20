@@ -272,10 +272,9 @@ public final class SeatScreen extends Screen {
             if (owner == null) {
                 return row.min();
             }
-            CarPartModel json = CarPartModel.fromJson(owner);
-            // 書いていないリムの半径は「測る」へ戻す（測った値を書いたことにしない）
-            return row.axis() == RIM_RADIUS && (json.rimRadius() == null || json.rimRadius() <= 0.0)
-                    ? Double.NaN : meshValue(json, row);
+            // JSON に書いていない項目は「書いていない」へ戻す（今の値を書いたことにしない）。NaN がその印
+            return written(CarPartModel.fromJson(owner), row) == null
+                    ? Double.NaN : meshValue(CarPartModel.fromJson(owner), row);
         }
         if (row.axis() == TILT) {
             return model.steeringTilt();
@@ -285,7 +284,7 @@ public final class SeatScreen extends Screen {
 
     private void set(Row row, double value) {
         if (row.group() == Group.WHEEL_PART && Double.isNaN(value)) {
-            // 「R」でリムの半径を書いていない状態へ戻す
+            // 「R」で JSON に書いていない状態へ戻す
             ResourceLocation owner = meshOwner();
             if (owner != null) {
                 setPart(owner, row, null);
@@ -532,7 +531,7 @@ public final class SeatScreen extends Screen {
             // JSON の値から動かした項目は黄色（調整画面と同じ）
             double original = original(row);
             boolean changed = Double.isNaN(original)
-                    ? row.axis() == RIM_RADIUS && meshOwner() != null && hasRimOverride()
+                    ? row.group() == Group.WHEEL_PART && meshOwner() != null && hasPartOverride(row)
                     : Math.abs(get(row) - original) > 1.0e-6;
             // 座席とハンドルはセクションのタブで分かるので、軸の名前だけ
             Component label = row.group() == Group.DESIGN
@@ -603,15 +602,27 @@ public final class SeatScreen extends Screen {
         return false;
     }
 
-    /** リムの半径を JSON と違う値にしているか（JSON に書いていない部品で、手で値を入れたか）。 */
-    private boolean hasRimOverride() {
+    /** JSON に書いていない項目に、手で値を入れたか。 */
+    private boolean hasPartOverride(Row row) {
         ResourceLocation owner = meshOwner();
         if (owner == null) {
             return false;
         }
-        Double now = CarPartModel.get(owner).rimRadius();
-        Double json = CarPartModel.fromJson(owner).rimRadius();
+        Double now = written(CarPartModel.get(owner), row);
+        Double json = written(CarPartModel.fromJson(owner), row);
         return now == null ? json != null : !now.equals(json);
+    }
+
+    /** ホイールの JSON にその項目が書いてあればその値、書いていなければ null。スケールは必ず値がある。 */
+    @org.jetbrains.annotations.Nullable
+    private static Double written(CarPartModel part, Row row) {
+        return switch (row.axis()) {
+            case CAMBER -> part.camber();
+            case WIDTH -> part.scale() != null ? Double.valueOf(part.scale().x()) : null;
+            case RIM_RADIUS -> part.rimRadius() != null && part.rimRadius() > 0.0 ? part.rimRadius() : null;
+            default -> part.designRadius() != null && part.designRadius() > 0.0
+                    ? part.designRadius() : Double.valueOf(CarModel.GAUGE_WHEEL_RADIUS);
+        };
     }
 
     /** 一人称でドラッグしたときの回り方 [度／画面の 1 ピクセル]。 */

@@ -1,0 +1,7 @@
+{
+  "_comment": "タイヤの定義はここだけ。ゲージ（tools/blender_tire_gauge.py）の寸法で作ってある",
+  "tire": {
+    "model": "kurumamod:models/entity/tire.obj",
+    "texture": "kurumamod:textures/entity/tire.png"
+  }
+}

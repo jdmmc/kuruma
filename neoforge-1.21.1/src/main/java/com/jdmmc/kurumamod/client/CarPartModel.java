@@ -81,10 +81,13 @@ public record CarPartModel(
                        @Nullable Double innerRadius, @Nullable Double outerRadius) {
     }
 
-    /** 何も付けていないとき（とリムだけのホイール）に描く、MOD 標準のタイヤ。 */
+    /**
+     * 見た目の定義が見つからないタイヤ部品に描く、MOD 標準のタイヤ（{@link #STOCK_TIRE} と同じもの）。
+     * 純正の定義（{@code car_parts/tire_normal.json}）を消されても、タイヤが無くならないように。
+     */
     public static final Tire DEFAULT_TIRE = new Tire(
             ResourceLocation.fromNamespaceAndPath(com.jdmmc.kurumamod.Kurumamod.MODID, "models/entity/tire.obj"),
-            ResourceLocation.fromNamespaceAndPath(com.jdmmc.kurumamod.Kurumamod.MODID, "textures/entity/wheel.png"),
+            ResourceLocation.fromNamespaceAndPath(com.jdmmc.kurumamod.Kurumamod.MODID, "textures/entity/tire.png"),
             null, null);
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -268,16 +271,21 @@ public record CarPartModel(
     }
 
     /**
-     * その車が履いているタイヤの見た目。<b>タイヤ部品を履いていなければ null</b>
-     * （ホイールに付属のタイヤを描く。付属していなければ {@link #DEFAULT_TIRE}）。
+     * タイヤの純正。<b>車種が {@code default_parts.tire} を書かなければこれが付いているものとして描く。</b>
+     * 性能はすべて 1 倍（ノーマル）なので、何も履いていない車と走りは変わらない。
+     */
+    public static final ResourceLocation STOCK_TIRE = ResourceLocation.fromNamespaceAndPath(com.jdmmc.kurumamod.Kurumamod.MODID, "tire_normal");
+
+    /**
+     * その車が履いているタイヤの見た目。何も履いていなければ純正（{@link #STOCK_TIRE}）。
      *
      * <p>知らない部品・見た目の定義が無い部品は {@link #DEFAULT_TIRE} にする。性能は部品の素性で
-     * 決まっているので、見た目だけ付属のタイヤに戻すと「ダートタイヤなのに見た目はノーマル」になる。</p>
+     * 決まっているので、見た目だけほかのタイヤに戻すと「ダートタイヤなのに見た目はノーマル」になる。</p>
      */
-    public static @Nullable Tire tireOf(PartFitment parts) {
+    public static Tire tireOf(PartFitment parts) {
         ResourceLocation partId = parts.getPart(PartSlot.TIRE);
-        if (partId == null) {
-            return null;
+        if (partId == null || PartFitment.isNone(partId)) {
+            partId = STOCK_TIRE;
         }
         Tire tire = get(partId).tire;
         return tire != null ? tire : DEFAULT_TIRE;

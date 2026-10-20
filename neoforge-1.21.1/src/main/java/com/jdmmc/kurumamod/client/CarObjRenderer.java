@@ -530,15 +530,14 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         float scaleY = (float) (scale * wheelScale.y());
         float scaleZ = (float) (scale * wheelScale.z());
 
-        // タイヤ。ホイールは必ずタイヤ抜きで描き、タイヤ（選んだもの、無ければ MOD 標準）を、内径がリムへ・
+        // タイヤ。ホイールは必ずタイヤ抜きで描き、タイヤ（選んだもの、無ければ純正）を、内径がリムへ・
         // 外径がメッシュのタイヤ半径へ来るよう半径方向に合わせ直して描く。拡大はホイールと同じ pose が
         // 受け持つので、物理のタイヤ半径に接地する。
         // ホイールのメッシュに付属したタイヤ（tire で始まるオブジェクト。リムだけで作る前の作り方）は描かない。
         // 描くとビードの位置も太さも動かせず、タイヤ部品と見た目がばらばらになる。付属のタイヤの内径は
         // ビードの位置としてだけ使う（beadRadius）ので、嵌まる位置は元のタイヤとほぼ同じになる
         ObjModel wheelMesh = ObjModel.get(look.model());
-        CarPartModel.Tire tire = CarPartModel.tireOf(car.getEffectiveFitment());
-        CarPartModel.Tire chosen = tire != null ? tire : CarPartModel.DEFAULT_TIRE;
+        CarPartModel.Tire chosen = CarPartModel.tireOf(car.getEffectiveFitment());
         ObjModel tireMesh = ObjModel.fittedTire(chosen.model(), chosen.innerRadius(), chosen.outerRadius(),
                 beadRadius(look, wheelMesh), look.designRadius()).lod(lod);
         ResourceLocation tireTexture = chosen.texture();

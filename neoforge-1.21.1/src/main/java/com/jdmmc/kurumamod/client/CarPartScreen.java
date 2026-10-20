@@ -372,8 +372,9 @@ public class CarPartScreen extends Screen {
     }
 
     /**
-     * その車のその場所の純正の部品。初期装備（{@code default_parts}）があればそれ、ホイールで書いていなければ
-     * TE37（{@link CarPartModel#STOCK_WHEEL}）。どちらでもなければ null（純正は「何も付いていない」）。
+     * その車のその場所の純正の部品。初期装備（{@code default_parts}）があればそれ、無ければホイールは
+     * TE37（{@link CarPartModel#STOCK_WHEEL}）、タイヤはノーマル（{@link CarPartModel#STOCK_TIRE}）。
+     * どれでもなければ null（純正は「何も付いていない」）。
      */
     @Nullable
     private static ResourceLocation stockPart(CarEntity car, PartSlot slot) {
@@ -381,7 +382,11 @@ public class CarPartScreen extends Screen {
         if (defaults != null) {
             return defaults.part();
         }
-        return slot == PartSlot.WHEEL ? CarPartModel.stockWheel(car.getCarId(), CarModel.get(car.getCarId())) : null;
+        return switch (slot) {
+            case WHEEL -> CarPartModel.stockWheel(car.getCarId(), CarModel.get(car.getCarId()));
+            case TIRE -> CarPartModel.STOCK_TIRE;
+            default -> null;
+        };
     }
 
     /** 表示範囲に入るタイルだけ並べ、外れたものは隠す。 */
