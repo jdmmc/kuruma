@@ -1430,8 +1430,20 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         }
 
         state.addWorldVelocity(result.aDx(), result.aDz());
-        KurumaNetwork.CHANNEL.sendToServer(new CarPushPacket(other.getId(),
-                (float) result.bDx(), (float) result.bDz(), (float) result.bYawRate()));
+        CarPushPacket push = new CarPushPacket(other.getId(),
+                (float) result.bDx(), (float) result.bDz(), (float) result.bYawRate());
+        if (level().isClientSide) {
+            KurumaNetwork.CHANNEL.sendToServer(push);
+            return;
+        }
+        // 無人の車はサーバーが解いているので、ここはサーバーのスレッド。サーバー宛てに送ると
+        // クライアントの接続を引きにいき、ワールドを開いた直後（まだ繋がっていない）に落ちる。
+        // パケットを受けたサーバーと同じく、相手の持ち主へ直接届ける
+        if (other.getControllingPassenger() instanceof net.minecraft.server.level.ServerPlayer driver) {
+            KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> driver), push);
+        } else {
+            other.applyPush(push.dx(), push.dz(), push.dYawRate());
+        }
     }
 
     /**
