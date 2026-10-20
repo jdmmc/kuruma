@@ -641,5 +641,6 @@
   "screen.kurumamod.seat.section.body": "Body",
   "screen.kurumamod.seat.section.seat": "Seat",
   "screen.kurumamod.seat.section.steering": "Steering",
-  "screen.kurumamod.seat.wheel.gauge_note": "If the wheel was built to the gauge, there should be nothing to adjust here"
+  "screen.kurumamod.seat.wheel.gauge_note": "If the wheel was built to the gauge, there should be nothing to adjust here",
+  "screen.kurumamod.seat.gauge_legend": "Cyan lines: the Blender gauge. A body built to the gauge has its wheel arches on these rings"
 }

@@ -1,6 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.entity.CarEntity;
+import net.minecraft.client.Minecraft;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.client.gui.GuiGraphics;
@@ -138,6 +139,16 @@ public final class SeatScreen extends Screen {
     private final List<Slider> sliders = new ArrayList<>();
     /** 「コピーした」を出しておく残りのフレーム数。 */
     private int copiedFrames;
+
+    /**
+     * この車にゲージを重ねて描くか。この画面を開いていて、その車に乗っているときだけ。
+     * 描くのは {@link CarObjRenderer}（車体と同じ変換の中で描くため）。
+     */
+    static boolean showsGauge(CarEntity car) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.screen instanceof SeatScreen && minecraft.player != null
+                && minecraft.player.getVehicle() == car;
+    }
 
     public SeatScreen(ResourceLocation carId) {
         super(Component.translatable("screen.kurumamod.seat.title"));
@@ -577,6 +588,9 @@ public final class SeatScreen extends Screen {
             graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.hint", pasteTarget()),
                     width / 2, rowY(BOTTOM_ROW) + 26, 0xAAAAAA);
         }
+        // 車に重ねている水色の線が何か（色は CarObjRenderer のゲージと揃える）
+        graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.gauge_legend"),
+                width / 2, rowY(BOTTOM_ROW) + 38, 0x4DE6FF);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 

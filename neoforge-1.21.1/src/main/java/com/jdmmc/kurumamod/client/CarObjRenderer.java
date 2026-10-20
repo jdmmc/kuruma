@@ -102,6 +102,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         int lod = HeadlightVolume.ShaderPacks.renderingShadowPass() ? SHADOW_LOD : lodLevel(car, partialTick);
         renderBody(car, model, spec, pose, buffer, packedLight, lod);
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
+        // 見た目の調整画面（Ctrl+G）を開いている間だけ、Blender のゲージを車体に重ねる
+        if (SeatScreen.showsGauge(car)) {
+            renderGauge(model, spec, pose, buffer);
+        }
         // 一人称では自分の体が描かれないので、ハンドルを握る腕だけ車体の中に描き足す
         SteeringHands.renderFirstPerson(car, pose, buffer, packedLight, partialTick);
         // ガラスは<b>いちばん最後</b>。ガラスより後に描いたものにはガラスの色が乗らないので、
@@ -818,6 +822,74 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             consumer.addVertex(entry.pose(), bx, by, bz).setColor(red, green, blue, 1.0F)
                     .setNormal(entry, nx, ny, nz);
         }
+    }
+
+    /** ゲージのタイヤの太さ [m]（tools/blender_gauge.py の 0.20 × 車格 1.2）。見た目の目安。 */
+    private static final float GAUGE_WHEEL_WIDTH = 0.24F;
+    /** ゲージのタイヤの輪の分割数。Blender の円柱と同じ。 */
+    private static final int GAUGE_SEGMENTS = 32;
+    /** ゲージの線の色（水色）。車体にもタイヤにも無い色にしてある。 */
+    private static final float GAUGE_RED = 0.3F, GAUGE_GREEN = 0.9F, GAUGE_BLUE = 1.0F;
+
+    /**
+     * Blender のゲージ（{@code tools/blender_gauge.py}）を線で描く。タイヤ 4 本・シャシー基準面・地面。
+     *
+     * <p><b>メッシュの空間で描く</b>（{@link #applyBodyTransform} の中）。Blender でゲージを置いたのと
+     * 同じ位置に出るので、ゲージどおりに作った車体ならタイヤハウスがこの輪に重なる。
+     * {@code designWheelBase}・{@code designRideHeight}・{@code body.offset} を動かすと、
+     * ゲージも車体と一緒に動く（車体がどう作られていると見なされているかが見える）。
+     * 寸法は今の諸元ではなく既定値（{@link CarSpec#DEFAULT}）。ゲージは既定値そのものなので。</p>
+     */
+    private static void renderGauge(CarModel model, CarSpec spec, PoseStack pose, MultiBufferSource buffer) {
+        pose.pushPose();
+        applyBodyTransform(model, spec, pose);
+        VertexConsumer consumer = buffer.getBuffer(RenderType.lines());
+        PoseStack.Pose entry = pose.last();
+        CarSpec gauge = CarSpec.DEFAULT;
+        float x = (float) (gauge.trackWidth() / 2.0);
+        float z = (float) (gauge.wheelBase() / 2.0);
+        float r = (float) CarModel.GAUGE_WHEEL_RADIUS;
+        float half = GAUGE_WHEEL_WIDTH / 2.0F;
+        // タイヤ。円柱の両端の輪と、それをつなぐ線（全部つなぐと面のように見えるので 4 本おき）
+        for (float wx : new float[]{-x, x}) {
+            for (float wz : new float[]{-z, z}) {
+                for (int i = 0; i < GAUGE_SEGMENTS; i++) {
+                    double a0 = Math.PI * 2.0 * i / GAUGE_SEGMENTS;
+                    double a1 = Math.PI * 2.0 * (i + 1) / GAUGE_SEGMENTS;
+                    float y0 = r + r * (float) Math.sin(a0), z0 = wz + r * (float) Math.cos(a0);
+                    float y1 = r + r * (float) Math.sin(a1), z1 = wz + r * (float) Math.cos(a1);
+                    gaugeLine(consumer, entry, wx - half, y0, z0, wx - half, y1, z1);
+                    gaugeLine(consumer, entry, wx + half, y0, z0, wx + half, y1, z1);
+                    if (i % 4 == 0) {
+                        gaugeLine(consumer, entry, wx - half, y0, z0, wx + half, y0, z0);
+                    }
+                }
+            }
+        }
+        // シャシー基準面。4 隅がちょうど車軸の上に来る
+        gaugeRect(consumer, entry, x, z, (float) gauge.staticRideHeight());
+        // 地面（車体の原点の高さ）。Blender と同じく一辺がホイールベースの 2.5 倍
+        float ground = (float) (gauge.wheelBase() * 1.25);
+        gaugeRect(consumer, entry, ground, ground, 0.0F);
+        pose.popPose();
+    }
+
+    private static void gaugeRect(VertexConsumer consumer, PoseStack.Pose entry, float x, float z, float y) {
+        gaugeLine(consumer, entry, -x, y, -z, x, y, -z);
+        gaugeLine(consumer, entry, x, y, -z, x, y, z);
+        gaugeLine(consumer, entry, x, y, z, -x, y, z);
+        gaugeLine(consumer, entry, -x, y, z, -x, y, -z);
+    }
+
+    private static void gaugeLine(VertexConsumer consumer, PoseStack.Pose entry,
+                                  float ax, float ay, float az, float bx, float by, float bz) {
+        float dx = bx - ax, dy = by - ay, dz = bz - az;
+        float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+        float nx = dx / length, ny = dy / length, nz = dz / length;
+        consumer.addVertex(entry.pose(), ax, ay, az).setColor(GAUGE_RED, GAUGE_GREEN, GAUGE_BLUE, 1.0F)
+                .setNormal(entry, nx, ny, nz);
+        consumer.addVertex(entry.pose(), bx, by, bz).setColor(GAUGE_RED, GAUGE_GREEN, GAUGE_BLUE, 1.0F)
+                .setNormal(entry, nx, ny, nz);
     }
 
     private static void renderEdges(CarEntity car, double[][] corners, List<int[]> edges,
