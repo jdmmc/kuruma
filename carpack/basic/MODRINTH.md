@@ -21,7 +21,7 @@ point, not something fixed.
 ## 📦 How to install
 
 1. Minecraft **1.20.1** with **Forge 47.4.22+**, or Minecraft **1.21.1** with **NeoForge 21.1+** — the same jar works on both
-2. **[Kuruma](https://modrinth.com/mod/kuruma)** — install it first (1.8.0 or later)
+2. **[Kuruma](https://modrinth.com/mod/kuruma)** — install the latest version first
 3. This pack's `.jar` into your `mods/` folder (the same place as Kuruma)
 
 That's it. No extra libraries, no config files to edit.
@@ -82,7 +82,7 @@ Kuruma に最初から入っている軽いスポーツカーの隣に置きた�
 ## 📦 導入方法
 
 1. Minecraft **1.20.1** ＋ **Forge 47.4.22 以降**、または Minecraft **1.21.1** ＋ **NeoForge 21.1 以降**（同じ jar でどちらにも入ります）
-2. **[Kuruma](https://modrinth.com/mod/kuruma)** を先に入れる（1.8.0 以降）
+2. **[Kuruma](https://modrinth.com/mod/kuruma)** の最新版を先に入れる
 3. このパックの `.jar` を `mods/` フォルダへ（Kuruma と同じ場所）
 
 以上です。追加のライブラリも、設定ファイルの編集も要りません。
