@@ -49,7 +49,7 @@ import java.util.Locale;
  *       車の JSON にメッシュを直接書いた以前の車では動かせない</li>
  * </ul>
  *
- * <p>換装画面の上書きや、履いた部品（メッシュを持たない {@code deep_dish} など）の指定が勝っていて、
+ * <p>換装画面の上書きや、履いた部品（角度と太さだけを書いた、メッシュを持たない部品など）の指定が勝っていて、
  * ここで動かしても見えない行は灰色にする。</p>
  */
 public final class SeatScreen extends Screen {
