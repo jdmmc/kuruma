@@ -8,7 +8,7 @@ license = "All Rights Reserved"
 
 [[mods]]
 modId = "kurumamod_example_carpack"
-version = "1.4.0"
+version = "1.5.0"
 displayName = "KurumaMod Example Car Pack"
 # MOD 一覧に出る画像。jar の直下からの名前で書く（このフォルダ直下の kurumamod_example_carpack.png）
 logoFile = "kurumamod_example_carpack.png"
@@ -19,7 +19,7 @@ description = '''An example car pack for KurumaMod, meant as a starting point fo
 [[dependencies.kurumamod_example_carpack]]
 modId = "kurumamod"
 mandatory = true
-versionRange = "[1.7.0,)"
+versionRange = "[1.9.0,)"
 ordering = "NONE"
 side = "BOTH"
 
