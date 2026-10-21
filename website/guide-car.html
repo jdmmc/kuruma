@@ -1597,7 +1597,6 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><th>id</th><th>何の見本か</th></tr>
 <tr><td><code>kurumamod_example_carpack:sample</code></td><td>車体メッシュ・テクスチャ・灯火まで自前で持つ、一通り揃った車</td></tr>
 <tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>自前のメッシュを持つホイールの部品（<a href="guide-wheel.html#s-parts">ホイールの 2 章</a>）</td></tr>
-<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>換装画面のスライダーへ既定値を渡すホイールの部品</td></tr>
 </table>
 <p>ホイールの部品が要らなければ、<code>assets/mypack/car_parts/</code> と <code>data/mypack/car_parts/</code> のファイル、<code>wheel-sample.obj</code>・<code>.mtl</code>、lang の <code>part.…</code> の行を消します。使わなくなった <code>sample.obj</code> なども消してかまいません。</p>
 <p>隣の <code>carpack/basic/</code> はプレイヤーへ配っている公式パックで、作りは同じです。出来上がったパックに何が入るかを見るのに向いています。</p>
@@ -1610,9 +1609,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><th>Id</th><th>What it demonstrates</th></tr>
 <tr><td><code>kurumamod_example_carpack:sample</code></td><td>A complete car — its own body mesh, texture and lights</td></tr>
 <tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>A wheel part with its own mesh (<a href="guide-wheel.html#s-parts">chapter 2 of the Wheel guide</a>)</td></tr>
-<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>A wheel part that hands defaults to the fitment sliders</td></tr>
 </table>
-<p>If you do not want the wheel parts, delete the files in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>wheel-sample.obj</code> and its <code>.mtl</code>, and the <code>part.…</code> lines in lang. Unused files such as <code>sample.obj</code> can go too.</p>
+<p>If you do not want the wheel part, delete the files in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>wheel-sample.obj</code> and its <code>.mtl</code>, and the <code>part.…</code> lines in lang. Unused files such as <code>sample.obj</code> can go too.</p>
 <p><code>carpack/basic/</code> next door is the official pack that ships to players, built the same way — a good look at what a finished pack contains.</p>
 </div>
 </details>

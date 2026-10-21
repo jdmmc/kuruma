@@ -444,7 +444,6 @@ description = '''...'''              # description in the mod list
 ├── <span class="hl">mypack</span>.png                      ← ロゴ画像
 ├── assets/<span class="hl">mypack</span>/                  ← 見た目
 │   ├── car_parts/                  ← パーツ（例。配布時削除）
-│   │   ├── deep_dish.json
 │   │   └── sample_wheel.json
 │   ├── lang/                       ← 言語
 │   │   ├── en_us.json
@@ -458,7 +457,6 @@ description = '''...'''              # description in the mod list
 │   └── vehicles/sample.json
 ├── data/<span class="hl">mypack</span>/                    ← 走り（諸元）
 │   ├── car_parts/                  ← パーツ（例。配布時削除）
-│   │   ├── deep_dish.json
 │   │   └── sample_wheel.json
 │   └── cars/
 │       └── sample.json
@@ -472,7 +470,6 @@ description = '''...'''              # description in the mod list
 ├── <span class="hl">mypack</span>.png                      &lt;- logo image
 ├── assets/<span class="hl">mypack</span>/                  &lt;- looks
 │   ├── car_parts/                  &lt;- parts (examples; delete before shipping)
-│   │   ├── deep_dish.json
 │   │   └── sample_wheel.json
 │   ├── lang/                       &lt;- languages
 │   │   ├── en_us.json
@@ -486,7 +483,6 @@ description = '''...'''              # description in the mod list
 │   └── vehicles/sample.json
 ├── data/<span class="hl">mypack</span>/                    &lt;- handling (spec)
 │   ├── car_parts/                  &lt;- parts (examples; delete before shipping)
-│   │   ├── deep_dish.json
 │   │   └── sample_wheel.json
 │   └── cars/
 │       └── sample.json
@@ -2289,7 +2285,6 @@ description = '''...'''              # description in the mod list
 <tr><th>id</th><th>何の見本か</th></tr>
 <tr><td><code>kurumamod_example_carpack:sample</code></td><td>車体メッシュ・テクスチャ・灯火まで自前で持つ、一通り揃った車</td></tr>
 <tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>自前のメッシュを持つホイールの部品（<a href="#s-parts">ホイールの 2 章</a>）</td></tr>
-<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>換装画面のスライダーへ既定値を渡すホイールの部品</td></tr>
 </table>
 <p>ホイールの部品が要らなければ、<code>assets/mypack/car_parts/</code> と <code>data/mypack/car_parts/</code> のファイル、<code>wheel-sample.obj</code>・<code>.mtl</code>、lang の <code>part.…</code> の行を消します。使わなくなった <code>sample.obj</code> なども消してかまいません。</p>
 <p>隣の <code>carpack/basic/</code> はプレイヤーへ配っている公式パックで、作りは同じです。出来上がったパックに何が入るかを見るのに向いています。</p>
@@ -2302,9 +2297,8 @@ description = '''...'''              # description in the mod list
 <tr><th>Id</th><th>What it demonstrates</th></tr>
 <tr><td><code>kurumamod_example_carpack:sample</code></td><td>A complete car — its own body mesh, texture and lights</td></tr>
 <tr><td><code>kurumamod_example_carpack:sample_wheel</code></td><td>A wheel part with its own mesh (<a href="#s-parts">chapter 2 of the Wheel guide</a>)</td></tr>
-<tr><td><code>kurumamod_example_carpack:deep_dish</code></td><td>A wheel part that hands defaults to the fitment sliders</td></tr>
 </table>
-<p>If you do not want the wheel parts, delete the files in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>wheel-sample.obj</code> and its <code>.mtl</code>, and the <code>part.…</code> lines in lang. Unused files such as <code>sample.obj</code> can go too.</p>
+<p>If you do not want the wheel part, delete the files in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>wheel-sample.obj</code> and its <code>.mtl</code>, and the <code>part.…</code> lines in lang. Unused files such as <code>sample.obj</code> can go too.</p>
 <p><code>carpack/basic/</code> next door is the official pack that ships to players, built the same way — a good look at what a finished pack contains.</p>
 </div>
 </details>
@@ -3066,7 +3060,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <details class="more ja">
 <summary>メッシュを作らず、角度や太さだけ変えた部品にしたい</summary>
 <div class="more-body">
-<p><code>model</code> と <code>texture</code> を書かなければ、その車のホイールのまま、書いた値だけが変わります。見本パックの <code>deep_dish</code> がこの形です。<code>assets/mypack/car_parts/deep_dish.json</code>:</p>
+<p><code>model</code> と <code>texture</code> を書かなければ、その車のホイールのまま、書いた値だけが変わります。たとえば <code>assets/mypack/car_parts/my_wide.json</code>:</p>
 <pre><code>{
   "wheel": {
     "scale": [1.6, 1.0, 1.0],
@@ -3079,7 +3073,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <details class="more en">
 <summary>A part with no mesh, only a different angle or width</summary>
 <div class="more-body">
-<p>Leave out <code>model</code> and <code>texture</code>; the car's own wheel is kept and only the values you write change. The example pack's <code>deep_dish</code> works this way. <code>assets/mypack/car_parts/deep_dish.json</code>:</p>
+<p>Leave out <code>model</code> and <code>texture</code>; the car's own wheel is kept and only the values you write change. For example, <code>assets/mypack/car_parts/my_wide.json</code>:</p>
 <pre><code>{
   "wheel": {
     "scale": [1.6, 1.0, 1.0],
@@ -3184,7 +3178,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li><span class="where where-file">ファイル</span><b>配布しないファイルを消す。</b>見本から残っているもの:
 <ul>
 <li><code>modeling_tools/</code> と <code>sound_tools/</code>（作るための道具）</li>
-<li>見本のホイール部品：<code>assets/mypack/car_parts/</code> と <code>data/mypack/car_parts/</code> の <code>deep_dish.json</code>・<code>sample_wheel.json</code>、<code>models/entity/wheel-sample.obj</code>・<code>.mtl</code>、<code>textures/entity/wheel-sample.png</code>、lang の <code>part.mypack.deep_dish</code>・<code>part.mypack.sample_wheel</code> の行</li>
+<li>見本のホイール部品：<code>assets/mypack/car_parts/</code> と <code>data/mypack/car_parts/</code> の <code>sample_wheel.json</code>、<code>models/entity/wheel-sample.obj</code>・<code>.mtl</code>、<code>textures/entity/wheel-sample.png</code>、lang の <code>part.mypack.sample_wheel</code> の行</li>
 <li>見本の車を使わないなら：<code>data/mypack/cars/sample.json</code>、<code>assets/mypack/vehicles/sample.json</code>、<code>models/entity/sample.obj</code>・<code>.mtl</code>、<code>textures/entity/sample.png</code>、lang の <code>car.mypack.sample</code> の行</li>
 <li>いちばん上に <code>PACK_CREATE_GUIDE.html</code> があれば、それも（古い見本に入っている説明書き）</li>
 </ul></li>
@@ -3205,7 +3199,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <li><span class="where where-file">File</span><b>Delete the files you won't ship.</b> Left over from the example:
 <ul>
 <li><code>modeling_tools/</code> and <code>sound_tools/</code> (tools for making packs)</li>
-<li>The example wheel parts: <code>deep_dish.json</code> and <code>sample_wheel.json</code> in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>models/entity/wheel-sample.obj</code> and <code>.mtl</code>, <code>textures/entity/wheel-sample.png</code>, and the <code>part.mypack.deep_dish</code> and <code>part.mypack.sample_wheel</code> lines in lang</li>
+<li>The example wheel part: <code>sample_wheel.json</code> in <code>assets/mypack/car_parts/</code> and <code>data/mypack/car_parts/</code>, <code>models/entity/wheel-sample.obj</code> and <code>.mtl</code>, <code>textures/entity/wheel-sample.png</code>, and the <code>part.mypack.sample_wheel</code> line in lang</li>
 <li>If you don't use the example car: <code>data/mypack/cars/sample.json</code>, <code>assets/mypack/vehicles/sample.json</code>, <code>models/entity/sample.obj</code> and <code>.mtl</code>, <code>textures/entity/sample.png</code>, and the <code>car.mypack.sample</code> line in lang</li>
 <li><code>PACK_CREATE_GUIDE.html</code> at the top, if there is one (the guide shipped in older examples)</li>
 </ul></li>
