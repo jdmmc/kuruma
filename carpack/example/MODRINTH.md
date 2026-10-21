@@ -5,7 +5,7 @@
 > ### ⚠️ This is a car add-on pack. It also needs **[Kuruma](https://modrinth.com/mod/kuruma)**.
 > On its own it does nothing. Install Kuruma first and run the two together.
 
-A tall, boxy van — and a set of deep dish wheels to put on it.  
+A tall, boxy van — and a set of wheels to put on it.  
 It can be tuned in-game, so the numbers are a starting point, not something fixed.
 
 [![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
@@ -14,7 +14,7 @@ It can be tuned in-game, so the numbers are a starting point, not something fixe
 
 | Car | What it's like |
 |---|---|
-| **Sample Car** | A tall, boxy van. 1500 kg, torque low down, and it leans. Not fast — but hustling that weight through a corner is its own kind of fun. |
+| **Sample Car** | A tall, boxy van at 1300 kg. Everything else is Kuruma's default setup, so it makes a plain starting point for your own car. |
 
 ## 📦 How to install
 
@@ -43,7 +43,7 @@ you need is inside:
 
 | | |
 |---|---|
-| `modeling_tools/` | Blender scripts that drop in a size gauge for the body and the wheel |
+| `modeling_tools/` | Blender scripts that drop in a size gauge for the body, the wheel and the tyre |
 | `sound_tools/` | `make_octave_up.py` — makes the high-rpm engine sound from your engine loop |
 
 How to make one is in the **[Car Pack Creation Guide](https://kuruma.jdm-mc.com/guide.html)** on the website — separate pages for the car, wheels and parts, each built around the minimum steps: the mesh in Blender, lights and glass, **its own engine sound**, the handling specs, swappable wheels, **aero parts and mufflers** shaped right in your car model, and packing the jar, with every key you can write. Written for people who have never opened Blender.
@@ -77,7 +77,7 @@ All rights reserved. Do not redistribute.
 > ### ⚠️ これは車追加パックです。**[Kuruma](https://modrinth.com/mod/kuruma)** が別に必要です。
 > これだけ入れても何も起きません。先に Kuruma を入れて、一緒に動作させる必要があります。
 
-背の高い箱形のバンと、それに履かせる深皿ホイールが 1 組。  
+背の高い箱形のバンと、それに履かせるホイールが 1 組。  
 ゲーム内でいじれるので、数字は「決められたもの」ではなく「初期値」です。
 
 [![公式サイト](https://img.shields.io/badge/%E5%85%AC%E5%BC%8F%E3%82%B5%E3%82%A4%E3%83%88-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-%E5%8F%82%E5%8A%A0%E3%81%99%E3%82%8B-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
@@ -86,7 +86,7 @@ All rights reserved. Do not redistribute.
 
 | 車 | どんな車か |
 |---|---|
-| **サンプルカー** | 背の高い箱形のバン。1500kg、低回転から太く、よく傾きます。速くはありませんが、重い車体をコーナーへねじ込むのはこれはこれで楽しい。 |
+| **サンプルカー** | 背の高い箱形のバン。車重 1300kg のほかは Kuruma の既定の設定のままなので、自分の車を作るときの素直な土台になります。 |
 
 ## 📦 導入方法
 
@@ -114,7 +114,7 @@ All rights reserved. Do not redistribute.
 
 | | |
 |---|---|
-| `modeling_tools/` | 車体とホイールの寸法合わせのゲージを置く Blender 用スクリプト |
+| `modeling_tools/` | 車体・ホイール・タイヤの寸法合わせのゲージを置く Blender 用スクリプト |
 | `sound_tools/` | `make_octave_up.py` — エンジン音のループから高回転側の音を作る |
 
 作り方はサイトの **[カーパック作成ガイド](https://kuruma.jdm-mc.com/guide.html)** にあります。車・ホイール・パーツのページに分け、どれも最低限の手順から書いてあります。Blender でのメッシュ作り、灯火とガラス、**自前のエンジン音**、諸元（走り）、換装できるホイール、車のモデルの中で作る**エアロパーツとマフラー**、jar への固め方、書ける項目の全一覧まで。Blender を触ったことがない人向け。
