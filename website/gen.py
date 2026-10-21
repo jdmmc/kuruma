@@ -505,12 +505,11 @@ def tile(cls, anchor, img, alt, small, h, p):
 
 
 NEWS = [
-    (("Aero parts", "エアロパーツ"), ("Bumpers, side skirts, fenders, rear wings and diffusers. Wings and diffusers make real downforce, and you set the wing angle.", "バンパー、サイドスカート、フェンダー、リアウイング、ディフューザー。ウイングとディフューザーは本当にダウンフォースを生み、角度も決められます。")),
-    (("Mufflers", "マフラー"), ("Change the exhaust note, with a slider for the tone. Everyone nearby hears the same sound.", "排気音が変わり、音色はスライダーで調整。周りの人にも同じ音で聞こえます。")),
-    (("Easier countersteer", "カウンターが当てやすく"), ("The steering limit now follows the slide, so you can catch the rear when it steps out.", "切れ角の上限が滑りに合わせて動くので、リアが出ても当て舵で拾えます。")),
-    (("Analog handbrake", "アナログのサイドブレーキ"), ("Map a wheel's handbrake lever, and how far you pull sets how hard it bites.", "ハンコンのサイドレバーを割り当てると、引いた量で効きが変わります。")),
-    (("Camera modes", "カメラモード"), ("V cycles follow, horizon-level and free views. The first-person view now tilts with the body.", "V で追従・水平維持・自由を切り替え。一人称の視点は車体と一緒に傾くように。")),
-    (("Porsche 911 and a new Prado", "ポルシェ 911 と新しいプラド"), ("Basic Car Pack 1.2.0 adds the 911 and a remade Land Cruiser Prado.", "Basic Car Pack 1.2.0 で 911 を追加し、プラドを作り直しました。")),
+    (("Paints", "塗装"), ("Pick the colour on the new Paint tab in the parts screen. The Silvia S15 comes in six colours.", "パーツの画面の「塗装」タブで色を選べます。シルビア S15 は 6 色。")),
+    (("Wheels and tyres as separate parts", "ホイールとタイヤが別の部品に"), ("Wheels are rims only and tyres are their own parts, so any tyre fits any wheel. The TE37 is remodelled with rim flanges.", "ホイールはリムだけ、タイヤは別の部品になり、どのタイヤもどのホイールにも付きます。TE37 はリムのフランジまで作り直しました。")),
+    (("Wide steering wheels turn", "横長のハンドルも回る"), ("F1-style steering wheels now turn with the steering too.", "F1 のような横長のハンドルも、切れ角に合わせて回ります。")),
+    (("Easier car packs", "カーパックが作りやすく"), ("Ctrl+G draws the Blender gauge over the car, and the guide gains tyre modelling and a chapter on fitting tyres to the body.", "Ctrl+G で Blender のゲージを車に重ねて表示。ガイドにタイヤの作り方と、タイヤを車体に合わせる章を足しました。")),
+    (("Crash fixes", "落ちる不具合の修正"), ("No more crash when an empty car bumps another right after a world opens, or when a Blender OBJ has an empty material line.", "ワールドを開いた直後に空の車同士がぶつかったとき、Blender の OBJ に中身の無いマテリアルの行があるときに落ちなくなりました。")),
 ]
 news = "".join(f"<div><dt>{T(*h)}</dt><dd>{T(*d)}</dd></div>" for h, d in NEWS)
 cards = "".join(model_card(m) for m in MODELS.values())
@@ -617,9 +616,9 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div class="split" style="align-items:start">
       <div>
         <div class="eyebrow">{T("What's new", "新着")}</div>
-        <h2 class="title">KurumaMod 1.7.0</h2>
-        <p>{T("Aero parts, mufflers, easier countersteer and the Porsche 911.", "エアロパーツ、マフラー、当てやすくなったカウンター、そしてポルシェ 911。")}</p>
-        <div class="cta-row"><a class="btn arrow" href="{CF}">{T("Download 1.7.0", "1.7.0 をダウンロード")}</a></div>
+        <h2 class="title">KurumaMod 1.9.0</h2>
+        <p>{T("Paints, wheels and tyres as separate parts, and steering wheels of any shape.", "塗装、別々の部品になったホイールとタイヤ、そしてどんな形でも回るハンドル。")}</p>
+        <div class="cta-row"><a class="btn arrow" href="{CF}">{T("Download 1.9.0", "1.9.0 をダウンロード")}</a></div>
       </div>
       <dl class="news-list">{news}</dl>
     </div>
