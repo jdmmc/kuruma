@@ -7,7 +7,7 @@ license = "All Rights Reserved"
 
 [[mods]]
 modId = "kurumamod_basic_carpack"
-version = "1.3.0"
+version = "1.4.0"
 displayName = "KurumaMod Basic Car Pack"
 # MOD 一覧に出る画像。jar の直下からの名前で書く
 logoFile = "kurumamod_basic_carpack.png"
