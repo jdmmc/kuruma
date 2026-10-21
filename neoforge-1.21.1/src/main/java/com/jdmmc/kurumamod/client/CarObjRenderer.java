@@ -453,6 +453,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                     offset.z() / (fit * scale.z()));
         }
         body.renderSteeringWheel(pose, consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                body.steeringAxis(CarSeat.currentSteeringColumn(car.getCarId()), CarSeat.currentSteeringCenter(car.getCarId())),
                 handwheelAngle(car, spec), Math.toRadians(CarSeat.currentSteeringTilt(car.getCarId())), pass);
         if (moved) {
             pose.popPose();

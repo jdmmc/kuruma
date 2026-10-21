@@ -609,13 +609,29 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </figure>
 
 <div class="box warn ja">
-<span class="lbl">円盤の形でないと回らない</span>
-<p>回る軸は「いちばん薄い向き」から決めるので、<b>コラムまで 1 つのオブジェクトに入れると軸が取れず、ハンドルは止まったまま描かれ、手も置かれません</b>（ログに理由が出ます）。リムとスポークだけにしてください。</p>
+<span class="lbl">平たい形でないと回らない</span>
+<p>回る軸は「いちばん薄い向き」から決めるので、形は丸くなくてもかまいません（F1 のような横長のハンドルも回ります）。ただし<b>コラムまで 1 つのオブジェクトに入れると軸が取れず、ハンドルは止まったまま描かれ、手も置かれません</b>（ログに理由が出ます）。リムとスポークだけにしてください。</p>
 </div>
 <div class="box warn en">
-<span class="lbl">IT MUST BE DISC-SHAPED</span>
-<p>The axis is taken from the object's thinnest direction, so <b>if the column is in the same object no axis can be found: the wheel is drawn but never turns, and no hands are placed</b> (the log says why). Keep it to the rim and spokes.</p>
+<span class="lbl">IT MUST BE FLAT</span>
+<p>The axis is taken from the object's thinnest direction, so it doesn't have to be round (a wide F1-style wheel turns too). But <b>if the column is in the same object no axis can be found: the wheel is drawn but never turns, and no hands are placed</b> (the log says why). Keep it to the rim and spokes.</p>
 </div>
+<p class="ja"><b>ボタンや画面が付いて厚みのあるハンドル</b>（F1 のような形）は、形から軸が決まらないことがあります。そのときは <code>vehicles/&lt;車&gt;.json</code> にコラムの角度を書くと回ります。</p>
+<pre class="ja"><code>"steering": { "column": 10.0 }</code></pre>
+<ul class="ja">
+<li><code>column</code> はコラム（ハンドルの付け根の筒）の角度 [度]。<b>水平から、運転者へ向かって上がる向きが正</b>。0 でハンドルの面が垂直（F1）、90 で面が水平（バス）。普通の乗用車は 20〜30 くらい（S15 は 25）</li>
+<li>角度は座席の調整画面（<kbd>Ctrl</kbd>+<kbd>G</kbd>）の「ハンドル」の「コラム」の行で、乗ったまま合わせられます。ハンドルを切りながら動かし、<b>首を振らずに回るところ</b>が正しい角度です。「JSON をコピー」で <code>column</code> も一緒に書き出されます</li>
+<li>書いたときも、回す中心は形から決まります（外形の幅の真ん中）。形から測れたハンドルでは、コラムの行に「（形から）」と付いて測った角度が出ます</li>
+</ul>
+<p class="ja"><b>下が平らな D 型のハンドル</b>や、上にだけ画面が付いたハンドルは、外形の真ん中が本当の中心からずれ、<b>円を描くように揺れながら回ります</b>。そのときは同じ画面の「中心 上下」の行で、揺れが止まるところまで中心を動かします（直径 37cm で下を 3cm 削った形なら -0.015 くらい）。JSON には <code>"center": -0.015</code> のように書き出されます。</p>
+<p class="en"><b>A thick wheel with buttons and a screen</b> (like an F1 wheel) may not give an axis from its shape. Then write the column angle in <code>vehicles/&lt;car&gt;.json</code> and it turns.</p>
+<pre class="en"><code>"steering": { "column": 10.0 }</code></pre>
+<ul class="en">
+<li><code>column</code> is the angle of the column (the shroud the wheel sits on) in degrees, <b>measured from horizontal, positive as it rises towards the driver</b>. 0 makes the wheel face vertical (F1), 90 makes it flat (a bus). Ordinary cars are around 20 to 30 (the S15 is 25)</li>
+<li>You can set the angle from the driver's seat with the "Column" row under "Steering" in the seat screen (<kbd>Ctrl</kbd>+<kbd>G</kbd>). Move it while steering: the right angle is where the wheel <b>turns without wobbling</b>. "Copy JSON" writes <code>column</code> as well</li>
+<li>The centre it turns about is still worked out from the shape (the middle of its outline). For a wheel whose shape can be measured, the Column row shows the measured angle marked "(from shape)"</li>
+</ul>
+<p class="en">A <b>D-shaped wheel with a flat bottom</b>, or one with a screen only on top, has its outline's middle away from the real centre, so it <b>turns while circling</b>. Then move the centre with the "Centre up" row in the same screen until the circling stops (about -0.015 for a 37 cm wheel with 3 cm cut off the bottom). It is written out as <code>"center": -0.015</code>.</p>
 
 <figure>
 <svg viewBox="0 0 720 300" role="img" aria-label="Where the special names sit on the car">
