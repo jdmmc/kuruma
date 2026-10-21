@@ -82,7 +82,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
-  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Put the car in the game (files and JSON)</span><span data-l="ja">6. 車をゲームに入れる（置き場所と JSON）</span></a><a href="#s-sound"><span data-l="en">7. Add sounds</span><span data-l="ja">7. 音を付ける</span></a><a href="#s-spec"><span data-l="en">8. Write the spec (how it drives)</span><span data-l="ja">8. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">9. Checklist</span><span data-l="ja">9. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a></nav>
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Place the files</span><span data-l="ja">6. ファイルを配置する</span></a><a href="#s-car-fit"><span data-l="en">7. Fit the tyres to the body</span><span data-l="ja">7. タイヤを車体に合わせる</span></a><a href="#s-sound"><span data-l="en">8. Add sounds (optional)</span><span data-l="ja">8. 音を付ける（オプション）</span></a><a href="#s-spec"><span data-l="en">9. Write the spec (how it drives)</span><span data-l="ja">9. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">10. Checklist</span><span data-l="ja">10. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a></nav>
   <div class="gdoc"><section class="gsec" id="s-car-min">
 <h2 class="ja">最小の車を作る</h2>
 <h2 class="en">Make a minimal car</h2>
@@ -96,9 +96,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-blender">Blender</span><b>車体をモデリングする。</b> → <a href="#s4">2 章</a></li>
 <li><span class="where where-blender">Blender</span><b>車体を Wavefront (<code>.obj</code>/<code>.mtl</code>) で書き出す。</b> → <a href="#s8">5 章</a></li>
 <li><span class="where where-file">ファイル</span><b>自分のカーパックフォルダを用意する。</b> → <a href="guide-prep.html#s-pack">準備の 1 章</a></li>
-<li><span class="where where-file">ファイル</span><b>ファイルを配置する。</b> → <a href="#s7">4 章</a></li>
+<li><span class="where where-file">ファイル</span><b>ファイルを配置する。</b> → <a href="#s9">6 章</a></li>
 <li><span class="where where-file">ファイル</span><b>車の JSON を用意する。</b> → <a href="#s9">6 章</a></li>
-<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b> → <a href="#s-spec">8 章</a></li>
+<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b> → <a href="#s-spec">9 章</a></li>
 <li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b> → <a href="#s9">6 章</a></li>
 <li><span class="where where-file">ファイル</span><b>フォルダの中身を jar に固めて、<code>mods/</code> に入れる。</b>フォルダごとではなく中身を固める → <a href="guide-ship.html#s-jar">配布の 1 章</a></li>
 <li><span class="where where-game">ゲーム</span><b>起動して、クリエイティブの「KurumaMod」タブから車を出して乗る。</b></li>
@@ -109,9 +109,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-blender">Blender</span><b>Model the body.</b> → <a href="#s4">chapter 2</a></li>
 <li><span class="where where-blender">Blender</span><b>Export the body as Wavefront (<code>.obj</code>/<code>.mtl</code>).</b> → <a href="#s8">chapter 5</a></li>
 <li><span class="where where-file">File</span><b>Set up your own car pack folder.</b> → <a href="guide-prep.html#s-pack">chapter 1 of Setup</a></li>
-<li><span class="where where-file">File</span><b>Place the files.</b> → <a href="#s7">chapter 4</a></li>
+<li><span class="where where-file">File</span><b>Place the files.</b> → <a href="#s9">chapter 6</a></li>
 <li><span class="where where-file">File</span><b>Prepare the car JSON.</b> → <a href="#s9">chapter 6</a></li>
-<li><span class="where where-file">File</span><b>Write the spec JSON.</b> → <a href="#s-spec">chapter 8</a></li>
+<li><span class="where where-file">File</span><b>Write the spec JSON.</b> → <a href="#s-spec">chapter 9</a></li>
 <li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> → <a href="#s9">chapter 6</a></li>
 <li><span class="where where-file">File</span><b>Zip the folder's contents into a jar and put it in <code>mods/</code>.</b> Zip what is inside the folder, not the folder itself → <a href="guide-ship.html#s-jar">chapter 1 of Shipping</a></li>
 <li><span class="where where-game">Game</span><b>Start the game, take the car from the "KurumaMod" creative tab and get in.</b></li>
@@ -142,8 +142,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td>ライトを光らせる・窓を透けさせる・ミラーに映す</td><td><a href="#s5">3 章</a></td></tr>
 <tr><td>テクスチャを描く</td><td><a href="#s7">4 章</a></td></tr>
 <tr><td>座席の位置・車体の大きさを直す</td><td><a href="#s9">6 章</a></td></tr>
-<tr><td>エンジン音を変える</td><td><a href="#s-sound">7 章</a></td></tr>
-<tr><td>走り（重さ・エンジン・足まわり）を変える</td><td><a href="#s-spec">8 章</a></td></tr>
+<tr><td>タイヤの大きさ・幅を車体に合わせる</td><td><a href="#s-car-fit">7 章</a></td></tr>
+<tr><td>エンジン音を変える</td><td><a href="#s-sound">8 章</a></td></tr>
+<tr><td>走り（重さ・エンジン・足まわり）を変える</td><td><a href="#s-spec">9 章</a></td></tr>
 <tr><td>自分のホイールを履かせる</td><td><a href="guide-wheel.html#s6">ホイールの 1 章</a></td></tr>
 <tr><td>ウイングやバンパーを付け替えられるようにする</td><td><a href="guide-parts.html#s-body">パーツの 2 章</a></td></tr>
 </table>
@@ -157,8 +158,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td>Working lights, see-through windows, reflecting mirrors</td><td><a href="#s5">Chapter 3</a></td></tr>
 <tr><td>Paint a texture</td><td><a href="#s7">Chapter 4</a></td></tr>
 <tr><td>Fix the seat position or the body size</td><td><a href="#s9">Chapter 6</a></td></tr>
-<tr><td>Change the engine sound</td><td><a href="#s-sound">Chapter 7</a></td></tr>
-<tr><td>Change how it drives (weight, engine, suspension)</td><td><a href="#s-spec">Chapter 8</a></td></tr>
+<tr><td>Fit the tyre size and track to the body</td><td><a href="#s-car-fit">Chapter 7</a></td></tr>
+<tr><td>Change the engine sound</td><td><a href="#s-sound">Chapter 8</a></td></tr>
+<tr><td>Change how it drives (weight, engine, suspension)</td><td><a href="#s-spec">Chapter 9</a></td></tr>
 <tr><td>Fit your own wheels</td><td><a href="guide-wheel.html#s6">Chapter 1 of the Wheel guide</a></td></tr>
 <tr><td>Make wings or bumpers swappable</td><td><a href="guide-parts.html#s-body">Chapter 2 of the Parts guide</a></td></tr>
 </table>
@@ -311,14 +313,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>実車と同じ大きさのゲージにしたい</summary>
 <div class="more-body">
-<p>スクリプトの先頭の <code>SCALE = 1.2</code> を <code>1.0</code> にします。そのときは諸元（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）の <code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code> も同じ寸法に揃えます（<a href="#s-spec">8 章</a>）。揃えないと、タイヤだけが元の位置と大きさで出ます。</p>
+<p>スクリプトの先頭の <code>SCALE = 1.2</code> を <code>1.0</code> にします。そのときは諸元（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）の <code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code> も同じ寸法に揃えます（<a href="#s-spec">9 章</a>）。揃えないと、タイヤだけが元の位置と大きさで出ます。</p>
 <p><b>はじめての車では触らないでください。</b></p>
 </div>
 </details>
 <details class="more en">
 <summary>Use a real-world-size gauge</summary>
 <div class="more-body">
-<p>Change <code>SCALE = 1.2</code> at the top of the script to <code>1.0</code>. Then set <code>wheel_base</code>, <code>track_width</code> and <code>wheel_radius</code> in the spec (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) to the same sizes (<a href="#s-spec">chapter 8</a>). If you don't, the wheels still appear at the old positions and size.</p>
+<p>Change <code>SCALE = 1.2</code> at the top of the script to <code>1.0</code>. Then set <code>wheel_base</code>, <code>track_width</code> and <code>wheel_radius</code> in the spec (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) to the same sizes (<a href="#s-spec">chapter 9</a>). If you don't, the wheels still appear at the old positions and size.</p>
 <p><b>Leave it alone for your first car.</b></p>
 </div>
 </details>
@@ -941,8 +943,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </ol>
 <p class="en">Press <kbd>F3</kbd>+<kbd>T</kbd> in game and the body is textured.</p>
 
-<h3 id="paint" class="ja">色違いを選べるようにする（塗装）</h3>
-<h3 id="paint-en" class="en">Let players pick the colour (paints)</h3>
+<h3 id="paint" class="ja">色違いを選べるようにする（塗装）<span class="ver">1.9.0〜</span></h3>
+<h3 id="paint-en" class="en">Let players pick the colour (paints)<span class="ver">1.9.0+</span></h3>
 <p class="ja">車体のテクスチャを色違いで何枚か用意すると、プレイヤーが換装画面の「塗装」タブで色を選べるようになります。選んだ色は<b>マルチプレイの他の人にも見え</b>、車をアイテムにして回収しても残ります。モデル（OBJ）は 1 つのままで、テクスチャだけを差し替えます。</p>
 <p class="en">Make a few colour versions of the body texture and players can pick one on the <b>Paint</b> tab of the parts screen. The chosen colour is <b>seen by everyone in multiplayer</b> and stays when the car is picked up as an item. The model (OBJ) stays the same; only the texture is swapped.</p>
 <ol class="steps ja">
@@ -1213,8 +1215,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </div>
 </details>
 </section><section class="gsec" id="s9">
-<h2 class="ja"><span class="num">6</span>車をゲームに入れる（置き場所と JSON）</h2>
-<h2 class="en"><span class="num">6</span>Put the car in the game (files and JSON)</h2>
+<h2 class="ja"><span class="num">6</span>ファイルを配置する</h2>
+<h2 class="en"><span class="num">6</span>Place the files</h2>
 <p class="ja">作ったモデルを、ゲームで走る車種にします。見本のパックをコピーして、名前と中身を入れ替えるのがいちばん早い道です。</p>
 <p class="en">This turns your model into a car you can drive in game. The quickest way is to copy the example pack and swap in your own names and files.</p>
 
@@ -1230,7 +1232,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
-<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">8 章</a>で詰める）:
+<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">9 章</a>で詰める）:
 <pre><code>{
   "values": { "mass": 1200.0 }
 }</code></pre></li>
@@ -1246,7 +1248,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
-<li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 8</a>):
+<li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 9</a>):
 <pre><code>{
   "values": { "mass": 1200.0 }
 }</code></pre></li>
@@ -1458,7 +1460,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <ul>
 <li><b>幅</b> … 諸元のトレッド（<code>data/mypack/cars/&lt;車&gt;.json</code> の <code>track_width</code>）。幅の広い車は、物理的にもトレッドが広い</li>
 <li><b>前後</b> … 諸元のホイールベース（<code>wheel_base</code>）。車体のほうを合わせるなら <code>designWheelBase</code>（上の「車体の大きさ・位置を合わせたい」）</li>
-<li>どちらもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">8 章</a>）</li>
+<li><b>大きさ</b> … 諸元のタイヤ半径（<code>wheel_radius</code>）。ゲージのタイヤは実車の比率より大きめなので、<b>実車の比率で車体を作ると、タイヤがタイヤハウスに収まらない</b>ことがある。そのときは <code>wheel_radius</code> と <code>track_width</code> を車体に合わせて書く（<a href="#s-car-fit">7 章</a>）</li>
+<li>どれもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">9 章</a>）</li>
 <li>どのホイールを履かせるか、キャンバー、太さ、ツラ（少し出す・引っ込める）は、ホイールの JSON に書く（<a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-wheel.html#s-parts">2 章</a>）。プレイヤーは換装画面で変えられる</li>
 </ul>
 </div>
@@ -1470,7 +1473,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <ul>
 <li><b>Width</b> — the spec's track (<code>track_width</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>). A wide car has a wide track in physics too</li>
 <li><b>Front to back</b> — the spec's wheelbase (<code>wheel_base</code>). To fit the body instead, use <code>designWheelBase</code> ("Make the body the right size and position" above)</li>
-<li>Both can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 8</a>)</li>
+<li><b>Size</b> — the spec's tyre radius (<code>wheel_radius</code>). The gauge tyres are larger than real-car proportions, so <b>a body built to real proportions may not fit them in its wheel arches</b>. Then write <code>wheel_radius</code> and <code>track_width</code> to suit the body (<a href="#s-car-fit">chapter 7</a>)</li>
+<li>All of them can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 9</a>)</li>
 <li>Which wheel to fit, camber, width and the offset (pushing it slightly in or out) go in the wheel's JSON (<a href="guide-wheel.html#s6">Wheel guide chapter 1</a> and <a href="guide-wheel.html#s-parts">2</a>). Players can change them in the parts screen</li>
 </ul>
 </div>
@@ -1492,12 +1496,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
 <tr><td><code>icon</code></td><td>車のモデルから作る</td><td>アイテムのアイコンの画像。テクスチャのパスを <code>.png</code> まで書く（例 <code>mypack:textures/item/kei.png</code>）</td></tr>
-<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">7 章</a>）</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">8 章</a>）</td></tr>
 <tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
 <tr><td><code>paints</code></td><td>なし</td><td>選べる色違いのテクスチャ。先頭が新車の色（<a href="#paint">4 章</a>）</td></tr>
 </table>
 <p><b>アイコンは用意しなくても構いません。</b><code>icon</code> を書かなければ、車のモデルを斜め前から写した絵が自動で作られます。自分で描いた絵にしたいときだけ、PNG を <code>assets/&lt;パック&gt;/textures/item/</code> に置いて <code>icon</code> に書きます。正方形で、32×32 か 64×64 がおすすめ。持ち物・手に持ったとき・地面に落ちたときのどれにもこの絵が出ます。パスを間違えると、自動で作った絵に戻ってログに残ります。</p>
-<p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">8 章</a>）。</p>
+<p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">9 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
@@ -1516,12 +1520,12 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
 <tr><td><code>icon</code></td><td>made from the car model</td><td>Image for the item icon. Write the texture path including <code>.png</code> (e.g. <code>mypack:textures/item/kei.png</code>)</td></tr>
-<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 7</a>)</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 8</a>)</td></tr>
 <tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
 <tr><td><code>paints</code></td><td>none</td><td>Colour versions of the body texture players can pick. The first is the factory colour (<a href="#paint-en">chapter 4</a>)</td></tr>
 </table>
 <p><b>You do not have to make an icon.</b> Without <code>icon</code>, a picture of your car model seen from the front corner is made automatically. Only if you want your own drawing, put a PNG under <code>assets/&lt;pack&gt;/textures/item/</code> and name it in <code>icon</code>. Make it square; 32×32 or 64×64 works well. The same picture is used in the inventory, in the hand and when dropped on the ground. If the path is wrong, the automatic picture is used and the log says so.</p>
-<p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>).</p>
+<p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 9</a>).</p>
 </div>
 </details>
 
@@ -1640,7 +1644,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>車体が埋まる・浮く</b> … <code>designRideHeight</code>。メッシュの原点が地面の高さにあるか</li>
 <li><b>タイヤが大きすぎる・小さすぎる</b> … ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> がメッシュの実寸か</li>
 <li><b>調整画面で寸法を変えたらタイヤがフェンダーからはみ出した</b> … 仕様。タイヤは諸元に合わせて動き、車体は動かない。車体も合わせるなら <code>body.scale</code></li>
-<li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">8 章</a>）</li>
+<li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">9 章</a>）</li>
 </ul>
 <p>ほかの症状は<a href="guide-ship.html#s11">配布の 3 章</a>にあります。</p>
 </div>
@@ -1657,14 +1661,67 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>The body sinks or floats</b> — <code>designRideHeight</code>. Is the mesh origin at ground level?</li>
 <li><b>Wheels too big or small</b> — for a wheel not built to the gauge, is <code>designRadius</code> inside <code>wheel</code> the real size of your mesh?</li>
 <li><b>After changing sizes in the tuning screen, the wheels stick out of the fenders</b> — expected. Wheels follow the spec; the body does not. Use <code>body.scale</code> to match the body</li>
-<li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 8</a>)</li>
+<li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 9</a>)</li>
 </ul>
 <p>More symptoms in <a href="guide-ship.html#s11">chapter 3 of the Shipping guide</a>.</p>
 </div>
 </details>
+</section><section class="gsec" id="s-car-fit">
+<h2 class="ja"><span class="num">7</span>タイヤを車体に合わせる</h2>
+<h2 class="en"><span class="num">7</span>Fit the tyres to the body</h2>
+<p class="ja">ゲージどおりに作った車は、寸法を何も書かなくてもタイヤがタイヤハウスの位置に付きます。ただ、<b>ゲージのタイヤは実車の比率より大きめ</b>です。実車の比率で車体を作ると、図 13 のようにタイヤがタイヤハウスいっぱいになったり、フェンダーからはみ出したりします。そのときは、諸元のタイヤ半径とトレッドを車体に合わせます。</p>
+<p class="en">A car built to the gauge gets its wheels in the arches without writing any sizes. But <b>the gauge tyres are larger than real-car proportions</b>. Build the body to real proportions and, as in Fig. 13, the tyres fill the arches or poke out of the fenders. Then fit the spec's tyre radius and track to the body.</p>
+
+<figure>
+<div class="anno"><img src="img/car-no-adjust.jpg" alt="A blue S15 built to real-car proportions, with gauge-sized tyres that fill the wheel arches" loading="lazy"></div>
+<figcaption class="ja">図 13. 調整する前の S15。車体は実車の比率で作ってあり、ホイールベースはゲージどおりなので前後の位置はほぼ合っています。一方でタイヤが大きすぎ、タイヤハウスいっぱいになっています</figcaption>
+<figcaption class="en">Fig. 13. The S15 before fitting. The body is built to real proportions and the wheelbase matches the gauge, so front-to-back is nearly right. The tyres, though, are too big and fill the arches.</figcaption>
+</figure>
+
+<ol class="steps ja">
+<li><span class="where where-game">ゲーム</span><b>車を出して乗り、<kbd>Ctrl</kbd>+<kbd>G</kbd> を押す。</b>車に水色の線でゲージが重なる。タイヤハウスがこの輪から上や外へ十分に離れていれば、ここで終わり</li>
+<li><span class="where where-game">ゲーム</span><b><kbd>G</kbd> の調整画面で、「タイヤ」の「タイヤ半径」と「車体」の「トレッド」を動かす。</b>タイヤがタイヤハウスに収まり、フェンダーから出なくなるところを探す。三人称（<kbd>F5</kbd>）で横と前から見る</li>
+<li><span class="where where-file">ファイル</span><b>決まった値を <code>data/mypack/cars/&lt;車&gt;.json</code> の <code>values</code> に書く。</b>
+<pre><code>"values": {
+  "wheel_base": 3.15,
+  "track_width": 1.9,
+  "wheel_radius": 0.4
+}</code></pre></li>
+<li><span class="where where-game">ゲーム</span><b><code>/reload</code> を打ち、クリエイティブタブから出し直して確かめる。</b></li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-game">Game</span><b>Spawn the car, get in and press <kbd>Ctrl</kbd>+<kbd>G</kbd>.</b> The gauge is drawn over the car in cyan lines. If the arches clear these rings comfortably above and outside, you are done</li>
+<li><span class="where where-game">Game</span><b>In the <kbd>G</kbd> tuning screen, move "Tyre radius" under "Tires" and "Track width" under "Chassis".</b> Find where the tyres sit inside the arches and stop poking out of the fenders. Check from the side and the front in third person (<kbd>F5</kbd>)</li>
+<li><span class="where where-file">File</span><b>Write the values into <code>values</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>.</b>
+<pre><code>"values": {
+  "wheel_base": 3.15,
+  "track_width": 1.9,
+  "wheel_radius": 0.4
+}</code></pre></li>
+<li><span class="where where-game">Game</span><b>Run <code>/reload</code>, take a fresh car from the creative tab and check.</b></li>
+</ol>
+
+<figure>
+<div class="anno"><img src="img/car-yes-adjust.jpg" alt="The same S15 after fitting, with smaller tyres sitting inside the wheel arches" loading="lazy"></div>
+<figcaption class="ja">図 14. 調整した後の S15（<code>wheel_base</code> 3.15・<code>track_width</code> 1.9・<code>wheel_radius</code> 0.4）。タイヤがタイヤハウスに収まり、上に余裕ができました</figcaption>
+<figcaption class="en">Fig. 14. The S15 after fitting (<code>wheel_base</code> 3.15, <code>track_width</code> 1.9, <code>wheel_radius</code> 0.4). The tyres sit inside the arches with room above them.</figcaption>
+</figure>
+
+<ul class="ja">
+<li>上の値は、既定の車（S15）が実際に書いている値です。S15 はこの 3 つだけを書いていて、ほかは既定のままです</li>
+<li><b>ホイールベースは、ゲージどおりに作っていればほぼ合っています。</b>タイヤハウスの中で前後にずれて見えるときだけ、「車体」の「ホイールベース」を少し動かす（S15 は 3.12 → 3.15）</li>
+<li>タイヤハウスの上には余裕を残す。段差でサスが縮むと、タイヤは車体に対して上がります</li>
+<li>タイヤ半径を変えても、加速と最高速はほとんど変わりません（ファイナルが半径に合わせて決まるため）。変わるのは車高です</li>
+</ul>
+<ul class="en">
+<li>Those are the values the default car (the S15) actually writes. It writes only these three and leaves everything else at the default</li>
+<li><b>If you built to the gauge, the wheelbase is already nearly right.</b> Only if the tyres look off front to back in the arches, nudge "Wheelbase" under "Chassis" (the S15 goes from 3.12 to 3.15)</li>
+<li>Leave room above the tyre in the arch. When the suspension compresses over bumps, the tyre rises relative to the body</li>
+<li>Changing the tyre radius barely changes acceleration or top speed (the final drive follows the radius). What changes is the ride height</li>
+</ul>
 </section><section class="gsec" id="s-sound">
-<h2 class="ja"><span class="num">7</span>音を付ける</h2>
-<h2 class="en"><span class="num">7</span>Add sounds</h2>
+<h2 class="ja"><span class="num">8</span>音を付ける（オプション）</h2>
+<h2 class="en"><span class="num">8</span>Add sounds (optional)</h2>
 <p class="ja">エンジン音などを車ごとに差し替えます。書かなかった音は KurumaMod の音のままなので、この章は飛ばしてもかまいません。</p>
 <p class="en">Give a car its own engine note and other sounds. Anything you leave out stays KurumaMod's, so you can skip this chapter.</p>
 
@@ -1854,8 +1911,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </div>
 </details>
 </section><section class="gsec" id="s-spec">
-<h2 class="ja"><span class="num">8</span>諸元（走り）を書く</h2>
-<h2 class="en"><span class="num">8</span>Write the spec (how it drives)</h2>
+<h2 class="ja"><span class="num">9</span>諸元（走り）を書く</h2>
+<h2 class="en"><span class="num">9</span>Write the spec (how it drives)</h2>
 <p class="ja">加速・ブレーキ・曲がりかたを決める値（諸元）を書きます。置き場所は <code>data/mypack/cars/&lt;車&gt;.json</code> です。</p>
 <p class="en">This sets the values that decide acceleration, braking and cornering (the spec). They go in <code>data/mypack/cars/&lt;car&gt;.json</code>.</p>
 
@@ -2033,8 +2090,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </div>
 </details>
 </section><section class="gsec" id="s-chk-car">
-<h2 class="ja"><span class="num">9</span>チェックリスト</h2>
-<h2 class="en"><span class="num">9</span>Checklist</h2>
+<h2 class="ja"><span class="num">10</span>チェックリスト</h2>
+<h2 class="en"><span class="num">10</span>Checklist</h2>
 <p class="ja">見落としやすいところを並べます。症状が出てから探すときは<a href="guide-ship.html#s11">配布の 3 章</a>へ。</p>
 <p class="en">What is easy to miss. If something is already wrong, go to <a href="guide-ship.html#s11">chapter 3 of Shipping</a>.</p>
 
@@ -2112,10 +2169,10 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </section><section class="gsec" id="sc">
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">8 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
-<p class="ja"><b>既定は、何も書かなかったときの値です。</b>寸法（<code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code>）の既定はゲージの寸法と同じです。KurumaMod の既定の車（S15）は諸元を 1 つも書いておらず、すべて既定値で走ります。</p>
-<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 8</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
-<p class="en"><b>A default is the value used when you leave the key out.</b> The size defaults (<code>wheel_base</code>, <code>track_width</code>, <code>wheel_radius</code>) match the gauge. KurumaMod's default car (the S15) writes no spec keys at all and runs entirely on the defaults.</p>
+<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">9 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="ja"><b>既定は、何も書かなかったときの値です。</b>寸法（<code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code>）の既定はゲージの寸法と同じです。KurumaMod の既定の車（S15）は、車体を実車の比率で作ってあり、ゲージのタイヤでは大きすぎるので <code>wheel_base</code> 3.15・<code>track_width</code> 1.9・<code>wheel_radius</code> 0.4 だけ書いています。そのほかは既定のままです。</p>
+<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 9</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="en"><b>A default is the value used when you leave the key out.</b> The size defaults (<code>wheel_base</code>, <code>track_width</code>, <code>wheel_radius</code>) match the gauge. KurumaMod's default car (the S15) is built to real-car proportions, where the gauge tyres are too big, so it writes only <code>wheel_base</code> 3.15, <code>track_width</code> 1.9 and <code>wheel_radius</code> 0.4; everything else is at the default.</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>

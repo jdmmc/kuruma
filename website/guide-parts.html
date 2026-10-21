@@ -209,13 +209,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>ブローオフの音を変えたい</summary>
 <div class="more-body">
-<p>音は部品ではなく車の側で変えます。車の <code>vehicles/&lt;車&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="guide-car.html#s-sound">車の 7 章</a>）。</p>
+<p>音は部品ではなく車の側で変えます。車の <code>vehicles/&lt;車&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="guide-car.html#s-sound">車の 8 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Change the blow-off sound</summary>
 <div class="more-body">
-<p>The sound belongs to the car, not the part: set <code>"blowoff"</code> in <code>sounds</code> in the car's <code>vehicles/&lt;car&gt;.json</code> (<a href="guide-car.html#s-sound">chapter 7 of the Car guide</a>).</p>
+<p>The sound belongs to the car, not the part: set <code>"blowoff"</code> in <code>sounds</code> in the car's <code>vehicles/&lt;car&gt;.json</code> (<a href="guide-car.html#s-sound">chapter 8 of the Car guide</a>).</p>
 </div>
 </details>
 
@@ -266,8 +266,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 
 <figure>
 <img src="img/guide-3.jpg" loading="lazy" alt="Four rear wing part objects overlapping inside the S15 model in Blender, all visible in the outliner">
-<figcaption class="ja">図 16. S15 の .blend。ウイングの部品 4 つ（<code>part_rear_wing-…</code>）が<b>車体と同じモデルの中に重なって入っています</b>。アウトライナーで全部を表示（目のアイコンが開いた状態）にしたまま書き出します。ゲームでは付けている 1 つだけが描かれます</figcaption>
-<figcaption class="en">Fig. 16. The S15 .blend. Four wing part objects (<code>part_rear_wing-…</code>) <b>overlap inside the same model as the body</b>. Export with all of them visible in the outliner (eye icon open); in game only the fitted one is drawn.</figcaption>
+<figcaption class="ja">図 18. S15 の .blend。ウイングの部品 4 つ（<code>part_rear_wing-…</code>）が<b>車体と同じモデルの中に重なって入っています</b>。アウトライナーで全部を表示（目のアイコンが開いた状態）にしたまま書き出します。ゲームでは付けている 1 つだけが描かれます</figcaption>
+<figcaption class="en">Fig. 18. The S15 .blend. Four wing part objects (<code>part_rear_wing-…</code>) <b>overlap inside the same model as the body</b>. Export with all of them visible in the outliner (eye icon open); in game only the fitted one is drawn.</figcaption>
 </figure>
 
 <h3 class="ja">付ける場所（<code>slot</code>）</h3>
@@ -540,7 +540,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "exhaust": { "sound": "mypack:titanium_exhaust" }
 }</code></pre></li>
 </ol>
-<p>高回転まで音程を伸ばしたいときは、1 オクターブ上の音源も作って <code>"sound_high"</code> で指します。<code>sound_tools/make_octave_up.py</code> で作れます。音源の作り方の詳しいことは<a href="guide-car.html#s-sound">車の 7 章</a>と同じです。</p>
+<p>高回転まで音程を伸ばしたいときは、1 オクターブ上の音源も作って <code>"sound_high"</code> で指します。<code>sound_tools/make_octave_up.py</code> で作れます。音源の作り方の詳しいことは<a href="guide-car.html#s-sound">車の 8 章</a>と同じです。</p>
 </div>
 </details>
 <details class="more en">
@@ -560,7 +560,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "exhaust": { "sound": "mypack:titanium_exhaust" }
 }</code></pre></li>
 </ol>
-<p>To keep the pitch rising at high revs, also make a one-octave-up copy and point <code>"sound_high"</code> at it; <code>sound_tools/make_octave_up.py</code> makes one. More on making sounds in <a href="guide-car.html#s-sound">chapter 7 of the Car guide</a>.</p>
+<p>To keep the pitch rising at high revs, also make a one-octave-up copy and point <code>"sound_high"</code> at it; <code>sound_tools/make_octave_up.py</code> makes one. More on making sounds in <a href="guide-car.html#s-sound">chapter 8 of the Car guide</a>.</p>
 </div>
 </details>
 
