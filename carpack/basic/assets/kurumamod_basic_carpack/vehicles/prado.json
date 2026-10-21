@@ -1,13 +1,13 @@
 {
+  "_comment": "メッシュの大きさはゲージの車格に合わせてある（以前は body.scale と designWheelBase で縮めていたのを頂点に焼き込んだ）",
   "body": {
     "model": "kurumamod_basic_carpack:models/entity/prado.obj",
-    "texture": "kurumamod_basic_carpack:textures/entity/prado.png",
-    "scale": 1.074
+    "texture": "kurumamod_basic_carpack:textures/entity/prado.png"
   },
 
-  "designWheelBase": 3.50,
+  "_designRideHeight": "メッシュを作ったときの車高。背の高い車体なので、ゲージの車高（63cm）より低い位置を基準に作ってある",
   "designRideHeight": 0.430,
-  
+
   "seat": [0.47, -0.20, 0.15],
   "shadowRadius": 1.6
 }
