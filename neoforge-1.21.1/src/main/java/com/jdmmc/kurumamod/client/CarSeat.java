@@ -78,10 +78,52 @@ public final class CarSeat {
         STEERING_TILT_OVERRIDES.put(carId, tilt);
     }
 
-    /** JSON の値へ戻す（位置も傾きも）。 */
+    /**
+     * ハンドルのコラムの角度を調整画面で動かした値 [度]。位置と同じく、このクライアントだけ・ゲームを閉じるまで。
+     * 首を振らずに回るところまで、乗ったまま合わせるためのもの。
+     */
+    private static final Map<ResourceLocation, Double> STEERING_COLUMN_OVERRIDES = new HashMap<>();
+
+    /**
+     * いま使っているコラムの角度 [度]（{@code steering.column}）。<b>書いていなければ NaN</b>（軸は形から読む）。
+     */
+    public static double currentSteeringColumn(ResourceLocation carId) {
+        Double override = STEERING_COLUMN_OVERRIDES.get(carId);
+        return override != null ? override : CarModel.get(carId).steeringColumn();
+    }
+
+    public static void setSteeringColumnOverride(ResourceLocation carId, double column) {
+        STEERING_COLUMN_OVERRIDES.put(carId, column);
+    }
+
+    /** コラムの角度だけ JSON の値（書いていなければ「形から読む」）へ戻す。 */
+    public static void clearSteeringColumnOverride(ResourceLocation carId) {
+        STEERING_COLUMN_OVERRIDES.remove(carId);
+    }
+
+    public static boolean hasSteeringColumnOverride(ResourceLocation carId) {
+        return STEERING_COLUMN_OVERRIDES.containsKey(carId);
+    }
+
+    /** 回す中心を上へずらす量を調整画面で動かした値 [m]。位置と同じく、このクライアントだけ・ゲームを閉じるまで。 */
+    private static final Map<ResourceLocation, Double> STEERING_CENTER_OVERRIDES = new HashMap<>();
+
+    /** いま使っている、回す中心を上へずらす量 [m]（{@code steering.center}）。 */
+    public static double currentSteeringCenter(ResourceLocation carId) {
+        Double override = STEERING_CENTER_OVERRIDES.get(carId);
+        return override != null ? override : CarModel.get(carId).steeringCenter();
+    }
+
+    public static void setSteeringCenterOverride(ResourceLocation carId, double up) {
+        STEERING_CENTER_OVERRIDES.put(carId, up);
+    }
+
+    /** JSON の値へ戻す（位置も傾きもコラムの角度も中心も）。 */
     public static void clearSteeringOverride(ResourceLocation carId) {
         STEERING_OVERRIDES.remove(carId);
         STEERING_TILT_OVERRIDES.remove(carId);
+        STEERING_COLUMN_OVERRIDES.remove(carId);
+        STEERING_CENTER_OVERRIDES.remove(carId);
     }
 
     /**

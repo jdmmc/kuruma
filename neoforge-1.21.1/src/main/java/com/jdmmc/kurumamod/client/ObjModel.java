@@ -178,7 +178,7 @@ public final class ObjModel {
     /**
      * ハンドルの名前の頭（大文字小文字を問わない）。{@code steering_wheel} など。
      *
-     * <p><b>回る部分（リムとスポーク）だけを分けること。</b>コラムカバーまで入れると円盤にならず、
+     * <p><b>回る部分（リムとスポーク）だけを分けること。</b>コラムカバーまで入れると平たい板にならず、
      * 軸が取れない（Prado の {@code int_steering} は幅 50cm・奥行き 44cm の塊で弾かれた）。
      * 回す中心と軸は形から読む（{@link SteeringWheelAxis}）ので、JSON に何も書かなくてよい。</p>
      */
@@ -239,9 +239,15 @@ public final class ObjModel {
     private final List<MirrorFace> mirrors;
     /** ハンドル（{@link #STEERING_PREFIX}）の {不透明な面, 透ける面}。本体の面からは外してある。 */
     private final int[][] steeringFaces;
-    /** ハンドルを回す中心と軸。ハンドルが無いか、円盤と言えなければ null（回さずに描く）。 */
+    /**
+     * ハンドルを形から測った中心と軸。平たいと言えなければ null（回さずに描く）。
+     * 初めて要ったときに測る——JSON でコラムの角度を書いた車では測らない（測れない形なら警告が無駄に出る）。
+     */
     @Nullable
-    private final SteeringWheelAxis.Result steeringAxis;
+    private SteeringWheelAxis.Result steeringAxis;
+    private boolean steeringMeasured;
+    /** コラムの角度（{@code steering.column}）ごとの中心と軸。同じメッシュを角度の違う車種で使うことがある。 */
+    private final Map<Double, SteeringWheelAxis.Result> steeringByColumn = new HashMap<>();
     /**
      * 部品の形（{@link #PART_PREFIX}）の名前 → {不透明な面, 透ける面}。
      * 本体の面（{@link #opaqueFaces} など）からは外してある。
@@ -421,7 +427,6 @@ public final class ObjModel {
             }
         }
         this.steeringFaces = new int[][]{toArray(steeringOpaque), toArray(steeringClear)};
-        this.steeringAxis = measureSteering();
 
         // 部品の形も本体から外し、名前ごとに持つ（renderOptional が描く）。
         // 本体を車ごとに違う形にしないため（GPU に置いたメッシュを使い回せなくなる）
@@ -574,13 +579,22 @@ public final class ObjModel {
         return name.toLowerCase(java.util.Locale.ROOT).startsWith(STEERING_PREFIX);
     }
 
-    /** ハンドルの面から回す中心と軸を読む。円盤と言えなければ理由をログに残して null。 */
+    /** ハンドルの面から回す中心と軸を読む。平たいと言えなければ理由をログに残して null。 */
     @Nullable
     private SteeringWheelAxis.Result measureSteering() {
-        int count = steeringFaces[0].length + steeringFaces[1].length;
-        if (count == 0) {
-            return null;
+        SteeringWheelAxis.Result result = SteeringWheelAxis.measure(steeringPositions());
+        if (result == null) {
+            // 黙って回らないと原因を探すことになる。止めたまま描くので穴は開かない
+            LOGGER.warn("ハンドル（{}*）が平たい板の形をしていないので回しません。"
+                    + "コラムカバーなど回らない部分は別のオブジェクトにするか、"
+                    + "vehicles の JSON の steering.column にコラムの角度を書いてください", STEERING_PREFIX);
         }
+        return result;
+    }
+
+    /** ハンドルの面の頂点の座標 {x, y, z, ...}。 */
+    private float[] steeringPositions() {
+        int count = steeringFaces[0].length + steeringFaces[1].length;
         float[] positions = new float[count * 4 * 3];
         int n = 0;
         for (int[] faces : steeringFaces) {
@@ -593,13 +607,7 @@ public final class ObjModel {
                 }
             }
         }
-        SteeringWheelAxis.Result result = SteeringWheelAxis.measure(positions);
-        if (result == null) {
-            // 黙って回らないと原因を探すことになる。止めたまま描くので穴は開かない
-            LOGGER.warn("ハンドル（{}*）が円盤の形をしていないので回しません。"
-                    + "コラムカバーなど回らない部分は別のオブジェクトにしてください", STEERING_PREFIX);
-        }
-        return result;
+        return positions;
     }
 
     /** ハンドルのそのパスの面が 1 つでもあるか。 */
@@ -607,18 +615,44 @@ public final class ObjModel {
         return steeringFaces[pass == Pass.TRANSLUCENT ? 1 : 0].length > 0;
     }
 
-    /** ハンドルを回す中心と軸（メッシュの座標）。ハンドルが無いか、円盤と言えなければ null。 */
+    /**
+     * ハンドルを回す中心と軸（メッシュの座標）。ハンドルが無ければ null。
+     *
+     * @param column コラムの角度 [度]（{@link CarModel#steeringColumn}）。NaN なら形から読み、
+     *               平たいと言えなければ null
+     */
     @Nullable
-    public SteeringWheelAxis.Result steeringAxis() {
+    public SteeringWheelAxis.Result steeringAxis(double column) {
+        if (steeringFaces[0].length + steeringFaces[1].length == 0) {
+            return null;
+        }
+        if (!Double.isNaN(column)) {
+            return steeringByColumn.computeIfAbsent(column, c -> SteeringWheelAxis.around(steeringPositions(), c));
+        }
+        if (!steeringMeasured) {
+            steeringAxis = measureSteering();
+            steeringMeasured = true;
+        }
         return steeringAxis;
     }
 
     /**
-     * ハンドルのコラムの角度 [度]。水平から何度起きているか（メッシュのまま、傾ける前）。
-     * 軸が取れていなければ NaN。
+     * ハンドルを回す中心と軸に、中心のずらし（{@code steering.center}）を掛けたもの。描く・手を置くのはこちら。
+     *
+     * @param up 中心を面に沿って上へずらす量 [m]（モデルの座標）
      */
-    public double steeringColumnAngle() {
-        SteeringWheelAxis.Result axis = steeringAxis;
+    @Nullable
+    public SteeringWheelAxis.Result steeringAxis(double column, double up) {
+        SteeringWheelAxis.Result axis = steeringAxis(column);
+        return axis == null ? null : axis.raised(up);
+    }
+
+    /**
+     * ハンドルのコラムの角度 [度]。水平から、運転者へ向かって上がる向きが正（傾ける前）。
+     * {@code steering.column} と同じ向き。軸が取れていなければ NaN。
+     */
+    public double steeringColumnAngle(double column) {
+        SteeringWheelAxis.Result axis = steeringAxis(column);
         return axis == null ? Double.NaN : Math.toDegrees(Math.asin(axis.axis()[1]));
     }
 
@@ -629,16 +663,16 @@ public final class ObjModel {
      * 回す軸もメッシュと一緒に傾くので、傾けても振れずに回る。軸が取れていなければどちらも掛けない
      * （中心が分からない）。</p>
      *
+     * @param axis  回す中心と軸（{@link #steeringAxis}）。null なら回さずに描く
      * @param angle ハンドルの回転角 [rad]。<b>正で右へ切る</b>（運転者から見て時計回り）
      * @param tilt  コラムの傾きの足し分 [rad]。<b>正でコラムが起きる</b>（ハンドルの面が寝る）
      */
     public void renderSteeringWheel(PoseStack pose, VertexConsumer consumer, int packedLight, int packedOverlay,
-                                    double angle, double tilt, Pass pass) {
+                                    @Nullable SteeringWheelAxis.Result axis, double angle, double tilt, Pass pass) {
         int[] faces = steeringFaces[pass == Pass.TRANSLUCENT ? 1 : 0];
         if (faces.length == 0) {
             return;
         }
-        SteeringWheelAxis.Result axis = steeringAxis;
         boolean turn = axis != null && (angle != 0.0 || tilt != 0.0);
         if (turn) {
             double[] c = axis.center();

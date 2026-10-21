@@ -41,7 +41,7 @@ import java.util.WeakHashMap;
  * （大きく切ると片手ずつ持ち替える）。</p>
  *
  * <p>体の向きは車に揃える（{@code RiderPoseRenderer}）。肩の位置がずれると腕の向きもずれる。
- * ハンドルが無い車・円盤と言えないハンドル・助手席では何もしない（バニラの姿勢のまま）。</p>
+ * ハンドルが無い車・平たいと言えないハンドル・助手席では何もしない（バニラの姿勢のまま）。</p>
  */
 @Mod.EventBusSubscriber(modid = Kurumamod.MODID, value = Dist.CLIENT)
 public final class SteeringHands {
@@ -99,7 +99,8 @@ public final class SteeringHands {
     public static Arms arms(CarEntity car, LivingEntity driver, float partialTick, boolean slim) {
         CarModel model = CarModel.get(car.getCarId());
         ObjModel body = ObjModel.get(model.bodyModel());
-        SteeringWheelAxis.Result axis = body.steeringAxis();
+        SteeringWheelAxis.Result axis = body.steeringAxis(CarSeat.currentSteeringColumn(car.getCarId()),
+                CarSeat.currentSteeringCenter(car.getCarId()));
         if (axis == null) {
             return null;
         }
@@ -343,7 +344,8 @@ public final class SteeringHands {
             return;
         }
         CarEntity car = drivenCar(minecraft.player);
-        if (car != null && ObjModel.get(CarModel.get(car.getCarId()).bodyModel()).steeringAxis() != null) {
+        if (car != null && ObjModel.get(CarModel.get(car.getCarId()).bodyModel())
+                .steeringAxis(CarSeat.currentSteeringColumn(car.getCarId())) != null) {
             event.setCanceled(true);
         }
     }

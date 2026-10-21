@@ -70,7 +70,7 @@ public final class SeatScreen extends Screen {
 
     /**
      * 1 行ぶん。何を動かすか、どの値か（座席・ハンドルは 0: X 右、1: Y 上、2: Z 後ろ [m]、
-     * {@link #TILT}: ハンドルの傾き [度]。デザイン寸法は {@link #WHEEL_BASE} など）、
+     * {@link #TILT}: ハンドルの傾き [度]、{@link #COLUMN}: コラムの角度 [度]、{@link #CENTER}: 回す中心の上下 [m]。デザイン寸法は {@link #WHEEL_BASE} など）、
      * 動かせる範囲と、−／＋ 1 回の量（Shift でその 10 倍。スライダーもこの刻み）。
      */
     private record Row(Group group, String key, int axis, double min, double max, double step) {
@@ -78,6 +78,16 @@ public final class SeatScreen extends Screen {
 
     /** {@link Row#axis} のうち、ハンドルの傾き [度]。 */
     private static final int TILT = 3;
+    /**
+     * {@link Row#axis} のうち、コラムの角度 [度]（{@code steering.column}）。傾きと違ってハンドルは動かず、
+     * <b>回す軸だけ</b>が変わる。メッシュのとおりの角度で首振りが止まる。
+     */
+    private static final int COLUMN = 4;
+    /**
+     * {@link Row#axis} のうち、回す中心を面に沿って上へずらす量 [m]（{@code steering.center}）。
+     * これもハンドルは動かず、回す中心だけが動く。円を描いて揺れるなら中心がずれている。
+     */
+    private static final int CENTER = 5;
 
     /** {@link Row#axis} のうち、デザイン寸法の 3 つ。 */
     private static final int WHEEL_BASE = 0;
@@ -96,6 +106,11 @@ public final class SeatScreen extends Screen {
             new Row(Group.STEERING, "y", 1, -0.5, 0.5, 0.01),
             new Row(Group.STEERING, "z", 2, -0.5, 0.5, 0.01),
             new Row(Group.STEERING, "tilt", TILT, -30.0, 30.0, 0.5),
+            // 90 度で面が真上。その先は反対側から測った角度と同じ軸（100 度＝-80 度）なので要らない。
+            // 負はハンドルの上が運転者へ倒れた形。実車には無いが、ほぼ垂直に作ると数度だけ負になる
+            new Row(Group.STEERING, "column", COLUMN, -30.0, 90.0, 0.5),
+            // D 型で下を 3cm 削ってずれるのが 1.5cm ほど。外形の中点からそれほど離れることはない
+            new Row(Group.STEERING, "center", CENTER, -0.1, 0.1, 0.001),
     };
 
     /** {@link Row#axis} のうち、ホイールの JSON の 4 つ。 */
@@ -133,7 +148,7 @@ public final class SeatScreen extends Screen {
     private static final int BUTTON_WIDTH = 20;
     private static final int ROW_WIDTH = LABEL_WIDTH + BUTTON_WIDTH + 4 + SLIDER_WIDTH + 4 + BUTTON_WIDTH + 4 + BUTTON_WIDTH;
     /** 下のボタンの位置はいちばん行の多いページ（ハンドル・ホイール）に揃える。ページを替えてもボタンが動かないように。 */
-    private static final int BOTTOM_ROW = PART_ROWS.length + 2;
+    private static final int BOTTOM_ROW = Math.max(PART_ROWS.length, STEERING_ROWS.length) + 2;
 
     private final ResourceLocation carId;
     private final List<Slider> sliders = new ArrayList<>();
@@ -270,7 +285,23 @@ public final class SeatScreen extends Screen {
             ResourceLocation owner = meshOwner();
             return owner == null ? row.min() : meshValue(CarPartModel.get(owner), row);
         }
+        if (row.axis() == COLUMN) {
+            return shownColumn();
+        }
+        if (row.axis() == CENTER) {
+            return CarSeat.currentSteeringCenter(carId);
+        }
         return row.axis() == TILT ? CarSeat.currentSteeringTilt(carId) : component(current(row), row);
+    }
+
+    /** コラムの行に出す角度。書いていなければ形から測った値、測れなければ 0（スライダーを置く場所が要る）。 */
+    private double shownColumn() {
+        double column = CarSeat.currentSteeringColumn(carId);
+        if (!Double.isNaN(column)) {
+            return column;
+        }
+        double measured = ObjModel.get(CarModel.get(carId).bodyModel()).steeringColumnAngle(Double.NaN);
+        return Double.isNaN(measured) ? 0.0 : measured;
     }
 
     private double original(Row row) {
@@ -290,6 +321,13 @@ public final class SeatScreen extends Screen {
         if (row.axis() == TILT) {
             return model.steeringTilt();
         }
+        if (row.axis() == COLUMN) {
+            // 書いていなければ NaN。R で「形から読む」へ戻る
+            return model.steeringColumn();
+        }
+        if (row.axis() == CENTER) {
+            return model.steeringCenter();
+        }
         return component(row.group() == Group.STEERING ? model.steeringOffset() : model.seatOffset(), row);
     }
 
@@ -300,6 +338,10 @@ public final class SeatScreen extends Screen {
             if (owner != null) {
                 setPart(owner, row, null);
             }
+            return;
+        }
+        if (row.axis() == COLUMN && Double.isNaN(value)) {
+            CarSeat.clearSteeringColumnOverride(carId);
             return;
         }
         // 0.1mm（傾きは 0.0001 度）単位に丸める（浮動小数の端数が JSON へ出ないよう）
@@ -320,6 +362,14 @@ public final class SeatScreen extends Screen {
         }
         if (row.axis() == TILT) {
             CarSeat.setSteeringTiltOverride(carId, v);
+            return;
+        }
+        if (row.axis() == COLUMN) {
+            CarSeat.setSteeringColumnOverride(carId, v);
+            return;
+        }
+        if (row.axis() == CENTER) {
+            CarSeat.setSteeringCenterOverride(carId, v);
             return;
         }
         CarModel.Vec3 now = current(row);
@@ -499,8 +549,13 @@ public final class SeatScreen extends Screen {
     }
 
     private String steeringJson() {
+        // JSON に書いたコラムの角度は、ここで落とすと貼り直したときに回らなくなる
+        double column = CarSeat.currentSteeringColumn(carId);
+        double center = CarSeat.currentSteeringCenter(carId);
         return "\"steering\": { \"offset\": " + array(CarSeat.currentSteering(carId))
-                + ", \"tilt\": " + number(CarSeat.currentSteeringTilt(carId)) + " }";
+                + ", \"tilt\": " + number(CarSeat.currentSteeringTilt(carId))
+                + (Double.isNaN(column) ? "" : ", \"column\": " + number(column))
+                + (center == 0.0 ? "" : ", \"center\": " + number(center)) + " }";
     }
 
     private String designJson() {
@@ -542,7 +597,9 @@ public final class SeatScreen extends Screen {
             // JSON の値から動かした項目は黄色（調整画面と同じ）
             double original = original(row);
             boolean changed = Double.isNaN(original)
-                    ? row.group() == Group.WHEEL_PART && meshOwner() != null && hasPartOverride(row)
+                    ? row.axis() == COLUMN && row.group() == Group.STEERING
+                    ? CarSeat.hasSteeringColumnOverride(carId)
+                    : row.group() == Group.WHEEL_PART && meshOwner() != null && hasPartOverride(row)
                     : Math.abs(get(row) - original) > 1.0e-6;
             // 座席とハンドルはセクションのタブで分かるので、軸の名前だけ
             Component label = row.group() == Group.DESIGN
@@ -723,17 +780,34 @@ public final class SeatScreen extends Screen {
                 setMessage(Component.literal(wheelText()));
                 return;
             }
+            if (row.axis() == COLUMN) {
+                setMessage(columnText());
+                return;
+            }
             if (row.axis() != TILT) {
                 setMessage(Component.literal(String.format(Locale.ROOT, "%.3f m", get(row))));
                 return;
             }
             // 足し分だけでは何度になったか分からないので、コラムの角度（水平から）も出す
-            double column = ObjModel.get(CarModel.get(carId).bodyModel()).steeringColumnAngle();
+            double column = ObjModel.get(CarModel.get(carId).bodyModel())
+                    .steeringColumnAngle(CarSeat.currentSteeringColumn(carId));
             String text = String.format(Locale.ROOT, "%+.1f°", get(row));
             if (!Double.isNaN(column)) {
                 text += String.format(Locale.ROOT, "  (%.1f°)", column + get(row));
             }
             setMessage(Component.literal(text));
+        }
+
+        /** 書いた角度か、形から測った角度か（JSON に無い）、測れないのか。見分けが付かないと貼り忘れる。 */
+        private Component columnText() {
+            String angle = String.format(Locale.ROOT, "%.1f°", get(row));
+            if (!Double.isNaN(CarSeat.currentSteeringColumn(carId))) {
+                return Component.literal(angle);
+            }
+            if (Double.isNaN(ObjModel.get(CarModel.get(carId).bodyModel()).steeringColumnAngle(Double.NaN))) {
+                return Component.translatable("screen.kurumamod.seat.column.none");
+            }
+            return Component.translatable("screen.kurumamod.seat.column.auto", angle);
         }
 
         /** 値だけでは何倍に描かれるのか分からないので、拡大率も添える（小さい値ほど大きく描かれる）。 */

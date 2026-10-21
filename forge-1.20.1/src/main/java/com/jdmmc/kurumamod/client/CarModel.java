@@ -146,6 +146,19 @@ public record CarModel(
          * （ハンドルの面が寝る）。メッシュの中心を通る左右の軸のまわりに傾けるので、回す軸も一緒に傾く。
          */
         double steeringTilt,
+        /**
+         * ハンドルのコラムの角度 [度]（{@code steering.column}）。水平から、運転者へ向かって上がる向きが正
+         * （0 で面が垂直、90 で面が水平）。<b>書かなければ NaN で、軸はメッシュの形から読む</b>。
+         *
+         * <p>形から読めないハンドル（厚みがあって平たいと言えない）を回すために書く。中心はそれでも形から読む
+         * （{@code SteeringWheelAxis#around}）。S15 のハンドルは形から読むと 25 度。</p>
+         */
+        double steeringColumn,
+        /**
+         * ハンドルを回す中心を面に沿って上へずらす量 [m]（{@code steering.center}。モデルの寸法のまま）。
+         * 書かなければ 0（外形の幅の中点）。下が平らな D 型のように、外形の中点が本当の中心とずれる形のため。
+         */
+        double steeringCenter,
         float shadowRadius,
         CarSoundSet sounds,
         Map<ResourceLocation, PartObjects> partObjects,
@@ -352,7 +365,7 @@ public record CarModel(
         return new CarModel(bodyModel, bodyTexture, wheelModel, wheelTexture,
                 design.wheelBase(), wheelDesignRadius, design.rideHeight(),
                 bodyOffset, bodyScale, wheelOffset, wheelScale, camber, wheelRimRadius,
-                seatOffset, steeringOffset, steeringTilt, shadowRadius, sounds, partObjects, icon, paints);
+                seatOffset, steeringOffset, steeringTilt, steeringColumn, steeringCenter, shadowRadius, sounds, partObjects, icon, paints);
     }
 
     /**
@@ -407,6 +420,8 @@ public record CarModel(
                 new Vec3(0.5, -0.55, 0.2),
                 Vec3.ZERO,
                 0.0,
+                Double.NaN,
+                0.0,
                 1.4F,
                 CarSoundSet.NONE,
                 Map.of(),
@@ -459,6 +474,8 @@ public record CarModel(
                 vector(root, "seat", base.seatOffset()),
                 vector(child(root, "steering"), "offset", Vec3.ZERO),
                 number(child(root, "steering"), "tilt", 0.0),
+                number(child(root, "steering"), "column", Double.NaN),
+                number(child(root, "steering"), "center", 0.0),
                 (float) number(root, "shadowRadius", base.shadowRadius()),
                 CarSoundSet.parse(child(root, "sounds")),
                 parsePartObjects(child(root, "parts"), location),
