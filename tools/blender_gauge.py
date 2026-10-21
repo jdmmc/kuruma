@@ -17,7 +17,7 @@ JSON の bodyScale と designWheelBase は微調整用として 1.0 / 2.6 のま
       「Selection Only」で車体だけを書き出す</b>こと
     - 向きは Blender 標準のまま（前方 -Y・上 +Z）、エクスポート設定も標準のまま
       （-Z Forward / Y Up）。読み替えは MOD 側の ObjModel が済ませる
-    - 三角形化してから書き出す（凹んだ n-gon は破綻する）
+    - <b>三角形化しない。</b>四角形のままのほうが軽く、凹んだ n-gon も ObjModel が耳切り法で正しく割る
 
 寸法は CarSpec の既定値と揃えてある。変えたいときは下の定数を直す。
 """

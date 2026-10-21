@@ -33,14 +33,13 @@ SCALE = 1.2
 
 # --- 既定の諸元（CarSpec の Builder と揃えること）---------------------
 BASE_WHEEL_BASE = 2.6      # 前後輪の距離 [m]
-BASE_TRACK = 1.5           # 左右輪の距離 [m]
+BASE_TRACK = 1.6667        # 左右輪の距離 [m]。SCALE を掛けて 2.0m になる
 BASE_WHEEL_RADIUS = 0.375  # タイヤ半径 [m]。直径は 0.75
 BASE_WHEEL_WIDTH = 0.20    # タイヤの太さ [m]。見た目の目安なので厳密でなくてよい
 
-# 停車時のサス長 [m]。ストローク 15cm − 沈み込み 5cm。
-# タイヤの大きさとは無関係に決まるので、SCALE では変えない。
-# CarSpec の既定は「ストローク 25cm − 停車時の沈み込み 9.8cm」
-STATIC_SUSPENSION = 0.152
+# 停車時のサス長 [m]。タイヤの大きさとは無関係に決まるので、SCALE では変えない。
+# CarSpec の既定は「ストローク 30cm − 停車時の沈み込み 11.8cm」
+STATIC_SUSPENSION = 0.182
 # ---------------------------------------------------------------------
 
 WHEEL_BASE = BASE_WHEEL_BASE * SCALE
