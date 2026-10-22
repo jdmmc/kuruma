@@ -123,6 +123,13 @@ public final class CarState {
      */
     public double tractionControlThrottle = 1.0;
     /**
+     * トラクションコントロールが空転している輪に掛けているブレーキ [N·m]（ブレーキ LSD）。
+     * 同じだけのトルクが、デフを通って同じ軸の反対側の輪へ回る。
+     *
+     * <p>0 より大きければ介入中。表示に使う。</p>
+     */
+    public final double[] tractionBrake = new double[Wheel.COUNT];
+    /**
      * 各輪の ABS の効き。1 でブレーキそのまま、0 で完全解放。
      *
      * <p>1 未満なら介入中。ブレーキ配分は固定なので、荷重が抜けた輪だけが先にロックする。</p>

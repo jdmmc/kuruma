@@ -2702,9 +2702,20 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         return hasLocalState() ? state.engineRpm : entityData.get(DATA_RPM);
     }
 
-    /** トラクションコントロールが介入しているか。 */
+    /** トラクションコントロールが介入しているか。アクセルを絞っているときと、空転輪にブレーキを掛けているとき。 */
     public boolean isTractionControlActive() {
-        return hasLocalState() && state.tractionControlThrottle < 0.99;
+        if (!hasLocalState()) {
+            return false;
+        }
+        if (state.tractionControlThrottle < 0.99) {
+            return true;
+        }
+        for (double brake : state.tractionBrake) {
+            if (brake > 1.0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

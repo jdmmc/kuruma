@@ -82,6 +82,17 @@ public final class CarPhysics {
     private static final double TRACTION_CONTROL_GAIN = 10.0;
     /** トラクションコントロールの応答の速さ [1/s]。速すぎると振動する。 */
     private static final double TRACTION_CONTROL_RATE = 30.0;
+    /**
+     * ブレーキ LSD が空転輪を抑える目標。TCS の閾値に対する割合。
+     *
+     * <p>TCS（エンジンを絞る）より<b>手前</b>に置く。片輪だけの空転はブレーキで外輪へ回し、
+     * 両輪とも空転したときだけエンジンを絞る、という順にするため。</p>
+     */
+    private static final double TRACTION_BRAKE_TARGET = 0.8;
+    /** ブレーキ LSD の応答の速さ [1/s]。ブレーキの油圧が立ち上がる遅れ。 */
+    private static final double TRACTION_BRAKE_RATE = 20.0;
+    /** ブレーキ LSD が反対側の輪へ回すとき、その輪の摩擦円のどこまで使わせるか */
+    private static final double TRACTION_SPARE_GRIP = 0.9;
 
     /**
      * ABS がブレーキを緩める速さ [1/s]。滑り率が閾値をピーク滑り率 1 つぶん超えているとき、
@@ -96,6 +107,17 @@ public final class CarPhysics {
      * 「ロックさせずに操舵性を残すこと」なので、それに倣って確保しておく。</p>
      */
     private static final double MIN_STEERING_GRIP = 0.45;
+
+    /**
+     * アクセルを踏んでいるとき、駆動軸の摩擦円のうち駆動のために舵の上限から空けておく割合。
+     *
+     * <p>大きいほど踏んだときに舵が戻って加速し、小さいほど曲がり続ける。FR・60km/h から
+     * 右いっぱい＋全開（2 秒）で、0（入れる前）は縦 +0.03G・向き 66°、0.6 で +0.19G・50°、
+     * <b>0.7 で +0.23G・44°</b>、0.8 で +0.28G・37°、1.0 で +0.34G・29°。0.7 は手で舵を
+     * 上限の 8 割へ戻したとき（+0.22G・46°）とほぼ同じで、ドライバーが踏みながら戻す量に当たる。
+     * 舵を限界まで切りたければアクセルを抜けばよい。</p>
+     */
+    private static final double DRIVE_RESERVE = 0.7;
 
     /**
      * 舵の変化率の基準にする範囲の下限。最大切れ角に対する割合。
@@ -364,10 +386,48 @@ public final class CarPhysics {
         // 荷重に依らない（グリップも横剛性も同じ荷重に比例する）ので、最後にそのぶん割り戻す
         double aero = spec.aeroGripFactor(Math.abs(state.forwardSpeed));
         double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY * aero;
-        double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
+        double used = Math.min(gripAccel, longitudinalDemand(spec, state, gripAccel));
         double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
         double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
         return lateral / (GRAVITY * spec.effectiveCorneringStiffness() * aero);
+    }
+
+    /**
+     * 舵の上限を決めるときに「縦に使っている」とみなす加速度の大きさ [m/s²]。
+     * 実際の加速度と、アクセルで求めている駆動の加速度の大きいほう。
+     *
+     * <p><b>実際の加速度だけを見てはいけない。</b>舵が横のグリップを使いきると、後輪駆動では
+     * 駆動力を足す余地が無いので TCS が絞り、加速度はほぼ 0 になる。すると縦は使っていない
+     * ことになって舵の上限が下がらず、また横に使いきる——<b>全開なのに加速しない</b>ところで
+     * 釣り合ってしまう（FR・60km/h から右いっぱい＋全開で縦 +0.03G。舵を上限の 8 割に戻すだけで
+     * +0.22G 出る）。実際のドライバーは踏んだぶんだけ舵を戻して、後輪に駆動の余地を作る。</p>
+     *
+     * <p>求めている駆動は、いまの回転数でエンジンが出せる駆動力 × アクセル開度（TCS で絞る前）。
+     * 後退中・ブレーキ中は見ない。どれだけ余地を取るかは {@link #DRIVE_RESERVE}。</p>
+     */
+    private static double longitudinalDemand(CarSpec spec, CarState state, double gripAccel) {
+        double actual = Math.abs(state.longitudinalAcceleration);
+        if (state.gear < 1 || state.brake > 0.0 || state.throttle <= 0.0) {
+            return actual;
+        }
+        double force = spec.engineTorque(state.engineRpm) * (1.0 + spec.turbo().boostGain() * state.boost)
+                * spec.totalRatio(state.gear) * spec.drivetrainEfficiency() / spec.wheelRadius();
+        double requested = force * state.throttle / spec.mass();
+        // 駆動輪が支えている荷重の割合までしか、路面へ駆動力を伝えられない
+        double drivenLoad = 0.0;
+        double totalLoad = 0.0;
+        for (Wheel wheel : Wheel.VALUES) {
+            double load = spec.staticWheelLoad(wheel);
+            totalLoad += load;
+            if (spec.driveShare(wheel) > 0.0) {
+                drivenLoad += load;
+            }
+        }
+        double drivenShare = drivenLoad / Math.max(1e-6, totalLoad);
+        // 駆動力は駆動軸だけが受け持つので、その軸の摩擦円で見る（後輪駆動なら後軸の荷重 44% で割る）。
+        // 車全体の摩擦円で引くと、FR では余地を半分以下に見積もって +0.11G しか出なかった
+        double demand = Math.min(requested / drivenShare, gripAccel) * DRIVE_RESERVE;
+        return Math.max(actual, demand);
     }
 
     /**
@@ -378,7 +438,7 @@ public final class CarPhysics {
     private static double geometricSteer(CarSpec spec, CarState state, GroundContact contact, double speed) {
         double gripAccel = spec.tireFriction() * contact.frontGripScale() * GRAVITY
                 * spec.aeroGripFactor(speed);
-        double used = Math.min(gripAccel, Math.abs(state.longitudinalAcceleration));
+        double used = Math.min(gripAccel, longitudinalDemand(spec, state, gripAccel));
         double remaining = Math.sqrt(Math.max(0.0, gripAccel * gripAccel - used * used));
         double lateral = Math.max(gripAccel * MIN_STEERING_GRIP, remaining);
         return Math.atan(spec.wheelBase() * lateral / (speed * speed));
@@ -769,6 +829,9 @@ public final class CarPhysics {
      * ピークより下にあるので、積分で閾値ちょうどに張り付かせると<b>グリップを使い残す</b>
      * （0-100 が舗装 5.35→5.40 秒・氷 22.2→25.4 秒と、どの路面でも遅くなった）。
      * 比例の居座りがピークの少し上まで滑らせてくれている。</p>
+     *
+     * <p>片輪だけの空転は、反対側の輪に余裕があれば先にブレーキ LSD（{@link #applyTractionBrake}）が
+     * そちらへ回すので、ここで絞る量はそのぶん減る。</p>
      */
     private static void updateTractionControl(CarSpec spec, CarState state, GroundContact contact, double dt) {
         if (!Double.isFinite(spec.tractionControlSlip())) {
@@ -1036,7 +1099,7 @@ public final class CarPhysics {
         for (Wheel wheel : Wheel.VALUES) {
             contacts[wheel.ordinal()] = wheelContact(spec, state, contact, input, wheel, brakeForce, dt);
         }
-        applyDifferential(spec, state, contacts, input, dt);
+        applyDifferential(spec, state, contact, contacts, input, dt);
 
         double longitudinal = 0.0;
         double lateral = 0.0;
@@ -1235,12 +1298,129 @@ public final class CarPhysics {
      *
      * <p>移すだけなので軸の合計トルクは変わらない。</p>
      */
-    private static void applyDifferential(CarSpec spec, CarState state, WheelContact[] contacts,
-                                          CarInput input, double dt) {
+    private static void applyDifferential(CarSpec spec, CarState state, GroundContact contact,
+                                          WheelContact[] contacts, CarInput input, double dt) {
         // 前後を先に決める。左右のデフはそれぞれの軸に来たトルクを配り直すだけなので、後でよい
         lockCenter(spec, state, contacts, input, dt);
         lockAxle(spec, state, contacts, dt, Wheel.FRONT_LEFT, Wheel.FRONT_RIGHT);
         lockAxle(spec, state, contacts, dt, Wheel.REAR_LEFT, Wheel.REAR_RIGHT);
+        // 機械式の LSD で揃えきれなかった空転を、ブレーキで抑える
+        applyTractionBrake(spec, state, contact, contacts, dt, Wheel.FRONT_LEFT, Wheel.FRONT_RIGHT);
+        applyTractionBrake(spec, state, contact, contacts, dt, Wheel.REAR_LEFT, Wheel.REAR_RIGHT);
+    }
+
+    /**
+     * ブレーキ LSD。トラクションコントロールの一部で、片輪だけ空転したらその輪にブレーキを掛ける。
+     *
+     * <p>オープンデフは左右へ同じトルクしか配れないので、旋回中に荷重の抜けた内輪が空転すると、
+     * 外輪はまだ押せるのに駆動力を増やせない。空転している輪にブレーキを掛ければ、その反力の
+     * ぶんデフが反対側へトルクを送れる。実車の TCS はエンジンを絞る前にこれをやる。</p>
+     *
+     * <p>以前の TCS はエンジンを絞るだけだったので、<b>内輪 1 輪の空転で 4 輪ぶんの駆動力を
+     * まとめて落としていた</b>（既定の 4WD で、60km/h から右いっぱい＋全開のとき内前輪だけが
+     * 滑り率 0.072 で空転し、アクセルが 0.78 まで絞られて横 G が 0.78 に落ちた）。
+     * 入れた後は同じ条件で横 G 0.82・縦 G +0.30 → +0.34。片側だけ氷（μ0.15）の発進 0-60 は
+     * 4WD 12.8 → 8.9 秒、FR 31.5 → 18.2 秒、FF 24.5 → 14.9 秒。直線の 0-100 と、
+     * 舵＋全開・切り返しのスピンは変わらない。</p>
+     *
+     * <p><b>ここの「オープンデフ」は駆動力を固定の比で配るだけ</b>で、空転した輪の反力で
+     * 反対側のトルクが頭打ちになるところまでは解いていない。そのため、ブレーキの効果は
+     * 「空転輪のトルクを掛けたブレーキのぶん減らし、同じだけ反対側へ足す」として入れる。
+     * 掛けるのはその輪の駆動トルクまで（ブレーキで逆向きに回させない）。</p>
+     *
+     * <p>目標は空転輪の滑り率を TCS の閾値の {@link #TRACTION_BRAKE_TARGET} 倍に抑えること。
+     * 必要なトルクは {@link #lockAxle} と同じく、タイヤの反力込みの応答から解く。
+     * TCS を切っている（{@code tractionControlSlip} 0）とき、サイドブレーキを引いているとき、
+     * アクセルを戻しているときは効かない。</p>
+     */
+    private static void applyTractionBrake(CarSpec spec, CarState state, GroundContact contact,
+                                           WheelContact[] contacts, double dt, Wheel left, Wheel right) {
+        int leftIndex = left.ordinal();
+        int rightIndex = right.ordinal();
+        double[] torque = state.wheelDriveTorque;
+        double leftTarget = 0.0;
+        double rightTarget = 0.0;
+        boolean active = Double.isFinite(spec.tractionControlSlip())
+                && spec.driveShare(left) > 0.0
+                && state.handbrake <= 0.0
+                && torque[leftIndex] + torque[rightIndex] > 0.0;
+        if (active) {
+            double[] leftResponse = wheelResponse(spec, state, contacts[leftIndex], left, dt);
+            double[] rightResponse = wheelResponse(spec, state, contacts[rightIndex], right, dt);
+            double leftNeed = brakeToHold(spec, contact, contacts[leftIndex], left,
+                    leftResponse, rightResponse[0]);
+            double rightNeed = brakeToHold(spec, contact, contacts[rightIndex], right,
+                    rightResponse, leftResponse[0]);
+            // 掛けるのは空転の深い側だけ。両側に掛けると移し合って打ち消す。
+            // 量は反対側が受け取れるぶんまで（spareTorque）
+            if (leftNeed > rightNeed) {
+                leftTarget = Math.min(Math.min(leftNeed, Math.max(0.0, torque[leftIndex])),
+                        spareTorque(spec, state, contacts[rightIndex], right));
+            } else {
+                rightTarget = Math.min(Math.min(rightNeed, Math.max(0.0, torque[rightIndex])),
+                        spareTorque(spec, state, contacts[leftIndex], left));
+            }
+        }
+        double response = 1.0 - Math.exp(-dt * TRACTION_BRAKE_RATE);
+        state.tractionBrake[leftIndex] += (leftTarget - state.tractionBrake[leftIndex]) * response;
+        state.tractionBrake[rightIndex] += (rightTarget - state.tractionBrake[rightIndex]) * response;
+
+        // 油圧の遅れで目標より残っていても、その輪の駆動トルクより多くは掛けない
+        double leftBrake = Math.min(state.tractionBrake[leftIndex], Math.max(0.0, torque[leftIndex]));
+        double rightBrake = Math.min(state.tractionBrake[rightIndex], Math.max(0.0, torque[rightIndex]));
+        torque[leftIndex] += rightBrake - leftBrake;
+        torque[rightIndex] += leftBrake - rightBrake;
+    }
+
+    /**
+     * その輪が摩擦円の中でまだ受け取れる駆動トルク [N·m]。
+     *
+     * <p><b>ブレーキ LSD が回したトルクを、反対側が使いきれるとは限らない。</b>後輪駆動で旋回中の
+     * 外輪は横のグリップをほぼ使いきっているので、そこへ駆動力を足すと機械式 LSD と同じく
+     * 尻が出る（FR・80km/h から右いっぱい＋全開で、最大の車体スリップ角が 6.7 → 11.1 度）。
+     * 横に使っているぶんを引いた残りのうち、TCS が許すところ（ピークの 0.9 倍）までにする。
+     * 後輪だけに掛ける。</p>
+     */
+    private static double spareTorque(CarSpec spec, CarState state, WheelContact c, Wheel wheel) {
+        if (c == null) {
+            return 0.0;
+        }
+        // 前軸は制限しない。外の前輪へ回しても曲がりにくくなる（アンダー側）だけで回りはしないうえ、
+        // 舵の上限が前輪を横のピークに置いているので、制限すると何も回せなくなる。
+        // 内前輪の空転が止まって横のグリップが戻るぶん、かえって曲がる（4WD・60km/h 全開で
+        // 横 G 0.777 → 0.820。制限すると 0.777 のまま）
+        if (wheel.isFront()) {
+            return Double.POSITIVE_INFINITY;
+        }
+        double usable = c.gripLimit * TRACTION_SPARE_GRIP;
+        double longitudinal = Math.sqrt(Math.max(0.0, usable * usable - c.lateralForce * c.lateralForce));
+        double current = c.longitudinalStiffness * state.wheelSlipRatio[wheel.ordinal()];
+        return Math.max(0.0, longitudinal - current) * spec.wheelRadius();
+    }
+
+    /**
+     * 空転を目標の滑り率まで抑えるのに要るブレーキ [N·m]。空転していなければ 0。
+     *
+     * <p>浮いている輪は滑り率が出ないので、反対側の輪より速く回らないことを目標にする
+     * （片輪が浮いたときの脱出）。</p>
+     *
+     * @param response この輪の {@link #wheelResponse}
+     * @param partnerOmega 反対側の輪の、この刻みの後の角速度の見積もり
+     */
+    private static double brakeToHold(CarSpec spec, GroundContact contact, WheelContact c, Wheel wheel,
+                                      double[] response, double partnerOmega) {
+        double targetOmega;
+        if (c == null) {
+            targetOmega = partnerOmega;
+        } else {
+            double allowed = spec.tractionControlSlip() * TRACTION_BRAKE_TARGET * aidSlipScale(spec, contact, wheel);
+            // 反対側も同じだけ回っているなら、それは軸ごとの空転なのでエンジンを絞る側（TCS）の仕事。
+            // ブレーキで片側へ寄せても、寄せた先が空転するだけになる
+            targetOmega = Math.max((c.rollingSpeed + allowed * c.slipReference) / spec.wheelRadius(),
+                    partnerOmega);
+        }
+        // ω' = A − B·brake を目標へ下ろす
+        return Math.max(0.0, (response[0] - targetOmega) / response[1]);
     }
 
     /**
