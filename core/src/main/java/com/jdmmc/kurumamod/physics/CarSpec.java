@@ -65,7 +65,8 @@ package com.jdmmc.kurumamod.physics;
  * @param tireLoadSensitivity  タイヤの荷重感度。荷重を増やしてもグリップが比例して増えない度合い。
  *                             0 で比例（荷重移動がバランスに効かない）。{@link #tireLoadFactor} を参照
  * @param steerGripMargin      切れ角上限に対する余裕。1 を超えるとグリップを超えて切れる（＝滑らせられる）
- * @param visualSlipLimit      <b>見た目だけ</b>の、進行方向に対するタイヤ角の上限 [rad]。0 で無効。物理は一切読まない
+ * @param visualSlipLimit      滑っている間に、前軸の進む向きから舵を切れる角度 [rad]。0 で無効。
+ *                             物理（カウンター中の舵の範囲）と見た目のタイヤ角の両方に効く
  * @param maxSteerAngle        前輪の最大切れ角 [rad]
  * @param steerRateSeconds     中立からいま使える上限まで舵を入れるのにかかる時間 [s]。0 で即座
  * @param steerReturnSeconds   舵を放してから戻るまでの時間 [s]

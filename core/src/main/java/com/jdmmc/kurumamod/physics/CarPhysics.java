@@ -290,6 +290,35 @@ public final class CarPhysics {
             low = Math.max(-max, Math.min(-floor, center - width));
         }
 
+        // カウンター中に切れる角度を、前軸の進む向き ± visualSlipLimit に収める。
+        // 中心を自動カウンターの角度（進む向き × 強さ 0.84）にすると進む向きより内側へずれ、
+        // 滑りを止める外側の余地が深い角度ほど無くなる（±15° でも drift 相当で 32 回中 13〜24 回スピン。
+        // 進む向きを中心に ±5° なら 0 回）。
+        // 止まりかけ（合成の速さ 2〜4m/s）では車庫入れの小回りを殺さないよう、窓を広げてつなぐ
+        double counterWindow = spec.visualSlipLimit();
+        double frame = 0.0;
+        if (counterWindow > 0.0) {
+            double groundSpeed = Math.hypot(state.forwardSpeed, state.lateralSpeed);
+            double fade = clamp01((groundSpeed - 2.0) / 2.0);
+            fade = fade * fade * (3.0 - 2.0 * fade);
+            if (fade > 0.0) {
+                double base = Math.max(-max, Math.min(max, travel));
+                frame = base * fade;
+                double half = counterWindow + (1.0 - fade) * 2.0 * max;
+                double windowLow = base - half;
+                double windowHigh = base + half;
+                // 窓と、グリップから決めた範囲が重ならなければ、窓の側を取る
+                double newLow = Math.max(low, windowLow);
+                double newHigh = Math.min(high, windowHigh);
+                if (newLow > newHigh) {
+                    newLow = Math.max(-max, windowLow);
+                    newHigh = Math.min(max, windowHigh);
+                }
+                low = newLow;
+                high = newHigh;
+            }
+        }
+
         // 舵を放している間は、前輪が自分から進行方向を向こうとする（セルフアライニングトルク）。
         // 直進していれば中立へ戻るだけだが、滑っているときはこれがそのままカウンターになる
         double target = dir > 0.0 ? high * dir : dir < 0.0 ? -low * dir : travel * spec.selfAligning();
@@ -299,8 +328,13 @@ public final class CarPhysics {
         // 0/100 を直結していた頃と同じ「入れた瞬間にダートする」挙動に戻る</b>。
         // アナログで変わるのは上の target が棒の位置に比例することだけで、
         // 途中の角度を直接指示できるので、同じ制限でも操作は思いどおりになる
-        boolean returning = Math.abs(target) < Math.abs(state.steerAngle)
-                || target * state.steerAngle < 0.0;
+        // 変化率は基準（カウンター中は前軸の進む向き）からのずれに掛ける。基準が動けば舵も一緒に動く。
+        // 絶対の角度に掛けると、窓を狭めたぶん舵の動きが遅くなり（±5° で毎秒 50°）、車が巻き込んで
+        // 進む向きが毎秒 100° 以上動くと<b>カウンターが間に合わない</b>（外側の端へ届くまで平均 0.94 秒）
+        double previous = state.steerAngle - state.steerFrame + frame;
+        state.steerFrame = frame;
+        boolean returning = Math.abs(target - frame) < Math.abs(previous - frame)
+                || (target - frame) * (previous - frame) < 0.0;
         double seconds = returning ? spec.steerReturnSeconds() : spec.steerRateSeconds();
         // <b>基準にするのは最大切れ角ではなく、いま使える切れ角の範囲。</b>
         // 最大切れ角（35 度）を基準にすると 117 度/秒 ＝ 1 ティックで 5.85 度動くので、
@@ -309,7 +343,7 @@ public final class CarPhysics {
         // 押している長さでアナログに操作できるという肝心の性質が、80km/h あたりから
         // 上では死んでいた。範囲を基準にすれば、どの速度でも同じだけ刻める
         double span = Math.max(high - low, 2.0 * max * MIN_STEER_SPAN) / 2.0;
-        state.steerAngle = approach(state.steerAngle, target, span, seconds, dt);
+        state.steerAngle = approach(previous, target, span, seconds, dt);
 
         // 速度が上がって範囲が狭まったときは、そちらには即座に従う
         state.steerAngle = Math.max(low, Math.min(high, state.steerAngle));

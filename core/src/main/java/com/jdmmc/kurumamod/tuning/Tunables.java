@@ -317,7 +317,7 @@ public final class Tunables {
                     // 8.0 まで上げると 20m/s でも最大切れ角まで切れる（＝実質この補助は無効）
                     TunableParameter.log("steer_grip_margin", 0.8, 8.0, "%.2f",
                             CarSpec::steerGripMargin, CarSpec.Builder::steerGripMargin),
-                    // 見た目だけの上限。物理には効かない
+                    // 滑っている間に、前軸の進む向きから切れる角度。物理と見た目の両方に効く
                     TunableParameter.linear("visual_slip_limit", 0, 90, "%.0f",
                                     CarSpec::visualSlipLimit, CarSpec.Builder::visualSlipLimit)
                             .unit(Math.PI / 180.0)

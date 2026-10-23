@@ -33,6 +33,11 @@ public final class CarState {
     public double yawRate;
     /** 前輪の切れ角 [rad]。正で右。キーは 0/100 でも、ここは時間をかけて動く。 */
     public double steerAngle;
+    /**
+     * 舵を動かす基準 [rad]。カウンター中は前軸の進む向き、それ以外は 0。
+     * 舵の変化率はこの基準からのずれに掛ける（基準が動けば舵も一緒に動く）。
+     */
+    public double steerFrame;
     /** アクセルの踏み込み量。0〜1。 */
     public double throttle;
     /** ブレーキの踏み込み量。0〜1。 */
