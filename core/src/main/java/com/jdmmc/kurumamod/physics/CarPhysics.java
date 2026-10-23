@@ -451,6 +451,12 @@ public final class CarPhysics {
      * これが自己復元（セルフアライニング）トルクで、直進していれば中立へ戻る力になり、
      * 滑っているときはカウンターステアそのものになる。実車のドライバーが滑った瞬間に
      * ハンドルを緩めるだけである程度立て直せるのはこの働きによる。</p>
+     *
+     * <p><b>向きを裏返すのは後退の段に入っているときだけ。</b>前後の速度の符号で裏返していた頃は、
+     * 流しすぎて車体が真横を越え、後ろ向きに進み始めた瞬間に<b>フルカウンターが逆のフルロックへ
+     * 跳んでいた</b>（drift プリセット・60km/h で振り出して放すと、左 65° から右 59° へ 0.2 秒で）。
+     * 前進のつもりで回っている車の前軸が進む向きは真横の先へ連続して回っていくので、
+     * 裏返さずに測れば同じ側のまま、後ろ向きに止まるにつれて中立へ戻る。</p>
      */
     private static double selfAligningAngle(CarSpec spec, CarState state) {
         // 前軸の位置での横方向の速度。車体が回っているぶんが乗る
@@ -459,8 +465,8 @@ public final class CarPhysics {
                 + spec.wheelForwardOffset(Wheel.FRONT_LEFT) * state.yawRate;
         double reference = Math.max(Math.abs(state.forwardSpeed), SLIP_REFERENCE_SPEED);
         double angle = Math.atan2(frontLateral, reference);
-        // 後退中は前輪が引きずられる向きが逆になる
-        return state.forwardSpeed < 0.0 ? -angle : angle;
+        // バックしているときは前輪が引きずられる向きが逆になる
+        return state.forwardSpeed < 0.0 && state.gear == -1 ? -angle : angle;
     }
 
     /** ペダルの踏み込み量を進める。 */

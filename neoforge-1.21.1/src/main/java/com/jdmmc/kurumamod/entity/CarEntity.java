@@ -198,8 +198,10 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
     private static final int PHYSICS_SUBSTEPS = 4;
     /** 1 ティックの長さ [s] */
     private static final double TICK_SECONDS = 0.05;
-    /** 見た目のタイヤ角を進行方向で測るのに要る最低速度 [m/s]。これ以下では進行方向が定まらない。 */
-    private static final double VISUAL_SLIP_MIN_SPEED = 1.0;
+    /** 見た目のタイヤ角を寄せ始める速度 [m/s]。これ以下では進行方向が定まらないので実際の舵のまま。 */
+    private static final double VISUAL_SLIP_FADE_START = 2.0;
+    /** 見た目のタイヤ角を寄せきる速度 [m/s]。間はなめらかにつなぐ。 */
+    private static final double VISUAL_SLIP_FADE_FULL = 4.0;
     /** 接地レイの余長 [m]。伸びきり位置ちょうどで取りこぼさないための余裕。 */
     private static final double GROUND_RAY_MARGIN = 0.1;
     /**
@@ -2446,13 +2448,14 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      * （車体スリップ角 -72 度＋切れ角 +35 度 = 進行方向から 107 度）。タイヤが横を向いて
      * 見えるのはこれが理由。</p>
      *
-     * <p>そこで<b>進行方向に対する角度</b>で頭打ちにする。上限以下はそのまま通すので、
-     * 通常の走行（この角度は数度しかない）にはまったく影響しない。</p>
+     * <p>そこで<b>カウンターを当てている角度を基準にして、そこから {@code visualSlipLimit} までに
+     * 収める</b>（{@link #counterSteerAngle}）。基準は物理の自動カウンターが当てる角度そのものなので、
+     * 舵を放している間は実際の舵が基準へ戻っていくだけで、見た目は何も変わらない。カウンター中に
+     * 内側へ切れば、カウンターの角度から上限ぶんだけ内側へ切れて見える。</p>
      *
-     * <p><b>タイヤは「線」なので、角度は ±90 度に畳んでから測る。</b>畳まないと後退で壊れる。
-     * 車体スリップ角は {@code atan2(横速度, |前後速度|)} と絶対値を取っており進行方向を
-     * 表さないため、バック中に切れ角 35 度が逆側の -12.6 度として表示されてしまう。
-     * 畳んでおけば、後退は「前進の裏返し」として自動的に正しく扱われる。</p>
+     * <p>以前は車体のスリップ角を進行方向とし、180 度ごとに現れる線から寄せる先を選んでいた。
+     * 物理と基準が違うので、<b>カウンターが当たっているのに逆向きやまっすぐに見え</b>、選ぶ線が
+     * 切り替わる瞬間に 65 度跳んだ。</p>
      *
      * <p><b>物理は実際の切れ角（{@link #getRenderSteerAngle()}）で解かれており、
      * この値は一切影響しない。</b>同期して配るのも実際の切れ角の方。</p>
@@ -2467,47 +2470,65 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
 
     private float visualSteerAngle(float steer) {
         double limit = spec.visualSlipLimit();
-        // 止まりかけでは進行方向が定まらないので、そのまま出す
-        if (limit <= 0.0 || Math.abs(getRenderSpeed()) < VISUAL_SLIP_MIN_SPEED) {
+        if (limit <= 0.0) {
             return steer;
         }
-        // 進行方向を車体基準で出す。後退では ±180 度の近くになる
-        double slip = getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD;
-        double heading = getRenderSpeed() >= 0.0 ? slip : Math.PI - slip;
-        double max = spec.maxSteerAngle();
-
-        // タイヤは線なので、進行方向の線は 180 度ごとに現れる。そのどれへ寄せるのが
-        // 見た目の動きが小さいかを選ぶ。後退ではここで自動的に裏側の線が選ばれ、
-        // 前進と同じ扱いになる。
-        // 上限以下はそのまま通るので、通常の走行にはまったく影響しない
-        double best = steer;
-        double bestError = Double.MAX_VALUE;
-        for (int k = -2; k <= 2; k++) {
-            double axis = heading + k * Math.PI;
-            double candidate = Mth.clamp(Mth.clamp(steer, axis - limit, axis + limit), -max, max);
-            // 機械的な最大切れ角に阻まれて条件を満たせない側は捨てる
-            if (Math.abs(foldToRightAngle(candidate - axis)) > limit + 1.0E-6) {
-                continue;
-            }
-            double error = Math.abs(candidate - steer);
-            if (error < bestError) {
-                bestError = error;
-                best = candidate;
-            }
+        // 止まりかけでは進む向きが定まらないので弱める。しきい値で切り替えると止まる瞬間に
+        // タイヤが跳ぶ（実測で 0 → 65 度）。<b>前後の速度ではなく合成の速さで見ること</b>——
+        // 深く流れている間は前後の速度が小さく、補正が抜けたり入ったりして 67 度跳んだ
+        double fade = Mth.clamp((renderGroundSpeed() - VISUAL_SLIP_FADE_START)
+                / (VISUAL_SLIP_FADE_FULL - VISUAL_SLIP_FADE_START), 0.0, 1.0);
+        fade = fade * fade * (3.0 - 2.0 * fade);
+        if (fade <= 0.0) {
+            return steer;
         }
-        return (float) best;
+        double max = spec.maxSteerAngle();
+        double base = counterSteerAngle();
+        double shown = Mth.clamp(Mth.clamp(steer, base - limit, base + limit), -max, max);
+        return (float) (steer + (shown - steer) * fade);
     }
 
-    /** 角度を ±90 度へ畳む。タイヤは線なので、180 度ずれた向きは同じものとして扱える。 */
-    private static double foldToRightAngle(double angle) {
-        double wrapped = Math.atan2(Math.sin(angle), Math.cos(angle));
-        if (wrapped > Math.PI / 2.0) {
-            return wrapped - Math.PI;
+    /**
+     * 自動カウンターが当てる角度 [rad]。物理（{@code CarPhysics#selfAligningAngle} × 強さ）と同じ式。
+     * 自動カウンターが 0 の車では、前輪が進む向きそのもの（強さ 1 と同じ）を基準にする。
+     *
+     * <p>前軸の進む向きは、真横を越えて後ろへ流れても同じ側のまま。裏返すのはバックの段だけ。
+     * 分母には物理と同じ下限（{@link CarPhysics#SLIP_REFERENCE_SPEED}）を入れる——入れないと、
+     * 真横を向いて前後の速度が 0 を通る瞬間に ±90 度の間で振れる。</p>
+     *
+     * <p>他人の車は横速度とヨー角速度を持っていないので、同期しているスリップ角と描画用のヨー角の
+     * 差から組み立てる。横速度は {@code |前後速度|·tan(スリップ角)} だが、真横の近くで発散しないよう
+     * 両辺に cos を掛けた形で角度だけ出す。</p>
+     */
+    private double counterSteerAngle() {
+        double forward = getRenderSpeed();
+        double toFront = spec.wheelForwardOffset(Wheel.FRONT_LEFT);
+        double angle;
+        if (hasLocalState()) {
+            angle = Math.atan2(state.lateralSpeed + toFront * state.yawRate,
+                    Math.max(Math.abs(forward), CarPhysics.SLIP_REFERENCE_SPEED));
+        } else {
+            double slip = getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD;
+            double yawRate = Mth.wrapDegrees(renderYaw - prevRenderYaw) * Mth.DEG_TO_RAD / TICK_SECONDS;
+            double cos = Math.cos(slip);
+            angle = Math.atan2(Math.abs(forward) * Math.sin(slip) + toFront * yawRate * cos,
+                    Math.max(Math.abs(forward), CarPhysics.SLIP_REFERENCE_SPEED) * cos);
         }
-        if (wrapped < -Math.PI / 2.0) {
-            return wrapped + Math.PI;
+        if (forward < 0.0 && getRenderGear() == -1) {
+            angle = -angle;
         }
-        return wrapped;
+        double strength = spec.selfAligning() > 0.0 ? spec.selfAligning() : 1.0;
+        double max = spec.maxSteerAngle();
+        return Mth.clamp(angle * strength, -max, max);
+    }
+
+    /** 描画に使う、地面に対する水平の速さ [m/s]（前後と横の合成）。 */
+    private double renderGroundSpeed() {
+        if (hasLocalState()) {
+            return Math.hypot(state.forwardSpeed, state.lateralSpeed);
+        }
+        double cos = Math.cos(getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD);
+        return Math.abs(getRenderSpeed()) / Math.max(cos, 0.05);
     }
 
     /** 描画に使う車速 [m/s]。 */
