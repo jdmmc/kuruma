@@ -58,7 +58,7 @@
   "torque_split": 0.5,
   "track_width": 1.8,
   "traction_control": 0.0,
-  "visual_slip_limit": 0.26314886917955743,
+  "visual_slip_limit": 0.5235987755982988,
   "weight_distribution": 0.56,
   "wheel_base": 3.12,
   "wheel_radius": 0.4,
