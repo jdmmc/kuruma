@@ -649,8 +649,13 @@ public final class CarPhysics {
         if (accelerating) {
             torque = state.engineRpm >= spec.redlineRpm() ? 0.0 : spec.engineTorque(state.engineRpm);
         } else {
-            // アクセルを戻すとエンジンブレーキ。回転が高いほど強い
-            torque = -spec.engineBrakeTorque() * state.engineRpm / spec.redlineRpm();
+            // アクセルを戻すとエンジンブレーキ。回転が高いほど強い。
+            // アイドルより上のぶんだけで効かせる——アイドルではアイドル制御が自分の摩擦を
+            // 打ち消している。回転数で比例させると、停車中（アイドルで下支えしている）にも
+            // 車輪へ -74N·m が掛かり続け、止まっている車がノーズダウンし（-0.017 度）、
+            // 停止中に舵を切るだけで少し動いた
+            torque = -spec.engineBrakeTorque() * Math.max(0.0, state.engineRpm - spec.idleRpm())
+                    / (spec.redlineRpm() - spec.idleRpm());
         }
         // 駆動している間だけ絞る。エンジンブレーキまで弱めては意味が変わってしまう。
         // 後退中は S が「アクセル」なので、そちらの踏み込み量を使う
