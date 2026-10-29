@@ -1239,17 +1239,17 @@ public record CarSpec(
         // 基準は最大切れ角ではなく<b>いま使える切れ角の範囲</b>なので、
         // 「中立からその速度で許される上限まで入れるのにかかる時間」を表す。
         // 0.18 秒で 100km/h に 3 段・60km/h に 5 段の刻みが取れる（0.30 秒なら 5 段だが
-        // 立ち上がりが 0.65→0.76 秒と鈍る）
-        private double steerRateSeconds = 0.18;
-        private double steerReturnSeconds = 0.11;
+        // 立ち上がりが 0.65→0.76 秒と鈍る）。走らせて決めた既定は入れ・戻しとも 0.25 秒（2026-10-30）
+        private double steerRateSeconds = 0.25;
+        private double steerReturnSeconds = 0.25;
         // 実車は舵を放すと前輪が自分から進行方向を向く。滑っているときはこれがカウンターになる。
         // 既定は無効（中立へ戻る）。使いたい人が入れる
         private double selfAligning = 0.0;
-        private double pedalPressSeconds = 0.25;
-        private double pedalReleaseSeconds = 0.12;
-        // 既定は即座（入れる前と同じ）。キーボードでサイドを「少しだけ」掛けたい人が伸ばす。
+        private double pedalPressSeconds = 0.15;
+        private double pedalReleaseSeconds = 0.15;
+        // キーボードでサイドを「少しだけ」掛けられるよう、効ききるまで 0.15 秒（2026-10-30。それまでは即座）。
         // アナログ入力（ハンコンのサイドレバー）は位置をそのまま使うので読まない
-        private double handbrakePressSeconds = 0.0;
+        private double handbrakePressSeconds = 0.15;
         // 281ps 相当。四駆（driveBias 0.5）なので駆動輪のグリップから決まる上限は
         // mu*g = 約 10.6m/s^2 あり、350N·m でも最大加速 0.80G と 26% 余る
         // （実測で滑り率 0.05・TCS は一度も介入しない）。0-100km/h は 5.63 秒。
