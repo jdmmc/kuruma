@@ -99,6 +99,11 @@ public final class ClientConfig {
                     "ゴーストは周回ごとに自動で記録され、速い周が出たら置き換わる（自分のパソコンにだけ保存）")
             .define("timeAttackGhost", true);
 
+    public static final ModConfigSpec.BooleanValue VIRTUAL_WALLS = BUILDER
+            .comment("階段状の壁（斜めの道の壁）や壁から飛び出した柱を、角を結んだなめらかな壁として当てるか。",
+                    "切ると、ブロックの形のまま当たる（段にタイヤが引っかかる）。自分が運転している車にだけ効く")
+            .define("virtualWalls", true);
+
     public static final ModConfigSpec.BooleanValue SHOW_DUST = BUILDER
             .comment("タイヤの煙と土煙を出すかどうか。",
                     "舗装路で滑ったときの白煙と、未舗装路（土・砂・砂利・雪）で舞い上げる土煙の両方")
@@ -246,6 +251,9 @@ public final class ClientConfig {
     /** タイムアタックで自己ベストのゴーストを走らせるか。 */
     public static boolean timeAttackGhost = true;
 
+    /** 見えない壁を使うか。物理は {@code CarEntity#virtualWalls} を読む（refresh で写す）。 */
+    public static boolean virtualWalls = true;
+
     /** タイヤの煙と土煙を出すか。キーの名前（showDust）は保存済みの設定のために据え置いている。 */
     public static boolean showDust = true;
 
@@ -329,6 +337,9 @@ public final class ClientConfig {
         liveMirrors = LIVE_MIRRORS.get();
         gpuCarMeshes = GPU_CAR_MESHES.get();
         timeAttackGhost = TIME_ATTACK_GHOST.get();
+        virtualWalls = VIRTUAL_WALLS.get();
+        // 物理（CarEntity）はサーバーでも動くので、この設定クラスを直接は読めない。ここで写す
+        com.jdmmc.kurumamod.entity.CarEntity.virtualWalls = virtualWalls;
         showDust = SHOW_DUST.get();
         dustDensity = DUST_DENSITY.get();
         showOwnSkidMarks = SHOW_OWN_SKID_MARKS.get();

@@ -90,6 +90,9 @@ public class KurumaMenuScreen extends Screen {
         // 1 秒から 5 分まで。線形だと既定の 5 秒が左端 1% に潰れるので対数で割り当てる
         slider("skid_mark_seconds", 1.0, 300.0, true, ClientConfig.SKID_MARK_SECONDS);
 
+        header("screen.kurumamod.menu.section.driving");
+        toggle("virtual_walls", ClientConfig.VIRTUAL_WALLS);
+
         header("screen.kurumamod.menu.section.camera");
         slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);
         slider("camera_height", 0.0, 8.0, ClientConfig.CAMERA_HEIGHT);

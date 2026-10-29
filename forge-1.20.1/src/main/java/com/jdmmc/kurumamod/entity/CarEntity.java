@@ -1097,7 +1097,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         // 支点に車が回る（腹が乗れば亀、転がれば屋根の角が当たる）
         CarSpec carSpec = getSpec();
         double[] span = tireSpan();
-        CarBody body = CarBody.of(carSpec, bodyShape()).tireSpan(span[0], span[1]);
+        CarBody body = CarBody.of(carSpec, bodyShape()).tireSpan(span[0], span[1]).virtualWalls(virtualWalls);
         double x = getX();
         double z = getZ();
         fillBlockField(body, x, z);
@@ -1381,6 +1381,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         return CarBody.tireRims(getSpec(), state, getX(), getZ(), span[0], span[1]);
     }
 
+    /**
+     * 見えない壁（{@link CarBody#virtualWalls}）を使うか。H メニューの設定を {@code ClientConfig#refresh} が写す。
+     * 物理はサーバーでも動くので、クライアントの設定クラスを直接は読まない。サーバーだけの環境では既定のまま。
+     */
+    public static volatile boolean virtualWalls = true;
+
     /** F3+B で見えない壁を描く、車の中心からの距離 [m]。 */
     private static final double STAIRCASE_LINE_RANGE = 6.0;
 
@@ -1391,7 +1397,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      */
     @Nullable
     public List<double[]> staircaseLines() {
-        if (!isControlledByLocalInstance()) {
+        if (!isControlledByLocalInstance() || !virtualWalls) {
             return null;
         }
         // 見えない壁は車の周りの壁から先へたどって作るので、描くのは車の近くの線だけ
