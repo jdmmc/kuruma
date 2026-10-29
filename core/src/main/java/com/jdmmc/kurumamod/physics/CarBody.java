@@ -1,7 +1,11 @@
 package com.jdmmc.kurumamod.physics;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 車体。<b>ブロックと交わらない、硬い箱</b>。前後の下の角は斜めに落としてある。
@@ -109,6 +113,19 @@ public final class CarBody {
     private static final double TIRE_UPRIGHT_MIN = 0.34;
     /** これより深い重なりは押し出さない [m]（埋まっている）。 */
     private static final double MAX_DEPTH = 0.8;
+    /**
+     * 階段状の壁で、手前の段を何マスまで数えるか（{@link #staircaseStep}）。これより長い段は
+     * この長さとして傾きを決める（8 マスで約 7 度。ほぼ横の面と同じ）。
+     */
+    private static final int STAIR_MAX_RUN = 8;
+    /** 見えない壁を作るのは、面の前の地面からこれだけ以上立ち上がった壁だけ [m]（1 ブロック）。 */
+    private static final double WALL_MIN_HEIGHT = 0.99;
+    /** 面の前の地面を、壁の天面からどこまで下へ探すか [m]。 */
+    private static final double WALL_FLOOR_SCAN = 4.0;
+    /** 面の前の地面を探す刻み [m]。roads の路面の薄い層も拾えるよう細かく。 */
+    private static final double FLOOR_SCAN_STEP = 0.0625;
+    /** 壁から飛び出した柱を、手前の柱と結ぶのは何マス離れているまでか（{@link #staircaseStep}）。 */
+    private static final int PILLAR_MAX_GAP = 16;
 
     // 車体基準（前・上・右）の範囲。上下の原点は重心のシャシー基準面
     private final double front;
@@ -410,10 +427,11 @@ public final class CarBody {
         double[][] ax = axes(state.yaw, state.pitch, state.roll);
         double stepBase = Math.cos(state.pitch) * Math.cos(state.roll) >= STEP_UPRIGHT_MIN
                 ? stepBase(ground) : Double.NEGATIVE_INFINITY;
-        List<Contact> contacts = findContacts(x, y, z, ax, field, stepBase);
+        VirtualWalls virtual = virtualWalls(field, x, z);
+        List<Contact> contacts = findContacts(x, y, z, ax, field, stepBase, virtual);
         addBottomOutContacts(contacts, spec, state, ground, x, z);
         double[] span = Double.isNaN(tireInner) ? defaultTireSpan(spec) : new double[]{tireInner, tireOuter};
-        addTireContacts(contacts, spec, state, x, z, field, span[0], span[1]);
+        addTireContacts(contacts, spec, state, x, z, field, virtual, span[0], span[1]);
         if (contacts.isEmpty()) {
             return result;
         }
@@ -687,7 +705,7 @@ public final class CarBody {
      * <p><b>幅を持たせること。</b>真ん中の 1 枚だけでは、太いタイヤの外側が壁に入っても気づかない。</p>
      */
     private static void addTireContacts(List<Contact> out, CarSpec spec, CarState state, double x, double z,
-                                        BlockField field, double inner, double outer) {
+                                        BlockField field, VirtualWalls virtual, double inner, double outer) {
         if (Math.cos(state.pitch) * Math.cos(state.roll) <= TIRE_UPRIGHT_MIN) {
             return;
         }
@@ -718,10 +736,23 @@ public final class CarBody {
                         normal = n;
                     }
                 }
-                if (normal != null) {
+                // 階段状の壁の段の面では受けない。その手前は見えない壁（下）が受け持つ
+                if (normal != null && !isStepFace(normal, virtual.stepFaces().get(box))) {
                     // 摩擦は掛けない（タイヤの横の力は物理のほうで出している。ここで掛けると、
                     // 壁に擦れたタイヤが車を回すモーメントが余計に出る）
                     out.add(new Contact(px, py, pz, normal[0], normal[1], normal[2], best, Kind.TIRE));
+                }
+            }
+            // 見えない壁（階段状の壁をならしたもの）。登れない高さのものだけ
+            for (VirtualWall wall : virtual.walls()) {
+                if (wall.maxY() <= climbable) {
+                    continue;
+                }
+                for (double[] p : rim) {
+                    double depth = wall.depth(p);
+                    if (depth > 0.0) {
+                        out.add(new Contact(p[0], p[1], p[2], wall.nx(), 0.0, wall.nz(), depth, Kind.TIRE));
+                    }
                 }
             }
         }
@@ -833,7 +864,7 @@ public final class CarBody {
     }
 
     private List<Contact> findContacts(double x, double y, double z, double[][] ax, BlockField field,
-                                       double stepBase) {
+                                       double stepBase, VirtualWalls virtual) {
         List<Contact> out = new ArrayList<>();
         double[] reach = bounds(x, y, z, ax);
         double[][] corners = corners();
@@ -865,6 +896,11 @@ public final class CarBody {
             double bestDepth = Double.MAX_VALUE;
             double[] bestNormal = null;
             boolean separated = false;
+            // 階段状の壁の段のブロックでは、段の面でも車体の面の向きでも押さない（離れているかの判定には
+            // 使う）。段の手前は見えない壁が受け持つ。車体の面の向きで押すと、車の鼻先が段の面と平行に
+            // なった瞬間（壁へ 7 度向いただけで起きる）に、車体の前の面の向き＝正面から止められた
+            List<double[]> stepFaces = virtual.stepFaces().get(box);
+            boolean staircase = stepFaces != null;
             for (double[] m : faceNormals) {
                 // 車体はこの面の外向きと逆へ押される
                 double[] n = {-m[0], -m[1], -m[2]};
@@ -873,7 +909,7 @@ public final class CarBody {
                     separated = true;
                     break;
                 }
-                if (depth < bestDepth) {
+                if (depth < bestDepth && !staircase) {
                     bestDepth = depth;
                     bestNormal = n;
                 }
@@ -887,7 +923,7 @@ public final class CarBody {
                     separated = true;
                     break;
                 }
-                if (depth < bestDepth && faceIsOpen(box, n, field)) {
+                if (depth < bestDepth && !isStepFace(n, stepFaces) && faceIsOpen(box, n, field)) {
                     bestDepth = depth;
                     bestNormal = n;
                 }
@@ -933,6 +969,20 @@ public final class CarBody {
                     }
                 }
                 out.add(new Contact(deepest[0], deepest[1], deepest[2], n[0], n[1], n[2], bestDepth));
+            }
+        }
+        // 見えない壁（階段状の壁をならしたもの）。ならした線と本物の壁の間に入った車体の点を、線の外へ押す
+        for (VirtualWall wall : virtual.walls()) {
+            if (wall.maxY() < reach[1] || wall.minY() > reach[4]) {
+                continue;
+            }
+            for (double[][] points : new double[][][]{samplePoints, bodyPoints}) {
+                for (double[] p : points) {
+                    double depth = wall.depth(p);
+                    if (depth > 0.0) {
+                        out.add(new Contact(p[0], p[1], p[2], wall.nx(), 0.0, wall.nz(), depth));
+                    }
+                }
             }
         }
         return out;
@@ -1002,6 +1052,366 @@ public final class CarBody {
         double hy = (box[4] - box[1]) / 2.0;
         double hz = (box[5] - box[2]) / 2.0;
         return !field.solidAt(cx + n[0] * (hx + 0.02), cy + n[1] * (hy + 0.02), cz + n[2] * (hz + 0.02));
+    }
+
+    /**
+     * 見えない壁 1 枚。階段状の壁（斜めの道の壁）や壁から飛び出した柱の、<b>張り出しの角どうしを結んだ線</b>
+     * （{@code (cx, cz)} から {@code (ex, ez)}）と、本物の壁との間を埋める。
+     *
+     * <p>Minecraft で斜めの道に沿わせた壁は、数マスごとに 1 マスずつずれる階段になる。壁に沿って
+     * 走ると、ずれるたびに出てくる段の面（進む向きに立ちはだかる幅 1 マスの面）にタイヤの縁が
+     * 正面から当たり、20m/s から 0〜4m/s まで止められた（壁の平均の線へ 2 度向けただけで。
+     * まっすぐな壁なら 16.4m/s 残る）。そこで段の面を、<b>角を結んだなめらかな壁</b>として扱う。
+     * 段を積んだ坂で、段の角を結んだ線を地面にしているのと同じ考え方を横に倒したもの。</p>
+     *
+     * <p><b>段のブロックとは別の、独立した壁として当てる。</b>以前は段のブロックの面の向きを線の向きに
+     * 差し替えていたので、当たりが出るのは車体がそのブロックに重なってから——壁際（へこんだ所）を
+     * 走ってくると、線の内側へ深く入ったところで急に壁が現れ、押し出す向きにブロックの天面が選ばれて
+     * 車が上へはじけ飛んだ。いまは線と本物の壁の間（{@code poly}、水平の凸多角形）に入った点を、
+     * 線の外向き（{@code nx, nz}）へ押す。</p>
+     *
+     * @param poly 線と本物の壁の間を囲む凸多角形 {@code {x0, z0, x1, z1, ...}}
+     */
+    private record VirtualWall(double cx, double cz, double ex, double ez, double minY, double maxY,
+                               double nx, double nz, double[] poly) {
+
+        /** 点がこの壁の中なら、線の外まで押し出す距離 [m]。外なら 0 以下。 */
+        double depth(double[] p) {
+            if (p[1] <= minY || p[1] >= maxY || !insideConvex(poly, p[0], p[2])) {
+                return 0.0;
+            }
+            return (cx - p[0]) * nx + (cz - p[2]) * nz;
+        }
+    }
+
+    /**
+     * 見えない壁の一覧と、段の面（ブロック → その面の外向き）。{@link BlockField} ごとに 1 回組み立てる。
+     * <b>1 つのブロックに段の面が 2 つあることがある</b>（壁から飛び出した柱は、前にも後ろにも柱が並ぶ）。
+     */
+    private record VirtualWalls(List<VirtualWall> walls, Map<double[], List<double[]>> stepFaces) {
+    }
+
+    /** 点 (x, z) が凸多角形の中（縁を含む）か。回る向きはどちらでもよい。 */
+    private static boolean insideConvex(double[] poly, double x, double z) {
+        int count = poly.length / 2;
+        int sign = 0;
+        for (int i = 0; i < count; i++) {
+            double ax = poly[i * 2];
+            double az = poly[i * 2 + 1];
+            double bx = poly[(i + 1) % count * 2];
+            double bz = poly[(i + 1) % count * 2 + 1];
+            double cross = (bx - ax) * (z - az) - (bz - az) * (x - ax);
+            if (Math.abs(cross) < 1.0e-9) {
+                continue;
+            }
+            int side = cross > 0 ? 1 : -1;
+            if (sign == 0) {
+                sign = side;
+            } else if (side != sign) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** {@code n} が段の面（{@code stepFaces}）のどれかか。 */
+    private static boolean isStepFace(double[] n, List<double[]> stepFaces) {
+        if (stepFaces == null) {
+            return false;
+        }
+        for (double[] f : stepFaces) {
+            if (n[0] == f[0] && n[1] == f[1] && n[2] == f[2]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * {@code field} の見えない壁。1 ティックの間は同じ箱なので、組み立てたものを箱の側に覚えておく。
+     * 積み重なった壁は、同じ線のものを上下につないで 1 枚にする。
+     *
+     * <p><b>見るのは車の側を向いた面だけ</b>（{@code carX, carZ} は車の位置）。壁の裏や、通り過ぎた後ろを
+     * 向いた面に車が当たることは無い。</p>
+     *
+     * <p>「一度たどった壁はもうたどらない」は<b>してはいけない</b>。遠いブロックからのたどりが上限
+     * （{@link #VIRTUAL_WALL_REACH}）で打ち切られたあと、角に近いブロックからのたどりがそこで止まって
+     * 角を見つけられず、階段状の壁でまた止まった。</p>
+     */
+    private static VirtualWalls virtualWalls(BlockField field, double carX, double carZ) {
+        if (field.derived() instanceof VirtualWalls cached) {
+            return cached;
+        }
+        List<VirtualWall> walls = new ArrayList<>();
+        Map<double[], List<double[]>> stepFaces = new IdentityHashMap<>();
+        Set<Long> tried = new HashSet<>();
+        for (double[] box : field.boxes()) {
+            for (int f = 0; f < HORIZONTAL_FACES.length; f++) {
+                double[] n = HORIZONTAL_FACES[f];
+                if (!facesCar(box, n, carX, carZ) || !faceIsOpen(box, n, field)) {
+                    continue;
+                }
+                addStep(walls, stepFaces, tried, box, f, field, carX, carZ);
+                // この面に沿って壁をたどり、先の段の角を探す。物理が集めるのは車の周りだけなので、
+                // 線の端の角は範囲の外にあることが多い（範囲の外は solidAt がワールドに聞く）
+                double cx = (box[0] + box[3]) / 2.0;
+                double cy = (box[1] + box[4]) / 2.0;
+                double cz = (box[2] + box[5]) / 2.0;
+                for (double sign : new double[]{1.0, -1.0}) {
+                    double dx = -n[2] * sign;
+                    double dz = n[0] * sign;
+                    for (int k = 1; k <= VIRTUAL_WALL_REACH; k++) {
+                        double wx = cx + dx * k;
+                        double wz = cz + dz * k;
+                        // 道の側にブロックが出てきたら、それが段の角（その面は来た向きを向く）
+                        if (field.solidAt(wx + n[0], cy, wz + n[2])) {
+                            int back = faceIndex(-dx, -dz);
+                            double[] corner = field.boxAt(wx + n[0], cy, wz + n[2]);
+                            if (corner == null) {
+                                // 集めた範囲の外。1 マスの箱として扱う
+                                double bx = Math.floor(wx + n[0]);
+                                double by = Math.floor(cy);
+                                double bz = Math.floor(wz + n[2]);
+                                corner = new double[]{bx, by, bz, bx + 1, by + 1, bz + 1};
+                            }
+                            if (facesCar(corner, HORIZONTAL_FACES[back], carX, carZ)) {
+                                addStep(walls, stepFaces, tried, corner, back, field, carX, carZ);
+                            }
+                            break;
+                        }
+                        // 壁が途切れたら、その先は別の壁
+                        if (!field.solidAt(wx, cy, wz)) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        VirtualWalls result = new VirtualWalls(walls, stepFaces);
+        field.setDerived(result);
+        return result;
+    }
+
+    /** 水平な面の外向き。並びは {@link #faceIndex} と同じ。 */
+    private static final double[][] HORIZONTAL_FACES = {{-1, 0, 0}, {1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
+
+    private static int faceIndex(double x, double z) {
+        return x < -0.5 ? 0 : x > 0.5 ? 1 : z < -0.5 ? 2 : 3;
+    }
+
+    /**
+     * ブロックの面（外向き {@code n}）が車の側を向いているか。車の中心ではなく<b>車の大きさぶん
+     * （{@link #FACING_MARGIN}）手前</b>まで含める——車の中心が段の面を通り過ぎても、後ろ半分はまだその段の
+     * 見えない壁の上にいる。中心で切ったら、そこで壁が消えて後輪が段の面に後ろから引っかかった。
+     */
+    private static boolean facesCar(double[] box, double[] n, double carX, double carZ) {
+        double fx = n[0] < 0 ? box[0] : n[0] > 0 ? box[3] : (box[0] + box[3]) / 2.0;
+        double fz = n[2] < 0 ? box[2] : n[2] > 0 ? box[5] : (box[2] + box[5]) / 2.0;
+        return (carX - fx) * n[0] + (carZ - fz) * n[2] > -FACING_MARGIN;
+    }
+
+    /** マスと面の番号を 1 つの数にまとめる。 */
+    private static long cellKey(double x, double y, double z, int tag) {
+        return ((long) Math.floor(x) & 0xFFFFFL) << 42 | ((long) Math.floor(y) & 0x3FFFL) << 28
+                | ((long) Math.floor(z) & 0xFFFFFL) << 8 | tag;
+    }
+
+    /**
+     * ブロック {@code box} の面（{@link #HORIZONTAL_FACES} の {@code f} 番）が段の面なら、見えない壁を足す。
+     * 同じマスの同じ面は 1 度しか調べない。
+     */
+    private static void addStep(List<VirtualWall> walls, Map<double[], List<double[]>> stepFaces, Set<Long> tried,
+                                double[] box, int f, BlockField field, double carX, double carZ) {
+        if (!tried.add(cellKey(box[0], box[1], box[2], f))) {
+            return;
+        }
+        double[] n = HORIZONTAL_FACES[f];
+        if (!faceIsOpen(box, n, field)) {
+            return;
+        }
+        double[] step = staircaseStep(box, n, field);
+        if (step == null) {
+            return;
+        }
+        double tx = step[0];
+        double tz = step[1];
+        double run = step[2];
+        double gap = step[3];
+        double hn = Math.abs(n[0]) * (box[3] - box[0]) / 2.0 + Math.abs(n[2]) * (box[5] - box[2]) / 2.0;
+        double ht = Math.abs(n[2]) * (box[3] - box[0]) / 2.0 + Math.abs(n[0]) * (box[5] - box[2]) / 2.0;
+        // 張り出しの角: 段の面の側で、道の側（-t）の縁
+        double cx = (box[0] + box[3]) / 2.0 + n[0] * hn - tx * ht;
+        double cz = (box[2] + box[5]) / 2.0 + n[2] * hn - tz * ht;
+        double ex;
+        double ez;
+        double nx;
+        double nz;
+        double[] poly;
+        if (gap > 0) {
+            // 壁から飛び出した柱: 手前の柱の先端まで。線は壁と平行で、間は 1 マスのへこみ
+            ex = cx + n[0] * gap;
+            ez = cz + n[2] * gap;
+            nx = -tx;
+            nz = -tz;
+            poly = new double[]{cx, cz, cx + tx, cz + tz, ex + tx, ez + tz, ex, ez};
+        } else {
+            // 階段: 手前の段の張り出しの角まで。間は段の面と手前の段の横の面に挟まれた三角
+            ex = cx + n[0] * run + tx;
+            ez = cz + n[2] * run + tz;
+            double ox = -tx * run + n[0];
+            double oz = -tz * run + n[2];
+            double length = Math.hypot(ox, oz);
+            nx = ox / length;
+            nz = oz / length;
+            poly = new double[]{cx, cz, cx + tx, cz + tz, ex, ez};
+        }
+        // 車がならした線の手前（道の側）にいるものだけ。壁の裏にも同じ形の段があるので、
+        // 車の大きさぶんの余裕（facesCar）だけでは、厚さ 1 マスの壁の裏にも見えない壁ができた
+        if ((carX - cx) * nx + (carZ - cz) * nz <= -BEHIND_LINE_MARGIN) {
+            return;
+        }
+        stepFaces.computeIfAbsent(box, k -> new ArrayList<>(2)).add(n);
+        addVirtualWall(walls, new VirtualWall(cx, cz, ex, ez, box[1], box[4], nx, nz, poly));
+    }
+
+    /** 同じ線で上下に接している壁があれば、つないで 1 枚にする。 */
+    private static void addVirtualWall(List<VirtualWall> walls, VirtualWall wall) {
+        for (int i = 0; i < walls.size(); i++) {
+            VirtualWall w = walls.get(i);
+            if (Math.abs(w.cx() - wall.cx()) > 1.0e-6 || Math.abs(w.cz() - wall.cz()) > 1.0e-6
+                    || Math.abs(w.ex() - wall.ex()) > 1.0e-6 || Math.abs(w.ez() - wall.ez()) > 1.0e-6) {
+                continue;
+            }
+            if (Math.abs(w.maxY() - wall.minY()) < 1.0e-6 || Math.abs(w.minY() - wall.maxY()) < 1.0e-6) {
+                walls.set(i, new VirtualWall(w.cx(), w.cz(), w.ex(), w.ez(), Math.min(w.minY(), wall.minY()),
+                        Math.max(w.maxY(), wall.maxY()), w.nx(), w.nz(), w.poly()));
+                return;
+            }
+        }
+        walls.add(wall);
+    }
+
+    /**
+     * F3+B 用。{@code field} の見えない壁の線分 {@code {x1, z1, x2, z2, 下端, 上端}}。張り出しの角から、
+     * 手前の段の張り出しの角（壁から飛び出した柱なら、手前の柱の先端）まで。
+     * 当たりと同じもの（{@link #virtualWalls}）を描くので、描いた線がそのまま当たる場所。
+     */
+    public static List<double[]> staircaseLines(BlockField field, double carX, double carZ) {
+        List<double[]> out = new ArrayList<>();
+        for (VirtualWall w : virtualWalls(field, carX, carZ).walls()) {
+            out.add(new double[]{w.cx(), w.cz(), w.ex(), w.ez(), w.minY(), w.maxY()});
+        }
+        return out;
+    }
+
+    /**
+     * 見えない壁の端の角を、壁に沿って何マス先まで探すか。車がその線のどこにいても角が見つかるように、
+     * 線の長さ（{@link #STAIR_MAX_RUN}・{@link #PILLAR_MAX_GAP}）より 1 マス長く。
+     * <b>物理が集める範囲そのものを広げてはいけない</b>——17m 広げたら箱が 20 倍になり、街中で
+     * 1 ティックの物理が 0.8ms から 7ms に増えて重くなった。
+     */
+    private static final int VIRTUAL_WALL_REACH = Math.max(STAIR_MAX_RUN, PILLAR_MAX_GAP) + 1;
+    /** 車の側を向いた面とみなす余裕 [m]。車の中心から車体の端まで（全長の半分と車幅）より長く。 */
+    private static final double FACING_MARGIN = 4.0;
+    /**
+     * 車の中心が、ならした線からこれ以上向こう（壁の側）にあれば、その見えない壁は作らない [m]。
+     * 車の中心が線を越えるのは、車が壁の向こう側にいるときだけ。
+     */
+    private static final double BEHIND_LINE_MARGIN = 0.5;
+
+    /**
+     * 段の面の高さ。面の前の地面から、ブロックの柱の天面まで [m]。前に地面が見つからなければ
+     * （{@link #WALL_FLOOR_SCAN} より下）十分高いものとして返す。
+     */
+    private static double faceHeight(double[] box, double[] n, BlockField field) {
+        double cx = (box[0] + box[3]) / 2.0;
+        double cz = (box[2] + box[5]) / 2.0;
+        double top = columnTop(field, cx, box[4], cz);
+        double hn = Math.abs(n[0]) * (box[3] - box[0]) / 2.0 + Math.abs(n[2]) * (box[5] - box[2]) / 2.0;
+        double fx = cx + n[0] * (hn + 0.5);
+        double fz = cz + n[2] * (hn + 0.5);
+        // 面の前を上から下へ、薄い層（roads の路面）も拾える刻みで探す。集めた範囲の中ならブロックの天面
+        // そのもの、外なら solidAt に聞いて、最初に当たった高さ（天面はそこから 1 刻み上までの間）
+        for (double y = top - 0.01; y > top - WALL_FLOOR_SCAN; y -= FLOOR_SCAN_STEP) {
+            double[] floor = field.boxAt(fx, y, fz);
+            if (floor != null) {
+                return top - floor[4];
+            }
+            if (field.solidAt(fx, y, fz)) {
+                return top - y;
+            }
+        }
+        return WALL_FLOOR_SCAN;
+    }
+
+    /**
+     * 階段状の壁の段の面なら {@code {tx, tz, L, 柱の間}}（手前の段がずれている横の向き、手前の段の長さ、
+     * 壁から飛び出した柱なら手前の柱までのマス数。柱でなければ 0）。そうでなければ null。
+     *
+     * <p><b>壁から飛び出した柱は、手前の柱の先端と結ぶ。</b>柱の手前も壁が続いているので、柱だけを見ると
+     * 「段の長さ 8 マスの階段」になり、柱の 8 マス手前から 1 マスせり出す坂の壁ができて、壁に沿って走る車が
+     * 道の真ん中へはじき出された（20m/s で 5〜9m、向きが 14〜23 度）。手前の柱の先端と結んだ線は壁と
+     * 平行なので、車は柱の面に沿って滑る。間は壁なので、結んでも通れる場所は無くならない。
+     * <b>ひとりで立っている柱どうしは結ばない</b>（後ろに壁が続いていないので、ここには来ない）——
+     * 柱と柱の間を通れなくなる。</p>
+     */
+    private static double[] staircaseStep(double[] box, double[] n, BlockField field) {
+        if (n[1] != 0) {
+            return null;
+        }
+        double cx = (box[0] + box[3]) / 2.0;
+        double cy = (box[1] + box[4]) / 2.0;
+        double cz = (box[2] + box[5]) / 2.0;
+        // 面までの距離（箱の半分の大きさ）
+        double hn = Math.abs(n[0]) * (box[3] - box[0]) / 2.0 + Math.abs(n[2]) * (box[5] - box[2]) / 2.0;
+        double ht = Math.abs(n[2]) * (box[3] - box[0]) / 2.0 + Math.abs(n[0]) * (box[5] - box[2]) / 2.0;
+        for (double sign : new double[]{1.0, -1.0}) {
+            // 面に沿った横の向き。手前の段がこちらへ 1 マスずれていれば階段
+            double tx = -n[2] * sign;
+            double tz = n[0] * sign;
+            // 張り出しの角: 反対側（-t）の横の面が空いていること
+            if (field.solidAt(cx - tx * (ht + 0.5), cy, cz - tz * (ht + 0.5))) {
+                continue;
+            }
+            // 手前に柱があるか。後ろの壁（t 側）が続いている間に、柱の列（-t 側）にブロックが出てきたら柱
+            for (int k = 1; k <= PILLAR_MAX_GAP; k++) {
+                double qx = cx + n[0] * (hn + k - 0.5) + tx * (ht + 0.5);
+                double qz = cz + n[2] * (hn + k - 0.5) + tz * (ht + 0.5);
+                if (!field.solidAt(qx, cy, qz)) {
+                    break;
+                }
+                if (field.solidAt(qx - tx, cy, qz - tz)) {
+                    if (k > 1) {
+                        return tallEnough(box, n, field) ? new double[]{tx, tz, 0, k - 1} : null;
+                    }
+                    break;
+                }
+            }
+            int run = 0;
+            for (int k = 1; k <= STAIR_MAX_RUN; k++) {
+                double qx = cx + n[0] * (hn + k - 0.5) + tx * (ht + 0.5);
+                double qz = cz + n[2] * (hn + k - 0.5) + tz * (ht + 0.5);
+                // 手前の段のマスが壁で、その -t 側（道の側）が空いている
+                if (!field.solidAt(qx, cy, qz) || field.solidAt(qx - tx, cy, qz - tz)) {
+                    break;
+                }
+                run++;
+            }
+            if (run == 0) {
+                continue;
+            }
+            return tallEnough(box, n, field) ? new double[]{tx, tz, run, 0} : null;
+        }
+        return null;
+    }
+
+    /**
+     * 1 ブロック以上立ち上がった壁か。roads の坂は薄い層を斜めにずらして積んであるので、高さを見ないと
+     * 路面の段の縁が階段状の壁に見え、坂道を横切る見えない壁ができた。面の前の地面を細かく探すので重く、
+     * <b>段の形だと分かってから最後に見る</b>（たいていの面は、角が張り出していない時点で外れる）。
+     */
+    private static boolean tallEnough(double[] box, double[] n, BlockField field) {
+        return faceHeight(box, n, field) >= WALL_MIN_HEIGHT;
     }
 
     private boolean insideBody(double[] p, double x, double y, double z, double[][] ax) {

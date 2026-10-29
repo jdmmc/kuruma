@@ -71,7 +71,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ドライブ可能な車両エンティティ。
@@ -1332,6 +1334,32 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
                 blockField.add(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
             }
         }
+        // 範囲の外は、聞かれたときにワールドを引く（見えない壁の端の角を、壁に沿って探すため）
+        outsideShapes.clear();
+        blockField.setOutside(new double[]{area.minX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ},
+                this::solidOutside);
+    }
+
+    /** {@link #blockField} の範囲の外を引いたブロックの形。1 ティックの間だけ覚えておく。 */
+    private final Map<Long, VoxelShape> outsideShapes = new HashMap<>();
+
+    /** 点がブロックの当たり判定の中か。{@link #blockField} の範囲の外を聞かれたときに使う。 */
+    private boolean solidOutside(double x, double y, double z) {
+        BlockPos pos = BlockPos.containing(x, y, z);
+        VoxelShape shape = outsideShapes.computeIfAbsent(pos.asLong(),
+                key -> level().getBlockState(pos).getCollisionShape(level(), pos));
+        if (shape.isEmpty()) {
+            return false;
+        }
+        double lx = x - pos.getX();
+        double ly = y - pos.getY();
+        double lz = z - pos.getZ();
+        for (AABB box : shape.toAabbs()) {
+            if (lx > box.minX && lx < box.maxX && ly > box.minY && ly < box.maxY && lz > box.minZ && lz < box.maxZ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1345,6 +1373,36 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
         }
         double[] span = tireSpan();
         return CarBody.tireRims(getSpec(), state, getX(), getZ(), span[0], span[1]);
+    }
+
+    /** F3+B で見えない壁を描く、車の中心からの距離 [m]。 */
+    private static final double STAIRCASE_LINE_RANGE = 6.0;
+
+    /**
+     * 階段状の壁をならした線（{@link CarBody#staircaseLines}）。F3+B 用。
+     * 描くのは車から {@link #STAIRCASE_LINE_RANGE} 以内の線だけ（近づいた壁だけが出る）。
+     * それを持っているのは手元で物理を解いている車だけなので、それ以外は null。
+     */
+    @Nullable
+    public List<double[]> staircaseLines() {
+        if (!isControlledByLocalInstance()) {
+            return null;
+        }
+        // 見えない壁は車の周りの壁から先へたどって作るので、描くのは車の近くの線だけ
+        List<double[]> near = new ArrayList<>();
+        for (double[] line : CarBody.staircaseLines(blockField, getX(), getZ())) {
+            double dx = line[2] - line[0];
+            double dz = line[3] - line[1];
+            double lengthSq = dx * dx + dz * dz;
+            double t = lengthSq < 1.0e-9 ? 0.0
+                    : Mth.clamp(((getX() - line[0]) * dx + (getZ() - line[1]) * dz) / lengthSq, 0.0, 1.0);
+            double ox = line[0] + dx * t - getX();
+            double oz = line[1] + dz * t - getZ();
+            if (ox * ox + oz * oz <= STAIRCASE_LINE_RANGE * STAIRCASE_LINE_RANGE) {
+                near.add(line);
+            }
+        }
+        return near;
     }
 
     /**

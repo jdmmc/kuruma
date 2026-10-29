@@ -696,7 +696,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
 
     /**
      * F3+B のときに、本当の当たり判定を描く。地形と当たる車体（{@link com.jdmmc.kurumamod.physics.CarBody}）を橙、
-     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色、タイヤの縁の当たりを桃色で。
+     * 車同士用の箱（{@link com.jdmmc.kurumamod.physics.CarHull#body}）を水色、タイヤの縁の当たりを桃色、
+     * 階段状の壁をならした見えない壁を黄色で。
      *
      * <p><b>バニラが白で描く箱は当たり判定ではない。</b>サーバーの移動の検査に弾かれないよう、
      * 車体の箱の内側に収まる小さな板にしてある（{@code CarEntity#makeBoundingBox}）。</p>
@@ -737,6 +738,22 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             for (double[][] rim : rims) {
                 renderEdges(car, rim, rimEdges, 1.0F, 0.3F, 0.85F, partialTick, pose, buffer);
             }
+        }
+
+        // 階段状の壁をならした、見えない壁（黄）。車体とタイヤは段の面ではなくこの面に当たる。
+        // 物理が見ている周りのブロックだけなので、近づいた壁にだけ出る
+        List<double[]> stairs = car.staircaseLines();
+        if (stairs != null && !stairs.isEmpty()) {
+            List<double[]> lines = new ArrayList<>();
+            for (double[] s : stairs) {
+                lines.add(new double[]{s[0], s[4], s[1], s[2], s[4], s[3], 1.0, 0.9, 0.1});
+                lines.add(new double[]{s[0], s[5], s[1], s[2], s[5], s[3], 1.0, 0.9, 0.1});
+                lines.add(new double[]{s[0], s[4], s[1], s[0], s[5], s[1], 1.0, 0.9, 0.1});
+                lines.add(new double[]{s[2], s[4], s[3], s[2], s[5], s[3], 1.0, 0.9, 0.1});
+                // 面だと分かるよう、対角も引く
+                lines.add(new double[]{s[0], s[4], s[1], s[2], s[5], s[3], 1.0, 0.9, 0.1});
+            }
+            renderLines(car, lines, partialTick, pose, buffer);
         }
     }
 
