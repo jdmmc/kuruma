@@ -35,7 +35,7 @@
   "paint.kurumamod.white": "Белый",
   "paint.kurumamod.silver": "Серебристый",
   "paint.kurumamod.yellow": "Жёлтый",
-  "screen.kurumamod.part.hint": "Клик — установить.  Тянуть — вращать.  Колесо мыши — масштаб.  Esc — назад",
+  "screen.kurumamod.part.hint": "Метка на машине — выбрать место.  Клик по плитке — установить.  Тянуть — вращать.  Колесо мыши — масштаб.  Esc — назад",
   "screen.kurumamod.part.need_driving": "Менять детали можно только за рулём",
   "part_slot.kurumamod.wheel": "Диски",
   "part_slot.kurumamod.tire": "Шины",

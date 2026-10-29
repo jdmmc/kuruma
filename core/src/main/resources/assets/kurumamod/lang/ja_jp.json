@@ -35,7 +35,7 @@
   "paint.kurumamod.white": "ホワイト",
   "paint.kurumamod.silver": "シルバー",
   "paint.kurumamod.yellow": "イエロー",
-  "screen.kurumamod.part.hint": "クリックで装着  ドラッグで回す  ホイールで寄り引き  Esc で戻る",
+  "screen.kurumamod.part.hint": "車の上の札で場所を選ぶ  タイルで装着  ドラッグで回す  ホイールで寄り引き  Esc で戻る",
   "screen.kurumamod.part.need_driving": "車を運転しているときだけ換装できます",
   "part_slot.kurumamod.wheel": "ホイール",
   "part_slot.kurumamod.tire": "タイヤ",

@@ -35,7 +35,7 @@
   "paint.kurumamod.white": "白色",
   "paint.kurumamod.silver": "银色",
   "paint.kurumamod.yellow": "黄色",
-  "screen.kurumamod.part.hint": "点击安装  拖动旋转  滚轮缩放  Esc 返回",
+  "screen.kurumamod.part.hint": "点击车上的标签选择部位  点击方块安装  拖动旋转  滚轮缩放  Esc 返回",
   "screen.kurumamod.part.need_driving": "只有在驾驶时才能更换部件",
   "part_slot.kurumamod.wheel": "轮毂",
   "part_slot.kurumamod.tire": "轮胎",

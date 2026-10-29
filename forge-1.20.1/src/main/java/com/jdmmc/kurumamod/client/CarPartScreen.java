@@ -38,14 +38,22 @@ import java.util.List;
  * <p>あわせて {@link CarChaseCamera} が<b>車を画面の上へ持ち上げる</b>——下端に置いた以上、
  * 車が下半分にいると自分で自分を隠すことになる。</p>
  *
- * <p><b>タイルはパーツそのもの。</b>付ける場所（{@link PartSlot}）はいまホイールしかないので、
- * 場所の切り替えは<b>2 つ以上あるときだけ</b>出す。1 つしかないうちから置くと、
- * 押せないタブが 1 枚あるだけの列になる。</p>
+ * <p><b>タイルはパーツそのもの。</b>付ける場所（{@link PartSlot}）は<b>車の上の札</b>で選ぶ。</p>
+ *
+ * <h2>場所は車の上で選ぶ</h2>
+ *
+ * <p>以前は場所をタブの列で切り替えていたが、「リアウイング」という文字と車のどこなのかを
+ * 頭の中で結び付けることになる。そこで<b>車の部位から引き出し線を出し、その先に札
+ * （場所の名前と、いま付いている部品）を立てる</b>。部位の画面上の位置は {@link PartAnchors} が
+ * 世界を描くたびに測り直すので、ドラッグで車を回しても札が付いてくる。</p>
+ *
+ * <p>札は車の中心から外へ向けて逃がし、重なったら上下へ押し分ける。部位を写せないとき
+ * （カメラの後ろ・測る前の最初のフレーム）は左上に縦に並べる。</p>
  *
  * <h2>塗装も同じ列に並べる</h2>
  *
- * <p>塗装は部品ではないが、<b>「塗った車がどう見えるか」で選ぶ</b>点は同じなので、場所のタブの
- * 最後に「塗装」のタブを足して、同じタイルの列で選ばせる。車種の {@code paints} が 2 つ以上
+ * <p>塗装は部品ではないが、<b>「塗った車がどう見えるか」で選ぶ</b>点は同じなので、屋根に
+ * 「塗装」の札を立てて、同じタイルの列で選ばせる。車種の {@code paints} が 2 つ以上
  * あるときだけ出す（1 つでは選ぶものが無い）。</p>
  *
  * <h2>装着中の印は毎フレーム車から読む</h2>
@@ -73,17 +81,23 @@ public class CarPartScreen extends Screen {
     private static final int SIDE_MARGIN = 22;
     private static final int SLIDER_WIDTH = 210;
     private static final int RESET_WIDTH = 18;
-    /** 場所の切り替えのタブの幅。性能の表がタブとかぶるかの判定にも使う。 */
-    private static final int TAB_WIDTH = 68;
     /** 調整値 1 行ぶんの高さ。 */
     private static final int ROW_STEP = 24;
-    /**
-     * 調整値の行がいちばん多い場所（ホイール）の行数。タブはこの高さの上に置く。
-     * <b>場所ごとの行数で動かすと、タブを押すたびにタブが上下に跳ねる。</b>
-     */
-    private static final int MAX_ROWS = 3;
     private static final int TEXT_LEFT = 24;
     private static final int TITLE_Y = 18;
+
+    /** 札の高さ。場所の名前と付いている部品の 2 行。 */
+    private static final int TAG_HEIGHT = 22;
+    /** 札の文字の左右の余白。 */
+    private static final int TAG_PADDING = 5;
+    /** 付いている部品の名前はここで切る。長い名前の札が画面を横切らないように。 */
+    private static final int TAG_TEXT_MAX = 110;
+    /** 部位から札までの引き出し線の長さ。 */
+    private static final int TAG_LEADER = 36;
+    /** 札を置いてよい上端。左上のタイトルと操作ヒントの下から。 */
+    private static final int TAG_TOP = TITLE_Y + 40;
+    /** 線の色（選んでいない札）。 */
+    private static final int LEADER_COLOR = 0xD0FFFFFF;
 
     // 配色は ScreenStyle が持つ（セッティング画面と揃えるため）。
     // ここに残すのはホイールの絵の色だけ
@@ -98,6 +112,12 @@ public class CarPartScreen extends Screen {
     private boolean paintMode;
     private final List<PartTile> tiles = new ArrayList<>();
     private final List<LookSlider> sliders = new ArrayList<>();
+    private final List<SlotTag> tags = new ArrayList<>();
+    /**
+     * 札を押して場所が変わった。<b>作り直しは次の描画の頭で行う</b>——クリックの伝播中に
+     * ウィジェットの一覧を入れ替えることになるので。
+     */
+    private boolean rebuildPending;
 
     /** 左端に出しているタイルの番号。横スクロール。 */
     private int scroll;
@@ -114,6 +134,7 @@ public class CarPartScreen extends Screen {
     protected void init() {
         tiles.clear();
         sliders.clear();
+        tags.clear();
         lastShown = shownSlots();
         // 見ていた場所が意味を失った（ターボを外してブローオフのタブが消えた）ら、先頭へ戻す
         if (!lastShown.contains(slot)) {
@@ -137,7 +158,7 @@ public class CarPartScreen extends Screen {
         }
 
         addAdjustmentRows();
-        addSlotTabs();
+        addSlotTags();
 
         scroll = Math.max(0, Math.min(scroll, Math.max(0, tiles.size() - visibleTiles)));
         layout();
@@ -205,60 +226,107 @@ public class CarPartScreen extends Screen {
     private List<Adjustment> lastAdjustments = List.of();
 
     /**
-     * タブ 1 枚の幅。<b>場所が増えても画面に収まるよう、入りきらなければ縮める。</b>
-     * 性能の表がタブとかぶるかの判定も同じ幅で見る。
+     * 場所の札。<b>1 つしかなくても出す</b>——付いている部品の名前を出す場所でもあるので。
+     * 置き場所は描くたびに {@link #placeTags} が決める。
      */
-    private int tabWidth(int count) {
-        int fit = (width - SIDE_MARGIN * 2 + TILE_GAP) / Math.max(1, count) - TILE_GAP;
-        return Math.max(40, Math.min(TAB_WIDTH, fit));
+    private void addSlotTags() {
+        for (PartSlot value : shownSlots()) {
+            tags.add(addRenderableWidget(new SlotTag(value)));
+        }
+        if (hasPaintTab()) {
+            tags.add(addRenderableWidget(new SlotTag(null)));
+        }
     }
 
     /**
-     * 場所の切り替え。<b>2 つ以上あるときだけ出す。</b>
+     * 札を置く。部位の位置から車の中心と反対へ {@link #TAG_LEADER} だけ逃がし、
+     * 重なったものは上下へ押し分ける。
      *
-     * <p>いまはホイールしかないので何も置かれない。エアロが増えた時点で自動的に現れる。</p>
+     * <p>下端は調整値の行の上まで、右端は性能の表を出すときはその手前まで。
+     * 札がスライダーや表に乗ると、どちらも押せなくなる。</p>
      */
-    private void addSlotTabs() {
-        List<PartSlot> shown = shownSlots();
-        int count = tabCount();
-        if (count < 2) {
-            return;
+    private void placeTags(@Nullable CarEntity car) {
+        int bottom = rowTop - ROW_STEP * lastAdjustments.size() - 6 - TAG_HEIGHT;
+        int right = width - SIDE_MARGIN;
+        if (!paintMode && PartInfoPanel.covers(slot)) {
+            right = Math.min(right, width - INFO_RIGHT_MARGIN - PartInfoPanel.WIDTH - 6);
         }
-        int tabWidth = tabWidth(count);
-        int y = rowTop - ROW_STEP * (MAX_ROWS + 1);
-        int totalWidth = count * (tabWidth + TILE_GAP) - TILE_GAP;
-        int left = (width - totalWidth) / 2;
-        for (int i = 0; i < shown.size(); i++) {
-            PartSlot value = shown.get(i);
-            Button tab = addRenderableWidget(Button.builder(value.displayName(), button -> {
-                        slot = value;
-                        paintMode = false;
-                        scroll = 0;
-                        rebuildWidgets();
-                    })
-                    .bounds(left + i * (tabWidth + TILE_GAP), y, tabWidth, 18)
-                    .build());
-            tab.active = paintMode || value != slot;
+        float[] center = PartAnchors.center();
+        int fallback = 0;
+        for (SlotTag tag : tags) {
+            tag.refresh(car);
+            float[] anchor = tag.anchor;
+            if (anchor == null || center == null) {
+                // 写せないときは左上に縦に並べる。線は引かない
+                tag.anchor = null;
+                tag.fx = TEXT_LEFT;
+                tag.fy = TAG_TOP + fallback++ * (TAG_HEIGHT + 4);
+                continue;
+            }
+            float dx = anchor[0] - center[0];
+            float dy = anchor[1] - center[1];
+            float length = (float) Math.sqrt(dx * dx + dy * dy);
+            if (length < 1.0F) {
+                dx = 0.0F;
+                dy = -1.0F;
+                length = 1.0F;
+            }
+            tag.fx = anchor[0] + dx / length * TAG_LEADER - tag.getWidth() * 0.5F;
+            tag.fy = anchor[1] + dy / length * TAG_LEADER - TAG_HEIGHT * 0.5F;
         }
-        if (hasPaintTab()) {
-            Button tab = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.part.paint"),
-                            button -> {
-                                paintMode = true;
-                                scroll = 0;
-                                rebuildWidgets();
-                            })
-                    .bounds(left + shown.size() * (tabWidth + TILE_GAP), y, tabWidth, 18)
-                    .build());
-            tab.active = !paintMode;
+        // 重なりを上下へ押し分ける。数回回せば落ち着く（札は多くても 11 枚）
+        for (int pass = 0; pass < 8; pass++) {
+            for (SlotTag tag : tags) {
+                tag.clamp(right, bottom);
+            }
+            for (int i = 0; i < tags.size(); i++) {
+                for (int j = i + 1; j < tags.size(); j++) {
+                    SlotTag a = tags.get(i);
+                    SlotTag b = tags.get(j);
+                    boolean across = a.fx < b.fx + b.getWidth() + 2 && b.fx < a.fx + a.getWidth() + 2;
+                    float overlap = Math.min(a.fy, b.fy) + TAG_HEIGHT + 2 - Math.max(a.fy, b.fy);
+                    if (!across || overlap <= 0.0F) {
+                        continue;
+                    }
+                    float push = overlap * 0.5F;
+                    SlotTag upper = a.fy <= b.fy ? a : b;
+                    SlotTag lower = upper == a ? b : a;
+                    upper.fy -= push;
+                    lower.fy += push;
+                }
+            }
+        }
+        for (SlotTag tag : tags) {
+            tag.clamp(right, bottom);
+            tag.setPosition(Math.round(tag.fx), Math.round(tag.fy));
         }
     }
 
-    /** タブの枚数（場所 ＋ 塗装）。 */
-    private int tabCount() {
-        return shownSlots().size() + (hasPaintTab() ? 1 : 0);
+    /** 部位から札までの線と、部位の印。<b>札（ウィジェット）より先に描く</b>ので線は札の下に潜る。 */
+    private void renderLeaders(GuiGraphics graphics) {
+        for (SlotTag tag : tags) {
+            float[] anchor = tag.anchor;
+            if (anchor == null) {
+                continue;
+            }
+            int color = tag.selected() ? ScreenStyle.ACCENT : LEADER_COLOR;
+            // 札の縁のうち、部位にいちばん近い点まで引く
+            float toX = Math.max(tag.getX(), Math.min(anchor[0], tag.getX() + tag.getWidth()));
+            float toY = Math.max(tag.getY(), Math.min(anchor[1], tag.getY() + TAG_HEIGHT));
+            float dx = toX - anchor[0];
+            float dy = toY - anchor[1];
+            float length = (float) Math.sqrt(dx * dx + dy * dy);
+            if (length > 1.0F) {
+                GaugePainter.radialBar(graphics, anchor[0], anchor[1], 0.0F, length,
+                        (float) Math.toDegrees(Math.atan2(dy, dx)), 1.0F, color);
+            }
+            GaugePainter.arc(graphics, anchor[0], anchor[1], 0.0F, 3.5F, 0.0F, 360.0F, color);
+            GaugePainter.arc(graphics, anchor[0], anchor[1], 0.0F, 1.8F, 0.0F, 360.0F, 0xFF141414);
+        }
+        GaugePainter.flush(graphics);
     }
 
-    /** 塗装のタブを出すか。<b>選べる色が 2 つ以上ある車だけ。</b> */
+    /** 塗装を選べるか。<b>選べる色が 2 つ以上ある車だけ。</b> */
     private static boolean hasPaintTab() {
         return paints().size() >= 2;
     }
@@ -441,9 +509,10 @@ public class CarPartScreen extends Screen {
         // renderBackground は呼ばない。ここでは後ろの車を見せることが目的なので、
         // 画面を暗くしてしまうと肝心のものが見えなくなる
 
-        // タブの並びが変わったら作り直す。<b>クリックの伝播中ではなく描画の頭で</b>
-        // （ウィジェット一覧を入れ替えるので）。ターボを付けた返事が届くとブローオフのタブが現れる
-        if (!shownSlots().equals(lastShown) || !adjustments().equals(lastAdjustments)) {
+        // 札を押した・札の並びが変わったら作り直す。<b>クリックの伝播中ではなく描画の頭で</b>
+        // （ウィジェット一覧を入れ替えるので）。ターボを付けた返事が届くとブローオフの札が現れる
+        if (rebuildPending || !shownSlots().equals(lastShown) || !adjustments().equals(lastAdjustments)) {
+            rebuildPending = false;
             rebuildWidgets();
         }
 
@@ -463,6 +532,9 @@ public class CarPartScreen extends Screen {
                 slider.syncFromCar();
             }
         }
+
+        placeTags(car);
+        renderLeaders(graphics);
 
         super.render(graphics, mouseX, mouseY, partialTick);
 
@@ -487,8 +559,8 @@ public class CarPartScreen extends Screen {
      * 部品の性能の表（タイヤとタービンだけ）。<b>マウスを乗せているタイルがあればその部品、
      * 無ければ装着中の部品</b>を出す。乗せて見比べてから履けるように。
      *
-     * <p>下端はタブとぶつからない高さまで。タブは中央に並ぶので、パネルが横にかぶるときだけ
-     * タブの上で止め、かぶらなければタイルの上まで使う。入りきらなければパネルが自分で縮む。</p>
+     * <p>下端はタイルの上まで使う。入りきらなければパネルが自分で縮む。
+     * 場所の札はこのパネルの手前で止まる（{@link #placeTags}）。</p>
      */
     private void renderInfo(GuiGraphics graphics, @Nullable CarEntity car, @Nullable ResourceLocation fitted) {
         if (paintMode || !PartInfoPanel.covers(slot)) {
@@ -516,13 +588,6 @@ public class CarPartScreen extends Screen {
         }
         int right = width - INFO_RIGHT_MARGIN;
         int bottom = rowTop - 6;
-        int tabCount = tabCount();
-        if (tabCount >= 2) {
-            int tabsRight = width / 2 + (tabCount * (tabWidth(tabCount) + TILE_GAP) - TILE_GAP) / 2;
-            if (right - PartInfoPanel.WIDTH < tabsRight + 4) {
-                bottom = rowTop - ROW_STEP * (MAX_ROWS + 1) - 4;
-            }
-        }
         CarSpec spec = car != null ? car.getSpec() : CarSpec.DEFAULT;
         PartInfoPanel.render(graphics, font, slot, shown.entry.id(), shown.entry.label(), preview,
                 spec, car != null ? car.getEffectiveFitment() : PartFitment.EMPTY, right, INFO_TOP, bottom);
@@ -886,6 +951,101 @@ public class CarPartScreen extends Screen {
             lookChanged = true;
         }
 
+    }
+
+    /**
+     * 場所 1 つぶんの札。<b>場所の名前と、いま付いている部品の名前</b>の 2 行。
+     *
+     * <p>押すとその場所のタイルが下端に並ぶ。選んでいる札は黄色く塗る（タイルの「装着中」と同じ色）。</p>
+     */
+    private final class SlotTag extends AbstractWidget {
+
+        /** 付ける場所。<b>null が塗装の札</b>。 */
+        @Nullable
+        private final PartSlot value;
+        /** このフレームの部位の画面の位置。写せなければ null（線を引かない）。 */
+        @Nullable
+        private float[] anchor;
+        /** 置き場所を決める途中の位置。押し分けは小数のまま回す。 */
+        private float fx;
+        private float fy;
+        private Component sub = Component.empty();
+
+        private SlotTag(@Nullable PartSlot value) {
+            super(0, 0, 48, TAG_HEIGHT, value != null ? value.displayName()
+                    : Component.translatable("screen.kurumamod.part.paint"));
+            this.value = value;
+        }
+
+        boolean selected() {
+            return value == null ? paintMode : !paintMode && value == slot;
+        }
+
+        /** 部位の位置と、付いている部品の名前を車から取り直す。幅も名前に合わせる。 */
+        void refresh(@Nullable CarEntity car) {
+            anchor = value == null ? PartAnchors.paint() : PartAnchors.point(value);
+            sub = car == null ? Component.empty() : fittedLabel(car);
+            String subText = font.plainSubstrByWidth(sub.getString(), TAG_TEXT_MAX);
+            setWidth(Math.max(48, Math.max(font.width(getMessage()), font.width(subText)) + TAG_PADDING * 2));
+            active = car != null;
+        }
+
+        /** いま付いているもの。純正なら純正の部品の名前、何も無ければ「純正」「なし」。 */
+        private Component fittedLabel(CarEntity car) {
+            if (value == null) {
+                CarModel.Paint paint = CarModel.get(car.getCarId()).paintOf(car.getFitment());
+                return paint == null ? Component.empty() : Component.translatable(paint.name());
+            }
+            ResourceLocation id = car.getEffectiveFitment().getPart(value);
+            if (id == null) {
+                ResourceLocation stock = stockPart(car, value);
+                CarPart stockPart = stock == null ? null : CarParts.get(stock);
+                return stockPart != null ? stockPart.displayName() : Component.translatable(value.emptyKey());
+            }
+            CarPart part = CarParts.get(id);
+            return part != null ? part.displayName() : Component.translatable("screen.kurumamod.part.none");
+        }
+
+        /** 画面の中（右端・下端は呼ぶ側が決める）へ収める。 */
+        void clamp(int right, int bottom) {
+            fx = Math.max(4, Math.min(fx, right - getWidth()));
+            fy = Math.max(TAG_TOP, Math.min(fy, bottom));
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if (selected()) {
+                return;
+            }
+            if (value == null) {
+                paintMode = true;
+            } else {
+                slot = value;
+                paintMode = false;
+            }
+            scroll = 0;
+            rebuildPending = true;
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            boolean selected = selected();
+            boolean hovered = isHovered() && active;
+            int left = getX();
+            int top = getY();
+            ScreenStyle.tileBox(graphics, left, top, getWidth(), TAG_HEIGHT, selected, hovered, TAG_HEIGHT);
+            String name = getMessage().getString();
+            String subText = font.plainSubstrByWidth(sub.getString(), TAG_TEXT_MAX);
+            graphics.drawString(font, name, left + (getWidth() - font.width(name)) / 2, top + 3,
+                    selected ? ScreenStyle.LABEL_ON_ACCENT : ScreenStyle.LABEL, false);
+            graphics.drawString(font, subText, left + (getWidth() - font.width(subText)) / 2, top + 12,
+                    selected ? 0xFF4A3A00 : ScreenStyle.SUB, false);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
     }
 
     /**

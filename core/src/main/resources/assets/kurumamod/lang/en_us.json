@@ -35,7 +35,7 @@
   "paint.kurumamod.white": "White",
   "paint.kurumamod.silver": "Silver",
   "paint.kurumamod.yellow": "Yellow",
-  "screen.kurumamod.part.hint": "Click to fit  Drag to orbit  Wheel to zoom  Esc to go back",
+  "screen.kurumamod.part.hint": "Pick a spot on the car  Click a tile to fit  Drag to orbit  Wheel to zoom  Esc to go back",
   "screen.kurumamod.part.need_driving": "You can only swap parts while driving",
   "part_slot.kurumamod.wheel": "Wheels",
   "part_slot.kurumamod.tire": "Tyres",
