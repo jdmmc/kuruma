@@ -181,10 +181,16 @@ public final class Tunables {
                     TunableParameter.linear("tire_load_sensitivity", 0, 40, "%.0f",
                                     CarSpec::tireLoadSensitivity, CarSpec.Builder::tireLoadSensitivity)
                             .unit(0.01),
+                    // 剛性は滑り 1（57° / 100%）あたりの値で手触りが分からないので、
+                    // 補足にはグリップを使いきるスリップ角・滑り率を出す
                     TunableParameter.linear("cornering_stiffness", 4, 25, "%.1f",
-                            CarSpec::corneringStiffness, CarSpec.Builder::corneringStiffness),
+                                    CarSpec::corneringStiffness, CarSpec.Builder::corneringStiffness)
+                            .detail(spec -> String.format("%.1f",
+                                    Math.toDegrees(pavedGrip(spec) / spec.effectiveCorneringStiffness()))),
                     TunableParameter.linear("longitudinal_stiffness", 5, 40, "%.1f",
-                            CarSpec::longitudinalStiffness, CarSpec.Builder::longitudinalStiffness),
+                                    CarSpec::longitudinalStiffness, CarSpec.Builder::longitudinalStiffness)
+                            .detail(spec -> String.format("%.1f",
+                                    pavedGrip(spec) / spec.effectiveLongitudinalStiffness() * 100.0)),
                     // 見た目も追従する（CarObjRenderer がこの値でタイヤを拡大する）。
                     // 車高・重心高・ファイナル・車輪の慣性・登坂限界がまとめてここから決まる
                     TunableParameter.linear("wheel_radius", 25, 110, "%.1f",
@@ -587,6 +593,14 @@ public final class Tunables {
                 String.format("%.1f", spec.brakeDecel()),
                 String.format("%.1f", spec.handbrakeDecel()),
                 String.format("%.0f", spec.brakeBias() * 100.0));
+    }
+
+    /**
+     * 舗装路で乾いているときのμ（付けているタイヤの舗装路の倍率込み）。
+     * ピークのスリップ角・滑り率は μ / 剛性 で、荷重感度では動かない（同じ割合で割り引くため）。
+     */
+    private static double pavedGrip(CarSpec spec) {
+        return spec.tireFriction() * spec.tire().gripOn("paved");
     }
 
     /** レブと段の比から決まる変速点。ハンチングしていないことがここで分かる。 */
