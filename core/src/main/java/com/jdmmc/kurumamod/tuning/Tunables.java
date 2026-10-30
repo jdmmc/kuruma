@@ -260,7 +260,11 @@ public final class Tunables {
                             CarSpec::shiftSeconds, CarSpec.Builder::shiftSeconds),
                     TunableParameter.linear("manual_transmission", 0.0, 1.0, "%.0f",
                                     CarSpec::manualTransmission, CarSpec.Builder::manualTransmission)
-                            .detail(spec -> spec.isManual() ? "MT (R/F)" : "AT"))),
+                            .detail(spec -> spec.isManual() ? "MT (R/F)" : "AT"),
+                    // マニュアルのシフトダウンで回転を合わせるか。切るとシフトロックが出る（AT は常に合わせる）
+                    TunableParameter.linear("rev_match", 0.0, 1.0, "%.0f",
+                                    CarSpec::revMatch, CarSpec.Builder::revMatch)
+                            .detail(spec -> !spec.isManual() ? "AT" : spec.isRevMatching() ? "ON" : "OFF"))),
 
             new Group("driveline", List.of(
                     // 駆動方式（FF / FR / 4WD）と 4WD の前後トルク配分は分けて持つ。1 本だった頃は

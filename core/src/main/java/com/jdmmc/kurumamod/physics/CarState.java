@@ -99,6 +99,15 @@ public final class CarState {
     public int gear;
     /** 変速の残り時間 [s]。0 より大きい間は駆動力が抜ける。 */
     public double shiftTimer;
+    /** {@link #pendingGear} が無いことを表す値。 */
+    public static final int NO_PENDING_GEAR = Integer.MIN_VALUE;
+    /**
+     * 変速の途中で入る段。回転を合わせないマニュアルだけが使う。無ければ {@link #NO_PENDING_GEAR}。
+     *
+     * <p>段は<b>クラッチが切れきってから</b>変える（変速時間の真ん中）。始まりで変えると、
+     * まだ繋がっているクラッチが新しい段の回転へエンジンを引きずって、回転が合ってしまう。</p>
+     */
+    public int pendingGear = NO_PENDING_GEAR;
     /**
      * クラッチの繋がり具合。1 で直結、0 で完全に切れている。
      *
@@ -117,6 +126,13 @@ public final class CarState {
      * （実際にそうなって、制動距離が 21.4→12.1m、氷での車体スリップ角が 0.5→89.9 度になった）。</p>
      */
     public boolean clutchLocked = true;
+    /**
+     * 発進の滑り（トルクコンバータ／自動で繋ぐクラッチ）で駆動しているか。
+     *
+     * <p>{@link #clutchLocked} と同じく {@code CarPhysics#updateDrivetrain} がティックに 1 回だけ決める。
+     * この間はエンジンが車輪から切り離されて自分の慣性で回るので、車輪側へ慣性を換算しない。</p>
+     */
+    public boolean converterSlipping;
     /** 駆動輪へ伝わる合計トルク [N*m]。 */
     public double driveTorque;
     /** 各輪へ実際に掛かる駆動トルク [N*m]。駆動配分と差動制限を経た値。 */

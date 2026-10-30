@@ -94,6 +94,8 @@ package com.jdmmc.kurumamod.physics;
  * @param centerDiffLock       センターデフの締結の強さ（0〜1）。0 でオープン（{@code torqueSplit} どおりの固定配分）、
  *                             1 で前後の回転を毎回揃えきる（直結）。{@link #centerDiffLockFraction} を参照
  * @param manualTransmission   0 でオートマ、1 でマニュアル
+ * @param revMatch             マニュアルのシフトダウンで回転を自動で合わせるか。0 で合わせない、1 で合わせる。
+ *                             合わせないと、繋いだ瞬間に回転差のぶん駆動輪へトルクが掛かる（シフトロック）
  * @param rollingResistance    転がり抵抗による減速度 [m/s^2]
  * @param dragArea             空気抵抗の面積 Cd×前面投影面積 [m^2]。空気抵抗の力は {@link #dragForce}
  * @param frontDownforceArea   前軸のダウンフォースの面積 −Cl×面積 [m^2]。前軸の位置に下向きに掛かる
@@ -160,6 +162,7 @@ public record CarSpec(
         double diffCoastRatio,
         double centerDiffLock,
         double manualTransmission,
+        double revMatch,
         double rollingResistance,
         double dragArea,
         double frontDownforceArea,
@@ -426,6 +429,11 @@ public record CarSpec(
     /** マニュアルなら true。 */
     public boolean isManual() {
         return manualTransmission >= 0.5;
+    }
+
+    /** 変速で回転を自動で合わせるなら true。オートマは常に合わせる。 */
+    public boolean isRevMatching() {
+        return !isManual() || revMatch >= 0.5;
     }
 
     /** トラクションコントロールが許す駆動輪の滑り率。無効なら無限大。 */
@@ -1288,6 +1296,8 @@ public record CarSpec(
         private double centerDiffLock = 0.0;
         // 0 でオートマ、1 でマニュアル
         private double manualTransmission = 0.0;
+        // 0 で回転を合わせない（シフトロックが出る）、1 で合わせる。マニュアルだけに効く
+        private double revMatch = 1.0;
         // 実車の転がり抵抗はおよそ 0.012G、空気抵抗は 100km/h で 0.03G 程度。
         // 抽象モデル時代の値（1.2 と 0.0035）は 10 倍ほど過大で、
         // 実トルクを入れると最高速に届かなくなる
@@ -1367,6 +1377,7 @@ public record CarSpec(
             diffCoastRatio = spec.diffCoastRatio;
             centerDiffLock = spec.centerDiffLock;
             manualTransmission = spec.manualTransmission;
+            revMatch = spec.revMatch;
             rollingResistance = spec.rollingResistance;
             dragArea = spec.dragArea;
             frontDownforceArea = spec.frontDownforceArea;
@@ -1699,6 +1710,11 @@ public record CarSpec(
             return this;
         }
 
+        public Builder revMatch(double value) {
+            revMatch = value;
+            return this;
+        }
+
 
         public Builder rollingResistance(double value) {
             rollingResistance = value;
@@ -1756,7 +1772,7 @@ public record CarSpec(
                     tractionControl, abs,
                     diffPreload, diffLockRatio, diffCoastRatio,
                     centerDiffLock,
-                    manualTransmission, rollingResistance, dragArea,
+                    manualTransmission, revMatch, rollingResistance, dragArea,
                     frontDownforceArea, rearDownforceArea, turbo, tire, partAero);
         }
     }
