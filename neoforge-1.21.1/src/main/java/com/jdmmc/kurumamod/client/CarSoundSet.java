@@ -48,28 +48,31 @@ import java.util.function.Supplier;
  *
  * <h2>音源を用意しなくても、数字で変えられる</h2>
  *
- * <p>値には文字列（音源の差し替え）の代わりにオブジェクトも書ける。<b>既定の音の高さと大きさを
- * 変えるだけ</b>なら、音源を作らなくてよい。</p>
+ * <p>値には文字列（音源の差し替え）の代わりにオブジェクトも書ける。<b>既定の音の高さを変えるだけ</b>
+ * なら、音源を作らなくてよい。</p>
  *
  * <pre>{@code
  * "sounds": {
- *   "engine": { "type": "flat6", "pitch": 0.95, "volume": 1.1, "load": 0.8 },
- *   "turbo":  { "pitch": 1.2, "volume": 0.7 },
- *   "shift":  { "sound": "mypack:dog_box", "volume": 0.6 }
+ *   "engine": { "type": "flat6", "pitch": 0.95, "load": 0.8 },
+ *   "turbo":  { "pitch": 1.2 },
+ *   "shift":  { "sound": "mypack:dog_box", "pitch": 0.9 }
  * }
  * }</pre>
  *
  * <ul>
  *   <li>{@code pitch} … 高さの倍率（0.5〜2.0）。エンジンなら回転数に対する高さをまるごとずらす</li>
- *   <li>{@code volume} … 大きさの倍率（0〜2）。掛けたあと 1 で抑える（1 を超えると届く距離まで伸びる）</li>
  *   <li>{@code sound} … 音源の差し替え（文字列で書くのと同じ）</li>
  *   <li>{@code engine} だけ: {@code type}（合成したエンジン音の種類。{@link KurumaSounds#ENGINE_TYPES}）と
  *       {@code load}（踏んだときの荒い音がどれだけ前に出るか。0〜1.5、既定 1）。<b>音源の差し替えは
  *       {@code exhaust} の役目</b>で、{@code exhaust} を書くと合成したエンジン音は鳴らない</li>
  * </ul>
  *
+ * <p><b>大きさは書けない。</b>音量は聞く人が決めるもの（H の画面の「サウンド」で種類ごとに変える）で、
+ * パックが車ごとに大きくしたり小さくしたりすると、その好みが車によって狂う。{@code volume} を書いても
+ * 読まずにログへ残す。</p>
+ *
  * <p>{@code slip_chatter} と {@code exhaust_high} は、書かなければ {@code slip}・{@code exhaust} の
- * 高さと大きさを引き継ぐ（同じ音の 2 本なので、片方だけ変わると継ぎ目で音が跳ねる）。</p>
+ * 高さを引き継ぐ（同じ音の 2 本なので、片方だけ変わると継ぎ目で音が跳ねる）。</p>
  *
  * <h2>無い名前を書いても黙って無音にはしない</h2>
  *
@@ -78,23 +81,22 @@ import java.util.function.Supplier;
  * 既定の音に落としてログに 1 回だけ残す。</p>
  *
  * @param overrides  役割の名前（{@link #KEYS}）→ サウンドイベントの名前
- * @param tuning     役割の名前 → 高さと大きさの倍率（書いたものだけ）
+ * @param tuning     役割の名前 → 高さの倍率など（書いたものだけ）
  * @param engineType 合成したエンジン音の種類（{@link KurumaSounds#ENGINE_TYPES}）
  */
 public record CarSoundSet(Map<String, ResourceLocation> overrides, Map<String, Tuning> tuning, String engineType) {
 
     /**
-     * 既定の音の高さと大きさの倍率。
+     * 既定の音の高さの倍率と、踏んだときの荒い音の出方（エンジンだけ）。大きさは持たない（聞く人が決める）。
      *
-     * @param pitch  高さの倍率
-     * @param volume 大きさの倍率
-     * @param load   踏んだときの荒い音の出方（エンジンだけ）
+     * @param pitch 高さの倍率
+     * @param load  踏んだときの荒い音の出方（エンジンだけ）
      */
-    public record Tuning(double pitch, double volume, double load) {
-        public static final Tuning DEFAULT = new Tuning(1.0, 1.0, 1.0);
+    public record Tuning(double pitch, double load) {
+        public static final Tuning DEFAULT = new Tuning(1.0, 1.0);
     }
 
-    /** 合成したエンジン音の高さ・大きさ・踏んだときの出方を書くキー。 */
+    /** 合成したエンジン音の種類・高さ・踏んだときの出方を書くキー。 */
     public static final String ENGINE = "engine";
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -119,7 +121,7 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, Map<String, T
             ENGINE, EXHAUST, EXHAUST_HIGH, "road", "wind", "slip", "slip_chatter", "gravel", "sand",
             TURBO, SHIFT, CRASH, BLOWOFF);
 
-    /** 書かなかったときの高さ・大きさを引き継ぐ相手。同じ音の 2 本なので揃える。 */
+    /** 書かなかったときの高さを引き継ぐ相手。同じ音の 2 本なので揃える。 */
     private static final Map<String, String> TUNING_PARENT = Map.of(
             "slip_chatter", "slip",
             EXHAUST_HIGH, EXHAUST);
@@ -135,7 +137,7 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, Map<String, T
         tuning = Map.copyOf(tuning);
     }
 
-    /** その役割の高さと大きさの倍率。書いていなければ引き継ぐ相手（{@link #TUNING_PARENT}）か 1 倍。 */
+    /** その役割の高さの倍率など。書いていなければ引き継ぐ相手（{@link #TUNING_PARENT}）か 1 倍。 */
     public Tuning tuningOf(String key) {
         Tuning own = tuning.get(key);
         if (own != null) {
@@ -289,7 +291,6 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, Map<String, T
             }
             if (own != null) {
                 putIfChanged(entry, "pitch", own.pitch());
-                putIfChanged(entry, "volume", own.volume());
                 if (engineKey) {
                     putIfChanged(entry, "load", own.load());
                 }
@@ -351,9 +352,11 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides, Map<String, T
             if (ENGINE.equals(key) && object.has("type")) {
                 engineType = engineTypeOf(object.get("type").getAsString());
             }
+            if (object.has("volume")) {
+                LOGGER.warn("sounds.{} の volume は書けません（音量は各プレイヤーが H の画面で決めます）。読み飛ばします", key);
+            }
             tuning.put(key, new Tuning(
                     number(object, "pitch", 0.5, 2.0),
-                    number(object, "volume", 0.0, 2.0),
                     number(object, "load", 0.0, 1.5)));
         }
         return new CarSoundSet(overrides, tuning, engineType);

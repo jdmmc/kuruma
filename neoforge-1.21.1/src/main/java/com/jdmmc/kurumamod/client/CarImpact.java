@@ -66,7 +66,7 @@ public final class CarImpact {
         CarSoundSet.Tuning tuning = sounds.tuningOf(CarSoundSet.CRASH);
         car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
                 sounds.crash(), SoundSource.NEUTRAL,
-                CarSound.volume((0.35F + 0.65F * power) * (float) tuning.volume(), ClientConfig.soundCrash),
+                CarSound.volume(0.35F + 0.65F * power, ClientConfig.soundCrash),
                 pitch * (float) tuning.pitch(), false);
 
         if (minecraft.player != null && minecraft.player.getVehicle() == car) {

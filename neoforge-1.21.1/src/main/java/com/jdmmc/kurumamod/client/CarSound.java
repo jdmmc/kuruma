@@ -404,8 +404,7 @@ public class CarSound extends AbstractTickableSoundInstance {
                 // 荒い音がどれだけ前に出るかを変えられる（上品な音にしたい車は下げる）
                 float throttle = (float) Mth.clamp(car.getRenderThrottle() * tuning.load(), 0.0, 1.0);
                 float load = (float) Math.sqrt(role.load ? throttle : 1.0F - throttle);
-                targetVolume = exhaustLoudness(spec, rpm, fitment) * load * (float) Math.sqrt(weight)
-                        * (float) tuning.volume();
+                targetVolume = exhaustLoudness(spec, rpm, fitment) * load * (float) Math.sqrt(weight);
             }
             case ROAD -> {
                 double speed = Math.abs(car.getRenderSpeed());
@@ -497,11 +496,10 @@ public class CarSound extends AbstractTickableSoundInstance {
             }
         }
 
-        // パックの高さと大きさの倍率（sounds の pitch / volume）。エンジンは上で掛けてある
+        // パックの高さの倍率（sounds の pitch）。エンジンは上で掛けてある。大きさはパックでは変えない
         if (!role.isEngine()) {
             CarSoundSet.Tuning tuning = live.tuningOf(role.name().toLowerCase(java.util.Locale.ROOT));
             targetPitch = (float) Mth.clamp(targetPitch * tuning.pitch(), 0.5, 2.0);
-            targetVolume *= (float) tuning.volume();
         }
         // この端末の好みの音量（H の画面）。1 を超えると音の届く距離まで伸びるので抑える
         targetVolume = Math.min(1.0F, targetVolume * gainOf(role));
@@ -524,7 +522,7 @@ public class CarSound extends AbstractTickableSoundInstance {
             if (gear != lastGear && gear != 0 && lastGear != 0) {
                 car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
                         sounds.shift(), SoundSource.NEUTRAL,
-                        volume(0.5F * (float) live.tuningOf(CarSoundSet.SHIFT).volume(), ClientConfig.soundShift),
+                        volume(0.5F, ClientConfig.soundShift),
                         (float) live.tuningOf(CarSoundSet.SHIFT).pitch(), false);
             }
             lastGear = gear;

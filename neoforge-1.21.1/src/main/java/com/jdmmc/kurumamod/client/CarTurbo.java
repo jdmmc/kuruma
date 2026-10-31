@@ -101,7 +101,7 @@ public final class CarTurbo {
             CarSoundSet.Tuning tuning = sounds.tuningOf(CarSoundSet.BLOWOFF);
             car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
                     sounds.blowoff(), SoundSource.NEUTRAL,
-                    CarSound.volume(loud * (float) tuning.volume(), ClientConfig.soundTurbo),
+                    CarSound.volume(loud, ClientConfig.soundTurbo),
                     tone * (float) tuning.pitch(), false);
             state.cooldown = BLOWOFF_COOLDOWN;
         }

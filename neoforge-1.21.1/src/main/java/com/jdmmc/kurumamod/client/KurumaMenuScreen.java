@@ -54,7 +54,11 @@ public class KurumaMenuScreen extends Screen {
     private static final int COLOR_PANEL = 0x60000000;
     private static final int COLOR_STRIPE = 0x24FFFFFF;
     private static final int COLOR_NAME = 0xFFC8C8C8;
-    private static final int COLOR_HEADER = 0xFFFFD26A;
+    /**
+     * 見出しの色。<b>黄色は「既定から変えた項目」に取ってある</b>（G の画面と同じ {@link ScreenStyle#ACCENT}）ので、
+     * 見出しは薄い水色にする。見出しも黄色だと、どれを変えたのか見分けられない。
+     */
+    private static final int COLOR_HEADER = 0xFF8CC8FF;
     private static final int COLOR_HINT = 0xFF909090;
 
     private final Screen parent;
@@ -159,7 +163,7 @@ public class KurumaMenuScreen extends Screen {
                 slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
                 toggle("show_own_skid_marks", ClientConfig.SHOW_OWN_SKID_MARKS);
                 toggle("show_other_skid_marks", ClientConfig.SHOW_OTHER_SKID_MARKS);
-                // 1 秒から 5 分まで。線形だと既定の 5 秒が左端 1% に潰れるので対数で割り当てる
+                // 1 秒から 5 分まで（既定は 5 分）。線形だと数秒の短い値が左端 1% に潰れるので対数で割り当てる
                 slider("skid_mark_seconds", 1.0, 300.0, true, ClientConfig.SKID_MARK_SECONDS);
             }
             case GAUGES -> {
@@ -264,12 +268,13 @@ public class KurumaMenuScreen extends Screen {
             if (exhaust == engine) {
                 continue;
             }
-            Component title = Component.literal(key);
+            Component title = soundLabel("key", key);
             // 部品が付いていないと鳴らない音は、見出しで知らせる（動かしても聞こえない理由が分かるように）
             boolean silent = car != null && (("turbo".equals(key) && !car.hasTurbo())
                     || ("blowoff".equals(key) && !car.hasBlowoff()));
             if (silent) {
-                title = Component.literal(key + "  ").append(Component.translatable("screen.kurumamod.sound_debug.no_part"));
+                title = soundLabel("key", key).copy().append("  ")
+                        .append(Component.translatable("screen.kurumamod.sound_debug.no_part"));
             }
             rows.add(new Row(title, null, true));
             tuningRows(id, key, false);
@@ -279,8 +284,8 @@ public class KurumaMenuScreen extends Screen {
     /** 合成したエンジン音の行（種類・高さ・大きさ・踏んだときの出方）。 */
     private void engineRows(ResourceLocation id) {
         CarSoundSet sounds = CarSoundSet.of(id);
-        rows.add(new Row(Component.literal("engine"), null, true));
-        Component typeLabel = Component.literal("type");
+        rows.add(new Row(soundLabel("key", CarSoundSet.ENGINE), null, true));
+        Component typeLabel = soundLabel("field", "type");
         CycleButton<String> type = CycleButton.<String>builder(Component::literal)
                 .withValues(KurumaSounds.ENGINE_TYPES)
                 .withInitialValue(sounds.engineType())
@@ -293,7 +298,7 @@ public class KurumaMenuScreen extends Screen {
             String packType = CarModel.get(id).sounds().engineType();
             CarSoundSet.setDebugOverride(id, CarSoundSet.of(id).withEngineType(packType));
             type.setValue(packType);
-        })));
+        }), () -> !CarSoundSet.of(id).engineType().equals(CarModel.get(id).sounds().engineType())));
         tuningRows(id, CarSoundSet.ENGINE, true);
     }
 
@@ -301,25 +306,38 @@ public class KurumaMenuScreen extends Screen {
         CarSoundSet.Tuning now = CarSoundSet.of(id).tuningOf(key);
         // 1 項目だけ戻すときは、パックに書いてある値へ戻す
         CarSoundSet.Tuning pack = CarModel.get(id).sounds().tuningOf(key);
+        // 大きさはパックでは変えない（聞く人が H の「サウンド」で決める）ので、ここにも出さない
         tuningSlider("pitch", 0.5, 2.0, now.pitch(), pack.pitch(),
-                v -> retune(id, key, t -> new CarSoundSet.Tuning(v, t.volume(), t.load())));
-        tuningSlider("volume", 0.0, 2.0, now.volume(), pack.volume(),
-                v -> retune(id, key, t -> new CarSoundSet.Tuning(t.pitch(), v, t.load())));
+                () -> CarSoundSet.of(id).tuningOf(key).pitch(),
+                v -> retune(id, key, t -> new CarSoundSet.Tuning(v, t.load())));
         if (engine) {
             tuningSlider("load", 0.0, 1.5, now.load(), pack.load(),
-                    v -> retune(id, key, t -> new CarSoundSet.Tuning(t.pitch(), t.volume(), v)));
+                    () -> CarSoundSet.of(id).tuningOf(key).load(),
+                    v -> retune(id, key, t -> new CarSoundSet.Tuning(t.pitch(), v)));
         }
     }
 
     private void tuningSlider(String name, double min, double max, double initial, double packValue,
-                              DoubleConsumer apply) {
-        Component label = Component.literal(name);
+                              java.util.function.DoubleSupplier current, DoubleConsumer apply) {
+        Component label = soundLabel("field", name);
         OptionSlider slider = new OptionSlider(widgetLeft(), widgetWidth(), min, max, false, initial, apply);
         addRenderableWidget(slider);
+        // パックの値から動かしたら黄色
         rows.add(new Row(label, slider, false, resetButton(() -> {
             apply.accept(packValue);
             slider.show(packValue);
-        })));
+        }), () -> Math.abs(current.getAsDouble() - packValue) > 1e-9));
+    }
+
+    /**
+     * 行の名前。メニューの項目と同じく人が読める名前に、JSON に書く名前を添える（「砂利・土の路面音 (gravel)」）。
+     * 貼る先の JSON と見比べるので、名前だけにはしない。
+     *
+     * @param kind {@code key}（音の名前）か {@code field}（値の名前）
+     */
+    private static Component soundLabel(String kind, String name) {
+        return Component.translatable("screen.kurumamod.sound_debug." + kind + "." + name)
+                .append(" (" + name + ")");
     }
 
     private static void retune(ResourceLocation id, String key,
@@ -371,7 +389,7 @@ public class KurumaMenuScreen extends Screen {
         addRow(name, label, button, () -> {
             value.set(value.getDefault());
             button.setValue(value.getDefault());
-        });
+        }, () -> !value.get().equals(value.getDefault()));
     }
 
     private <T extends Enum<T>> void cycle(String name, Class<T> type,
@@ -389,7 +407,7 @@ public class KurumaMenuScreen extends Screen {
         addRow(name, label, button, () -> {
             value.set(value.getDefault());
             button.setValue(value.getDefault());
-        });
+        }, () -> !value.get().equals(value.getDefault()));
     }
 
     private void slider(String name, double min, double max, ModConfigSpec.DoubleValue value) {
@@ -409,7 +427,7 @@ public class KurumaMenuScreen extends Screen {
         addRow(name, label, slider, () -> {
             value.set(value.getDefault());
             slider.show(value.getDefault());
-        });
+        }, () -> Math.abs(value.get() - value.getDefault()) > 1e-9);
     }
 
     /** 0〜200% の音量の倍率。値は 0..2 で持ち、% で見せる。 */
@@ -426,7 +444,7 @@ public class KurumaMenuScreen extends Screen {
         addRow(name, label, slider, () -> {
             value.set(value.getDefault());
             slider.show(value.getDefault());
-        });
+        }, () -> Math.abs(value.get() - value.getDefault()) > 1e-9);
     }
 
     /**
@@ -436,7 +454,8 @@ public class KurumaMenuScreen extends Screen {
      * 作り直すと、クリックの伝播中にウィジェット一覧を入れ替えることになって危うい。
      * ページごとの「元に戻す」も同じ手順を全部の行で回す。</p>
      */
-    private void addRow(String name, Component label, AbstractWidget widget, Runnable resetOne) {
+    private void addRow(String name, Component label, AbstractWidget widget, Runnable resetOne,
+                        java.util.function.BooleanSupplier changed) {
         widget.setTooltip(Tooltip.create(
                 Component.translatable("config.kurumamod." + name + ".tooltip")));
         addRenderableWidget(widget);
@@ -445,7 +464,7 @@ public class KurumaMenuScreen extends Screen {
             ClientConfig.refresh();
         };
         resets.add(apply);
-        rows.add(new Row(label, widget, false, resetButton(apply)));
+        rows.add(new Row(label, widget, false, resetButton(apply), changed));
     }
 
     /** 1 項目だけ戻す R ボタン。 */
@@ -518,6 +537,13 @@ public class KurumaMenuScreen extends Screen {
             }
         }
 
+        // 変えていない行の R は押せない見た目にする（G の画面と同じ）
+        for (Row row : rows) {
+            if (row.reset != null) {
+                row.reset.active = row.visible && row.isChanged();
+            }
+        }
+
         super.render(graphics, mouseX, mouseY, partialTick);
 
         graphics.drawCenteredString(font, title, width / 2, TITLE_Y, 0xFFFFFFFF);
@@ -529,7 +555,8 @@ public class KurumaMenuScreen extends Screen {
             String name = row.label.getString();
             graphics.drawString(font,
                     font.plainSubstrByWidth(name, row.widget == null ? PANEL_WIDTH : LABEL_WIDTH - GAP),
-                    panelLeft, row.y + 5, row.isHeader ? COLOR_HEADER : COLOR_NAME, false);
+                    panelLeft, row.y + 5,
+                    row.isHeader ? COLOR_HEADER : row.isChanged() ? ScreenStyle.ACCENT : COLOR_NAME, false);
         }
 
         renderScrollBar(graphics, listHeight);
@@ -596,6 +623,8 @@ public class KurumaMenuScreen extends Screen {
         private final boolean isHeader;
         /** 1 項目だけ戻す R ボタン。見出しと案内の行には無い。 */
         private final Button reset;
+        /** 既定（車の音ならパックの値）から変えているか。名前を黄色にする。無ければ変えようがない行 */
+        private final java.util.function.BooleanSupplier changed;
 
         private int y;
         private boolean visible;
@@ -605,10 +634,20 @@ public class KurumaMenuScreen extends Screen {
         }
 
         private Row(Component label, AbstractWidget widget, boolean isHeader, Button reset) {
+            this(label, widget, isHeader, reset, null);
+        }
+
+        private Row(Component label, AbstractWidget widget, boolean isHeader, Button reset,
+                    java.util.function.BooleanSupplier changed) {
             this.label = label;
             this.widget = widget;
             this.isHeader = isHeader;
             this.reset = reset;
+            this.changed = changed;
+        }
+
+        boolean isChanged() {
+            return changed != null && changed.getAsBoolean();
         }
 
         void setVisible(boolean visible) {
