@@ -2,6 +2,8 @@
 """衝突音を合成し、低回転用の排気音と、繰り返しの目立たないスキール音を作る。
 
 - crash.ogg       … 金属がひしゃげる一撃。広帯域のノイズ＋減衰する金属の倍音
+- roadnoise.ogg   … タイヤと路面の音。800〜1000Hz に山のある広帯域の雑音と、低いゴロゴロ
+- wind.ogg        … 風切り音。1kHz より上が主役の空気の流れの雑音
 - exhaust_high.ogg … exhaust.ogg を 1 オクターブ上へ縮めたもの（レブ側を伸ばすため）
 - slip.ogg        … 合成したスキール音の伸ばし（キィー）。狭い帯域の雑音 2 本がさまよう音
 - slip_chatter.ogg … 同じ音の刻み（キキキキ）。滑り始めだけ鳴らす
@@ -122,6 +124,54 @@ def read_loop(src, pitch):
 
 #: スキール音の耳で感じる大きさ（loudness()）。素材から作っていた頃の slip.ogg の平均に揃えてある。
 SLIP_LOUDNESS = 0.1968
+
+
+def shaped_noise(n, shape, rng):
+    """長さ n でちょうど周期的な雑音を、周波数の関数 shape(f) の形に染める。"""
+    spec = np.fft.rfft(rng.standard_normal(n))
+    f = np.maximum(np.fft.rfftfreq(n, 1 / SR), 1e-3)
+    x = np.fft.irfft(spec * shape(f), n)
+    return x / np.std(x)
+
+
+def octave_bump(f, center, width):
+    """対数の周波数で center を頂点にした山（width はオクターブ）。"""
+    return np.exp(-0.5 * (np.log2(f / center) / width) ** 2)
+
+
+def roadnoise(name="roadnoise.ogg", seconds=4.0, seed=61, target_db=-25.0):
+    """タイヤと路面の音。
+
+    <b>以前の素材は 0.20 秒しかなく</b>、ループすると 1 秒に 5 回同じ音が戻ってきて「ブーン」と
+    周期が聞こえた。4 秒の周期的な雑音で作り直す。
+
+    形は測定に合わせる: タイヤと路面の音は 800〜1000Hz に山のある広帯域の音
+    （TRL・IOA のトラックのタイヤで 800Hz、カタールの車載測定で速度によらず 1000Hz）。
+    低い側に路面の凹凸が車体を揺する 140Hz あたりのゴロゴロを薄く足す。
+    大きさが速さで変わるのはコード側（速度 10 倍で 30dB）。
+    """
+    rng = np.random.default_rng(seed)
+    n = int(SR * seconds)
+    tire = shaped_noise(n, lambda f: octave_bump(f, 900.0, 0.9)
+                        + 0.45 * octave_bump(f, 140.0, 0.8) * (f / 40.0) ** 2 / (1 + (f / 40.0) ** 2), rng)
+    tire *= 10 ** (target_db / 20) / loudness(tire)
+    return write_ogg(name, tire)
+
+
+def wind(name="wind.ogg", seconds=4.0, seed=67, target_db=-26.0):
+    """風切り音。
+
+    以前の素材も 0.20 秒で、しかも重心 109Hz と低音ばかりだった。1kHz より上は空気の流れの音が
+    主役（Chalmers のタイヤ騒音の資料）なので、200Hz から上を立ち上げて 1kHz を頂点に広く取り、
+    車体が煽られる低い揺れを薄く足す。大きさが速さで変わるのはコード側（空力音なので速さの 6 乗）。
+    """
+    rng = np.random.default_rng(seed)
+    n = int(SR * seconds)
+    # 上は 3.5kHz で落とす。落とさないと重心が 3.6kHz まで上がり、「ゴォー」ではなく「サー」になった
+    air = shaped_noise(n, lambda f: ((f / 200.0) ** 2 / (1 + (f / 200.0) ** 2) * octave_bump(f, 1000.0, 1.3)
+                                     + 0.25 * octave_bump(f, 70.0, 0.7)) / (1 + (f / 3500.0) ** 2), rng)
+    air *= 10 ** (target_db / 20) / loudness(air)
+    return write_ogg(name, air)
 
 
 def periodic_noise(n, lo, hi, rng):
@@ -627,10 +677,16 @@ if __name__ == "__main__":
     #   python tools/make_sounds.py import sample/gravel_scrub.mp3 gravel_scrub.ogg
     # ターボの音だけ作る（素材の要る他の音を作り直さない）:
     #   python tools/make_sounds.py turbo
+    # ロードノイズと風切り音だけ作る:
+    #   python tools/make_sounds.py road
     if len(sys.argv) > 1 and sys.argv[1] == "turbo":
         print("turbo.ogg        %.2fs" % turbo())
         # ブローオフは素材から（生成 AI で作ったもの）。合成版は blowoff() に残してある
         print("blowoff.ogg      from %.2fs to %.2fs (%.2fs)" % import_oneshot(SAMPLE + "blowoff.mp3", "blowoff.ogg"))
+        sys.exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] == "road":
+        print("roadnoise.ogg    %.2fs" % roadnoise())
+        print("wind.ogg         %.2fs" % wind())
         sys.exit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "import":
         src, name = sys.argv[2], sys.argv[3]
@@ -638,6 +694,8 @@ if __name__ == "__main__":
         sys.exit(0)
 
     print("crash.ogg        %.2fs" % crash())
+    print("roadnoise.ogg    %.2fs" % roadnoise())
+    print("wind.ogg         %.2fs" % wind())
     print("exhaust_high.ogg %.2fs" % exhaust_high())
     print("slip.ogg         %.2fs" % squeal("slip.ogg"))
     print("slip_chatter.ogg %.2fs" % squeal("slip_chatter.ogg", chatter_hz=14.0, seed=11))

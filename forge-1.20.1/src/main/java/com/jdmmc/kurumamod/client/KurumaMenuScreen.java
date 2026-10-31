@@ -10,7 +10,9 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import com.jdmmc.kurumamod.sound.KurumaSounds;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.util.ArrayList;
@@ -43,6 +45,7 @@ public class KurumaMenuScreen extends Screen {
     private static final int PANEL_WIDTH = 320;
     private static final int LABEL_WIDTH = 150;
     private static final int GAP = 6;
+    private static final int RESET_WIDTH = 18;
     private static final int ROW_HEIGHT = 21;
     private static final int TITLE_Y = 8;
     private static final int LIST_TOP = 28;
@@ -57,60 +60,296 @@ public class KurumaMenuScreen extends Screen {
     private final Screen parent;
     private final List<Row> rows = new ArrayList<>();
 
+    private static final int SIDEBAR_WIDTH = 110;
+    private static final int SIDEBAR_GAP = 12;
+
+    /**
+     * 左の一覧で選ぶ区切り。項目が増えて 1 本の長い一覧では探しにくくなったので、区切りごとの
+     * ページにした。最後に開いたページを覚えておく（走りながら同じ項目を何度も触るので）。
+     */
+    private enum Page {
+        DISPLAY("display"), GAUGES("gauges"), DRIVING("driving"), SOUND("sound"), CAMERA("camera"),
+        /** 車の音（パック用）。左の一覧には出さず、Ctrl+H のデバッグ画面（{@link #soundDebug()}）だけで開く */
+        CAR_SOUND("car_sound");
+
+        private final String id;
+
+        Page(String id) {
+            this.id = id;
+        }
+
+        String translationKey() {
+            return "screen.kurumamod.menu.section." + id;
+        }
+    }
+
+    private static Page page = Page.DISPLAY;
+
     private int scroll;
     private int visibleRows;
     private int panelLeft;
+    /** 車の音のページで動かしている車種。乗っていなければ null。 */
+    private ResourceLocation carId;
+    /** いまのページの項目を既定値へ戻す手順（「元に戻す」）。行を足すときに一緒に積む。 */
+    private final List<Runnable> resets = new ArrayList<>();
+
+    /** 車の音（パック用）だけを出すデバッグ画面か（Ctrl+H）。設定ではないので H の一覧には並べない。 */
+    private final boolean soundDebug;
 
     public KurumaMenuScreen(Screen parent) {
-        super(Component.translatable("screen.kurumamod.menu.title"));
+        this(parent, false);
+    }
+
+    private KurumaMenuScreen(Screen parent, boolean soundDebug) {
+        super(Component.translatable(soundDebug ? "screen.kurumamod.sound_debug.title" : "screen.kurumamod.menu.title"));
         this.parent = parent;
+        this.soundDebug = soundDebug;
+    }
+
+    /**
+     * 乗っている車種の音（{@code sounds}）を動かすデバッグ画面。Ctrl+H で開く。
+     * 行の並べ方・スクロール・スライダーは MOD メニューと同じものを使う。
+     */
+    public static KurumaMenuScreen soundDebug() {
+        return new KurumaMenuScreen(null, true);
+    }
+
+    /** いま出しているページ。デバッグ画面は車の音だけ。 */
+    private Page shownPage() {
+        return soundDebug ? Page.CAR_SOUND : page;
     }
 
     @Override
     protected void init() {
         rows.clear();
-        panelLeft = (width - PANEL_WIDTH) / 2;
+        resets.clear();
+        carId = null;
+        // 左に区切りの一覧、右に選んだ区切りの項目
+        panelLeft = soundDebug ? (width - PANEL_WIDTH) / 2 : (width - PANEL_WIDTH + SIDEBAR_WIDTH + SIDEBAR_GAP) / 2;
+        int sidebarLeft = panelLeft - SIDEBAR_GAP - SIDEBAR_WIDTH;
+        int tabs = soundDebug ? 0 : Page.CAR_SOUND.ordinal();
+        for (int i = 0; i < tabs; i++) {
+            Page each = Page.values()[i];
+            Button tab = Button.builder(Component.translatable(each.translationKey()), button -> {
+                        page = each;
+                        scroll = 0;
+                        rebuildWidgets();
+                    })
+                    .bounds(sidebarLeft, LIST_TOP + i * (ROW_HEIGHT + 3), SIDEBAR_WIDTH, 20)
+                    .build();
+            // いま開いている区切りは押せない見た目にして、どこにいるかを示す
+            tab.active = each != page;
+            addRenderableWidget(tab);
+        }
 
-        header("screen.kurumamod.menu.section.display");
-        toggle("show_telemetry", ClientConfig.SHOW_TELEMETRY);
-        toggle("show_gauges", ClientConfig.SHOW_GAUGES);
-        cycle("gauge_theme", GaugeTheme.class, ClientConfig.GAUGE_THEME,
-                theme -> Component.translatable(theme.translationKey()));
-        slider("gauge_scale", 0.5, 2.0, ClientConfig.GAUGE_SCALE);
-        slider("gauge_opacity", 0.15, 1.0, ClientConfig.GAUGE_OPACITY);
-        toggle("show_help", ClientConfig.SHOW_HELP);
-        toggle("time_attack_ghost", ClientConfig.TIME_ATTACK_GHOST);
-        cycle("gate_display", GateDisplay.class, ClientConfig.GATE_DISPLAY,
-                display -> Component.translatable(display.translationKey()));
-        toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);
-        toggle("show_dust", ClientConfig.SHOW_DUST);
-        slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
-        toggle("show_own_skid_marks", ClientConfig.SHOW_OWN_SKID_MARKS);
-        toggle("show_other_skid_marks", ClientConfig.SHOW_OTHER_SKID_MARKS);
-        // 1 秒から 5 分まで。線形だと既定の 5 秒が左端 1% に潰れるので対数で割り当てる
-        slider("skid_mark_seconds", 1.0, 300.0, true, ClientConfig.SKID_MARK_SECONDS);
-
-        header("screen.kurumamod.menu.section.driving");
-        toggle("virtual_walls", ClientConfig.VIRTUAL_WALLS);
-
-        header("screen.kurumamod.menu.section.camera");
-        slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);
-        slider("camera_height", 0.0, 8.0, ClientConfig.CAMERA_HEIGHT);
-        slider("camera_speed_pull", 0.0, 12.0, ClientConfig.CAMERA_SPEED_PULL);
-        slider("speed_fov", 0.0, 50.0, ClientConfig.SPEED_FOV);
-        slider("cockpit_look_ahead", 0.0, 1.6, ClientConfig.COCKPIT_LOOK_AHEAD);
-        slider("cockpit_drift_look", 0.0, 1.0, ClientConfig.COCKPIT_DRIFT_LOOK);
+        switch (shownPage()) {
+            case DISPLAY -> {
+                // 操作ヘルプは最初に消したくなる項目なので先頭に置く（一覧の下の案内も「H で消せる」と言っている）
+                header("screen.kurumamod.menu.group.hud");
+                toggle("show_help", ClientConfig.SHOW_HELP);
+                toggle("show_telemetry", ClientConfig.SHOW_TELEMETRY);
+                header("screen.kurumamod.menu.group.race");
+                toggle("time_attack_ghost", ClientConfig.TIME_ATTACK_GHOST);
+                cycle("gate_display", GateDisplay.class, ClientConfig.GATE_DISPLAY,
+                        display -> Component.translatable(display.translationKey()));
+                header("screen.kurumamod.menu.group.mirror");
+                toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);
+                header("screen.kurumamod.menu.group.effects");
+                toggle("show_dust", ClientConfig.SHOW_DUST);
+                slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
+                toggle("show_own_skid_marks", ClientConfig.SHOW_OWN_SKID_MARKS);
+                toggle("show_other_skid_marks", ClientConfig.SHOW_OTHER_SKID_MARKS);
+                // 1 秒から 5 分まで。線形だと既定の 5 秒が左端 1% に潰れるので対数で割り当てる
+                slider("skid_mark_seconds", 1.0, 300.0, true, ClientConfig.SKID_MARK_SECONDS);
+            }
+            case GAUGES -> {
+                toggle("show_gauges", ClientConfig.SHOW_GAUGES);
+                cycle("gauge_theme", GaugeTheme.class, ClientConfig.GAUGE_THEME,
+                        theme -> Component.translatable(theme.translationKey()));
+                slider("gauge_scale", 0.5, 2.0, ClientConfig.GAUGE_SCALE);
+                slider("gauge_opacity", 0.15, 1.0, ClientConfig.GAUGE_OPACITY);
+            }
+            case DRIVING -> toggle("virtual_walls", ClientConfig.VIRTUAL_WALLS);
+            case SOUND -> {
+                percent("sound_master", ClientConfig.SOUND_MASTER);
+                percent("sound_engine", ClientConfig.SOUND_ENGINE);
+                percent("sound_turbo", ClientConfig.SOUND_TURBO);
+                percent("sound_tires", ClientConfig.SOUND_TIRES);
+                percent("sound_surface", ClientConfig.SOUND_SURFACE);
+                percent("sound_road", ClientConfig.SOUND_ROAD);
+                percent("sound_wind", ClientConfig.SOUND_WIND);
+                percent("sound_shift", ClientConfig.SOUND_SHIFT);
+                percent("sound_crash", ClientConfig.SOUND_CRASH);
+            }
+            case CAMERA -> {
+                slider("camera_distance", 1.5, 24.0, ClientConfig.CAMERA_DISTANCE);
+                slider("camera_height", 0.0, 8.0, ClientConfig.CAMERA_HEIGHT);
+                slider("camera_speed_pull", 0.0, 12.0, ClientConfig.CAMERA_SPEED_PULL);
+                slider("speed_fov", 0.0, 50.0, ClientConfig.SPEED_FOV);
+                slider("cockpit_look_ahead", 0.0, 1.6, ClientConfig.COCKPIT_LOOK_AHEAD);
+                slider("cockpit_drift_look", 0.0, 1.0, ClientConfig.COCKPIT_DRIFT_LOOK);
+            }
+            case CAR_SOUND -> carSoundPage();
+        }
 
         int available = height - LIST_TOP - FOOTER_HEIGHT;
         visibleRows = Math.max(1, Math.min(rows.size(), available / ROW_HEIGHT));
 
-        int footerY = LIST_TOP + visibleRows * ROW_HEIGHT + 8;
+        int footerY = LIST_TOP + Math.max(visibleRows * ROW_HEIGHT, tabs * (ROW_HEIGHT + 3)) + 8;
+        if (carId != null) {
+            // パック用の音: 決まった値を JSON で取り出す・動かした値を捨てる
+            ResourceLocation id = carId;
+            addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.menu.car_sound.copy"),
+                            button -> copySoundsJson(id))
+                    .bounds(panelLeft + PANEL_WIDTH / 2 - 190, footerY, 120, 20)
+                    .build());
+        }
+        // 元に戻す。車の音のページは動かした値を捨ててパックの定義へ、ほかのページはそのページの項目を既定値へ
+        ResourceLocation soundCar = carId;
+        if (soundCar != null || !resets.isEmpty()) {
+            addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.menu.reset"),
+                            button -> {
+                                if (soundCar != null) {
+                                    CarSoundSet.clearDebugOverride(soundCar);
+                                    rebuildWidgets();
+                                } else {
+                                    // 1 項目ずつの R と同じ手順を全部の行で回す（作り直さない）
+                                    resets.forEach(Runnable::run);
+                                }
+                            })
+                    .bounds(panelLeft + PANEL_WIDTH / 2 + 70, footerY, 120, 20)
+                    .build());
+        }
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds(panelLeft + PANEL_WIDTH / 2 - 60, footerY, 120, 20)
                 .build());
 
         scroll = Math.max(0, Math.min(scroll, rows.size() - visibleRows));
         layout();
+    }
+
+    // ------------------------------------------------------------------
+    // 車の音（パック用）
+    // ------------------------------------------------------------------
+
+    /** 動かせる音（{@code sounds} のキー）。エンジンは別に先頭へ置く。 */
+    private static final String[] SOUND_KEYS = {
+            "exhaust", "exhaust_high", "turbo", "blowoff", "slip", "slip_chatter",
+            "gravel", "sand", "road", "wind", "shift", "crash"};
+
+    /**
+     * 乗っている車の車種の {@code sounds}（高さ・大きさ・エンジンの種類）を動かす。カーパックを作る人が、
+     * JSON を書き換えて F3+T で読み直すのを繰り返さずに決めるためのページ。
+     *
+     * <p>値は {@link CarSoundSet#setDebugOverride} で<b>このクライアントだけ・ゲームを閉じるまで</b>効く
+     * （座席の調整画面 {@code SeatScreen} と同じ）。決まったら「JSON をコピー」でパックへ貼る。
+     * 高さと大きさは鳴っている音が毎ティック読み直すので、動かすとその場で聞こえる。</p>
+     */
+    private void carSoundPage() {
+        carId = ridingCarId();
+        if (carId == null) {
+            rows.add(new Row(Component.translatable("screen.kurumamod.menu.car_sound.need_car"), null, false));
+            return;
+        }
+        ResourceLocation id = carId;
+        com.jdmmc.kurumamod.entity.CarEntity car = ridingCar();
+        // 鳴っている側だけを出す。合成したエンジン音の車で exhaust を動かしても何も変わらない
+        // （exhaust はパックかマフラーが音源を書いた車の排気音）。逆もそう
+        boolean engine = car == null || CarSound.soundsOf(car).usesEngine();
+        if (engine) {
+            engineRows(id);
+        }
+        for (String key : SOUND_KEYS) {
+            boolean exhaust = key.startsWith("exhaust");
+            if (exhaust == engine) {
+                continue;
+            }
+            Component title = Component.literal(key);
+            // 部品が付いていないと鳴らない音は、見出しで知らせる（動かしても聞こえない理由が分かるように）
+            boolean silent = car != null && (("turbo".equals(key) && !car.hasTurbo())
+                    || ("blowoff".equals(key) && !car.hasBlowoff()));
+            if (silent) {
+                title = Component.literal(key + "  ").append(Component.translatable("screen.kurumamod.sound_debug.no_part"));
+            }
+            rows.add(new Row(title, null, true));
+            tuningRows(id, key, false);
+        }
+    }
+
+    /** 合成したエンジン音の行（種類・高さ・大きさ・踏んだときの出方）。 */
+    private void engineRows(ResourceLocation id) {
+        CarSoundSet sounds = CarSoundSet.of(id);
+        rows.add(new Row(Component.literal("engine"), null, true));
+        Component typeLabel = Component.literal("type");
+        CycleButton<String> type = CycleButton.<String>builder(Component::literal)
+                .withValues(KurumaSounds.ENGINE_TYPES)
+                .withInitialValue(sounds.engineType())
+                .displayOnlyValue()
+                .create(widgetLeft(), 0, widgetWidth(), 18, typeLabel,
+                        (widget, chosen) -> CarSoundSet.setDebugOverride(id, CarSoundSet.of(id).withEngineType(chosen)));
+        addRenderableWidget(type);
+        // 1 項目だけ戻すときは、パックに書いてある値へ戻す
+        rows.add(new Row(typeLabel, type, false, resetButton(() -> {
+            String packType = CarModel.get(id).sounds().engineType();
+            CarSoundSet.setDebugOverride(id, CarSoundSet.of(id).withEngineType(packType));
+            type.setValue(packType);
+        })));
+        tuningRows(id, CarSoundSet.ENGINE, true);
+    }
+
+    private void tuningRows(ResourceLocation id, String key, boolean engine) {
+        CarSoundSet.Tuning now = CarSoundSet.of(id).tuningOf(key);
+        // 1 項目だけ戻すときは、パックに書いてある値へ戻す
+        CarSoundSet.Tuning pack = CarModel.get(id).sounds().tuningOf(key);
+        tuningSlider("pitch", 0.5, 2.0, now.pitch(), pack.pitch(),
+                v -> retune(id, key, t -> new CarSoundSet.Tuning(v, t.volume(), t.load())));
+        tuningSlider("volume", 0.0, 2.0, now.volume(), pack.volume(),
+                v -> retune(id, key, t -> new CarSoundSet.Tuning(t.pitch(), v, t.load())));
+        if (engine) {
+            tuningSlider("load", 0.0, 1.5, now.load(), pack.load(),
+                    v -> retune(id, key, t -> new CarSoundSet.Tuning(t.pitch(), t.volume(), v)));
+        }
+    }
+
+    private void tuningSlider(String name, double min, double max, double initial, double packValue,
+                              DoubleConsumer apply) {
+        Component label = Component.literal(name);
+        OptionSlider slider = new OptionSlider(widgetLeft(), widgetWidth(), min, max, false, initial, apply);
+        addRenderableWidget(slider);
+        rows.add(new Row(label, slider, false, resetButton(() -> {
+            apply.accept(packValue);
+            slider.show(packValue);
+        })));
+    }
+
+    private static void retune(ResourceLocation id, String key,
+                               java.util.function.UnaryOperator<CarSoundSet.Tuning> change) {
+        CarSoundSet now = CarSoundSet.of(id);
+        CarSoundSet.setDebugOverride(id, now.withTuning(key, change.apply(now.tuningOf(key))));
+    }
+
+    /** {@code vehicles/<車>.json} へそのまま貼れる {@code "sounds": {...}} をクリップボードへ。 */
+    private void copySoundsJson(ResourceLocation id) {
+        String body = new com.google.gson.GsonBuilder().setPrettyPrinting().create()
+                .toJson(CarSoundSet.of(id).toJson());
+        minecraft.keyboardHandler.setClipboard("\"sounds\": " + body);
+        if (minecraft.player != null) {
+            minecraft.player.displayClientMessage(
+                    Component.translatable("screen.kurumamod.menu.car_sound.copied"), true);
+        }
+    }
+
+    private ResourceLocation ridingCarId() {
+        com.jdmmc.kurumamod.entity.CarEntity car = ridingCar();
+        return car != null ? car.getCarId() : null;
+    }
+
+    private com.jdmmc.kurumamod.entity.CarEntity ridingCar() {
+        if (minecraft != null && minecraft.player != null
+                && minecraft.player.getVehicle() instanceof com.jdmmc.kurumamod.entity.CarEntity car) {
+            return car;
+        }
+        return null;
     }
 
     // ------------------------------------------------------------------
@@ -129,7 +368,10 @@ public class KurumaMenuScreen extends Screen {
                     value.set(on);
                     ClientConfig.refresh();
                 });
-        addRow(name, label, button);
+        addRow(name, label, button, () -> {
+            value.set(value.getDefault());
+            button.setValue(value.getDefault());
+        });
     }
 
     private <T extends Enum<T>> void cycle(String name, Class<T> type,
@@ -144,7 +386,10 @@ public class KurumaMenuScreen extends Screen {
                     value.set(chosen);
                     ClientConfig.refresh();
                 });
-        addRow(name, label, button);
+        addRow(name, label, button, () -> {
+            value.set(value.getDefault());
+            button.setValue(value.getDefault());
+        });
     }
 
     private void slider(String name, double min, double max, ForgeConfigSpec.DoubleValue value) {
@@ -161,14 +406,54 @@ public class KurumaMenuScreen extends Screen {
                     value.set(set);
                     ClientConfig.refresh();
                 });
-        addRow(name, label, slider);
+        addRow(name, label, slider, () -> {
+            value.set(value.getDefault());
+            slider.show(value.getDefault());
+        });
     }
 
-    private void addRow(String name, Component label, AbstractWidget widget) {
+    /** 0〜200% の音量の倍率。値は 0..2 で持ち、% で見せる。 */
+    private void percent(String name, ForgeConfigSpec.DoubleValue value) {
+        Component label = Component.translatable("config.kurumamod." + name);
+        OptionSlider slider = new OptionSlider(widgetLeft(), widgetWidth(), 0.0, 2.0, false,
+                value.get(),
+                set -> {
+                    value.set(set);
+                    ClientConfig.refresh();
+                });
+        slider.percent = true;
+        slider.updateMessage();
+        addRow(name, label, slider, () -> {
+            value.set(value.getDefault());
+            slider.show(value.getDefault());
+        });
+    }
+
+    /**
+     * 項目の行を足す。右端に 1 項目だけ既定へ戻す R ボタンを置く（G の画面と同じ）。
+     *
+     * <p><b>戻すときはウィジェットを作り直さず、見せている値だけを差し替える</b>（{@code resetOne}）。
+     * 作り直すと、クリックの伝播中にウィジェット一覧を入れ替えることになって危うい。
+     * ページごとの「元に戻す」も同じ手順を全部の行で回す。</p>
+     */
+    private void addRow(String name, Component label, AbstractWidget widget, Runnable resetOne) {
         widget.setTooltip(Tooltip.create(
                 Component.translatable("config.kurumamod." + name + ".tooltip")));
         addRenderableWidget(widget);
-        rows.add(new Row(label, widget, false));
+        Runnable apply = () -> {
+            resetOne.run();
+            ClientConfig.refresh();
+        };
+        resets.add(apply);
+        rows.add(new Row(label, widget, false, resetButton(apply)));
+    }
+
+    /** 1 項目だけ戻す R ボタン。 */
+    private Button resetButton(Runnable apply) {
+        return addRenderableWidget(Button.builder(Component.literal("R"), button -> apply.run())
+                .tooltip(Tooltip.create(Component.translatable("screen.kurumamod.menu.reset_one")))
+                .bounds(widgetLeft() + widgetWidth() + GAP, 0, RESET_WIDTH, 18)
+                .build());
     }
 
     private int widgetLeft() {
@@ -176,7 +461,7 @@ public class KurumaMenuScreen extends Screen {
     }
 
     private int widgetWidth() {
-        return PANEL_WIDTH - LABEL_WIDTH - GAP;
+        return PANEL_WIDTH - LABEL_WIDTH - RESET_WIDTH - GAP * 2;
     }
 
     // ------------------------------------------------------------------
@@ -229,13 +514,14 @@ public class KurumaMenuScreen extends Screen {
             }
             String name = row.label.getString();
             graphics.drawString(font,
-                    font.plainSubstrByWidth(name, LABEL_WIDTH - GAP),
+                    font.plainSubstrByWidth(name, row.widget == null ? PANEL_WIDTH : LABEL_WIDTH - GAP),
                     panelLeft, row.y + 5, row.isHeader ? COLOR_HEADER : COLOR_NAME, false);
         }
 
         renderScrollBar(graphics, listHeight);
 
-        graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.menu.hint"),
+        graphics.drawCenteredString(font, Component.translatable(shownPage() == Page.CAR_SOUND
+                        ? "screen.kurumamod.menu.car_sound.hint" : "screen.kurumamod.menu.hint"),
                 width / 2, LIST_TOP + listHeight + 32, COLOR_HINT);
     }
 
@@ -258,6 +544,9 @@ public class KurumaMenuScreen extends Screen {
      */
     @Override
     public void removed() {
+        if (soundDebug) {
+            return;
+        }
         ClientConfig.SPEC.save();
     }
 
@@ -291,22 +580,31 @@ public class KurumaMenuScreen extends Screen {
         private final Component label;
         private final AbstractWidget widget;
         private final boolean isHeader;
+        /** 1 項目だけ戻す R ボタン。見出しと案内の行には無い。 */
+        private final Button reset;
 
         private int y;
         private boolean visible;
 
         private Row(Component label, AbstractWidget widget, boolean isHeader) {
+            this(label, widget, isHeader, null);
+        }
+
+        private Row(Component label, AbstractWidget widget, boolean isHeader, Button reset) {
             this.label = label;
             this.widget = widget;
             this.isHeader = isHeader;
+            this.reset = reset;
         }
 
         void setVisible(boolean visible) {
             this.visible = visible;
-            if (widget != null) {
-                widget.visible = visible;
-                widget.active = visible;
-                widget.setY(y);
+            for (AbstractWidget each : new AbstractWidget[]{widget, reset}) {
+                if (each != null) {
+                    each.visible = visible;
+                    each.active = visible;
+                    each.setY(y);
+                }
             }
         }
     }
@@ -323,6 +621,8 @@ public class KurumaMenuScreen extends Screen {
         private final double max;
         private final boolean logarithmic;
         private final DoubleConsumer apply;
+        /** % で見せる（0..2 → 0〜200%）。 */
+        private boolean percent;
 
         private OptionSlider(int x, int width, double min, double max, boolean logarithmic,
                              double initial, DoubleConsumer apply) {
@@ -350,6 +650,10 @@ public class KurumaMenuScreen extends Screen {
         @Override
         protected void updateMessage() {
             double v = actual();
+            if (percent) {
+                setMessage(Component.literal(String.format("%.0f%%", v * 100.0)));
+                return;
+            }
             // 対数の目盛りは桁が大きく動くので、大きい値で小数を並べない
             String format = !logarithmic ? "%.2f" : v < 10.0 ? "%.1f" : "%.0f";
             setMessage(Component.literal(String.format(format, v)));
@@ -358,6 +662,12 @@ public class KurumaMenuScreen extends Screen {
         @Override
         protected void applyValue() {
             apply.accept(actual());
+        }
+
+        /** 見せている値だけを差し替える（設定へは書かない。書くのは呼び出し側）。 */
+        void show(double v) {
+            value = toPosition(min, max, logarithmic, v);
+            updateMessage();
         }
     }
 }

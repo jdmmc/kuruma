@@ -7,8 +7,6 @@ import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.CarImpact;
 import com.jdmmc.kurumamod.client.CarSparks;
 import com.jdmmc.kurumamod.client.CarSeat;
-import com.jdmmc.kurumamod.debug.GroundLog;
-import com.jdmmc.kurumamod.debug.GroundSmoothing;
 import com.jdmmc.kurumamod.debug.GroundTrace;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
@@ -422,8 +420,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     private final Long2DoubleOpenHashMap groundColumns = newColumnTable();
     /** 同じく、階段の線を探すとき用。1 段深くまでレイを飛ばすので、表を分ける。 */
     private final Long2DoubleOpenHashMap stairColumns = newColumnTable();
-    /** 各輪へ渡した地面の出どころ。接地の記録（{@link GroundLog}）にだけ使う。 */
-    private final GroundLog.Source[] groundSources = new GroundLog.Source[Wheel.COUNT];
+    /** 各輪へ渡した地面の出どころ。F3+B の地面の線（{@link GroundTrace}）の色分けに使う。 */
+    private final GroundTrace.Source[] groundSources = new GroundTrace.Source[Wheel.COUNT];
     /** 各輪の真下の地面の高さ（線や斜面を足す前）。接地の記録にだけ使う。 */
     private final double[] rawGroundHeight = newGroundHeights();
     /** 次に {@link #setGroundHeight} へ渡す斜面が階段の線か（false なら先読み）。接地の記録にだけ使う。 */
@@ -1118,14 +1116,6 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
             // 変速の要求は押した瞬間の 1 回なので、最初の刻みにだけ渡す
             CarPhysics.step(carSpec, state, groundContact, dt, i == 0 ? input : input.withoutShift());
             CarBody.Result hit = body.solve(carSpec, state, groundContact, x, z, blockField, dt);
-            if (GroundLog.active() && level().isClientSide) {
-                String[] surfaceNames = new String[Wheel.COUNT];
-                for (int w = 0; w < Wheel.COUNT; w++) {
-                    surfaceNames[w] = surfaces[w].surfaceName();
-                }
-                GroundLog.record(tickCount, i, x, z, dt, carSpec, state, groundContact,
-                        groundSources, rawGroundHeight, surfaceNames, hit);
-            }
             impact = Math.max(impact, hit.impact);
             terrainImpact = Math.max(terrainImpact, hit.impact);
             // 火花は 1 ティックのうちいちばん速く擦れた刻みから出す。位置はその刻みの車からのずれで持つ
@@ -1641,7 +1631,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         if (Math.cos(state.pitch) * Math.cos(state.roll) <= WHEEL_UPRIGHT_MIN) {
             for (Wheel wheel : Wheel.VALUES) {
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, 0.0);
-                groundSources[wheel.ordinal()] = GroundLog.Source.TILTED;
+                groundSources[wheel.ordinal()] = GroundTrace.Source.TILTED;
                 rawGroundHeight[wheel.ordinal()] = Double.NEGATIVE_INFINITY;
             }
             return;
@@ -1730,13 +1720,13 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                         double base = previous > Double.NEGATIVE_INFINITY ? previous : Math.min(height, wheelBottom);
                         aheadIsStair = true;
                         setGroundHeight(wheel, height, tireGrip(surface), tireRolling(surface), base, stair, rise);
-                        groundSources[index] = GroundLog.Source.DEEP_STAIR;
+                        groundSources[index] = GroundTrace.Source.DEEP_STAIR;
                         rawGroundHeight[index] = height;
                         continue;
                     }
                 }
                 setGroundHeight(wheel, Double.NEGATIVE_INFINITY, rise);
-                groundSources[index] = GroundLog.Source.MISS;
+                groundSources[index] = GroundTrace.Source.MISS;
                 continue;
             }
             if (!hit.isInside()) {
@@ -1754,7 +1744,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     double base = previous > Double.NEGATIVE_INFINITY ? previous : wheelBottom;
                     setGroundHeight(wheel, surface, tireGrip(surfaces[index]), tireRolling(surfaces[index]),
                             base, Double.NEGATIVE_INFINITY, rise);
-                    groundSources[index] = GroundLog.Source.BURIED;
+                    groundSources[index] = GroundTrace.Source.BURIED;
                     continue;
                 }
             }
@@ -1762,7 +1752,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 // 起点が塞がっている＝登坂限界より上まで続く壁。乗せずに据え置く
                 groundContact.set(wheel, previousGroundHeight[index],
                         tireGrip(surfaces[index]), tireRolling(surfaces[index]));
-                groundSources[index] = GroundLog.Source.WALL_HOLD;
+                groundSources[index] = GroundTrace.Source.WALL_HOLD;
                 continue;
             }
 
@@ -1843,7 +1833,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 実際の記録では浮いていた時間が横滑り 0〜10 度で 2〜3%、45 度超えで 17〜23% に増えた。
      * 地形だけの計算では、進む向きで引けば横滑りに依らず真っすぐ走ったときと同じになる
      * （6.25%・格子から 20 度の坂、横滑り 60 度で、傾きの変化の 95% 点が 11.9% → 1.3%）。
-     * Ctrl+J で車体の向きに戻せる（{@link GroundSmoothing.Mode#BODY}）。</p>
+     * 以前は開発用に車体の向き・補間なしへ切り替えられた（Ctrl+J）が、進む向きに固定して切り替えは消した。</p>
      *
      * <p><b>縁は補間する前の地面で探し、縁での高さは補間で決める</b>（地面の補間が入りのとき）。
      * 補間した地面には段が無いので、そこで縁を探すと線がまったく作られず、ブロックの中心ごとに
@@ -1857,32 +1847,28 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     private double stairHeight(double x, double z, double from, double bottom, double height) {
         double dirX = state.forwardX();
         double dirZ = state.forwardZ();
-        if (GroundSmoothing.alongTravel()) {
-            double velocityX = state.velocityX();
-            double velocityZ = state.velocityZ();
-            double speed = Math.hypot(velocityX, velocityZ);
-            if (speed > STAIR_TRAVEL_MIN_SPEED) {
-                // 前後の両方を探すので、後ろへ進んでいても線は同じ。車体の向きと揃えてから混ぜる
-                double sign = velocityX * dirX + velocityZ * dirZ < 0.0 ? -1.0 : 1.0;
-                double weight = Math.min(1.0,
-                        (speed - STAIR_TRAVEL_MIN_SPEED) / (STAIR_TRAVEL_FULL_SPEED - STAIR_TRAVEL_MIN_SPEED));
-                double mixX = dirX * (1.0 - weight) + sign * velocityX / speed * weight;
-                double mixZ = dirZ * (1.0 - weight) + sign * velocityZ / speed * weight;
-                double length = Math.hypot(mixX, mixZ);
-                if (length > 1.0e-6) {
-                    dirX = mixX / length;
-                    dirZ = mixZ / length;
-                }
+        double velocityX = state.velocityX();
+        double velocityZ = state.velocityZ();
+        double speed = Math.hypot(velocityX, velocityZ);
+        if (speed > STAIR_TRAVEL_MIN_SPEED) {
+            // 前後の両方を探すので、後ろへ進んでいても線は同じ。車体の向きと揃えてから混ぜる
+            double sign = velocityX * dirX + velocityZ * dirZ < 0.0 ? -1.0 : 1.0;
+            double weight = Math.min(1.0,
+                    (speed - STAIR_TRAVEL_MIN_SPEED) / (STAIR_TRAVEL_FULL_SPEED - STAIR_TRAVEL_MIN_SPEED));
+            double mixX = dirX * (1.0 - weight) + sign * velocityX / speed * weight;
+            double mixZ = dirZ * (1.0 - weight) + sign * velocityZ / speed * weight;
+            double length = Math.hypot(mixX, mixZ);
+            if (length > 1.0e-6) {
+                dirX = mixX / length;
+                dirZ = mixZ / length;
             }
         }
         double deep = bottom - STAIR_STEP_MAX;
         // 段の高さは補間する前の、輪の真ん中で測る（補間した高さは段の途中の値になる）
         double level = height;
-        if (GroundSmoothing.enabled()) {
-            double raw = rawGround(x, z, from, deep);
-            if (!Double.isNaN(raw)) {
-                level = raw;
-            }
+        double raw = rawGround(x, z, from, deep);
+        if (!Double.isNaN(raw)) {
+            level = raw;
         }
         double[] ahead = stairEdges(x, z, dirX, dirZ, from, deep, level);
         double[] behind = stairEdges(x, z, -dirX, -dirZ, from, deep, level);
@@ -1959,7 +1945,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                 double edge = (near + far) / 2.0;
                 edges[found * 2] = edge;
                 edges[found * 2 + 1] = ground;
-                if (GroundSmoothing.enabled() && Math.abs(ground - level) <= SMOOTH_GROUND_LIMIT) {
+                if (Math.abs(ground - level) <= SMOOTH_GROUND_LIMIT) {
                     // 段の上と下の中間を基準にならす（縁の上ではどちらの段とも言えない）
                     edges[4 + found] = smoothGround(x + dirX * edge, z + dirZ * edge, from, bottom,
                             (ground + level) / 2.0, stairColumns);
@@ -2070,15 +2056,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      *
      * <p><b>高さの差が {@link #SMOOTH_GROUND_LIMIT} を超えるブロックは混ぜない</b>（その点の高さのまま）。
      * 壁・縁石・ハーフの段・崖は今までどおり段として扱い、階段の線と先読みに任せる。</p>
-     *
-     * <p>開発用に Ctrl+J で切れる（{@link GroundSmoothing}）。切ると、その点の高さをそのまま返し、
-     * 階段の線も段の角を結ぶものに戻る。</p>
      */
     private double smoothGround(double x, double z, double from, double bottom, double own,
                                 Long2DoubleOpenHashMap columns) {
-        if (!GroundSmoothing.enabled()) {
-            return own;
-        }
         double cx = x - 0.5;
         double cz = z - 0.5;
         int i0 = Mth.floor(cx);
@@ -2169,11 +2149,11 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
                     : Math.max(height, ahead);
             // 線が真下の地面より下でも、線を渡していれば線の出どころ
             groundSources[index] = limited != height
-                    ? (aheadIsStair ? GroundLog.Source.STAIR : GroundLog.Source.AHEAD)
-                    : GroundLog.Source.FLAT;
+                    ? (aheadIsStair ? GroundTrace.Source.STAIR : GroundTrace.Source.AHEAD)
+                    : GroundTrace.Source.FLAT;
         } else {
             limited = Math.min(height, Math.max(ahead, base + rise));
-            groundSources[index] = limited < height ? GroundLog.Source.RISE_LIMIT : GroundLog.Source.FLAT;
+            groundSources[index] = limited < height ? GroundTrace.Source.RISE_LIMIT : GroundTrace.Source.FLAT;
         }
         if (level().isClientSide) {
             double raw = rawGroundHeight[index];

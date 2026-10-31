@@ -1,4 +1,664 @@
 {
+  "car_engine_i4_turbo_900_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_900_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_900_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_900_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_1600_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_1600_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_1600_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_1600_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_2800_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_2800_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_2800_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_2800_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_4500_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_4500_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_4500_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_4500_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_7000_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_7000_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_turbo_7000_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_turbo_7000_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_900_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_900_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_900_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_900_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_1600_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_1600_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_1600_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_1600_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_2800_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_2800_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_2800_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_2800_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_4500_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_4500_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_4500_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_4500_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_7000_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_7000_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i4_7000_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i4_7000_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_900_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_900_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_900_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_900_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_1600_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_1600_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_1600_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_1600_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_2800_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_2800_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_2800_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_2800_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_4500_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_4500_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_4500_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_4500_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_7000_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_7000_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_i6_7000_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_i6_7000_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_900_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_900_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_900_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_900_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_1600_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_1600_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_1600_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_1600_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_2800_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_2800_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_2800_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_2800_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_4500_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_4500_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_4500_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_4500_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_7000_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_7000_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_flat6_7000_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_flat6_7000_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_900_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_900_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_900_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_900_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_1600_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_1600_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_1600_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_1600_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_2800_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_2800_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_2800_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_2800_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_4500_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_4500_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_4500_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_4500_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_7000_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_7000_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_v8_7000_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_v8_7000_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_900_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_900_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_900_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_900_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_1600_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_1600_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_1600_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_1600_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_2800_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_2800_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_2800_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_2800_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_4500_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_4500_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_4500_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_4500_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_7000_lift": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_7000_lift",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "car_engine_diesel4_7000_load": {
+    "category": "neutral",
+    "subtitle": "subtitles.kurumamod.car_exhaust",
+    "sounds": [
+      {
+        "name": "kurumamod:engine_diesel4_7000_load",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
   "car_exhaust": {
     "category": "neutral",
     "subtitle": "subtitles.kurumamod.car_exhaust",

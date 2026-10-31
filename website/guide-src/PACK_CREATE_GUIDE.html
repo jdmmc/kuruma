@@ -2428,8 +2428,79 @@ description = '''...'''              # description in the mod list
 <section id="s-sound" data-guide="car">
 <h2 class="ja"><span class="num">8</span>音を付ける（オプション）</h2>
 <h2 class="en"><span class="num">8</span>Add sounds (optional)</h2>
-<p class="ja">エンジン音などを車ごとに差し替えます。書かなかった音は KurumaMod の音のままなので、この章は飛ばしてもかまいません。</p>
+<p class="ja">エンジン音などを車ごとに変えます。書かなかった音は KurumaMod の音のままなので、この章は飛ばしてもかまいません。</p>
 <p class="en">Give a car its own engine note and other sounds. Anything you leave out stays KurumaMod's, so you can skip this chapter.</p>
+<p class="ja"><b>まずは音源を作らずに、数字だけで変えてみてください。</b>エンジンの種類を選び、高さと大きさを変えるだけで、車ごとの違いはかなり出せます。自分で録った音や作った音を使いたいときだけ、その下の「最小のエンジン音を付ける」へ進みます。</p>
+<p class="en"><b>Try changing things with numbers first, before making any audio.</b> Picking an engine type and adjusting pitch and volume already sets cars apart. Only go on to "Add a minimal engine sound" below if you want to use audio you recorded or made yourself.</p>
+
+<h3 class="ja">音源を作らずに変える（数字だけ）</h3>
+<h3 class="en">Change sounds without making audio (numbers only)</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b><code>vehicles/ae86.json</code> に <code>sounds</code> を足す。</b>
+<pre><code>"sounds": {
+  "engine": { "type": "i4", "pitch": 1.05, "load": 0.9 },
+  "turbo":  { "volume": 0 },
+  "shift":  { "pitch": 0.9, "volume": 0.7 }
+}</code></pre></li>
+<li><span class="where where-game">ゲーム</span><b>F3+T で読み直して、乗って聞く。</b></li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add <code>sounds</code> to <code>vehicles/ae86.json</code>.</b>
+<pre><code>"sounds": {
+  "engine": { "type": "i4", "pitch": 1.05, "load": 0.9 },
+  "turbo":  { "volume": 0 },
+  "shift":  { "pitch": 0.9, "volume": 0.7 }
+}</code></pre></li>
+<li><span class="where where-game">Game</span><b>Reload with F3+T, get in and listen.</b></li>
+</ol>
+<p class="ja">エンジンの <code>type</code> に書ける種類（どれも KurumaMod が合成した音で、回転数ごとに作り分けてあります）:</p>
+<p class="en">Engine <code>type</code> values (all synthesised by KurumaMod, with separate audio for each rpm range):</p>
+<table class="ja">
+<tr><th><code>type</code></th><th>エンジン</th><th>音の感じ</th></tr>
+<tr><td><code>i4_turbo</code></td><td>直 4 ターボ（既定）</td><td>SR20DET が手本。乾いて低く、タービンで丸い</td></tr>
+<tr><td><code>i4</code></td><td>直 4 NA</td><td>タービンが無いぶん鋭く、高回転で澄む</td></tr>
+<tr><td><code>i6</code></td><td>直 6 ターボ</td><td>RB・JZ のような滑らかなストレート 6</td></tr>
+<tr><td><code>flat6</code></td><td>水平対向 6 NA</td><td>左右のバンクが交互に吹く 911 の唸り</td></tr>
+<tr><td><code>v8</code></td><td>クロスプレーン V8</td><td>低く「ドロドロ」した不等間隔の拍</td></tr>
+<tr><td><code>diesel4</code></td><td>ディーゼルターボ</td><td>バスやトラックのような低い「ゴロゴロ」に、燃焼の「ガラガラ」が乗る</td></tr>
+</table>
+<table class="en">
+<tr><th><code>type</code></th><th>Engine</th><th>Character</th></tr>
+<tr><td><code>i4_turbo</code></td><td>Turbo inline-4 (default)</td><td>Modelled on the SR20DET. Dry and low, rounded off by the turbine</td></tr>
+<tr><td><code>i4</code></td><td>Naturally aspirated inline-4</td><td>Sharper without a turbine; clears up at high rpm</td></tr>
+<tr><td><code>i6</code></td><td>Turbo inline-6</td><td>A smooth straight six in the RB/JZ mould</td></tr>
+<tr><td><code>flat6</code></td><td>Naturally aspirated flat-6</td><td>The 911 howl of two banks firing in turn</td></tr>
+<tr><td><code>v8</code></td><td>Cross-plane V8</td><td>Low, uneven "burble"</td></tr>
+<tr><td><code>diesel4</code></td><td>Turbo diesel</td><td>A low bus-or-truck rumble with a combustion clatter on top</td></tr>
+</table>
+<p class="ja">どの音にも書ける値:</p>
+<p class="en">Values every sound accepts:</p>
+<table class="ja">
+<tr><th>値</th><th>意味</th><th>範囲（既定）</th></tr>
+<tr><td><code>pitch</code></td><td>高さの倍率。エンジンなら回転数に対する高さをまるごとずらす</td><td>0.5〜2.0（1）</td></tr>
+<tr><td><code>volume</code></td><td>大きさの倍率。0 で消える</td><td>0〜2（1）。ただし音量の上限 1 で頭打ち</td></tr>
+<tr><td><code>sound</code></td><td>音源の差し替え（下の「最小のエンジン音を付ける」と同じ。文字列だけで書いてもよい）</td><td>—</td></tr>
+<tr><td><code>type</code>（<code>engine</code> だけ）</td><td>エンジンの種類（上の表）</td><td><code>i4_turbo</code></td></tr>
+<tr><td><code>load</code>（<code>engine</code> だけ）</td><td>アクセルを踏んだときの荒い音の出方。下げると上品に、上げると荒く</td><td>0〜1.5（1）</td></tr>
+</table>
+<table class="en">
+<tr><th>Value</th><th>Meaning</th><th>Range (default)</th></tr>
+<tr><td><code>pitch</code></td><td>Pitch multiplier. For the engine it shifts the whole note against rpm</td><td>0.5–2.0 (1)</td></tr>
+<tr><td><code>volume</code></td><td>Volume multiplier. 0 silences it</td><td>0–2 (1), capped by the game's volume ceiling of 1</td></tr>
+<tr><td><code>sound</code></td><td>Replace the audio (same as "Add a minimal engine sound" below; a plain string works too)</td><td>—</td></tr>
+<tr><td><code>type</code> (<code>engine</code> only)</td><td>Engine type (table above)</td><td><code>i4_turbo</code></td></tr>
+<tr><td><code>load</code> (<code>engine</code> only)</td><td>How much the rough on-throttle sound comes through. Lower is smoother, higher is rawer</td><td>0–1.5 (1)</td></tr>
+</table>
+<ul class="ja">
+<li><code>engine</code> は合成したエンジン音のための項目です。<b><code>exhaust</code> に音源を書くと、合成した音の代わりにその音が鳴ります</b>（<code>engine</code> の値は効かなくなる）</li>
+<li><code>slip_chatter</code> と <code>exhaust_high</code> は、書かなければ <code>slip</code>・<code>exhaust</code> の <code>pitch</code> と <code>volume</code> を引き継ぎます</li>
+<li>聞く人は、H キーの設定画面の「サウンド」で音の種類ごとの大きさを自分で変えられます。パックの値はその前に掛かります</li>
+</ul>
+<ul class="en">
+<li><code>engine</code> is for the synthesised engine. <b>If you put audio in <code>exhaust</code>, that plays instead</b> (and the <code>engine</code> values no longer apply)</li>
+<li><code>slip_chatter</code> and <code>exhaust_high</code> inherit <code>pitch</code> and <code>volume</code> from <code>slip</code> and <code>exhaust</code> unless you write them</li>
+<li>Players can set the volume of each kind of sound for themselves under "Sound" in the H settings screen. Your pack's values are applied before that</li>
+</ul>
 
 <h3 class="ja">最小のエンジン音を付ける</h3>
 <h3 class="en">Add a minimal engine sound</h3>
@@ -2492,7 +2563,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <p class="en">Other sounds are replaced the same way. Names you can use in <code>sounds</code>:</p>
 <table class="ja">
 <tr><th>名前</th><th>音</th><th>鳴り方</th></tr>
-<tr><td><code>exhaust</code></td><td>エンジン音（低〜中回転）</td><td>ループ。回転数で音程、アクセルで音量が変わる</td></tr>
+<tr><td><code>engine</code></td><td>合成したエンジン音</td><td>音源は書けない。<code>type</code>・<code>pitch</code>・<code>volume</code>・<code>load</code> だけ（上の「数字だけ」）</td></tr>
+<tr><td><code>exhaust</code></td><td>エンジン音（低〜中回転）</td><td>ループ。回転数で音程、回転数とアクセルで音量が変わる。書くと合成したエンジン音の代わりに鳴る</td></tr>
 <tr><td><code>exhaust_high</code></td><td>エンジン音（高回転）</td><td>ループ。<code>exhaust</code> を 1 オクターブ上げたもの</td></tr>
 <tr><td><code>road</code></td><td>ロードノイズ</td><td>ループ。車速</td></tr>
 <tr><td><code>wind</code></td><td>風切り音</td><td>ループ。車速</td></tr>
@@ -2505,7 +2577,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </table>
 <table class="en">
 <tr><th>Name</th><th>Sound</th><th>How it plays</th></tr>
-<tr><td><code>exhaust</code></td><td>Engine (low to mid rpm)</td><td>Loop. Pitch follows rpm, volume follows throttle</td></tr>
+<tr><td><code>engine</code></td><td>Synthesised engine</td><td>No audio; only <code>type</code>, <code>pitch</code>, <code>volume</code> and <code>load</code> (see "numbers only" above)</td></tr>
+<tr><td><code>exhaust</code></td><td>Engine (low to mid rpm)</td><td>Loop. Pitch follows rpm, volume follows rpm and throttle. Plays instead of the synthesised engine</td></tr>
 <tr><td><code>exhaust_high</code></td><td>Engine (high rpm)</td><td>Loop. <code>exhaust</code> shifted up one octave</td></tr>
 <tr><td><code>road</code></td><td>Road noise</td><td>Loop. Speed</td></tr>
 <tr><td><code>wind</code></td><td>Wind</td><td>Loop. Speed</td></tr>

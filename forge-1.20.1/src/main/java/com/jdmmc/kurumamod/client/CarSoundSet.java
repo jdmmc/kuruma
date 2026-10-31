@@ -46,15 +46,56 @@ import java.util.function.Supplier;
  * 既定の高回転側（KurumaMod のエンジン）を残すと、回すと別の車の音に化ける。代わりに
  * 音程が 2.0 で頭打ちになり、レブ付近では上がりきらない（アイドルの約 3 倍まで）。</p>
  *
+ * <h2>音源を用意しなくても、数字で変えられる</h2>
+ *
+ * <p>値には文字列（音源の差し替え）の代わりにオブジェクトも書ける。<b>既定の音の高さと大きさを
+ * 変えるだけ</b>なら、音源を作らなくてよい。</p>
+ *
+ * <pre>{@code
+ * "sounds": {
+ *   "engine": { "type": "flat6", "pitch": 0.95, "volume": 1.1, "load": 0.8 },
+ *   "turbo":  { "pitch": 1.2, "volume": 0.7 },
+ *   "shift":  { "sound": "mypack:dog_box", "volume": 0.6 }
+ * }
+ * }</pre>
+ *
+ * <ul>
+ *   <li>{@code pitch} … 高さの倍率（0.5〜2.0）。エンジンなら回転数に対する高さをまるごとずらす</li>
+ *   <li>{@code volume} … 大きさの倍率（0〜2）。掛けたあと 1 で抑える（1 を超えると届く距離まで伸びる）</li>
+ *   <li>{@code sound} … 音源の差し替え（文字列で書くのと同じ）</li>
+ *   <li>{@code engine} だけ: {@code type}（合成したエンジン音の種類。{@link KurumaSounds#ENGINE_TYPES}）と
+ *       {@code load}（踏んだときの荒い音がどれだけ前に出るか。0〜1.5、既定 1）。<b>音源の差し替えは
+ *       {@code exhaust} の役目</b>で、{@code exhaust} を書くと合成したエンジン音は鳴らない</li>
+ * </ul>
+ *
+ * <p>{@code slip_chatter} と {@code exhaust_high} は、書かなければ {@code slip}・{@code exhaust} の
+ * 高さと大きさを引き継ぐ（同じ音の 2 本なので、片方だけ変わると継ぎ目で音が跳ねる）。</p>
+ *
  * <h2>無い名前を書いても黙って無音にはしない</h2>
  *
  * <p>バニラは知らないサウンドイベントを鳴らそうとすると何も鳴らさない。それでは
  * <b>「パックの音が鳴らない」のではなく「車が無音になる」</b>ので、見つからなければ
  * 既定の音に落としてログに 1 回だけ残す。</p>
  *
- * @param overrides 役割の名前（{@link #KEYS}）→ サウンドイベントの名前
+ * @param overrides  役割の名前（{@link #KEYS}）→ サウンドイベントの名前
+ * @param tuning     役割の名前 → 高さと大きさの倍率（書いたものだけ）
+ * @param engineType 合成したエンジン音の種類（{@link KurumaSounds#ENGINE_TYPES}）
  */
-public record CarSoundSet(Map<String, ResourceLocation> overrides) {
+public record CarSoundSet(Map<String, ResourceLocation> overrides, Map<String, Tuning> tuning, String engineType) {
+
+    /**
+     * 既定の音の高さと大きさの倍率。
+     *
+     * @param pitch  高さの倍率
+     * @param volume 大きさの倍率
+     * @param load   踏んだときの荒い音の出方（エンジンだけ）
+     */
+    public record Tuning(double pitch, double volume, double load) {
+        public static final Tuning DEFAULT = new Tuning(1.0, 1.0, 1.0);
+    }
+
+    /** 合成したエンジン音の高さ・大きさ・踏んだときの出方を書くキー。 */
+    public static final String ENGINE = "engine";
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -75,17 +116,33 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
      * 1 回だけ鳴る音が {@link #SHIFT} と {@link #CRASH}。
      */
     public static final Set<String> KEYS = Set.of(
-            EXHAUST, EXHAUST_HIGH, "road", "wind", "slip", "slip_chatter", "gravel", "sand",
+            ENGINE, EXHAUST, EXHAUST_HIGH, "road", "wind", "slip", "slip_chatter", "gravel", "sand",
             TURBO, SHIFT, CRASH, BLOWOFF);
 
+    /** 書かなかったときの高さ・大きさを引き継ぐ相手。同じ音の 2 本なので揃える。 */
+    private static final Map<String, String> TUNING_PARENT = Map.of(
+            "slip_chatter", "slip",
+            EXHAUST_HIGH, EXHAUST);
+
     /** 何も差し替えない。 */
-    public static final CarSoundSet NONE = new CarSoundSet(Map.of());
+    public static final CarSoundSet NONE = new CarSoundSet(Map.of(), Map.of(), KurumaSounds.DEFAULT_ENGINE_TYPE);
 
     /** 見つからなかったと一度報告した名前。毎ティック同じ警告を出さないため。 */
     private static final Set<ResourceLocation> REPORTED_MISSING = new HashSet<>();
 
     public CarSoundSet {
         overrides = Map.copyOf(overrides);
+        tuning = Map.copyOf(tuning);
+    }
+
+    /** その役割の高さと大きさの倍率。書いていなければ引き継ぐ相手（{@link #TUNING_PARENT}）か 1 倍。 */
+    public Tuning tuningOf(String key) {
+        Tuning own = tuning.get(key);
+        if (own != null) {
+            return own;
+        }
+        String parent = TUNING_PARENT.get(key);
+        return parent != null ? tuning.getOrDefault(parent, Tuning.DEFAULT) : Tuning.DEFAULT;
     }
 
     /**
@@ -125,7 +182,7 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
         } else {
             merged.remove(EXHAUST_HIGH);
         }
-        return new CarSoundSet(merged);
+        return new CarSoundSet(merged, tuning, engineType);
     }
 
     /** 変速音。段が変わった瞬間に 1 回。 */
@@ -153,6 +210,103 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
         return !overrides.containsKey(EXHAUST) || overrides.containsKey(EXHAUST_HIGH);
     }
 
+    /**
+     * 合成したエンジン音（{@code CarSound.Role#ENGINE_0_LIFT} など）を鳴らすか。
+     *
+     * <p>パックかマフラーの部品が {@link #EXHAUST} を書いていればその音を鳴らし（以前と同じ 2 本の
+     * クロスフェード）、書いていなければ合成したエンジン音を鳴らす。{@link #EXHAUST_HIGH} だけ書いても
+     * 低回転側が無いので使わない。</p>
+     */
+    public boolean usesEngine() {
+        return !overrides.containsKey(EXHAUST);
+    }
+
+    /**
+     * 音源が同じか（差し替えと、合成したエンジン音の種類）。<b>高さと大きさは見ない</b>——
+     * そちらは鳴っている音のまま毎ティック読み直せるので、変わっても鳴らし直さなくてよい。
+     */
+    public boolean sameSources(CarSoundSet other) {
+        return overrides.equals(other.overrides) && engineType.equals(other.engineType);
+    }
+
+    /** その役割の高さと大きさだけを差し替えた組。 */
+    public CarSoundSet withTuning(String key, Tuning value) {
+        Map<String, Tuning> next = new TreeMap<>(tuning);
+        next.put(key, value);
+        return new CarSoundSet(overrides, next, engineType);
+    }
+
+    /** 合成したエンジン音の種類だけを差し替えた組。 */
+    public CarSoundSet withEngineType(String type) {
+        return new CarSoundSet(overrides, tuning, type);
+    }
+
+    /**
+     * デバッグ画面（{@code SoundDebugScreen}）で動かしている値。車種ごと・<b>このクライアントだけ・
+     * ゲームを閉じるまで</b>（座席の {@code CarSeat#setOverride} と同じ）。
+     */
+    private static final Map<ResourceLocation, CarSoundSet> DEBUG_OVERRIDES = new java.util.HashMap<>();
+
+    /** その車種で鳴らす音の組。デバッグ画面で動かしていればそちら、でなければカーパックの定義。 */
+    public static CarSoundSet of(ResourceLocation carId) {
+        CarSoundSet override = DEBUG_OVERRIDES.get(carId);
+        return override != null ? override : CarModel.get(carId).sounds();
+    }
+
+    public static void setDebugOverride(ResourceLocation carId, CarSoundSet sounds) {
+        DEBUG_OVERRIDES.put(carId, sounds);
+    }
+
+    public static void clearDebugOverride(ResourceLocation carId) {
+        DEBUG_OVERRIDES.remove(carId);
+    }
+
+    /**
+     * カーパックの {@code vehicles/<車>.json} へそのまま貼れる {@code "sounds"} の中身。
+     * 既定のままの値は書かない。
+     */
+    public JsonObject toJson() {
+        JsonObject out = new JsonObject();
+        Set<String> keys = new TreeSet<>(overrides.keySet());
+        keys.addAll(tuning.keySet());
+        if (!KurumaSounds.DEFAULT_ENGINE_TYPE.equals(engineType)) {
+            keys.add(ENGINE);
+        }
+        for (String key : keys) {
+            ResourceLocation sound = overrides.get(key);
+            Tuning own = tuning.get(key);
+            boolean engineKey = ENGINE.equals(key);
+            if (!engineKey && sound != null && (own == null || own.equals(Tuning.DEFAULT))) {
+                out.addProperty(key, sound.toString());
+                continue;
+            }
+            JsonObject entry = new JsonObject();
+            if (engineKey && !KurumaSounds.DEFAULT_ENGINE_TYPE.equals(engineType)) {
+                entry.addProperty("type", engineType);
+            }
+            if (sound != null) {
+                entry.addProperty("sound", sound.toString());
+            }
+            if (own != null) {
+                putIfChanged(entry, "pitch", own.pitch());
+                putIfChanged(entry, "volume", own.volume());
+                if (engineKey) {
+                    putIfChanged(entry, "load", own.load());
+                }
+            }
+            if (entry.size() > 0) {
+                out.add(key, entry);
+            }
+        }
+        return out;
+    }
+
+    private static void putIfChanged(JsonObject entry, String name, double value) {
+        if (Math.abs(value - 1.0) > 1e-9) {
+            entry.addProperty(name, Math.round(value * 100.0) / 100.0);
+        }
+    }
+
     /** F3+T で音響エンジンが読み直されたら、見つからなかった名前も数え直す。 */
     public static void clearReports() {
         REPORTED_MISSING.clear();
@@ -164,6 +318,8 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
             return NONE;
         }
         Map<String, ResourceLocation> overrides = new TreeMap<>();
+        Map<String, Tuning> tuning = new TreeMap<>();
+        String engineType = KurumaSounds.DEFAULT_ENGINE_TYPE;
         for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith("_")) {
@@ -174,8 +330,60 @@ public record CarSoundSet(Map<String, ResourceLocation> overrides) {
                         key, new TreeSet<>(KEYS));
                 continue;
             }
-            overrides.put(key, new ResourceLocation(entry.getValue().getAsString()));
+            JsonElement value = entry.getValue();
+            // 文字列なら音源の差し替え（engine だけは種類の名前）
+            if (!value.isJsonObject()) {
+                if (ENGINE.equals(key)) {
+                    engineType = engineTypeOf(value.getAsString());
+                } else {
+                    overrides.put(key, new ResourceLocation(value.getAsString()));
+                }
+                continue;
+            }
+            JsonObject object = value.getAsJsonObject();
+            if (object.has("sound")) {
+                if (ENGINE.equals(key)) {
+                    LOGGER.warn("sounds.engine に sound は書けません（音源の差し替えは exhaust に書きます）");
+                } else {
+                    overrides.put(key, new ResourceLocation(object.get("sound").getAsString()));
+                }
+            }
+            if (ENGINE.equals(key) && object.has("type")) {
+                engineType = engineTypeOf(object.get("type").getAsString());
+            }
+            tuning.put(key, new Tuning(
+                    number(object, "pitch", 0.5, 2.0),
+                    number(object, "volume", 0.0, 2.0),
+                    number(object, "load", 0.0, 1.5)));
         }
-        return new CarSoundSet(overrides);
+        return new CarSoundSet(overrides, tuning, engineType);
+    }
+
+    /** 数を読んで範囲の端へ丸める。書いていなければ 1 倍。 */
+    private static double number(JsonObject object, String name, double min, double max) {
+        if (!object.has(name)) {
+            return 1.0;
+        }
+        double value = object.get(name).getAsDouble();
+        if (!Double.isFinite(value)) {
+            return 1.0;
+        }
+        double clamped = Math.max(min, Math.min(max, value));
+        if (clamped != value) {
+            LOGGER.warn("sounds の {} が範囲（{}〜{}）の外です。{} に丸めます", name, min, max, clamped);
+        }
+        return clamped;
+    }
+
+    /** 知らない種類なら既定の種類へ落として知らせる（黙って無音にはしない）。 */
+    private static String engineTypeOf(String name) {
+        for (String type : KurumaSounds.ENGINE_TYPES) {
+            if (type.equals(name)) {
+                return type;
+            }
+        }
+        LOGGER.warn("sounds.engine の type に知らない種類があります（{} を使います）: {}。書けるのは {}",
+                KurumaSounds.DEFAULT_ENGINE_TYPE, name, java.util.Arrays.toString(KurumaSounds.ENGINE_TYPES));
+        return KurumaSounds.DEFAULT_ENGINE_TYPE;
     }
 }

@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Minecraft;
@@ -99,8 +100,12 @@ public final class CarTurbo {
             float loud = (float) (0.35 + 0.65 * released);
             // 少しだけ音程をばらつかせる。毎回まったく同じだと機械的に聞こえる
             float tone = 0.95F + 0.10F * car.level().getRandom().nextFloat();
+            CarSoundSet sounds = CarSoundSet.of(car.getCarId());
+            CarSoundSet.Tuning tuning = sounds.tuningOf(CarSoundSet.BLOWOFF);
             car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
-                    CarModel.get(car.getCarId()).sounds().blowoff(), SoundSource.NEUTRAL, loud, tone, false);
+                    sounds.blowoff(), SoundSource.NEUTRAL,
+                    CarSound.volume(loud * (float) tuning.volume(), ClientConfig.soundTurbo),
+                    tone * (float) tuning.pitch(), false);
             state.cooldown = BLOWOFF_COOLDOWN;
         }
         state.peak = state.boost;

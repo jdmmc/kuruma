@@ -128,6 +128,42 @@ public final class ClientConfig {
                     "長くするほど同時に残る跡が増えて重くなる")
             .defineInRange("skidMarkSeconds", 5.0, 1.0, 300.0);
 
+    public static final ForgeConfigSpec.DoubleValue SOUND_MASTER = BUILDER
+            .comment("音量の倍率（車の音（全体））。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundMaster", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_ENGINE = BUILDER
+            .comment("音量の倍率（エンジン・排気音）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundEngine", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_TURBO = BUILDER
+            .comment("音量の倍率（ターボ・ブローオフ）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundTurbo", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_TIRES = BUILDER
+            .comment("音量の倍率（タイヤの鳴き）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundTires", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_SURFACE = BUILDER
+            .comment("音量の倍率（未舗装の路面音）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundSurface", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_ROAD = BUILDER
+            .comment("音量の倍率（ロードノイズ）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundRoad", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_WIND = BUILDER
+            .comment("音量の倍率（風切り音）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundWind", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_SHIFT = BUILDER
+            .comment("音量の倍率（変速音）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundShift", 1.0, 0.0, 2.0);
+
+    public static final ForgeConfigSpec.DoubleValue SOUND_CRASH = BUILDER
+            .comment("音量の倍率（衝突音）。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
+            .defineInRange("soundCrash", 1.0, 0.0, 2.0);
+
     public static final ForgeConfigSpec.EnumValue<CameraMode> FIRST_PERSON_CAMERA = BUILDER
             .comment("一人称のカメラモード（V で切り替え）。COCKPIT_FOLLOW=追従（車体と一緒に揺れる）、",
                     "COCKPIT_LEVEL=水平維持（視線は水平を保つ）、COCKPIT_FREE=自由（車体と一緒に揺れ、視線は追従しない）")
@@ -269,6 +305,20 @@ public final class ClientConfig {
     /** タイヤ痕が消えるまでの秒数。 */
     public static double skidMarkSeconds = 5.0;
 
+    /**
+     * 音量の倍率。{@code soundMaster} は車の音すべて、ほかは種類ごと（{@code CarSound}・{@code CarImpact}・
+     * {@code CarTurbo} が掛ける）。クライアントだけの好みなのでサーバーには置かない。
+     */
+    public static double soundMaster = 1.0;
+    public static double soundEngine = 1.0;
+    public static double soundTurbo = 1.0;
+    public static double soundTires = 1.0;
+    public static double soundSurface = 1.0;
+    public static double soundRoad = 1.0;
+    public static double soundWind = 1.0;
+    public static double soundShift = 1.0;
+    public static double soundCrash = 1.0;
+
     /** コースのゲートの見せ方。 */
     public static GateDisplay gateDisplay = GateDisplay.FULL;
 
@@ -345,6 +395,15 @@ public final class ClientConfig {
         showOwnSkidMarks = SHOW_OWN_SKID_MARKS.get();
         showOtherSkidMarks = SHOW_OTHER_SKID_MARKS.get();
         skidMarkSeconds = SKID_MARK_SECONDS.get();
+        soundMaster = SOUND_MASTER.get();
+        soundEngine = SOUND_ENGINE.get();
+        soundTurbo = SOUND_TURBO.get();
+        soundTires = SOUND_TIRES.get();
+        soundSurface = SOUND_SURFACE.get();
+        soundRoad = SOUND_ROAD.get();
+        soundWind = SOUND_WIND.get();
+        soundShift = SOUND_SHIFT.get();
+        soundCrash = SOUND_CRASH.get();
         gateDisplay = GATE_DISPLAY.get();
         firstPersonCamera = FIRST_PERSON_CAMERA.get();
         thirdPersonCamera = THIRD_PERSON_CAMERA.get();

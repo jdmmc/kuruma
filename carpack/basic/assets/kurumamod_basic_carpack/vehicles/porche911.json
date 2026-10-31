@@ -1,6 +1,10 @@
 {
   "_comment": "メッシュはゲージの車格（ホイールベース 3.12m）で作ってあり、原点は地面・前後輪の中点。designWheelBase は既定のままなので書かない",
 
+  "_sounds": "合成したエンジン音の種類だけ選ぶ（音源は用意しない）。水平対向 6 気筒 NA",
+  "sounds": {
+    "engine": { "type": "flat6" }
+  },
   "body": {
     "model": "kurumamod_basic_carpack:models/entity/porche911.obj",
     "texture": "kurumamod_basic_carpack:textures/entity/porche911.png"

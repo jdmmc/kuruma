@@ -126,27 +126,17 @@ public final class KurumaKeys {
             "key.categories.kurumamod");
 
     /**
-     * 接地の記録（{@code GroundLog}）を始める・止める。既定は Ctrl+H。
+     * 車の音（{@code sounds} の高さ・大きさ・エンジンの種類）を動かすデバッグ画面を開く。既定は Ctrl+H。
+     * カーパックを作る人が、JSON を書き換えて F3+T で読み直すのを繰り返さずに決めるため。
      * MOD メニュー（H）と同じキーに修飾キーを付けてある（{@link #OPEN_HEADLIGHT_SETTINGS} と同じ）。
+     * 以前の Ctrl+H（接地の記録）と Ctrl+J（地面の補間の切り替え）は消した。
      */
-    public static final KeyMapping TOGGLE_GROUND_LOG = new KeyMapping(
-            "key.kurumamod.ground_log",
+    public static final KeyMapping OPEN_SOUND_DEBUG = new KeyMapping(
+            "key.kurumamod.sound_debug",
             KeyConflictContext.IN_GAME,
             KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_H,
-            "key.categories.kurumamod");
-
-    /**
-     * 地面の補間と階段の線の向き（{@code GroundSmoothing}）を順に切り替える。開発用。既定は Ctrl+J。
-     * コントローラの画面（J）と同じキーに修飾キーを付けてある。
-     */
-    public static final KeyMapping TOGGLE_GROUND_SMOOTHING = new KeyMapping(
-            "key.kurumamod.ground_smoothing",
-            KeyConflictContext.IN_GAME,
-            KeyModifier.CONTROL,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_J,
             "key.categories.kurumamod");
 
     /** コントローラの割り当て画面を開く。既定は J。 */
@@ -173,7 +163,6 @@ public final class KurumaKeys {
         event.register(CAMERA_CLOSER);
         event.register(CAMERA_FARTHER);
         event.register(OPEN_CONTROLLER);
-        event.register(TOGGLE_GROUND_LOG);
-        event.register(TOGGLE_GROUND_SMOOTHING);
+        event.register(OPEN_SOUND_DEBUG);
     }
 }

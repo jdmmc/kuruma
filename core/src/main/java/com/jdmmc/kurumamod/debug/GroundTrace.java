@@ -10,6 +10,28 @@ import com.jdmmc.kurumamod.physics.Wheel;
  */
 public final class GroundTrace {
 
+    /** その輪へ渡した地面の高さがどこから来たか。 */
+    public enum Source {
+        /** 真下の地面をそのまま */
+        FLAT,
+        /** 階段（段の角を結んだ線） */
+        STAIR,
+        /** 先読みの斜面（単独の低い段） */
+        AHEAD,
+        /** 高い段を、上がる速さを制限しながら上げている途中 */
+        RISE_LIMIT,
+        /** 登坂限界より上まで続く壁。前の高さのまま据え置き */
+        WALL_HOLD,
+        /** 上から地面に入った輪を、上にある天面へ戻している */
+        BURIED,
+        /** 真下には無いが、1 段下に階段の線があった（階段の下り） */
+        DEEP_STAIR,
+        /** 地面が見つからない */
+        MISS,
+        /** 車が大きく傾いていて、タイヤが地面に届かない扱い */
+        TILTED
+    }
+
     /** 覚えておく点の数。1 秒に 80 刻みなので 2 秒ぶん。 */
     public static final int LENGTH = 160;
 
@@ -17,7 +39,7 @@ public final class GroundTrace {
     private final double[][] z = new double[Wheel.COUNT][LENGTH];
     private final double[][] raw = new double[Wheel.COUNT][LENGTH];
     private final double[][] ground = new double[Wheel.COUNT][LENGTH];
-    private final GroundLog.Source[][] source = new GroundLog.Source[Wheel.COUNT][LENGTH];
+    private final Source[][] source = new Source[Wheel.COUNT][LENGTH];
     private final boolean[][] smoothed = new boolean[Wheel.COUNT][LENGTH];
     private final int[] next = new int[Wheel.COUNT];
     private final int[] count = new int[Wheel.COUNT];
@@ -39,7 +61,7 @@ public final class GroundTrace {
      * @param isSmoothed 縁の高さを補間で決めた階段の線だったか
      */
     public void add(int wheel, double px, double pz, double rawHeight, double height,
-                    GroundLog.Source from, boolean isSmoothed) {
+                    Source from, boolean isSmoothed) {
         int i = next[wheel];
         x[wheel][i] = px;
         z[wheel][i] = pz;
@@ -93,7 +115,7 @@ public final class GroundTrace {
         return ground[wheel][index(wheel, k)];
     }
 
-    public GroundLog.Source source(int wheel, int k) {
+    public Source source(int wheel, int k) {
         return source[wheel][index(wheel, k)];
     }
 

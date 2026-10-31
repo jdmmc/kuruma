@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Wheel;
@@ -30,7 +31,20 @@ public class CarSound extends AbstractTickableSoundInstance {
 
     /** 音の役割。何を読んで音量とピッチを決めるかがこれで決まる。 */
     public enum Role {
-        /** 排気音。アイドルから中回転までを受け持つ。回転数でピッチ、アクセルで音量。 */
+        /**
+         * 合成したエンジン音（直 4 ターボ）。{@code KurumaSounds.ENGINE_BANDS} の回転数ごとに、
+         * 抜いているとき（LIFT）と踏んでいるとき（LOAD）の 2 本。回転数の近い 2 本と、踏み込み量で
+         * 入れ替える。カーパックが {@code exhaust} を書いていない車はこちらを鳴らす。
+         */
+        ENGINE_0_LIFT(0, false), ENGINE_0_LOAD(0, true),
+        ENGINE_1_LIFT(1, false), ENGINE_1_LOAD(1, true),
+        ENGINE_2_LIFT(2, false), ENGINE_2_LOAD(2, true),
+        ENGINE_3_LIFT(3, false), ENGINE_3_LOAD(3, true),
+        ENGINE_4_LIFT(4, false), ENGINE_4_LOAD(4, true),
+        /**
+         * カーパックの排気音。アイドルから中回転までを受け持つ。回転数でピッチ、アクセルで音量。
+         * パック（かマフラーの部品）が {@code exhaust} を書いたときだけ鳴る。
+         */
         EXHAUST,
         /** 排気音の高回転側。同じ音源を 1 オクターブ上へ縮めたもの。レブ側を継ぐ。 */
         EXHAUST_HIGH,
@@ -50,7 +64,26 @@ public class CarSound extends AbstractTickableSoundInstance {
          * ターボの過給音（ヒュイーン）。ブーストで音程と音量が上がる。ブーストそのものと
          * ブローオフ（プシュッ）は {@link CarTurbo}。ターボの部品が付いていなければ鳴らない。
          */
-        TURBO
+        TURBO;
+
+        /** 合成したエンジン音の回転数の番号。エンジン音でなければ -1。 */
+        final int band;
+        /** 踏んでいるときのエンジン音か。 */
+        final boolean load;
+
+        Role() {
+            this(-1, false);
+        }
+
+        Role(int band, boolean load) {
+            this.band = band;
+            this.load = load;
+        }
+
+        /** 合成したエンジン音か。 */
+        boolean isEngine() {
+            return band >= 0;
+        }
     }
 
     /**
@@ -70,6 +103,26 @@ public class CarSound extends AbstractTickableSoundInstance {
     /** クロスフェードする区間（アイドルからの倍率）。この間はどちらの音源も壁の内側にいる。 */
     private static final double CROSSFADE_FROM = 1.6;
     private static final double CROSSFADE_TO = 3.0;
+
+    /**
+     * 排気音の大きさ（マフラーの音量を掛ける前）。アイドル・回転の割合・踏み込み量から決める。
+     *
+     * <p>以前は 0.30 + 0.50 × アクセルで、<b>回転数では大きさが変わらなかった</b>。空ぶかしで
+     * レブまで回しても、踏んだ瞬間の大きさのままだった。いまは回すほど前に出て、踏んでいると
+     * さらに出る（アイドル 0.34、抜いたままレブ 0.48、踏んで低回転 0.70、踏んでレブ 0.94）。</p>
+     */
+    private static final float EXHAUST_IDLE_VOLUME = 0.34F;
+    private static final float EXHAUST_REV_VOLUME = 0.14F;
+    private static final float EXHAUST_LOAD_VOLUME = 0.36F;
+    private static final float EXHAUST_LOAD_REV_VOLUME = 0.10F;
+    /**
+     * 排気音の音程・音量の平滑化。ほかの音（{@link #SMOOTHING}）より速く追わせる。
+     *
+     * <p>0.35 では回転計から 0.1 秒以上遅れ、空ぶかしで音が「ぬるっと」上がって落ちた（時定数
+     * 約 2.3 ティック）。回転数そのものは物理が滑らかに出しているので、段差を均す程度でよい。</p>
+     */
+    private static final float EXHAUST_PITCH_SMOOTHING = 0.75F;
+    private static final float EXHAUST_VOLUME_SMOOTHING = 0.55F;
 
     /** ロードノイズと風切り音が最大になる車速 [m/s]。 */
     private static final double ROAD_FULL_SPEED = 30.0;
@@ -128,6 +181,11 @@ public class CarSound extends AbstractTickableSoundInstance {
      * 読み直して {@link CarSounds} が鳴らし直すので、そこで新しい定義が効く）。
      */
     private final CarSoundSet sounds;
+    /**
+     * いまの音の組。毎ティック読み直す。<b>高さと大きさ（{@link CarSoundSet#tuningOf}）はこちらから読む</b>
+     * ——デバッグ画面で動かしたとき、鳴らし直さずにその場で効かせるため。音源は {@link #sounds} のまま。
+     */
+    private CarSoundSet live;
 
     /** 平滑化した音量とピッチ。 */
     private float smoothVolume;
@@ -155,12 +213,26 @@ public class CarSound extends AbstractTickableSoundInstance {
      * <p>{@link CarSounds} も同じものを見て、マフラーの音源が変わったら排気音を鳴らし直す。</p>
      */
     static CarSoundSet soundsOf(CarEntity car) {
-        return CarModel.get(car.getCarId()).sounds().withExhaust(CarPartModel.exhaustOf(car.getEffectiveFitment()));
+        return CarSoundSet.of(car.getCarId()).withExhaust(CarPartModel.exhaustOf(car.getEffectiveFitment()));
     }
 
-    /** 排気音か（マフラーで音程・音量・音源が変わる）。 */
+    /** 排気音か（マフラーで音程・音量・音源が変わる）。合成したエンジン音も含む。 */
     static boolean isExhaust(Role role) {
-        return role == Role.EXHAUST || role == Role.EXHAUST_HIGH;
+        return role == Role.EXHAUST || role == Role.EXHAUST_HIGH || role.isEngine();
+    }
+
+    /**
+     * その車でこの役割を鳴らすか。排気音は<b>合成したエンジン音とパックの排気音のどちらか一方</b>
+     * だけを鳴らす（もう一方は鳴らし始めない。音を鳴らせる数には上限がある）。
+     */
+    static boolean isUsed(Role role, CarSoundSet sounds) {
+        if (role.isEngine()) {
+            return sounds.usesEngine();
+        }
+        if (role == Role.EXHAUST || role == Role.EXHAUST_HIGH) {
+            return !sounds.usesEngine();
+        }
+        return true;
     }
 
     private CarSound(CarEntity car, Role role, CarSoundSet sounds) {
@@ -168,6 +240,7 @@ public class CarSound extends AbstractTickableSoundInstance {
         this.car = car;
         this.role = role;
         this.sounds = sounds;
+        this.live = sounds;
         this.looping = true;
         this.delay = 0;
         this.volume = 0.0F;
@@ -223,10 +296,19 @@ public class CarSound extends AbstractTickableSoundInstance {
 
     /** 差し替えのキーは役割の名前の小文字（{@code EXHAUST_HIGH} → {@code exhaust_high}）。 */
     private static SoundEvent soundOf(CarSoundSet sounds, Role role) {
-        return sounds.resolve(role.name().toLowerCase(java.util.Locale.ROOT), () -> defaultSoundOf(role));
+        if (role.isEngine()) {
+            return KurumaSounds.engine(sounds.engineType(), role.band, role.load);
+        }
+        // exhaust だけ書いて exhaust_high を書かなかったら、高回転側も exhaust を同じ音程で鳴らす。
+        // 既定の高回転側を残すと、回すと別の車のエンジンに化ける
+        Role source = role == Role.EXHAUST_HIGH && !sounds.exhaustHighIsOctaveUp() ? Role.EXHAUST : role;
+        return sounds.resolve(source.name().toLowerCase(java.util.Locale.ROOT), () -> defaultSoundOf(source));
     }
 
     private static SoundEvent defaultSoundOf(Role role) {
+        if (role.isEngine()) {
+            return KurumaSounds.engine(KurumaSounds.DEFAULT_ENGINE_TYPE, role.band, role.load);
+        }
         return switch (role) {
             case EXHAUST -> KurumaSounds.CAR_EXHAUST.get();
             case EXHAUST_HIGH -> KurumaSounds.CAR_EXHAUST_HIGH.get();
@@ -237,6 +319,7 @@ public class CarSound extends AbstractTickableSoundInstance {
             case GRAVEL -> KurumaSounds.CAR_GRAVEL.get();
             case SAND -> KurumaSounds.CAR_SAND.get();
             case TURBO -> KurumaSounds.CAR_TURBO.get();
+            default -> throw new IllegalStateException(role.name());
         };
     }
 
@@ -263,7 +346,8 @@ public class CarSound extends AbstractTickableSoundInstance {
 
         // マフラーを付け替えて音源が変わったら、この音は止める。新しい音源で鳴らし直すのは CarSounds
         // （鳴っている音の中から別の音を始めると、音響エンジンが一覧を回している最中に書き換えることになる）
-        if (isExhaust(role) && !soundsOf(car).equals(sounds)) {
+        live = soundsOf(car);
+        if (isExhaust(role) && !live.sameSources(sounds)) {
             stop();
             return;
         }
@@ -288,14 +372,40 @@ public class CarSound extends AbstractTickableSoundInstance {
                 var fitment = car.getEffectiveFitment();
                 double muffler = CarPartModel.exhaustPitch(fitment);
                 targetPitch = (float) Mth.clamp((halve ? wanted / 2.0 : wanted) * muffler, 0.5, 2.0);
-                // アイドルでも鳴っているが、踏むと前に出る。マフラーの音量を掛けるが 1 を超えない
-                // （1 を超えると音の届く距離まで伸びる）
-                CarPartModel.Exhaust exhaust = CarPartModel.exhaustOf(fitment);
-                float gain = exhaust == null ? 1.0F : (float) exhaust.volume();
-                float loudness = Math.min(1.0F, (0.30F + 0.50F * (float) car.getRenderThrottle()) * gain);
+                float loudness = exhaustLoudness(spec, rpm, fitment);
                 double blend = Mth.clamp((ratio - CROSSFADE_FROM) / (CROSSFADE_TO - CROSSFADE_FROM),
                         0.0, 1.0);
                 targetVolume = loudness * (float) (high ? blend : 1.0 - blend);
+            }
+            case ENGINE_0_LIFT, ENGINE_0_LOAD, ENGINE_1_LIFT, ENGINE_1_LOAD, ENGINE_2_LIFT, ENGINE_2_LOAD,
+                    ENGINE_3_LIFT, ENGINE_3_LOAD, ENGINE_4_LIFT, ENGINE_4_LOAD -> {
+                CarSpec spec = car.getSpec();
+                double rpm = Math.max(1.0, car.getRenderRpm());
+                var fitment = car.getEffectiveFitment();
+                int[] bands = KurumaSounds.ENGINE_BANDS;
+                double center = bands[role.band];
+                // 回転数の近い 2 本を、対数の距離で等パワーに入れ替える。いちばん下より下と
+                // いちばん上より上は、端の 1 本だけで鳴らす
+                double weight = 1.0;
+                if (role.band > 0) {
+                    double lower = bands[role.band - 1];
+                    weight *= Mth.clamp(Math.log(rpm / lower) / Math.log(center / lower), 0.0, 1.0);
+                }
+                if (role.band < bands.length - 1) {
+                    double upper = bands[role.band + 1];
+                    weight *= Mth.clamp(Math.log(upper / rpm) / Math.log(upper / center), 0.0, 1.0);
+                }
+                // 素材はその回転数で作ってあるので、回転数の比がそのまま音程。マフラーの音程を掛ける
+                // パックの高さの倍率（sounds.engine.pitch）も掛ける
+                CarSoundSet.Tuning tuning = live.tuningOf(CarSoundSet.ENGINE);
+                targetPitch = (float) Mth.clamp(rpm / center * CarPartModel.exhaustPitch(fitment) * tuning.pitch(),
+                        0.5, 2.0);
+                // 踏み込み量で、抜いている音と踏んでいる音を等パワーで移す。パックの load で、踏んだときの
+                // 荒い音がどれだけ前に出るかを変えられる（上品な音にしたい車は下げる）
+                float throttle = (float) Mth.clamp(car.getRenderThrottle() * tuning.load(), 0.0, 1.0);
+                float load = (float) Math.sqrt(role.load ? throttle : 1.0F - throttle);
+                targetVolume = exhaustLoudness(spec, rpm, fitment) * load * (float) Math.sqrt(weight)
+                        * (float) tuning.volume();
             }
             case ROAD -> {
                 double speed = Math.abs(car.getRenderSpeed());
@@ -303,14 +413,19 @@ public class CarSound extends AbstractTickableSoundInstance {
                 // 荒れた路面ほど大きく鳴る。グリップの低さをそのまま荒さとして使う
                 RoadSurface surface = car.getRenderSurface();
                 float roughness = 1.0F + 0.8F * (1.0F - (float) surface.gripScale());
-                targetVolume = 0.55F * t * roughness;
-                targetPitch = 0.8F + 0.5F * t;
+                // タイヤと路面の音は速度 10 倍で 30dB 大きくなる（TRL の測定）＝振幅が速さの 1.5 乗。
+                // 音の山（800〜1000Hz）は速さでほとんど動かないので、音程はわずかしか上げない
+                // 0.65 では大きすぎた（「いまから 30% 小さく」で 0.455）
+                targetVolume = 0.455F * (float) Math.pow(t, 1.5) * roughness;
+                targetPitch = 0.9F + 0.2F * t;
             }
             case WIND -> {
                 double speed = Math.abs(car.getRenderSpeed());
                 float t = (float) Mth.clamp(speed / WIND_FULL_SPEED, 0.0, 1.0);
-                targetVolume = 0.6F * t * t;
-                targetPitch = 0.9F + 0.5F * t;
+                // 空力音は速さの 6 乗の強さ（速度 10 倍で 60dB）＝振幅が 3 乗。街の速さではほぼ聞こえず、
+                // 高速で一気に前に出る（以前は 2 乗で、40km/h でももう聞こえていた）
+                targetVolume = 0.6F * t * t * t;
+                targetPitch = 0.95F + 0.2F * t;
             }
             case SLIP, SLIP_CHATTER -> {
                 // 輪ごとに、接地面が滑っている速さから鳴きを出して、いちばん大きい輪で鳴らす。
@@ -382,8 +497,18 @@ public class CarSound extends AbstractTickableSoundInstance {
             }
         }
 
-        smoothVolume += (targetVolume - smoothVolume) * SMOOTHING;
-        smoothPitch += (targetPitch - smoothPitch) * SMOOTHING;
+        // パックの高さと大きさの倍率（sounds の pitch / volume）。エンジンは上で掛けてある
+        if (!role.isEngine()) {
+            CarSoundSet.Tuning tuning = live.tuningOf(role.name().toLowerCase(java.util.Locale.ROOT));
+            targetPitch = (float) Mth.clamp(targetPitch * tuning.pitch(), 0.5, 2.0);
+            targetVolume *= (float) tuning.volume();
+        }
+        // この端末の好みの音量（H の画面）。1 を超えると音の届く距離まで伸びるので抑える
+        targetVolume = Math.min(1.0F, targetVolume * gainOf(role));
+
+        boolean exhaustRole = isExhaust(role);
+        smoothVolume += (targetVolume - smoothVolume) * (exhaustRole ? EXHAUST_VOLUME_SMOOTHING : SMOOTHING);
+        smoothPitch += (targetPitch - smoothPitch) * (exhaustRole ? EXHAUST_PITCH_SMOOTHING : SMOOTHING);
 
         // スキール音にも揺らぎは掛けない。以前は音量を最大 38%・音程を 8% 揺らして
         // 繰り返しを隠そうとしていたが、音源（slip.ogg）の波打ちと重なって
@@ -394,14 +519,52 @@ public class CarSound extends AbstractTickableSoundInstance {
         pitch = smoothPitch;
 
         // 変速音はどれか 1 本が受け持てばよい。毎ティック回っている排気音に任せる
-        if (role == Role.EXHAUST) {
+        if (role == (sounds.usesEngine() ? Role.ENGINE_0_LIFT : Role.EXHAUST)) {
             int gear = car.getRenderGear();
             if (gear != lastGear && gear != 0 && lastGear != 0) {
                 car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
-                        sounds.shift(), SoundSource.NEUTRAL, 0.5F, 1.0F, false);
+                        sounds.shift(), SoundSource.NEUTRAL,
+                        volume(0.5F * (float) live.tuningOf(CarSoundSet.SHIFT).volume(), ClientConfig.soundShift),
+                        (float) live.tuningOf(CarSoundSet.SHIFT).pitch(), false);
             }
             lastGear = gear;
         }
+    }
+
+    /** その役割に掛ける、この端末の好みの音量の倍率（H の画面の「サウンド」）。 */
+    private static float gainOf(Role role) {
+        double gain = switch (role) {
+            case ROAD -> ClientConfig.soundRoad;
+            case WIND -> ClientConfig.soundWind;
+            case SLIP, SLIP_CHATTER -> ClientConfig.soundTires;
+            case GRAVEL, SAND -> ClientConfig.soundSurface;
+            case TURBO -> ClientConfig.soundTurbo;
+            default -> ClientConfig.soundEngine; // 合成したエンジン音とパックの排気音
+        };
+        return (float) (gain * ClientConfig.soundMaster);
+    }
+
+    /**
+     * 1 回だけ鳴る音の大きさに、好みの音量（種類ごとと全体）を掛ける。1 を超えると音の届く距離まで
+     * 伸びるので抑える。
+     */
+    static float volume(float base, double gain) {
+        return (float) Math.min(1.0, base * gain * ClientConfig.soundMaster);
+    }
+
+    /**
+     * 排気音の大きさ。アイドルでも鳴っているが、回すと、踏むとさらに前に出る。マフラーの音量を
+     * 掛けるが 1 を超えない（1 を超えると音の届く距離まで伸びる）。
+     */
+    private float exhaustLoudness(CarSpec spec, double rpm, com.jdmmc.kurumamod.part.PartFitment fitment) {
+        CarPartModel.Exhaust exhaust = CarPartModel.exhaustOf(fitment);
+        float gain = exhaust == null ? 1.0F : (float) exhaust.volume();
+        double span = Math.max(1.0, spec.redlineRpm() - spec.idleRpm());
+        float rev = (float) Mth.clamp((rpm - spec.idleRpm()) / span, 0.0, 1.0);
+        float throttle = (float) Mth.clamp(car.getRenderThrottle(), 0.0, 1.0);
+        float level = EXHAUST_IDLE_VOLUME + EXHAUST_REV_VOLUME * rev
+                + throttle * (EXHAUST_LOAD_VOLUME + EXHAUST_LOAD_REV_VOLUME * rev);
+        return Math.min(1.0F, level * gain);
     }
 
     /**

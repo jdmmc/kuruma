@@ -792,7 +792,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
             }
             double[] stair = trace.stair(wheel);
             if (!Double.isNaN(stair[0])) {
-                float[] c = groundTraceColor(com.jdmmc.kurumamod.debug.GroundLog.Source.STAIR, trace.stairSmoothed(wheel));
+                float[] c = groundTraceColor(com.jdmmc.kurumamod.debug.GroundTrace.Source.STAIR, trace.stairSmoothed(wheel));
                 double lift = GROUND_TRACE_LIFT * 2.0;
                 lines.add(new double[]{stair[0], stair[1] + lift, stair[2], stair[3], stair[4] + lift, stair[5],
                         c[0], c[1], c[2]});
@@ -804,7 +804,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         renderLines(car, lines, partialTick, pose, buffer);
     }
 
-    private static float[] groundTraceColor(com.jdmmc.kurumamod.debug.GroundLog.Source source, boolean smoothed) {
+    private static float[] groundTraceColor(com.jdmmc.kurumamod.debug.GroundTrace.Source source, boolean smoothed) {
         if (source == null) {
             return new float[]{1.0F, 1.0F, 1.0F};
         }

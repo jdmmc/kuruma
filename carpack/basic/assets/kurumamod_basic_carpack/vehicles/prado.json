@@ -1,5 +1,9 @@
 {
   "_comment": "メッシュの大きさはゲージの車格に合わせてある（以前は body.scale と designWheelBase で縮めていたのを頂点に焼き込んだ）",
+  "_sounds": "合成したエンジン音の種類だけ選ぶ（音源は用意しない）。ディーゼルターボ。バスやトラック寄りに低く、踏んだときの荒さは控えめに",
+  "sounds": {
+    "engine": { "type": "diesel4", "pitch": 0.9, "load": 0.8 }
+  },
   "body": {
     "model": "kurumamod_basic_carpack:models/entity/prado.obj",
     "texture": "kurumamod_basic_carpack:textures/entity/prado.png"

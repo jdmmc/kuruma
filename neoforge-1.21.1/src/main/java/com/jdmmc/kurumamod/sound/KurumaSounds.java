@@ -44,6 +44,29 @@ public final class KurumaSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> CAR_EXHAUST = register("car_exhaust");
     /** 排気音（高回転側）。{@code exhaust.ogg} を 1 オクターブ上へ縮めたもの。 */
     public static final DeferredHolder<SoundEvent, SoundEvent> CAR_EXHAUST_HIGH = register("car_exhaust_high");
+    /**
+     * 合成したエンジン音を作った回転数 [rpm]（{@code tools/make_engine.py} の {@code BANDS}）。
+     *
+     * <p>回転数ごとに素材を分けてあるのは、1 本の素材の音程を上げ下げすると排気管の響きまで
+     * 一緒に動いて作り物っぽくなるから。隣どうしの比は 1.8 倍以内で、ピッチの壁（0.5〜2.0）の
+     * 内側で入れ替えられる。</p>
+     */
+    public static final int[] ENGINE_BANDS = {900, 1600, 2800, 4500, 7000};
+    /**
+     * 合成したエンジン音の種類（{@code tools/make_engine.py} の {@code ENGINES}）。カーパックが
+     * {@code sounds.engine.type} で選ぶ。
+     *
+     * <p>i4_turbo 直 4 ターボ（SR20DET を手本）、i4 直 4 NA、i6 直 6 ターボ、flat6 水平対向 6 NA、
+     * v8 クロスプレーン V8、diesel4 直 4 ディーゼルターボ。</p>
+     */
+    public static final String[] ENGINE_TYPES = {"i4_turbo", "i4", "i6", "flat6", "v8", "diesel4"};
+    /** 種類を書いていない車の音。 */
+    public static final String DEFAULT_ENGINE_TYPE = "i4_turbo";
+    /**
+     * 合成したエンジン音。{@link #ENGINE_TYPES} ごとに、{@link #ENGINE_BANDS} の順に、抜いているとき・
+     * 踏んでいるときの 2 本ずつ（{@link #engine}）。カーパックが {@code exhaust} を書いていない車はこちらを鳴らす。
+     */
+    private static final java.util.List<DeferredHolder<SoundEvent, SoundEvent>> CAR_ENGINE = registerEngine();
     /** ロードノイズ。車速と路面で変わる。 */
     public static final DeferredHolder<SoundEvent, SoundEvent> CAR_ROAD = register("car_road");
     /** 風切り音。車速で変わる。 */
@@ -100,6 +123,31 @@ public final class KurumaSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> RACE_FINISH = register("race_finish");
 
     private KurumaSounds() {
+    }
+
+    /**
+     * 種類 {@code type} の、回転数 {@code ENGINE_BANDS[band]} の、抜いているとき（{@code load} が false）か
+     * 踏んでいるときのエンジン音。知らない種類なら既定の種類。
+     */
+    public static SoundEvent engine(String type, int band, boolean load) {
+        int kind = 0;
+        for (int i = 0; i < ENGINE_TYPES.length; i++) {
+            if (ENGINE_TYPES[i].equals(type)) {
+                kind = i;
+            }
+        }
+        return CAR_ENGINE.get((kind * ENGINE_BANDS.length + band) * 2 + (load ? 1 : 0)).get();
+    }
+
+    private static java.util.List<DeferredHolder<SoundEvent, SoundEvent>> registerEngine() {
+        java.util.List<DeferredHolder<SoundEvent, SoundEvent>> sounds = new java.util.ArrayList<>();
+        for (String type : ENGINE_TYPES) {
+            for (int rpm : ENGINE_BANDS) {
+                sounds.add(register("car_engine_" + type + "_" + rpm + "_lift"));
+                sounds.add(register("car_engine_" + type + "_" + rpm + "_load"));
+            }
+        }
+        return java.util.List.copyOf(sounds);
     }
 
     private static DeferredHolder<SoundEvent, SoundEvent> register(String name) {
