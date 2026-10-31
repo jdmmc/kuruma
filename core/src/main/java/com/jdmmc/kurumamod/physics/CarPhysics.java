@@ -216,6 +216,17 @@ public final class CarPhysics {
      * 直結と滑りを毎ティック行き来する。</p>
      */
     private static final double UNLOCK_SPEED_RATIO = 0.8;
+    /**
+     * 車輪から切り離されたエンジンが、アクセルを離してアイドルへ戻る速さ（時定数）[s]。
+     *
+     * <p>エンジンブレーキ（{@code engineBrakeTorque}）はアイドルの上のぶんに比例させてあるので、
+     * 低い回転ではほとんど 0 になる。直結中は車輪が回転を決めるので困らないが、切り離されている間は
+     * それしか止めるものが無く、<b>時定数が 18 秒になって回転計が 1000rpm 前後に何秒も残った</b>。
+     * 実車は空ぶかしから 1 秒足らずでアイドルへ戻る（内部の摩擦とポンプ損失）。</p>
+     *
+     * <p><b>切り離されている間だけ</b>掛ける。直結中のエンジンブレーキ（減速の効き）は変えない。</p>
+     */
+    private static final double FREE_REV_SPINDOWN_SECONDS = 0.35;
 
     private CarPhysics() {
     }
@@ -1160,6 +1171,10 @@ public final class CarPhysics {
         double next = engineOmega + dt * (torque - transmitted) / inertia;
         state.engineRpm = Math.max(spec.idleRpm(),
                 Math.min(spec.redlineRpm(), next * 60.0 / (2.0 * Math.PI)));
+        // 完全に切れていてアクセルも離している（ニュートラル・サイドブレーキ・回転合わせ無しの変速）
+        if (engagement <= 0.0 && torque <= 0.0) {
+            spinDownFreeEngine(spec, state, dt);
+        }
         return transmitted;
     }
 
@@ -1177,7 +1192,7 @@ public final class CarPhysics {
      * 一部を回転の遅い側のトルクに変えているだけなので、エネルギーは増えない。</p>
      *
      * <p><b>アクセルを離したら何も伝えない</b>（実車の AT のニュートラル制御に近い）。エンジンは自分の
-     * エンジンブレーキで落ちる（マニュアルのニュートラルで空ぶかししたときと同じ）。</p>
+     * 内部の摩擦でアイドルへ戻る（{@link #spinDownFreeEngine}。マニュアルのニュートラルで空ぶかししたときと同じ）。</p>
      * <ul>
      *   <li><b>離しても負荷を残すと、空吹かしの勢いで押し出される。</b>本物のトルコンはそうなるが、
      *   駐車で W を 0.15 秒叩くと、叩いている間は 0.03m しか進まず、<b>離したあとにエンジンの
@@ -1209,12 +1224,26 @@ public final class CarPhysics {
         double engineOmega = state.engineRpm * 2.0 * Math.PI / 60.0;
         double next = engineOmega + dt * (torque - impeller) / spec.engineInertia();
         state.engineRpm = Math.max(idle, Math.min(spec.redlineRpm(), next * 60.0 / (2.0 * Math.PI)));
+        if (!accelerating) {
+            spinDownFreeEngine(spec, state, dt);
+        }
 
         double stallRatio = spec.isManual() ? 1.0 : STALL_TORQUE_RATIO;
         double speedRatio = turbineRpm / Math.max(idle, state.engineRpm);
         double multiplication = stallRatio
                 - (stallRatio - 1.0) * Math.min(1.0, speedRatio / COUPLING_SPEED_RATIO);
         return impeller * multiplication;
+    }
+
+    /**
+     * 切り離されたエンジンの回転をアイドルへ戻す（{@link #FREE_REV_SPINDOWN_SECONDS}）。
+     * 指数で落とすので、刻みが粗くてもアイドルを割り込まない。
+     */
+    private static void spinDownFreeEngine(CarSpec spec, CarState state, double dt) {
+        double above = state.engineRpm - spec.idleRpm();
+        if (above > 0.0) {
+            state.engineRpm = spec.idleRpm() + above * Math.exp(-dt / FREE_REV_SPINDOWN_SECONDS);
+        }
     }
 
     /** 発進でエンジンが回り込む回転数 [rpm]（ストール回転）。トルク曲線とアイドルから決まる。 */
