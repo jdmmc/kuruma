@@ -119,7 +119,18 @@ public final class CarSpecCodec {
      * タイヤ半径が既定値になる）。知らない名前は捨てる。</p>
      */
     public static CarSpec fromMap(Map<String, Double> values) {
-        CarSpec.Builder builder = CarSpec.DEFAULT.toBuilder();
+        return fromMap(values, CarSpec.DEFAULT);
+    }
+
+    /**
+     * {@link #fromMap(Map)} の、載っていない項目を {@code base} の値のままにする版。
+     *
+     * <p>プリセットは<b>乗っている車の諸元の上に重ねる</b>。書いていない項目（ドリフトのプリセットのトルク・
+     * エンジンブレーキなど）は、その車の値を使う想定で外してあるので、{@code CarSpec.DEFAULT} で埋めると
+     * 911（420N·m）にも MOD の既定の 450N·m が入ってしまう。</p>
+     */
+    public static CarSpec fromMap(Map<String, Double> values, CarSpec base) {
+        CarSpec.Builder builder = base.toBuilder();
         for (TunableParameter parameter : Tunables.ALL) {
             Double value = values.get(parameter.name());
             if (value != null) {

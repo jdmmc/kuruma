@@ -386,7 +386,9 @@ public final class Tunables {
      * <p>トルク曲線の形はかつて {@code torque_falloff}（落ち方）で持っていた。いまは
      * {@code peak_power_rpm} で持つので、<b>書かれていなければ落ち方と最大トルク回転数から換算する</b>。
      * 落ち方も書かれていなければ当時の既定（0.45）で換算する——{@code peak_torque_rpm} だけ書いた
-     * カーパックが、既定の最高出力回転数（6676rpm）を押し付けられて別の曲線にならないため。</p>
+     * カーパックが、既定の最高出力回転数（6676rpm）を押し付けられて別の曲線にならないため。
+     * <b>曲線の形をどちらも書いていなければ換算しない</b>——一部の項目だけを書いたプリセット（{@code dirt.json}）は
+     * 乗っている車の諸元へ重ねるので、ここで換算すると、その車の最高出力回転数を古い式で上書きしてしまう。</p>
      *
      * <p>駆動方式と 4WD の前後トルク配分は、かつて {@code drive_bias}（後輪配分）1 本で持っていた。
      * {@code drive_layout} が書かれていなければそこから読む。</p>
@@ -395,7 +397,8 @@ public final class Tunables {
      */
     static CarSpec migrateLegacy(CarSpec spec, Function<String, Double> stored) {
         CarSpec.Builder builder = spec.toBuilder();
-        if (stored.apply("peak_power_rpm") == null) {
+        if (stored.apply("peak_power_rpm") == null
+                && (stored.apply("peak_torque_rpm") != null || stored.apply("torque_falloff") != null)) {
             Double falloff = stored.apply("torque_falloff");
             double shape = falloff != null ? falloff : CarSpec.LEGACY_TORQUE_FALLOFF;
             builder.peakPowerRpm(CarSpec.peakPowerRpmFor(spec.peakTorqueRpm(), shape));

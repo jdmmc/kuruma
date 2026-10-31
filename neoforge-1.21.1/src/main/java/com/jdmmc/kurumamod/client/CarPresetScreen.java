@@ -167,7 +167,8 @@ public class CarPresetScreen extends Screen {
         if (setup == null) {
             return;
         }
-        CarTuning.apply(setup.toSpec());
+        // 書いていない項目は乗っている車の値のまま（プリセットはその車の上に重ねる）
+        CarTuning.apply(setup.toSpec(CarTuning.base()));
         CarClientDriver.sendTuningToServer();
         if (setup.parts() != null) {
             reportSkipped(PresetParts.apply(setup.parts()));

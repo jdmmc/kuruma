@@ -60,6 +60,11 @@ public final class CarSetups {
         public CarSpec toSpec() {
             return CarSpecCodec.fromMap(values);
         }
+
+        /** 載っていない項目を {@code base}（乗っている車の素の諸元）の値のままにして組み立てる。 */
+        public CarSpec toSpec(CarSpec base) {
+            return CarSpecCodec.fromMap(values, base);
+        }
     }
 
     /** 名前 → 1 件。名前順に並べておく。 */

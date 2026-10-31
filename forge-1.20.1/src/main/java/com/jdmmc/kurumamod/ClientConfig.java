@@ -126,7 +126,7 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.DoubleValue SKID_MARK_SECONDS = BUILDER
             .comment("タイヤ痕が消えるまでの秒数。最後の 4 割で薄れていく。",
                     "長くするほど同時に残る跡が増えて重くなる")
-            .defineInRange("skidMarkSeconds", 5.0, 1.0, 300.0);
+            .defineInRange("skidMarkSeconds", 300.0, 1.0, 300.0);
 
     public static final ForgeConfigSpec.DoubleValue SOUND_MASTER = BUILDER
             .comment("音量の倍率（車の音（全体））。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
@@ -303,7 +303,7 @@ public final class ClientConfig {
     public static boolean showOtherSkidMarks = true;
 
     /** タイヤ痕が消えるまでの秒数。 */
-    public static double skidMarkSeconds = 5.0;
+    public static double skidMarkSeconds = 300.0;
 
     /**
      * 音量の倍率。{@code soundMaster} は車の音すべて、ほかは種類ごと（{@code CarSound}・{@code CarImpact}・
