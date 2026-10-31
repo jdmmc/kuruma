@@ -505,11 +505,11 @@ def tile(cls, anchor, img, alt, small, h, p):
 
 
 NEWS = [
-    (("Paints", "塗装"), ("Pick the colour on the new Paint tab in the parts screen. The Silvia S15 comes in six colours.", "パーツの画面の「塗装」タブで色を選べます。シルビア S15 は 6 色。")),
-    (("Wheels and tyres as separate parts", "ホイールとタイヤが別の部品に"), ("Wheels are rims only and tyres are their own parts, so any tyre fits any wheel. The TE37 is remodelled with rim flanges.", "ホイールはリムだけ、タイヤは別の部品になり、どのタイヤもどのホイールにも付きます。TE37 はリムのフランジまで作り直しました。")),
-    (("Wide steering wheels turn", "横長のハンドルも回る"), ("F1-style steering wheels now turn with the steering too.", "F1 のような横長のハンドルも、切れ角に合わせて回ります。")),
-    (("Easier car packs", "カーパックが作りやすく"), ("Ctrl+G draws the Blender gauge over the car, and the guide gains tyre modelling and a chapter on fitting tyres to the body.", "Ctrl+G で Blender のゲージを車に重ねて表示。ガイドにタイヤの作り方と、タイヤを車体に合わせる章を足しました。")),
-    (("Crash fixes", "落ちる不具合の修正"), ("No more crash when an empty car bumps another right after a world opens, or when a Blender OBJ has an empty material line.", "ワールドを開いた直後に空の車同士がぶつかったとき、Blender の OBJ に中身の無いマテリアルの行があるときに落ちなくなりました。")),
+    (("New engine sounds", "新しいエンジン音"), ("Built for each kind of engine: turbo inline-4 (SR20DET-style), inline-4, inline-6, flat-6, V8 and diesel. Rough on the throttle, settled off it.", "エンジンの種類ごとに作った音。直 4 ターボ（SR20DET 風）・直 4・直 6・水平対向 6・V8・ディーゼル。踏むと荒く、抜くと落ち着きます。")),
+    (("Launch, engine braking, downshifts", "発進・エンジンブレーキ・シフトダウン"), ("Launches slip like a torque converter, lifting off brakes on the engine, and a manual downshift goes in the moment you press it.", "発進はトルコンのように滑って出足が強く、アクセルを離すとエンジンブレーキ。MT のシフトダウンは押した瞬間に入ります。")),
+    (("Volume by sound", "音の種類ごとの音量"), ("The H menu is split into tabs, with volume sliders for the engine, turbo, tyres, road, wind and more.", "H の画面をタブに分け、エンジン・ターボ・タイヤ・ロードノイズ・風などの音量を別々に変えられます。")),
+    (("Part tags on the car", "車の上に部品の札"), ("The parts screen points to each part on the car itself.", "パーツの画面で、部品の場所が車の上に札と線で出ます。")),
+    (("Sounds by numbers for car packs", "カーパックは数字で音を変えられる"), ("Pick an engine type and pitch in the car's JSON, no audio needed. Ctrl+H tunes it live.", "車の JSON でエンジンの種類と高さを選ぶだけ。音源は要りません。Ctrl+H で走りながら調整できます。")),
 ]
 news = "".join(f"<div><dt>{T(*h)}</dt><dd>{T(*d)}</dd></div>" for h, d in NEWS)
 cards = "".join(model_card(m) for m in MODELS.values())
@@ -616,9 +616,9 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div class="split" style="align-items:start">
       <div>
         <div class="eyebrow">{T("What's new", "新着")}</div>
-        <h2 class="title">KurumaMod 1.9.0</h2>
-        <p>{T("Paints, wheels and tyres as separate parts, and steering wheels of any shape.", "塗装、別々の部品になったホイールとタイヤ、そしてどんな形でも回るハンドル。")}</p>
-        <div class="cta-row"><a class="btn arrow" href="{CF}">{T("Download 1.9.0", "1.9.0 をダウンロード")}</a></div>
+        <h2 class="title">KurumaMod 1.10.0</h2>
+        <p>{T("New engine sounds, real launches and downshifts, and volume for every sound.", "新しいエンジン音、本物らしい発進とシフトダウン、そして音ごとの音量。")}</p>
+        <div class="cta-row"><a class="btn arrow" href="{CF}">{T("Download 1.10.0", "1.10.0 をダウンロード")}</a></div>
       </div>
       <dl class="news-list">{news}</dl>
     </div>
