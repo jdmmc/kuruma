@@ -237,7 +237,7 @@ public final class Tunables {
                     TunableParameter.linear("redline_rpm", 4000, 12000, "%.0f",
                                     CarSpec::redlineRpm, CarSpec.Builder::redlineRpm)
                             .detail(Tunables::shiftPoints),
-                    TunableParameter.linear("engine_brake", 0, 120, "%.0f",
+                    TunableParameter.linear("engine_brake", 0, 200, "%.0f",
                             CarSpec::engineBrakeTorque, CarSpec.Builder::engineBrakeTorque),
                     TunableParameter.linear("engine_inertia", 0.05, 1.0, "%.2f",
                             CarSpec::engineInertia, CarSpec.Builder::engineInertia))),

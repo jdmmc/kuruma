@@ -16,8 +16,8 @@ package com.jdmmc.kurumamod.physics;
  * 分岐しているため。アナログのときは軸の値から導く。</p>
  *
  * <p>変速の 2 つだけは押しっぱなしではなく<b>押した瞬間の 1 回</b>を表す。物理は 1 ティックを
- * 4 分割して解くので、そのままだと 1 回の操作で 4 段変わってしまうが、変速には時間が要る
- * （{@code shiftTimer}）ため、2 回目以降は弾かれる。</p>
+ * 4 分割して解くので、2 刻み目以降には {@link #withoutShift()} を渡すこと（でないと 1 回の操作で
+ * 4 段ぶん要求したことになる）。</p>
  *
  * @param throttle     アクセルを踏んでいるか
  * @param brake        ブレーキを踏んでいるか（後退の判定にも使う）
@@ -83,6 +83,21 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
 
     private static double clamp01(double value) {
         return Math.max(0.0, Math.min(1.0, value));
+    }
+
+    /**
+     * 変速の要求だけを落とした入力。1 ティックを分割して解くとき、2 刻み目以降に渡す。
+     *
+     * <p>変速の要求は押した瞬間の 1 回なので、刻みごとに同じ入力を渡すと 4 回押したことになる。
+     * ふだんは変速時間（{@code shiftTimer}）が 2 回目以降を弾くが、変速時間を 0 にすると
+     * 弾かれず、1 回押しただけで 4 段動く。</p>
+     */
+    public CarInput withoutShift() {
+        if (!shiftUp && !shiftDown) {
+            return this;
+        }
+        return new CarInput(throttle, brake, left, right, false, false, handbrake,
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog);
     }
 
     /** 無操作。誰も乗っていない車や、運転していない側で使う。 */

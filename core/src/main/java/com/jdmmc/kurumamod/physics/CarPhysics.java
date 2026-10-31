@@ -171,6 +171,8 @@ public final class CarPhysics {
      * 小さくすること。10rpm なら 2 速で 0.5m/s² 相当。</p>
      */
     private static final double CLUTCH_LOCK_RPM = 10.0;
+    /** 繋がり先が動いているときに {@link #CLUTCH_LOCK_RPM} へ足してよい遅れの上限 [rpm] */
+    private static final double CLUTCH_LOCK_LAG_RPM = 40.0;
 
     /**
      * 繋がりきったクラッチが回転を揃えるのにかける時間 [s]。
@@ -219,14 +221,23 @@ public final class CarPhysics {
     /**
      * 車輪から切り離されたエンジンが、アクセルを離してアイドルへ戻る速さ（時定数）[s]。
      *
-     * <p>エンジンブレーキ（{@code engineBrakeTorque}）はアイドルの上のぶんに比例させてあるので、
-     * 低い回転ではほとんど 0 になる。直結中は車輪が回転を決めるので困らないが、切り離されている間は
+     * <p>エンジンブレーキ（{@link #engineBrakeTorque}）はアイドルで 0 へ落としてあるので、
+     * アイドルの近くではほとんど効かない。直結中は車輪が回転を決めるので困らないが、切り離されている間は
      * それしか止めるものが無く、<b>時定数が 18 秒になって回転計が 1000rpm 前後に何秒も残った</b>。
      * 実車は空ぶかしから 1 秒足らずでアイドルへ戻る（内部の摩擦とポンプ損失）。</p>
      *
      * <p><b>切り離されている間だけ</b>掛ける。直結中のエンジンブレーキ（減速の効き）は変えない。</p>
      */
     private static final double FREE_REV_SPINDOWN_SECONDS = 0.35;
+    /** 回りすぎる段へ落としたと見なす、レッドラインに対する倍率（直結中もこのくらいは出る） */
+    private static final double OVER_REV_MARGIN = 1.01;
+    /**
+     * エンジンブレーキのうち、低い回転でも残るぶん（レブリミットでの値に対する割合）。
+     * 実車の摩擦とポンプ損失は、アイドル付近でもレブリミットの 3〜4 割ある。
+     */
+    private static final double ENGINE_BRAKE_IDLE_SHARE = 0.35;
+    /** エンジンブレーキをアイドルで 0 へ落とす幅 [rpm] */
+    private static final double ENGINE_BRAKE_FADE_RPM = 300.0;
 
     private CarPhysics() {
     }
@@ -640,6 +651,7 @@ public final class CarPhysics {
 
     private static void updateDrivetrain(CarSpec spec, CarState state, GroundContact contact, double dt,
                                          CarInput input) {
+        int previousGear = state.gear;
         state.gear = selectGear(spec, state, dt, input);
         java.util.Arrays.fill(state.wheelDriveTorque, 0.0);
         updateClutch(spec, state, dt, input);
@@ -648,6 +660,7 @@ public final class CarPhysics {
             state.gear = state.pendingGear;
             state.pendingGear = CarState.NO_PENDING_GEAR;
         }
+        boolean geared = state.gear != previousGear;
 
         // 駆動輪の回転からエンジン回転数を逆算する。停止時はアイドルで下支えする。
         // クラッチが切れているぶんだけ車輪から切り離され、下の方で自分の慣性で回る
@@ -660,19 +673,37 @@ public final class CarPhysics {
         // アイドルで下支えしたまま繋いでおくと、止まっている車輪にアイドルのトルクが
         // そのまま掛かり、エンジンは慣性を抱えたまま車速と一緒にしか回れない
         boolean belowIdle = state.gear != 0 && rpm < UNLOCK_SPEED_RATIO * spec.idleRpm();
+        // 回りすぎる段へ落としたら直結を外す（下の clutchTorque でレッドラインまでしか揃えない）。
+        // 直結したままだと駆動輪がレッドラインの回転へ一瞬で押さえ込まれ（clampToRedline）、
+        // ロックしたのと同じになる。<b>段が変わった瞬間にだけ入る</b>——いつでも見ると、全開の
+        // ホイールスピンでレッドラインに当たるたびに外れ、そこから車輪が抑えられなくなって
+        // 1 速が抜けなくなった（FR の 0-100 が 6.38→5.74 秒に化けた）
+        if (geared && state.gear != 0 && rpm > spec.redlineRpm() * OVER_REV_MARGIN) {
+            state.overRevSlipping = true;
+        }
+        if (rpm <= spec.redlineRpm() || state.gear == 0) {
+            state.overRevSlipping = false;
+        }
+        boolean overRev = state.overRevSlipping;
         // 直結の判定は<b>入るときだけ</b>行う。回転差で毎ティック見直してはいけない——
         // 加速中は 1 ティックで駆動系が 43rpm 動くので、どんな閾値でも必ず外れて
         // <b>普通に走っているだけで滑りっぱなしになる</b>（実測で制動距離が 21.4→12.1m、
         // 氷での車体スリップ角が 0.5→90 度になった）。切れるのはクラッチを踏んだとき
         // （サイドブレーキ）とニュートラルと、駆動側がアイドルを割り込んだときだけ
-        if (clutchEngagement(spec, state) < 1.0 || belowIdle) {
+        if (clutchEngagement(spec, state) < 1.0 || belowIdle || overRev) {
             state.clutchLocked = false;
         } else if (!state.clutchLocked) {
             // 繋ぎ直すのは駆動側がアイドルに届いてから。外す境目（belowIdle）と同じにすると、
             // その速さで転がっている間ずっと直結と滑りを行き来する
-            state.clutchLocked = Math.abs(state.engineRpm - target) <= CLUTCH_LOCK_RPM
+            // 繋がり先が動いている間は、滑りクラッチ（clutchTorque）が 1 刻みに差の一部ずつしか
+            // 寄せないので、動く速さに応じた遅れが残る。そのぶんは許す——許さないと、エンジン
+            // ブレーキで減速している間ずっと 17rpm 遅れのまま直結に戻れなかった
+            double sync = Math.min(1.0, dt / CLUTCH_SYNC_SECONDS);
+            double lag = Math.min(CLUTCH_LOCK_LAG_RPM, Math.abs(target - state.clutchTargetRpm) / sync);
+            state.clutchLocked = Math.abs(state.engineRpm - target) <= CLUTCH_LOCK_RPM + lag
                     && (state.gear == 0 || rpm >= spec.idleRpm());
         }
+        state.clutchTargetRpm = target;
         if (state.clutchLocked) {
             state.engineRpm = target;
         }
@@ -703,13 +734,7 @@ public final class CarPhysics {
         if (accelerating) {
             torque = state.engineRpm >= spec.redlineRpm() ? 0.0 : spec.engineTorque(state.engineRpm);
         } else {
-            // アクセルを戻すとエンジンブレーキ。回転が高いほど強い。
-            // アイドルより上のぶんだけで効かせる——アイドルではアイドル制御が自分の摩擦を
-            // 打ち消している。回転数で比例させると、停車中（アイドルで下支えしている）にも
-            // 車輪へ -74N·m が掛かり続け、止まっている車がノーズダウンし（-0.017 度）、
-            // 停止中に舵を切るだけで少し動いた
-            torque = -spec.engineBrakeTorque() * Math.max(0.0, state.engineRpm - spec.idleRpm())
-                    / (spec.redlineRpm() - spec.idleRpm());
+            torque = -engineBrakeTorque(spec, state.engineRpm);
         }
         // 駆動している間だけ絞る。エンジンブレーキまで弱めては意味が変わってしまう。
         // 後退中は S が「アクセル」なので、そちらの踏み込み量を使う
@@ -727,7 +752,11 @@ public final class CarPhysics {
         } else if (state.converterSlipping) {
             transmitted = converterTorque(spec, state, dt, torque, rpm, accelerating);
         } else {
-            transmitted = clutchTorque(spec, state, dt, torque, target);
+            // 回りすぎている間はレッドラインまでしか揃えない。揃ったあとはエンジンブレーキだけが
+            // 伝わる（二輪のスリッパークラッチと同じ）。車輪の回転まで揃えにいくと、クラッチの容量
+            // いっぱい（最大トルクの 1.5 倍）で引き戻すことになり、FR で 150km/h から 2 速へ落とすと
+            // 後輪の滑り率が -0.34 まで行った（曲がりながらならスピンする）
+            transmitted = clutchTorque(spec, state, dt, torque, Math.min(target, spec.redlineRpm()));
         }
 
         // 変速中は駆動系が切れる。ここを 0/1 で切り替えると横グリップが段差になって出る
@@ -821,11 +850,12 @@ public final class CarPhysics {
      * <p>並びは バック(-1) → ニュートラル(0) → 1 速 → … 最高段。オートマのような
      * 「停止して S でバックに入る」挙動は無く、<b>バックも自分で入れる</b>。</p>
      *
-     * <p><b>回りすぎる側への落とし込みは弾く。</b>高速で低い段へ放り込むと、駆動輪と
-     * ギア比で直結しているエンジンがレッドラインを超える。実車なら壊れるところだが、
-     * ここでは車輪の角速度をレッドラインで抑えている都合上、<b>入った瞬間に強烈な
-     * エンジンブレーキが掛かって車が急減速する</b>という形で出る。実車のギアボックスにも
-     * 同じ理由でロックアウトが付いている。</p>
+     * <p><b>回りすぎる段へも押した瞬間に入れる。</b>以前はレッドラインを超える落とし込みを
+     * 黙って弾いていたので、速度が出ているとシフトダウンが効かなかった（既定の車で 3 速は 128km/h、
+     * 2 速は 86km/h 以下でしか入らない）。入れられるまで待たせる案も試したが、今下げたくて押して
+     * いるのに入らないのは同じだった。いまは入れて、<b>回りすぎるぶんはクラッチが滑る</b>
+     * （{@link #updateDrivetrain} が直結を外す）。エンジンはレッドラインに張り付き、クラッチの
+     * 容量までのエンジンブレーキが掛かり、車速が落ちて回転が揃ったら直結に戻る。</p>
      */
     private static int selectGearManually(CarSpec spec, CarState state, CarInput input) {
         int gear = state.gear;
@@ -836,16 +866,6 @@ public final class CarPhysics {
             requested = Math.max(-1, gear - 1);
         }
         if (requested == gear) {
-            return gear;
-        }
-        if (Math.abs(requested) > Math.abs(gear) || requested == 0 || gear == 0) {
-            // 上の段・ニュートラルの出入りは回転が下がる側なので無条件で通す
-            state.shiftTimer = spec.shiftSeconds();
-            return shiftTo(spec, state, requested);
-        }
-        double rpm = Math.abs(drivenWheelSpeed(spec, state) * spec.totalRatio(requested))
-                * 60.0 / (2.0 * Math.PI);
-        if (rpm > spec.redlineRpm()) {
             return gear;
         }
         state.shiftTimer = spec.shiftSeconds();
@@ -1233,6 +1253,29 @@ public final class CarPhysics {
         double multiplication = stallRatio
                 - (stallRatio - 1.0) * Math.min(1.0, speedRatio / COUPLING_SPEED_RATIO);
         return impeller * multiplication;
+    }
+
+    /**
+     * アクセルを戻したときのエンジンブレーキ [N*m]（正の値。エンジンを止める向き）。
+     *
+     * <p>摩擦とポンプ損失は<b>低い回転でもすでに大きく</b>、そこから回転数にほぼ比例して増える。
+     * レブリミットで {@code engineBrakeTorque}、アイドルの少し上でその
+     * {@link #ENGINE_BRAKE_IDLE_SHARE} 倍。以前は「アイドルより上のぶんに比例」で、低い回転では
+     * ほぼ 0 だったので、2 速 3500rpm で離しても 0.28m/s² しか効かなかった（実車は 1〜3m/s²）。</p>
+     *
+     * <p><b>アイドルでは 0 にする</b>——アイドル制御が自分の摩擦を打ち消している。アイドルで
+     * 効かせると、停車中（アイドルで下支えしている）にも車輪へトルクが掛かり続け、止まっている車が
+     * ノーズダウンし（-0.017 度）、停止中に舵を切るだけで少し動いた。0 へは
+     * {@link #ENGINE_BRAKE_FADE_RPM} かけて滑らかに落とす（段差にすると直結の境目で車が揺れる）。</p>
+     */
+    private static double engineBrakeTorque(CarSpec spec, double rpm) {
+        double above = rpm - spec.idleRpm();
+        if (above <= 0.0) {
+            return 0.0;
+        }
+        double range = Math.max(1.0, spec.redlineRpm() - spec.idleRpm());
+        double shape = ENGINE_BRAKE_IDLE_SHARE + (1.0 - ENGINE_BRAKE_IDLE_SHARE) * Math.min(1.0, above / range);
+        return spec.engineBrakeTorque() * shape * smoothstep(Math.min(1.0, above / ENGINE_BRAKE_FADE_RPM));
     }
 
     /**
@@ -1817,7 +1860,9 @@ public final class CarPhysics {
      */
     private static double clampToRedline(CarSpec spec, CarState state, Wheel wheel, double angularVelocity) {
         double ratio = Math.abs(spec.totalRatio(state.gear));
-        if (spec.driveShare(wheel) <= 0.0 || ratio <= 0.0) {
+        // 回りすぎる段へ落とした直後は、車輪とエンジンの間でクラッチが滑っている。抑えるのは
+        // クラッチの役目（ここで抑えると車輪がロックする）
+        if (spec.driveShare(wheel) <= 0.0 || ratio <= 0.0 || state.overRevSlipping) {
             return angularVelocity;
         }
         double max = spec.redlineRpm() * 2.0 * Math.PI / 60.0 / ratio;

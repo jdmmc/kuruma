@@ -1270,7 +1270,7 @@ public record CarSpec(
         private double peakPowerRpm = peakPowerRpmFor(4200.0, LEGACY_TORQUE_FALLOFF);
         private double idleRpm = 800.0;
         private double redlineRpm = 7000.0;
-        private double engineBrakeTorque = 35.0;
+        private double engineBrakeTorque = 90.0;
         private double engineInertia = 0.25;
         private double gearCount = 5.0;
         // 3.4 では 1 速がレブまで 71km/h も引っ張って発進が鈍い（実車は 55〜60km/h）。

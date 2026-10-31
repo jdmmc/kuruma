@@ -109,6 +109,13 @@ public final class CarState {
      */
     public int pendingGear = NO_PENDING_GEAR;
     /**
+     * 回りすぎる段へ落としたあと、クラッチを滑らせている間 true。車速が落ちて回転が
+     * レッドラインに入ったら false。
+     */
+    public boolean overRevSlipping;
+    /** 前の刻みでのクラッチの繋がり先の回転 [rpm]。直結へ戻る判定で、繋がり先の動く速さを見る */
+    public double clutchTargetRpm;
+    /**
      * クラッチの繋がり具合。1 で直結、0 で完全に切れている。
      *
      * <p>プレイヤーは操作しない（マニュアルでも）。サイドブレーキを引いている間だけ

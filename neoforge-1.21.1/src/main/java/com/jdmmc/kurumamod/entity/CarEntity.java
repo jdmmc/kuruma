@@ -1109,7 +1109,8 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
             // 接地は物理の 1 刻みごとに探す。1 ティックに 1 回だと、20m/s では次に探すまでに 1m 進み、
             // その間に越えた段の縁を知らないまま新しい段の中を走って、スラブの坂でタイヤが床に埋まった
             updateGroundContact(x, z, dt);
-            CarPhysics.step(carSpec, state, groundContact, dt, input);
+            // 変速の要求は押した瞬間の 1 回なので、最初の刻みにだけ渡す
+            CarPhysics.step(carSpec, state, groundContact, dt, i == 0 ? input : input.withoutShift());
             CarBody.Result hit = body.solve(carSpec, state, groundContact, x, z, blockField, dt);
             if (GroundLog.active() && level().isClientSide) {
                 String[] surfaceNames = new String[Wheel.COUNT];
