@@ -84,6 +84,8 @@ public final class CarSmoke {
     private static final double KICK_PER_SPEED = 0.008;
     /** 後ろへ弾かれる速さの上限 [blocks/tick]。 */
     private static final double MAX_KICK = 0.22;
+    /** 体積の煙で、強さ 1 あたり後ろへ吐き出す速さ [blocks/tick]（空転するタイヤが煙を吐くぶん）。 */
+    private static final double SPIN_KICK = 0.06;
     /** 向きの散らばり [blocks/tick]。 */
     private static final double JITTER = 0.035;
     /** 出た瞬間の上向きの速さ [blocks/tick]。 */
@@ -123,7 +125,11 @@ public final class CarSmoke {
     private static void spawn(CarEntity car, ClientLevel level) {
         double signedSpeed = car.getRenderSpeed();
         double speed = Math.abs(signedSpeed);
-        if (speed < MIN_SPEED) {
+        // 止まったままのバーンアウトでも、体積の煙は出す。摩擦の仕事率（力 × 滑り速度）は止まっていても
+        // 正しく出るので足切りは要らない。粒・土煙・欠片は今までどおり止まりかけでは出さない
+        boolean crawling = speed < MIN_SPEED;
+        boolean volumetric = TireSmokeVolume.usable();
+        if (crawling && !volumetric) {
             return;
         }
         CarSpec spec = car.getSpec();
@@ -153,7 +159,46 @@ public final class CarSmoke {
             ParticleKind kind = kindOf(surface, raining);
             double power = car.getRenderFrictionPower(wheel) / reference;
             double intensity = (power - MIN_POWER) / (FULL_POWER - MIN_POWER);
-            if (intensity <= 0.0) {
+            if (kind == ParticleKind.SMOKE && volumetric) {
+                // 体積の煙（H メニューの既定）。滑りの強さ（頭打ちにしない）と、滑り続けて溜まった
+                // タイヤの熱で、量・大きさ・濃さが増えていく。熱を冷ますため、滑っていない輪も毎ティック通す
+                double strength = TireSmokeVolume.strength(car.getId() * 4 + wheel.ordinal(), intensity);
+                if (strength <= 0.0) {
+                    continue;
+                }
+                double forwardOffset = spec.wheelForwardOffset(wheel);
+                double rightOffset = spec.wheelRightOffset(wheel);
+                double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
+                double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+                double y = car.getY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
+                // 輪の外側へも吹き出す（車体の下へは潜らない）
+                double side = rightOffset >= 0.0 ? 1.0 : -1.0;
+                TireSmokeVolume.emit(level, car.getId() * 4 + wheel.ordinal(), x, y, z, stepX, stepY, stepZ,
+                        // 空転するタイヤは煙を後ろへ吐き出す。止まったままのバーンアウトでも後ろへ流れるよう、強さのぶん足す
+                        -forwardX * travel * (kick + SPIN_KICK * Math.min(strength, 2.0)),
+                        -forwardZ * travel * (kick + SPIN_KICK * Math.min(strength, 2.0)),
+                        rightX * side, rightZ * side, strength);
+                continue;
+            }
+            if (kind == ParticleKind.DUST && volumetric) {
+                // 未舗装で滑ったぶんの砂塵（雪煙）を、走っているだけで出る CarDust の上へ上乗せする。
+                // 止まったままの空転でも掻き上げる
+                if (intensity <= 0.0) {
+                    continue;
+                }
+                double amount = 1.7 * (1.0 - Math.exp(-1.1 * intensity)) * surface.dustScale();
+                double forwardOffset = spec.wheelForwardOffset(wheel);
+                double rightOffset = spec.wheelRightOffset(wheel);
+                double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
+                double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+                double y = car.getY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
+                double push = kick + SPIN_KICK * Math.min(amount, 2.0);
+                // 輪ごとの番号は CarDust と分ける（出方のムラが同じ調子にならないように）
+                TireSmokeVolume.emitDust(level, 1_000_000 + car.getId() * 4 + wheel.ordinal(), surface,
+                        x, y, z, stepX, stepY, stepZ, -forwardX * travel * push, -forwardZ * travel * push, amount);
+                continue;
+            }
+            if (intensity <= 0.0 || crawling) {
                 continue;
             }
             intensity = Math.min(1.0, intensity);

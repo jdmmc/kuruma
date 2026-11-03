@@ -128,6 +128,33 @@ public final class ClientConfig {
                     "長くするほど同時に残る跡が増えて重くなる")
             .defineInRange("skidMarkSeconds", 300.0, 1.0, 300.0);
 
+    public static final ModConfigSpec.EnumValue<SmokeStyle> SMOKE_STYLE = BUILDER
+            .comment("タイヤの煙の描き方。VOLUMETRIC は煙の塊を体積として画素ごとに解く（陰影・日の光・ヘッドライトで照らされる）。",
+                    "PARTICLES は以前の粒。軽い。体積の煙が使えないとき（シェーダーを読めない・パック使用中に切ってある）も粒になる")
+            .defineEnum("smokeStyle", SmokeStyle.VOLUMETRIC);
+
+    public static final ModConfigSpec.EnumValue<SmokeQuality> SMOKE_QUALITY = BUILDER
+            .comment("体積の煙の品質。LOW は 1/3 の解像度で 4 歩、MEDIUM は 1/2 で 6 歩、HIGH は 1/2 で 9 歩、ULTRA は等倍で 12 歩。",
+                    "同時に残せる塊の数も上がる。重さはほぼ解像度で決まる")
+            .defineEnum("smokeQuality", SmokeQuality.MEDIUM);
+
+    public static final ModConfigSpec.DoubleValue SMOKE_OPACITY = BUILDER
+            .comment("体積の煙の濃さの倍率。1.0 が既定。量（dustDensity）は塊の数、こちらは塊 1 つの濃さ")
+            .defineInRange("smokeOpacity", 1.0, 0.25, 2.0);
+
+    public static final ModConfigSpec.DoubleValue SMOKE_LIFETIME = BUILDER
+            .comment("体積の煙が残る長さの倍率。1.0 で 5.5〜10 秒。長くするほど同時に残る塊が増えて重くなる")
+            .defineInRange("smokeLifetime", 1.0, 0.5, 2.5);
+
+    public static final ModConfigSpec.BooleanValue SMOKE_WITH_SHADER_PACKS = BUILDER
+            .comment("シェーダーパック使用中も体積の煙を描くか。切ると、パック使用中だけ粒の煙になる")
+            .define("smokeWithShaderPacks", true);
+
+    public static final ModConfigSpec.DoubleValue SMOKE_PACK_BRIGHTNESS = BUILDER
+            .comment("シェーダーパック使用中の体積の煙の明るさの倍率。パックによって仕上げ前の絵の明るさの約束が違うので、",
+                    "煙だけ明るすぎる・暗すぎるときに合わせる")
+            .defineInRange("smokePackBrightness", 1.0, 0.25, 3.0);
+
     public static final ModConfigSpec.DoubleValue SOUND_MASTER = BUILDER
             .comment("音量の倍率（車の音（全体））。1.0 が既定。この端末だけで効き、ほかの人には関係ない")
             .defineInRange("soundMaster", 1.0, 0.0, 2.0);
@@ -305,6 +332,19 @@ public final class ClientConfig {
     /** タイヤ痕が消えるまでの秒数。 */
     public static double skidMarkSeconds = 300.0;
 
+    /** タイヤの煙の描き方。 */
+    public static SmokeStyle smokeStyle = SmokeStyle.VOLUMETRIC;
+    /** 体積の煙の品質。 */
+    public static SmokeQuality smokeQuality = SmokeQuality.MEDIUM;
+    /** 体積の煙の濃さの倍率。 */
+    public static double smokeOpacity = 1.0;
+    /** 体積の煙が残る長さの倍率。 */
+    public static double smokeLifetime = 1.0;
+    /** シェーダーパック使用中も体積の煙を描くか。 */
+    public static boolean smokeWithShaderPacks = true;
+    /** シェーダーパック使用中の体積の煙の明るさ。 */
+    public static double smokePackBrightness = 1.0;
+
     /**
      * 音量の倍率。{@code soundMaster} は車の音すべて、ほかは種類ごと（{@code CarSound}・{@code CarImpact}・
      * {@code CarTurbo} が掛ける）。クライアントだけの好みなのでサーバーには置かない。
@@ -395,6 +435,12 @@ public final class ClientConfig {
         showOwnSkidMarks = SHOW_OWN_SKID_MARKS.get();
         showOtherSkidMarks = SHOW_OTHER_SKID_MARKS.get();
         skidMarkSeconds = SKID_MARK_SECONDS.get();
+        smokeStyle = SMOKE_STYLE.get();
+        smokeQuality = SMOKE_QUALITY.get();
+        smokeOpacity = SMOKE_OPACITY.get();
+        smokeLifetime = SMOKE_LIFETIME.get();
+        smokeWithShaderPacks = SMOKE_WITH_SHADER_PACKS.get();
+        smokePackBrightness = SMOKE_PACK_BRIGHTNESS.get();
         soundMaster = SOUND_MASTER.get();
         soundEngine = SOUND_ENGINE.get();
         soundTurbo = SOUND_TURBO.get();

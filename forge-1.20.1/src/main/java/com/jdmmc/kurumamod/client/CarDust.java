@@ -149,6 +149,20 @@ public final class CarDust {
             double load = Math.min(MAX_LOAD_FACTOR,
                     car.getRenderWheelLoad(wheel) / spec.staticWheelLoad(wheel));
             double intensity = base * dustScale * load;
+            if (TireSmokeVolume.usable()) {
+                // 体積の砂塵・雪煙（H メニューの「煙の描き方」が体積のとき）。数と動かし方は TireSmokeVolume が決める
+                double forwardOffset = spec.wheelForwardOffset(wheel);
+                double rightOffset = spec.wheelRightOffset(wheel);
+                double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
+                double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+                double y = car.getY() - suspension - spec.wheelRadius();
+                double side = wheel.isLeft() ? -SIDE_KICK : SIDE_KICK;
+                TireSmokeVolume.emitDust(level, car.getId() * 4 + wheel.ordinal(), car.getRenderSurface(wheel),
+                        x, y, z, car.getX() - car.xo, car.getY() - car.yo, car.getZ() - car.zo,
+                        -forwardX * travel * kick + rightX * side, -forwardZ * travel * kick + rightZ * side,
+                        intensity);
+                continue;
+            }
             double rate = intensity * MAX_PER_WHEEL * ClientConfig.dustDensity;
             int count = (int) rate;
             // 端数は確率で 1 つ。切り上げると、ごく薄いときでも必ず 1 つ出てしまう

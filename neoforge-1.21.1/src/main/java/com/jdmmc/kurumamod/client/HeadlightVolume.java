@@ -499,6 +499,35 @@ public final class HeadlightVolume {
      *
      * <p>書いている最中の画面を同時に読むことはできないので、読むのは写しのほう。</p>
      */
+    /**
+     * このフレームのランプと影の地図を、タイヤの煙のシェーダー（{@code tire_smoke}）にも渡す。
+     * 煙が路面や光線と<b>同じ配光・同じ影</b>で照らされるため。ランプを用意していないフレーム
+     * （昼・ランプ無し・パック使用中に光を切ってある）は灯数 0 を渡す。
+     *
+     * <p>呼ぶのはこのフレームのヘッドライトを描いた後（{@link #shadowsDone} が立ってから）。</p>
+     *
+     * @return 渡した灯数
+     */
+    static int bindLampsForSmoke(ShaderInstance target) {
+        int count = shadowsDone && solidCaptured && isActive() ? lampCount : 0;
+        target.safeGetUniform("LampCount").set(count);
+        if (count == 0) {
+            return 0;
+        }
+        target.setSampler("LampSampler", HeadlightShadows.lampTexture());
+        target.setSampler("ShadowSampler", HeadlightShadows.mapTexture());
+        HeadlightShadows.setGridUniforms(target, frameCamera);
+        target.safeGetUniform("ShadowSize").set((float) HeadlightShadows.MAP_WIDTH,
+                (float) HeadlightShadows.mapHeight(count));
+        target.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
+        float[] lightColor = com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
+        target.safeGetUniform("LightColor").set(lightColor[0], lightColor[1], lightColor[2]);
+        // ヘッドライトの「煙の照らされ方」（既定 4）。粒のときと同じつまみで、体積の煙の明るさへ。
+        // 既定で 3（周りの明るさの 3 倍）。照らされた煙は夜でもはっきり白く浮かぶ
+        target.safeGetUniform("LampGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke * 0.75F);
+        return count;
+    }
+
     private static TextureTarget snapshot(TextureTarget target, RenderTarget main) {
         int width = main.width;
         int height = main.height;

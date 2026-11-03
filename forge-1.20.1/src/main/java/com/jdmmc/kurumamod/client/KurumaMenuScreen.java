@@ -3,6 +3,8 @@ package com.jdmmc.kurumamod.client;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.GateDisplay;
 import com.jdmmc.kurumamod.GaugeTheme;
+import com.jdmmc.kurumamod.SmokeQuality;
+import com.jdmmc.kurumamod.SmokeStyle;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -72,7 +74,7 @@ public class KurumaMenuScreen extends Screen {
      * ページにした。最後に開いたページを覚えておく（走りながら同じ項目を何度も触るので）。
      */
     private enum Page {
-        DISPLAY("display"), GAUGES("gauges"), DRIVING("driving"), SOUND("sound"), CAMERA("camera"),
+        DISPLAY("display"), EFFECTS("effects"), GAUGES("gauges"), DRIVING("driving"), SOUND("sound"), CAMERA("camera"),
         /** 車の音（パック用）。左の一覧には出さず、Ctrl+H のデバッグ画面（{@link #soundDebug()}）だけで開く */
         CAR_SOUND("car_sound");
 
@@ -158,9 +160,22 @@ public class KurumaMenuScreen extends Screen {
                         display -> Component.translatable(display.translationKey()));
                 header("screen.kurumamod.menu.group.mirror");
                 toggle("live_mirrors", ClientConfig.LIVE_MIRRORS);
-                header("screen.kurumamod.menu.group.effects");
+            }
+            case EFFECTS -> {
+                // 走りながら煙の見え方と重さを詰めるページ。描き方・品質・濃さはどれも走っている画面で決めるもの
+                header("screen.kurumamod.menu.group.smoke");
                 toggle("show_dust", ClientConfig.SHOW_DUST);
                 slider("dust_density", 0.25, 2.0, ClientConfig.DUST_DENSITY);
+                cycle("smoke_style", SmokeStyle.class, ClientConfig.SMOKE_STYLE,
+                        style -> Component.translatable(style.translationKey()));
+                cycle("smoke_quality", SmokeQuality.class, ClientConfig.SMOKE_QUALITY,
+                        quality -> Component.translatable(quality.translationKey()));
+                slider("smoke_opacity", 0.25, 2.0, ClientConfig.SMOKE_OPACITY);
+                slider("smoke_lifetime", 0.5, 2.5, ClientConfig.SMOKE_LIFETIME);
+                header("screen.kurumamod.menu.group.smoke_packs");
+                toggle("smoke_with_shader_packs", ClientConfig.SMOKE_WITH_SHADER_PACKS);
+                slider("smoke_pack_brightness", 0.25, 3.0, ClientConfig.SMOKE_PACK_BRIGHTNESS);
+                header("screen.kurumamod.menu.group.skid_marks");
                 toggle("show_own_skid_marks", ClientConfig.SHOW_OWN_SKID_MARKS);
                 toggle("show_other_skid_marks", ClientConfig.SHOW_OTHER_SKID_MARKS);
                 // 1 秒から 5 分まで（既定は 5 分）。線形だと数秒の短い値が左端 1% に潰れるので対数で割り当てる

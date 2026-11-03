@@ -1,0 +1,33 @@
+{
+    "vertex": "kurumamod:tire_smoke",
+    "fragment": "kurumamod:tire_smoke",
+    "attributes": [
+        "Position"
+    ],
+    "samplers": [
+        { "name": "PuffSampler" },
+        { "name": "DepthSampler" },
+        { "name": "LightMapSampler" },
+        { "name": "LampSampler" },
+        { "name": "ShadowSampler" }
+    ],
+    "uniforms": [
+        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "InvViewProj", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "TargetSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] },
+        { "name": "Steps", "type": "int", "count": 1, "values": [ 6 ] },
+        { "name": "NoiseReady", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "SunDir", "type": "float", "count": 3, "values": [ 0.0, 1.0, 0.0 ] },
+        { "name": "SunColor", "type": "float", "count": 3, "values": [ 1.0, 1.0, 1.0 ] },
+        { "name": "FogColor", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "FogStart", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "FogEnd", "type": "float", "count": 1, "values": [ -1.0 ] },
+        { "name": "LampCount", "type": "int", "count": 1, "values": [ 0 ] },
+        { "name": "LightRange", "type": "float", "count": 1, "values": [ 150.0 ] },
+        { "name": "ShadowSize", "type": "float", "count": 2, "values": [ 512.0, 1024.0 ] },
+        { "name": "GridSize", "type": "float", "count": 2, "values": [ 96.0, 24.0 ] },
+        { "name": "LightColor", "type": "float", "count": 3, "values": [ 1.0, 0.94, 0.82 ] },
+        { "name": "LampGain", "type": "float", "count": 1, "values": [ 2.0 ] }
+    ]
+}
