@@ -38,3 +38,11 @@ forge*changelog.txt
 
 # カーパックを固めた jar（カーパック作成ガイドの jar への固め方の章の手順の出力先）
 carpack/*.jar
+carpack/basic/*.jar
+carpack/example/*.jar
+
+# このマシン固有の設定（ローカルの絶対パスが入る）
+gradle-local.properties
+
+# Claude Code 向けの資料（CLAUDE.md から分けた詳細）
+docs/
