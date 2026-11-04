@@ -130,10 +130,10 @@ public final class TireSmokeVolume {
     private static final double PUFF_SPACING = 1.2;
     /** 車の動きを初速へどれだけ乗せるか。0 だと煙がその場に置かれ、1 だと車に付いていく。 */
     private static final double CARRY = 0.12;
-    /** 輪の外側へ吹き出す速さ [m/tick]。 */
-    private static final double OUTWARD = 0.02;
+    /** 輪の外側へ吹き出す速さ [m/tick]。0.02 では輪の真後ろに細く溜まり、横へ広がらなかった。 */
+    private static final double OUTWARD = 0.08;
     /** 向きの散らばり [m/tick]。 */
-    private static final double JITTER = 0.03;
+    private static final double JITTER = 0.05;
     /** 出た瞬間の上向きの速さ [m/tick]。 */
     private static final double LIFT_BASE = 0.02;
     private static final double LIFT_PER_INTENSITY = 0.03;
