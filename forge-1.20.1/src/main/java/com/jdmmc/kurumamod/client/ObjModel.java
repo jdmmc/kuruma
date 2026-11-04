@@ -196,6 +196,12 @@ public final class ObjModel {
     public static final String PART_PREFIX = "part_";
 
     /**
+     * ナンバーの字の枠（{@code text_<欄>}）。<b>描かない。</b>位置と大きさだけ読み（{@link #textFrames}）、
+     * その上に MOD が字を描く。プレートの部品のメッシュにだけ置く。
+     */
+    public static final String TEXT_PREFIX = "text_";
+
+    /**
      * 面 1 つあたりの float 数。<b>どの面も 4 頂点で持つ</b>——四角形はそのまま、
      * 三角形は 3 番目の頂点を 2 回（縮退四角形）。描くときに形で分岐しなくて済む。
      */
@@ -402,6 +408,15 @@ public final class ObjModel {
         // 灯火は車体とは別に描く。呼ぶ側（CarLights）が名指しで必ず描くので穴は開かない
         for (Group group : groups) {
             if (group.role().startsWith(LIGHT_PREFIX)) {
+                for (int face = group.from(); face < group.to(); face++) {
+                    excluded[face] = true;
+                }
+            }
+        }
+
+        // ナンバーの字の枠は描かない（枠の上に字を描くので、板が見えると字の下に色の付いた四角が出る）
+        for (Group group : groups) {
+            if (group.role().startsWith(TEXT_PREFIX)) {
                 for (int face = group.from(); face < group.to(); face++) {
                     excluded[face] = true;
                 }
@@ -745,6 +760,122 @@ public final class ObjModel {
 
     /** {@link #bounds} の答え。メッシュから決まるので 1 度だけ測る。 */
     private double[] bounds;
+
+    /**
+     * ナンバーの字の枠 1 つ。<b>プレートの表に重ねた長方形</b>（エンティティ空間。表は -Z）。
+     *
+     * <p>左右（X）と上下（Y）の範囲だけを持つ。枠は表の面に沿って置くものなので、傾いた枠は
+     * 囲む箱として読む（字は表の向きのまま描く）。</p>
+     *
+     * @param minX 左右の範囲（エンティティ空間の X。<b>正面から見て右が -X</b>）
+     * @param z    枠の面の位置（いちばん前、いちばん小さい Z）
+     */
+    public record TextFrame(double minX, double minY, double maxX, double maxY, double z) {
+        public double width() {
+            return maxX - minX;
+        }
+
+        public double height() {
+            return maxY - minY;
+        }
+    }
+
+    /** 欄の名前 → 字の枠。{@code text_} の板が無ければ空。 */
+    public Map<String, TextFrame> textFrames() {
+        if (textFrames == null) {
+            Map<String, TextFrame> frames = new java.util.LinkedHashMap<>();
+            for (String name : facesByName.keySet()) {
+                if (!name.startsWith(TEXT_PREFIX) || name.contains(OWNED)) {
+                    continue;
+                }
+                double[] box = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
+                        Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+                forEachVertex(name, offset -> {
+                    box[0] = Math.min(box[0], vertices[offset]);
+                    box[1] = Math.min(box[1], vertices[offset + 1]);
+                    box[2] = Math.min(box[2], vertices[offset + 2]);
+                    box[3] = Math.max(box[3], vertices[offset]);
+                    box[4] = Math.max(box[4], vertices[offset + 1]);
+                });
+                if (box[3] - box[0] <= 1.0e-5 || box[4] - box[1] <= 1.0e-5) {
+                    LOGGER.warn("ナンバーの字の枠 {} に大きさがありません（この欄には字を描きません）", name);
+                    continue;
+                }
+                frames.put(name.substring(TEXT_PREFIX.length()), new TextFrame(box[0], box[1], box[3], box[4], box[2]));
+            }
+            textFrames = java.util.Collections.unmodifiableMap(frames);
+        }
+        return textFrames;
+    }
+
+    @Nullable
+    private Map<String, TextFrame> textFrames;
+
+    /**
+     * 前後方向（Z）へ飛ばした光線が、メッシュの表面に最初に当たる点。<b>ナンバーを自動で置く</b>のに使う。
+     *
+     * @param front true なら前（-Z）の外から後ろへ、false なら後ろ（+Z）の外から前へ飛ばす
+     * @return {z, 法線 x, 法線 y, 法線 z}（法線は外向き）。当たらなければ null
+     */
+    @Nullable
+    public double[] surfaceAlongZ(double x, double y, boolean front) {
+        double bestZ = front ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
+        double[] best = null;
+        for (int face = 0; face < faceCount; face++) {
+            int base = face * FACE_FLOATS;
+            // 四角形は 0-1-2 と 0-2-3 の三角形 2 つ（縮退四角形なら 2 つ目は大きさ 0 で当たらない）
+            for (int half = 0; half < 2; half++) {
+                int a = base;
+                int b = base + (half == 0 ? 1 : 2) * STRIDE;
+                int c = base + (half == 0 ? 2 : 3) * STRIDE;
+                double[] hit = hitAlongZ(x, y, a, b, c);
+                if (hit == null) {
+                    continue;
+                }
+                if (front ? hit[0] < bestZ : hit[0] > bestZ) {
+                    bestZ = hit[0];
+                    best = hit;
+                }
+            }
+        }
+        if (best == null) {
+            return null;
+        }
+        // 外向きにそろえる（面の巻き方向はモデルしだいなので、飛ばした側を向くほうを取る）
+        double sign = (front ? best[3] > 0.0 : best[3] < 0.0) ? -1.0 : 1.0;
+        return new double[]{best[0], best[1] * sign, best[2] * sign, best[3] * sign};
+    }
+
+    /** 三角形 a-b-c と、点 (x, y) を通る Z 方向の直線の交点。{z, 法線}。当たらなければ null。 */
+    @Nullable
+    private double[] hitAlongZ(double x, double y, int a, int b, int c) {
+        double ax = vertices[a], ay = vertices[a + 1], az = vertices[a + 2];
+        double bx = vertices[b], by = vertices[b + 1], bz = vertices[b + 2];
+        double cx = vertices[c], cy = vertices[c + 1], cz = vertices[c + 2];
+        // XY 面に写した三角形の中に (x, y) があるか（重心座標）
+        double det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+        if (Math.abs(det) < 1.0e-12) {
+            return null;
+        }
+        double u = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / det;
+        double v = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / det;
+        double w = 1.0 - u - v;
+        if (u < 0.0 || v < 0.0 || w < 0.0) {
+            return null;
+        }
+        double z = u * az + v * bz + w * cz;
+        // 法線（辺の外積）
+        double ux = bx - ax, uy = by - ay, uz = bz - az;
+        double vx = cx - ax, vy = cy - ay, vz = cz - az;
+        double nx = uy * vz - uz * vy;
+        double ny = uz * vx - ux * vz;
+        double nz = ux * vy - uy * vx;
+        double length = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        if (length < 1.0e-12) {
+            return null;
+        }
+        return new double[]{z, nx / length, ny / length, nz / length};
+    }
 
     /** タイヤ以外に透ける面があるか。 */
     public boolean hasTranslucentRim() {

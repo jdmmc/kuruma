@@ -3,5 +3,12 @@
   "order": 9999,
   "values": {
     "mass": 1300.0
+  },
+  "_comment_plate": "ナンバーの初期装備。書かなければナンバーは付かない。removable を true にすると換装画面で外せる",
+  "default_parts": {
+    "plate": {
+      "part": "kurumamod:plate_jp_private",
+      "removable": true
+    }
   }
 }

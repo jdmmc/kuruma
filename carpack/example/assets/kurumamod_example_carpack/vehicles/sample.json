@@ -6,6 +6,18 @@
     "texture": "kurumamod_example_carpack:textures/entity/sample.png"
   },
 
-  "seat": [0.5, -0.25, 0.2],
-  "shadowRadius": 1.5
+  "seat": [0.5, -0.25, -0.16],
+  "shadowRadius": 1.5,
+
+  "_plates": "ナンバーを付ける位置 [m]（車体メッシュの原点が基準）。先頭が既定。どれを使うかはプレイヤーが選ぶ。書かなければ車体の形から自動で置く",
+  "plates": {
+    "front": [
+      { "id": "center", "pos": [0.0, 0.635, -2.404] },
+      { "id": "left", "pos": [-0.5377, 0.88, -2.404] },
+      { "id": "right", "pos": [0.5377, 0.88, -2.404] }
+    ],
+    "rear": [
+      { "id": "center", "pos": [0.0, 0.595, 2.504] }
+    ]
+  }
 }

@@ -1,0 +1,35 @@
+{
+  "plate": {
+    "model": "kurumamod:models/plate/jp.obj",
+    "texture": "kurumamod:textures/plate/jp_kei.png",
+    "scale": 1.15,
+    "fields": {
+      "region": {
+        "font": "kurumamod:plate_fonts/kurumaplate_jp.ttf",
+        "color": "#141414",
+        "fit": "justify",
+        "emboss": 0.02
+      },
+      "class": {
+        "font": "kurumamod:plate_fonts/kurumaplate_jp.ttf",
+        "color": "#141414",
+        "fit": "condense",
+        "emboss": 0.02
+      },
+      "kana": {
+        "font": "kurumamod:plate_fonts/kurumaplate_jp.ttf",
+        "color": "#141414",
+        "fit": "center",
+        "emboss": 0.02
+      },
+      "number": {
+        "font": "kurumamod:plate_fonts/kurumaplate_jp.ttf",
+        "color": "#141414",
+        "fit": "condense",
+        "format": "jp_serial",
+        "mono": true,
+        "emboss": 0.02
+      }
+    }
+  }
+}

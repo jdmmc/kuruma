@@ -7,6 +7,10 @@ import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
+import com.jdmmc.kurumamod.plate.PlateChars;
+import com.jdmmc.kurumamod.plate.PlateField;
+import com.jdmmc.kurumamod.plate.PlateLook;
+import com.jdmmc.kurumamod.plate.PlateRules;
 import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
@@ -67,9 +71,10 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
             Aero aero = buf.readBoolean()
                     ? new Aero(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
                     : null;
+            PlateRules plate = buf.readBoolean() ? readPlate(buf) : null;
             PartSlot slot = PartSlot.byName(name);
             if (slot != null) {
-                parts.add(new CarPart(id, slot, order, cars, turbo, tire, aero));
+                parts.add(new CarPart(id, slot, order, cars, turbo, tire, aero, plate));
             }
             // 知らない場所の部品は落とす。並べようがないので、黙って無視してよい
         }
@@ -111,7 +116,33 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
                 buf.writeDouble(aero.rearMax());
                 buf.writeDouble(aero.defaultAngle());
             }
+            // ナンバーの欄の決まり。換装画面が入力欄を並べ、打った字を手元で先に検査するのに使う
+            PlateRules plate = part.plate();
+            buf.writeBoolean(plate != null);
+            if (plate != null) {
+                writePlate(buf, plate);
+            }
         }
+    }
+
+    private static void writePlate(FriendlyByteBuf buf, PlateRules plate) {
+        buf.writeVarInt(plate.fields().size());
+        for (PlateField field : plate.fields()) {
+            buf.writeUtf(field.id(), PlateLook.FIELD_ID_MAX_LENGTH);
+            buf.writeVarInt(field.max());
+            buf.writeVarIntArray(field.chars().toArray());
+            buf.writeUtf(field.defaultText(), PlateRules.FIELD_MAX_LENGTH * 2);
+        }
+    }
+
+    private static PlateRules readPlate(FriendlyByteBuf buf) {
+        int count = Math.min(buf.readVarInt(), PlateRules.MAX_FIELDS);
+        List<PlateField> fields = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            fields.add(new PlateField(buf.readUtf(PlateLook.FIELD_ID_MAX_LENGTH), buf.readVarInt(),
+                    PlateChars.fromArray(buf.readVarIntArray()), buf.readUtf(PlateRules.FIELD_MAX_LENGTH * 2)));
+        }
+        return new PlateRules(fields);
     }
 
     private static java.util.Map<String, Double> readScales(FriendlyByteBuf buf) {

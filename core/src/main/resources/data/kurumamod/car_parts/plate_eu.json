@@ -1,0 +1,25 @@
+{
+  "slot": "plate",
+  "order": 20,
+  "plate": {
+    "fields": {
+      "country": {
+        "max": 3,
+        "chars": [
+          "A-Z"
+        ],
+        "default": "J"
+      },
+      "text": {
+        "max": 10,
+        "chars": [
+          "A-Z",
+          "0-9",
+          " ",
+          "-"
+        ],
+        "default": "KM 1234"
+      }
+    }
+  }
+}

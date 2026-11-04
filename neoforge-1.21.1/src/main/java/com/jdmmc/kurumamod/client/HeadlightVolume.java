@@ -549,6 +549,9 @@ public final class HeadlightVolume {
     }
 
     /** 近い車から順に、ヘッドライトを点けている車のランプを詰める。 */
+    /** 車 1 台が出す光の数の上限（ヘッドライト 2 灯とナンバー灯 1 灯）。 */
+    private static final int LAMPS_PER_CAR = 3;
+
     private static int collect(ClientLevel level, Vec3 camera, float partialTick) {
         List<CarEntity> cars = new ArrayList<>();
         for (Entity entity : level.entitiesForRendering()) {
@@ -561,11 +564,11 @@ public final class HeadlightVolume {
         int wanted = com.jdmmc.kurumamod.ClientConfig.headlightCars;
         int limit = wanted >= com.jdmmc.kurumamod.ClientConfig.UNLIMITED_HEADLIGHT_CARS
                 ? HeadlightShadows.maxLamps()
-                : Math.min(HeadlightShadows.maxLamps(), Math.max(1, wanted) * 2);
+                : Math.min(HeadlightShadows.maxLamps(), Math.max(1, wanted) * LAMPS_PER_CAR);
         int count = 0;
         int taken = 0;
         for (CarEntity car : cars) {
-            if (count >= limit || taken >= limit / 2) {
+            if (count >= limit || taken >= limit / LAMPS_PER_CAR) {
                 break;
             }
             count += CarLights.collectLamps(car, partialTick, camera, LAMPS, count);

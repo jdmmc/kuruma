@@ -1,0 +1,39 @@
+{
+  "slot": "plate",
+  "order": 12,
+  "plate": {
+    "fields": {
+      "region": {
+        "max": 4,
+        "chars": [
+          "hiragana",
+          "katakana",
+          "kanji"
+        ],
+        "default": "品川"
+      },
+      "class": {
+        "max": 3,
+        "chars": [
+          "0-9",
+          "A-Z"
+        ],
+        "default": "330"
+      },
+      "kana": {
+        "max": 1,
+        "chars": [
+          "hiragana"
+        ],
+        "default": "あ"
+      },
+      "number": {
+        "max": 4,
+        "chars": [
+          "0-9"
+        ],
+        "default": "1234"
+      }
+    }
+  }
+}

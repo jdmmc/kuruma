@@ -102,6 +102,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         int lod = HeadlightVolume.ShaderPacks.renderingShadowPass() ? SHADOW_LOD : lodLevel(car, partialTick);
         renderBody(car, model, spec, pose, buffer, packedLight, lod);
         renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, lod);
+        // ナンバー。車体の拡大を掛ける前に描く（プレートは実寸のまま）
+        PlateRenderer.render(car, model, spec, pose, buffer, packedLight, this::solid,
+                HeadlightVolume.ShaderPacks.renderingShadowPass());
         // 見た目の調整画面（Ctrl+G）を開いている間だけ、Blender のゲージを車体に重ねる
         if (SeatScreen.showsGauge(car)) {
             renderGauge(model, spec, pose, buffer);
@@ -141,6 +144,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
      * 形を組む処理は普通の車と共通で、どの {@code RenderType} に積むかだけを
      * {@link #ghostPass} で切り替える。</p>
      *
+     * <p>ナンバーは描く（字も。記録した車の装着状態ごと残っている）。</p>
+     *
      * <p>描かないもの: シェーダーパックの影（地面に影が落ちると実在の車に見える）、
      * 灯火の光（レンズはただの面として描く）、ミラーの映り込み、名前タグ。</p>
      */
@@ -160,6 +165,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
                 applyRotations(car, pose, partialTick);
                 renderBody(car, model, spec, pose, buffer, packedLight, 0);
                 renderWheels(car, model, spec, pose, buffer, packedLight, partialTick, 0);
+                PlateRenderer.render(car, model, spec, pose, buffer, packedLight, this::solid, false);
                 renderGlass(car, model, spec, pose, buffer, packedLight);
                 pose.popPose();
             }

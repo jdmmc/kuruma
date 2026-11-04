@@ -8,11 +8,16 @@ import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
+import com.jdmmc.kurumamod.plate.PlateField;
+import com.jdmmc.kurumamod.plate.PlateLook;
+import com.jdmmc.kurumamod.plate.PlateRules;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
@@ -119,6 +124,27 @@ public class CarPartScreen extends Screen {
      */
     private boolean rebuildPending;
 
+    /** ナンバーの入力欄（欄の順）。ナンバーの場所を開いているときだけある。 */
+    private final List<PlateBox> plateBoxes = new ArrayList<>();
+    /** ナンバーの行の見出し（欄の名前・「前」「後ろ」）。描くたびに文字を置く。 */
+    private final List<RowLabel> rowLabels = new ArrayList<>();
+    /** 前のフレームのナンバーの行の並び。付けるプレートを替えたら作り直す。 */
+    private String lastPlateRows = "";
+    /** 打った字・付ける位置を手元の車に入れたが、まだサーバーへ送っていない。 */
+    private boolean plateChanged;
+    /** ナンバーを次に送れるまでのティック。打つたびに送るとフィルタの往復が積み重なる。 */
+    private int plateCooldown;
+    /** ナンバーを送る間隔の下限 [ティック]。 */
+    private static final int PLATE_SEND_INTERVAL = 8;
+    /** ナンバーの行の見出しの幅。 */
+    private static final int ROW_LABEL_WIDTH = 72;
+
+    private record PlateBox(String field, PlateField rules, EditBox box) {
+    }
+
+    private record RowLabel(Component text, int x, int y) {
+    }
+
     /** 左端に出しているタイルの番号。横スクロール。 */
     private int scroll;
     private int visibleTiles;
@@ -135,6 +161,8 @@ public class CarPartScreen extends Screen {
         tiles.clear();
         sliders.clear();
         tags.clear();
+        plateBoxes.clear();
+        rowLabels.clear();
         lastShown = shownSlots();
         // 見ていた場所が意味を失った（ターボを外してブローオフのタブが消えた）ら、先頭へ戻す
         if (!lastShown.contains(slot)) {
@@ -158,6 +186,7 @@ public class CarPartScreen extends Screen {
         }
 
         addAdjustmentRows();
+        addPlateRows();
         addSlotTags();
 
         scroll = Math.max(0, Math.min(scroll, Math.max(0, tiles.size() - visibleTiles)));
@@ -225,6 +254,174 @@ public class CarPartScreen extends Screen {
     /** 前のフレームで出していた調整値。角度を調整できる部品に付け替えたら作り直す。 */
     private List<Adjustment> lastAdjustments = List.of();
 
+    /** タイルの上に積んでいる行の数（調整値とナンバー）。 */
+    private int rowsAbove() {
+        return lastAdjustments.size() + plateRowCount;
+    }
+
+    private int plateRowCount;
+
+    // ------------------------------------------------------------------
+    // ナンバー
+    // ------------------------------------------------------------------
+
+    /** 付けているプレートの欄の決まり。ナンバーの場所を開いていない・付けていなければ null。 */
+    @Nullable
+    private PlateRules plateRules() {
+        if (paintMode || slot != PartSlot.PLATE) {
+            return null;
+        }
+        CarEntity car = CarClientDriver.driving();
+        ResourceLocation id = car == null ? null : car.getEffectiveFitment().getPart(PartSlot.PLATE);
+        CarPart part = id == null ? null : CarParts.get(id);
+        return part == null ? null : part.plate() == null ? PlateRules.NONE : part.plate();
+    }
+
+    /** ナンバーの行の並びを表す文字列。これが変わったら作り直す（付けるプレートや位置の候補が替わった）。 */
+    private String plateRows() {
+        PlateRules rules = plateRules();
+        CarEntity car = CarClientDriver.driving();
+        if (rules == null || car == null) {
+            return "";
+        }
+        PlateMounts.Mounts mounts = PlateMounts.get(car.getCarId());
+        return car.getEffectiveFitment().getPart(PartSlot.PLATE) + "|" + rules.ids() + "|"
+                + mounts.front().stream().map(PlateMounts.Mount::id).toList() + "|"
+                + mounts.rear().stream().map(PlateMounts.Mount::id).toList();
+    }
+
+    /**
+     * ナンバーの行。<b>欄ごとの入力欄と、前後の付ける位置</b>をタイルの真上に積む。
+     *
+     * <p>打った字は手元の車にすぐ入れる（車の上のナンバーが打つそばから変わる）。サーバーへは
+     * {@link #PLATE_SEND_INTERVAL} ごとにまとめて送り、様式の決まりとフィルタを通ったものが配り直される。</p>
+     */
+    private void addPlateRows() {
+        lastPlateRows = plateRows();
+        plateRowCount = 0;
+        PlateRules rules = plateRules();
+        CarEntity car = CarClientDriver.driving();
+        if (rules == null || car == null) {
+            return;
+        }
+        PlateMounts.Mounts mounts = PlateMounts.get(car.getCarId());
+        boolean mountRow = !mounts.front().isEmpty() || !mounts.rear().isEmpty();
+        int rows = rules.fields().size() + (mountRow ? 1 : 0);
+        plateRowCount = rows;
+        int left = (width - (ROW_LABEL_WIDTH + SLIDER_WIDTH)) / 2;
+        int boxLeft = left + ROW_LABEL_WIDTH;
+        PlateLook look = car.getFitment().plate();
+        ResourceLocation partId = car.getEffectiveFitment().getPart(PartSlot.PLATE);
+        int row = 0;
+        for (PlateField field : rules.fields()) {
+            int y = rowTop - ROW_STEP * (rows - row++);
+            Component label = fieldLabel(partId, field.id());
+            EditBox box = new EditBox(font, boxLeft, y, SLIDER_WIDTH, 20, label);
+            box.setMaxLength(PlateRules.FIELD_MAX_LENGTH * 2);
+            box.setFilter(text -> PlateRules.accepts(text, field.chars(), field.max()));
+            box.setValue(rules.display(look, field.id()));
+            box.setResponder(text -> onPlateTyped());
+            addRenderableWidget(box);
+            plateBoxes.add(new PlateBox(field.id(), field, box));
+            rowLabels.add(new RowLabel(label, left, y + 6));
+        }
+        if (mountRow) {
+            int y = rowTop - ROW_STEP * (rows - row);
+            int half = (SLIDER_WIDTH - TILE_GAP) / 2;
+            addMountButton(mounts.front(), look.front(), true, boxLeft, y, half);
+            addMountButton(mounts.rear(), look.rear(), false, boxLeft + half + TILE_GAP, y, half);
+            rowLabels.add(new RowLabel(Component.translatable("screen.kurumamod.plate.mount"), left, y + 6));
+        }
+    }
+
+    /** 付ける位置の切り替え。候補の後ろに「付けない」を足す。候補の無い側はボタンを出さない。 */
+    private void addMountButton(List<PlateMounts.Mount> mounts, @Nullable String chosen, boolean front,
+                                int x, int y, int width) {
+        if (mounts.isEmpty()) {
+            return;
+        }
+        List<String> values = new ArrayList<>();
+        for (PlateMounts.Mount mount : mounts) {
+            values.add(mount.id());
+        }
+        values.add(PlateLook.HIDDEN);
+        String initial = PlateLook.HIDDEN.equals(chosen) ? PlateLook.HIDDEN
+                : PlateMounts.pick(mounts, chosen) == null ? values.get(0) : PlateMounts.pick(mounts, chosen).id();
+        Component side = Component.translatable(front ? "screen.kurumamod.plate.front" : "screen.kurumamod.plate.rear");
+        addRenderableWidget(CycleButton.<String>builder(CarPartScreen::mountLabel)
+                .withValues(values)
+                .withInitialValue(initial)
+                .create(x, y, width, 20, side, (button, value) -> {
+                    CarEntity car = CarClientDriver.driving();
+                    if (car == null) {
+                        return;
+                    }
+                    PlateLook look = car.getFitment().plate();
+                    // 先頭の候補は「指定なし」で持つ（車の JSON で先頭が替わったらそれに従う）
+                    String stored = value.equals(values.get(0)) ? null : value;
+                    car.setFitment(car.getFitment().withPlate(front ? look.withFront(stored) : look.withRear(stored)));
+                    plateChanged = true;
+                }));
+    }
+
+    private static Component mountLabel(String id) {
+        String key = "screen.kurumamod.plate.mount." + id;
+        Component translated = Component.translatable(key);
+        return translated.getString().equals(key) ? Component.literal(id) : translated;
+    }
+
+    /**
+     * 欄の名前。<b>様式ごとの翻訳 → 同じ名前の欄に共通の翻訳 → 欄の id</b> の順に探す。
+     * パックは {@code plate.<名前空間>.<部品>.field.<欄>} を自分の lang に書けばよい。
+     */
+    private static Component fieldLabel(@Nullable ResourceLocation partId, String field) {
+        if (partId != null) {
+            String key = "plate." + partId.getNamespace() + "." + partId.getPath() + ".field." + field;
+            Component translated = Component.translatable(key);
+            if (!translated.getString().equals(key)) {
+                return translated;
+            }
+        }
+        String common = "plate.kurumamod.field." + field;
+        Component translated = Component.translatable(common);
+        return translated.getString().equals(common) ? Component.literal(field) : translated;
+    }
+
+    /** 入力欄の字が変わった。決まりに通して手元の車へ入れる（送るのは {@link #tick}）。 */
+    private void onPlateTyped() {
+        CarEntity car = CarClientDriver.driving();
+        if (car == null) {
+            return;
+        }
+        PlateLook look = car.getFitment().plate();
+        for (PlateBox entry : plateBoxes) {
+            String cleaned = PlateRules.clean(entry.box().getValue(), entry.rules().chars(), entry.rules().max());
+            // 既定の文字と同じなら「打っていない」で持つ（パックが既定を変えたらそれに従う）
+            look = look.withText(entry.field(), cleaned.equals(entry.rules().defaultText()) ? "" : cleaned);
+        }
+        car.setFitment(car.getFitment().withPlate(look));
+        plateChanged = true;
+    }
+
+    /** ナンバーの字を打っている最中か。打っている間は運転のキーを車へ渡さない。 */
+    public boolean isTyping() {
+        for (PlateBox entry : plateBoxes) {
+            if (entry.box().isFocused() && entry.box().isVisible()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void sendPlate() {
+        CarEntity car = CarClientDriver.driving();
+        if (car != null && plateChanged) {
+            plateChanged = false;
+            plateCooldown = PLATE_SEND_INTERVAL;
+            CarClientDriver.requestPlate(car.getFitment().plate());
+        }
+    }
+
     /**
      * 場所の札。<b>1 つしかなくても出す</b>——付いている部品の名前を出す場所でもあるので。
      * 置き場所は描くたびに {@link #placeTags} が決める。
@@ -246,7 +443,7 @@ public class CarPartScreen extends Screen {
      * 札がスライダーや表に乗ると、どちらも押せなくなる。</p>
      */
     private void placeTags(@Nullable CarEntity car) {
-        int bottom = rowTop - ROW_STEP * lastAdjustments.size() - 6 - TAG_HEIGHT;
+        int bottom = rowTop - ROW_STEP * rowsAbove() - 6 - TAG_HEIGHT;
         int right = width - SIDE_MARGIN;
         if (!paintMode && PartInfoPanel.covers(slot)) {
             right = Math.min(right, width - INFO_RIGHT_MARGIN - PartInfoPanel.WIDTH - 6);
@@ -511,7 +708,8 @@ public class CarPartScreen extends Screen {
 
         // 札を押した・札の並びが変わったら作り直す。<b>クリックの伝播中ではなく描画の頭で</b>
         // （ウィジェット一覧を入れ替えるので）。ターボを付けた返事が届くとブローオフの札が現れる
-        if (rebuildPending || !shownSlots().equals(lastShown) || !adjustments().equals(lastAdjustments)) {
+        if (rebuildPending || !shownSlots().equals(lastShown) || !adjustments().equals(lastAdjustments)
+                || !plateRows().equals(lastPlateRows)) {
             rebuildPending = false;
             rebuildWidgets();
         }
@@ -537,6 +735,10 @@ public class CarPartScreen extends Screen {
         renderLeaders(graphics);
 
         super.render(graphics, mouseX, mouseY, partialTick);
+
+        for (RowLabel label : rowLabels) {
+            graphics.drawString(font, label.text(), label.x(), label.y(), ScreenStyle.LABEL);
+        }
 
         graphics.drawString(font, title, TEXT_LEFT, TITLE_Y, 0xFFFFFFFF);
         graphics.drawString(font, paintMode ? Component.translatable("screen.kurumamod.part.paint") : slot.displayName(),
@@ -655,6 +857,14 @@ public class CarPartScreen extends Screen {
             lookChanged = false;
             sendCurrent();
         }
+        for (PlateBox entry : plateBoxes) {
+            entry.box().tick();
+        }
+        if (plateCooldown > 0) {
+            plateCooldown--;
+        } else {
+            sendPlate();
+        }
     }
 
     /** いまの状態をサーバーへ送る。調整値が変わったティックと、画面を閉じるとき。 */
@@ -670,6 +880,7 @@ public class CarPartScreen extends Screen {
     public void removed() {
         // 離さずに Esc を押されても取りこぼさないよう、閉じるときにも送る
         sendCurrent();
+        sendPlate();
     }
 
     @Override
@@ -684,7 +895,8 @@ public class CarPartScreen extends Screen {
      */
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (CarClientDriver.isDrivingKey(keyCode, scanCode)) {
+        // ナンバーの字を打っている間は、運転のキーも字として入力欄へ渡す
+        if (!isTyping() && CarClientDriver.isDrivingKey(keyCode, scanCode)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -1105,6 +1317,7 @@ public class CarPartScreen extends Screen {
                 case BLOWOFF -> renderBlowoffIcon(graphics, iconX, iconY);
                 case FRONT_BUMPER, SIDE_SKIRT, FENDER, REAR_WING, REAR_DIFFUSER, EXHAUST ->
                         renderBodyPartIcon(graphics, iconX, iconY);
+                case PLATE -> renderPlateIcon(graphics, iconX, iconY);
                 default -> renderWheelIcon(graphics, iconX, iconY);
             }
 
@@ -1121,6 +1334,35 @@ public class CarPartScreen extends Screen {
                 graphics.drawString(font, pack, (left + right - font.width(pack)) / 2,
                         labelTop - 11, fitted ? ScreenStyle.LABEL : ScreenStyle.SUB, false);
             }
+        }
+
+        /**
+         * プレートの絵。地の絵（パックのテクスチャ）をそのまま縮めて出す。「純正」はその車の初期装備、
+         * 「なし」は枠だけ。
+         */
+        private void renderPlateIcon(GuiGraphics graphics, float centerX, float centerY) {
+            CarEntity car = CarClientDriver.driving();
+            ResourceLocation id = entry.id();
+            if (id == null && car != null) {
+                id = stockPart(car, PartSlot.PLATE);
+            }
+            int boxWidth = 56;
+            int boxHeight = 28;
+            if (id == null || PartFitment.isNone(id)) {
+                int x = Math.round(centerX - boxWidth / 2.0F);
+                int y = Math.round(centerY - boxHeight / 2.0F);
+                graphics.renderOutline(x, y, boxWidth, boxHeight, ScreenStyle.SUB);
+                return;
+            }
+            PlateModel look = PlateModel.get(id);
+            double[] box = ObjModel.get(look.model()).bounds();
+            double aspect = box[3] - box[0] > 0.0 && box[4] - box[1] > 0.0
+                    ? (box[3] - box[0]) / (box[4] - box[1]) : 2.0;
+            int w = aspect >= 2.0 ? boxWidth : (int) Math.round(boxHeight * aspect);
+            int h = aspect >= 2.0 ? (int) Math.round(boxWidth / aspect) : boxHeight;
+            int x = Math.round(centerX - w / 2.0F);
+            int y = Math.round(centerY - h / 2.0F);
+            graphics.blit(look.texture(true), x, y, w, h, 0.0F, 0.0F, 64, 64, 64, 64);
         }
 
         /**

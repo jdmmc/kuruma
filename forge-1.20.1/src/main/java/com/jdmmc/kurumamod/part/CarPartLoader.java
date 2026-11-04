@@ -6,6 +6,10 @@ import com.google.gson.JsonObject;
 import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
+import com.jdmmc.kurumamod.plate.PlateChars;
+import com.jdmmc.kurumamod.plate.PlateField;
+import com.jdmmc.kurumamod.plate.PlateLook;
+import com.jdmmc.kurumamod.plate.PlateRules;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -144,7 +148,70 @@ public final class CarPartLoader extends SimpleJsonResourceReloadListener {
                 aero = parseAero(id, GsonHelper.getAsJsonObject(root, "aero"));
             }
         }
-        return new CarPart(id, slot, order, cars, turbo, tire, aero);
+        // ナンバーの欄の決まり。ナンバーの部品なら書かなくても持つ（欄の無い飾りのプレート）
+        PlateRules plate = null;
+        if (root.has("plate")) {
+            if (slot != PartSlot.PLATE) {
+                LOGGER.warn("plate はナンバーの部品（slot \"plate\"）にしか書けません（無視します）: {}", id);
+            } else {
+                plate = parsePlate(id, GsonHelper.getAsJsonObject(root, "plate"));
+            }
+        } else if (slot == PartSlot.PLATE) {
+            plate = PlateRules.NONE;
+        }
+        return new CarPart(id, slot, order, cars, turbo, tire, aero, plate);
+    }
+
+    /**
+     * ナンバーの欄の決まり。<b>並べた順がそのまま換装画面の入力欄の順になる。</b>
+     *
+     * <pre>
+     * "plate": {
+     *   "fields": {
+     *     "region": { "max": 4, "default": "品川" },
+     *     "kana":   { "max": 1, "chars": ["hiragana"], "default": "さ" },
+     *     "number": { "max": 4, "chars": ["0-9"], "default": "1234" }
+     *   }
+     * }
+     * </pre>
+     *
+     * <p>欄の名前はプレートのメッシュの {@code text_<名前>} と揃える。名前の形は小文字・数字・{@code _ -}。</p>
+     */
+    private static PlateRules parsePlate(ResourceLocation id, JsonObject json) {
+        List<PlateField> fields = new ArrayList<>();
+        if (json.has("fields")) {
+            for (Map.Entry<String, JsonElement> entry : GsonHelper.getAsJsonObject(json, "fields").entrySet()) {
+                String name = entry.getKey();
+                if (name.startsWith("_")) {
+                    continue;
+                }
+                if (!PlateLook.isValidId(name, PlateLook.FIELD_ID_MAX_LENGTH)) {
+                    LOGGER.warn("ナンバーの欄の名前は小文字・数字・_ - で書いてください（この欄だけ無視します）: {} の \"{}\"",
+                            id, name);
+                    continue;
+                }
+                if (fields.size() >= PlateRules.MAX_FIELDS) {
+                    LOGGER.warn("ナンバーの欄は {} 個までです（残りは無視します）: {}", PlateRules.MAX_FIELDS, id);
+                    break;
+                }
+                JsonObject field = GsonHelper.convertToJsonObject(entry.getValue(), name);
+                List<String> items = new ArrayList<>();
+                if (field.has("chars")) {
+                    for (JsonElement element : GsonHelper.getAsJsonArray(field, "chars")) {
+                        items.add(element.getAsString());
+                    }
+                }
+                List<String> unreadable = new ArrayList<>();
+                PlateChars chars = PlateChars.parse(items, unreadable);
+                if (!unreadable.isEmpty()) {
+                    LOGGER.warn("ナンバーの欄 {} の chars に読めない項目があります（その項目だけ無視します）: {} の {}",
+                            name, id, unreadable);
+                }
+                fields.add(new PlateField(name, GsonHelper.getAsInt(field, "max", PlateRules.FIELD_MAX_LENGTH),
+                        chars, GsonHelper.getAsString(field, "default", "")));
+            }
+        }
+        return new PlateRules(fields);
     }
 
     /**

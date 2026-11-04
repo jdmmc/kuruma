@@ -166,9 +166,28 @@ float pattern(float tx, float ty, float soften) {
             + SPOT_WEIGHT * exp(-(sx * sx + sy * sy)));
 }
 
-// ランプ L から点 p へ出る光の強さ（距離で割る前）。v は L から p へのベクトル
+// ナンバー灯（L[3].w が 1）。光軸のまわりに柔らかく広がる円錐で、カットオフは無い。
+// 届くのは L[0].w [m] まで（プレートのまわりだけ）
+const float WASH_INNER = 0.75;
+const float WASH_OUTER = 0.15;
+
+float washed(mat4 L, vec3 v, float along) {
+    float distance = length(v);
+    if (along <= 0.0 || distance < 1.0e-4) {
+        return 0.0;
+    }
+    float spread = smoothstep(WASH_OUTER, WASH_INNER, along / distance);
+    float reach = L[0].w;
+    return spread * (1.0 - smoothstep(reach, reach * 1.6, distance)) * L[1].w;
+}
+
+// ランプ L から点 p へ出る光の強さ（距離で割る前）。v は L から p へのベクトル。
+// soften が 1 なのは路面の照り返し。ナンバー灯は路面（プレートの面）だけを照らし、霧の光線と煙には出ない
 float emitted(mat4 L, vec3 v, float soften) {
     float along = dot(v, L[1].xyz);
+    if (L[3].w > 0.5) {
+        return soften == 1.0 ? washed(L, v, along) : 0.0;
+    }
     if (along <= 0.05) {
         return 0.0;
     }
@@ -557,6 +576,9 @@ void main() {
     int beamLamps = abs(PackMode - 1.0) < 0.5 ? 0 : LampCount;
     for (int i = 0; i < beamLamps; i++) {
         mat4 L = lamp(i);
+        if (L[3].w > 0.5) {
+            continue; // ナンバー灯は光線を出さない
+        }
         vec3 origin = L[0].xyz;
         vec3 axis = L[1].xyz;
         // 光の届く範囲を包む球と視線が交わる区間だけ刻む。刻みがそこへ集まるので、

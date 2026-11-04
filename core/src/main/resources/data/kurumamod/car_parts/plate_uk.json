@@ -1,0 +1,17 @@
+{
+  "slot": "plate",
+  "order": 30,
+  "plate": {
+    "fields": {
+      "text": {
+        "max": 8,
+        "chars": [
+          "A-Z",
+          "0-9",
+          " "
+        ],
+        "default": "KU26 RMA"
+      }
+    }
+  }
+}

@@ -404,8 +404,12 @@ public final class CarLights {
         CarModel carModel = CarModel.get(car.getCarId());
         ObjModel body = ObjModel.get(carModel.bodyModel());
         java.util.Set<String> shown = shownParts(car, body);
-        if (!car.isHeadlightOn() || body.roleNames(HEAD, shown).isEmpty()) {
+        if (!car.isHeadlightOn()) {
             return 0;
+        }
+        if (body.roleNames(HEAD, shown).isEmpty()) {
+            // ヘッドライトの無い車でもナンバー灯は灯る
+            return collectPlateLamp(car, partialTick, camera, out, start, darkness(car));
         }
         PoseStack rig = new PoseStack();
         CarObjRenderer.applyRotations(car, rig, partialTick);
@@ -433,7 +437,38 @@ public final class CarLights {
             out[start + count] = m;
             count++;
         }
-        return count;
+        return count + collectPlateLamp(car, partialTick, camera, out, start + count, strength);
+    }
+
+    /** ナンバー灯がプレートの中央を照らす強さ（暗さ 1 のとき）。プレートの中央の露出が 6 割ほどになる値。 */
+    private static final float PLATE_LAMP_STRENGTH = 3.5e-6F;
+    /** ナンバー灯の届く距離 [m]。プレートとその下のバンパーの縁だけ。 */
+    private static final float PLATE_LAMP_REACH = 0.45F;
+
+    /**
+     * ナンバー灯 1 灯を {@code out[start]} に詰める。詰めたら 1、無ければ 0。
+     *
+     * <p>行列の形はヘッドライトと同じだが、<b>列 3 の w を 1 にする</b>のが印。シェーダーはこれを見て、
+     * カットオフの無い柔らかい円錐で、路面（プレートの面）だけを照らす（霧の光線・煙には出さない）。
+     * 届く距離（列 0 の w）は {@link #PLATE_LAMP_REACH}。</p>
+     */
+    private static int collectPlateLamp(CarEntity car, float partialTick, Vec3 camera, Matrix4f[] out, int start,
+                                        float strength) {
+        if (start >= out.length || strength <= 0.0F) {
+            return 0;
+        }
+        org.joml.Vector3f[] lamp = PlateRenderer.rearLamp(car, partialTick);
+        if (lamp == null) {
+            return 0;
+        }
+        Vec3 at = car.getPosition(partialTick).add(lamp[0].x(), lamp[0].y(), lamp[0].z()).subtract(camera);
+        Matrix4f m = new Matrix4f();
+        m.setColumn(0, new Vector4f((float) at.x, (float) at.y, (float) at.z, PLATE_LAMP_REACH));
+        m.setColumn(1, new Vector4f(lamp[1].x(), lamp[1].y(), lamp[1].z(), strength * PLATE_LAMP_STRENGTH));
+        m.setColumn(2, new Vector4f(lamp[2].x(), lamp[2].y(), lamp[2].z(), 0.0F));
+        m.setColumn(3, new Vector4f(lamp[3].x(), lamp[3].y(), lamp[3].z(), 1.0F));
+        out[start] = m;
+        return 1;
     }
 
     /**

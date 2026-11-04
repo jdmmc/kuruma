@@ -1,0 +1,19 @@
+Fonts used for licence plates in KurumaMod
+==========================================
+
+Both fonts are licensed under the SIL Open Font License, Version 1.1.
+The full licence text is next to each font. The fonts are bundled with
+KurumaMod and are not sold on their own.
+
+kurumaplate_jp.ttf  (KurumaPlate JP SemiBold)
+    Modified from Noto Sans JP (https://github.com/google/fonts/tree/main/ofl/notosansjp),
+    Copyright 2014-2021 Adobe, with Reserved Font Name 'Source'.
+    Changes: fixed to weight 600, reduced to ASCII, kana and JIS X 0208
+    kanji (tools/make_plate_font.py). Because it is modified, it is renamed
+    and does not use the Reserved Font Name or the original font name.
+    Licence: ofl_kurumaplate_jp.txt
+
+barlowcondensed-semibold.ttf  (Barlow Condensed SemiBold)
+    Unmodified (only the file name is lower-cased, as Minecraft requires), from https://github.com/google/fonts/tree/main/ofl/barlowcondensed
+    Copyright 2017 The Barlow Project Authors.
+    Licence: ofl_barlow_condensed.txt

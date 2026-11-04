@@ -54,6 +54,10 @@ public final class PresetParts {
         CarEntity car = CarClientDriver.ridingCar(minecraft);
         int skipped = 0;
         for (PartSlot slot : PartSlot.VALUES) {
+            if (!slot.inPresets()) {
+                // プリセットはナンバーを持たない。素通しにすると、読み込むたびにプレートが外れる
+                continue;
+            }
             PartFitment.Setting wanted = parts.get(slot);
             if (wanted.equals(car.getFitment().get(slot))) {
                 continue;

@@ -24,5 +24,12 @@
 
     "_comment_resistance": "既定の車より背が低く、空気抵抗が小さい",
     "drag_area": 0.72
+  },
+  "_comment_plate": "ナンバーの初期装備。換装画面で替えたり外したりできる",
+  "default_parts": {
+    "plate": {
+      "part": "kurumamod:plate_eu",
+      "removable": true
+    }
   }
 }

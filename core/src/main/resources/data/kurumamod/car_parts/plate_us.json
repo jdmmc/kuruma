@@ -1,0 +1,45 @@
+{
+  "slot": "plate",
+  "order": 40,
+  "plate": {
+    "fields": {
+      "top": {
+        "max": 16,
+        "chars": [
+          "A-Z",
+          "a-z",
+          "0-9",
+          " ",
+          "-",
+          "'",
+          "."
+        ],
+        "default": "KURUMA"
+      },
+      "text": {
+        "max": 8,
+        "chars": [
+          "A-Z",
+          "0-9",
+          " ",
+          "-"
+        ],
+        "default": "KRM 001"
+      },
+      "bottom": {
+        "max": 16,
+        "chars": [
+          "A-Z",
+          "a-z",
+          "0-9",
+          " ",
+          "-",
+          "'",
+          ".",
+          "!"
+        ],
+        "default": "DRIVE SAFE"
+      }
+    }
+  }
+}

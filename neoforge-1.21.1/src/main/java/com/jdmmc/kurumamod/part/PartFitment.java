@@ -2,6 +2,8 @@ package com.jdmmc.kurumamod.part;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jdmmc.kurumamod.plate.PlateLook;
+import com.jdmmc.kurumamod.plate.PlateRules;
 import com.mojang.logging.LogUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -125,7 +127,7 @@ public final class PartFitment {
     }
 
     /** 何も付けていない状態。<b>＝車種の既定の見た目。</b> */
-    public static final PartFitment EMPTY = new PartFitment(new EnumMap<>(PartSlot.class), null);
+    public static final PartFitment EMPTY = new PartFitment(new EnumMap<>(PartSlot.class), null, PlateLook.EMPTY);
 
     /**
      * 塗装の id の長さの上限。<b>サーバーは一覧を知らないので、形だけ見て押し込む。</b>
@@ -153,6 +155,15 @@ public final class PartFitment {
      * 古い版で開いても「知らない場所」として読み飛ばされる。
      */
     private static final String KEY_PAINT = "paint";
+
+    /**
+     * NBT のナンバーの中身のキー。塗装と同じく場所の名前と同じ階層に置く。<b>場所の名前の {@code plate}
+     * （どのプレートを付けたか）とは別物</b>なので、名前を分けてある。
+     */
+    private static final String KEY_PLATE = "plate_look";
+    private static final String KEY_PLATE_TEXT = "text";
+    private static final String KEY_PLATE_FRONT = "front";
+    private static final String KEY_PLATE_REAR = "rear";
 
     private static final String KEY_ID = "Id";
     private static final String KEY_CAMBER = "Camber";
@@ -205,14 +216,34 @@ public final class PartFitment {
     /** 塗装の id。null なら車種の既定の色。 */
     @Nullable
     private final String paint;
+    /** ナンバーの中身（打った字と付ける位置）。null にはしない。 */
+    private final PlateLook plate;
 
-    private PartFitment(EnumMap<PartSlot, Setting> parts, @Nullable String paint) {
+    private PartFitment(EnumMap<PartSlot, Setting> parts, @Nullable String paint, PlateLook plate) {
         this.parts = parts;
         this.paint = paint;
+        this.plate = plate;
     }
 
-    private static PartFitment of(EnumMap<PartSlot, Setting> parts, @Nullable String paint) {
-        return parts.isEmpty() && paint == null ? EMPTY : new PartFitment(parts, paint);
+    private static PartFitment of(EnumMap<PartSlot, Setting> parts, @Nullable String paint, PlateLook plate) {
+        return parts.isEmpty() && paint == null && plate.isEmpty() ? EMPTY : new PartFitment(parts, paint, plate);
+    }
+
+    /**
+     * ナンバーの中身（打った字と付ける位置）。どのプレートを付けたかは {@link PartSlot#PLATE} の部品。
+     *
+     * <p>塗装と同じく「プレイヤーが変えられる見た目で、車 1 台ごとの状態」なので、部品の場所ではなく
+     * ここに持つ。様式を替えても残す（欄の名前ごとに持ち越す）。</p>
+     */
+    public PlateLook plate() {
+        return plate;
+    }
+
+    /** ナンバーの中身だけ入れ替える。 */
+    public PartFitment withPlate(PlateLook plate) {
+        EnumMap<PartSlot, Setting> next = new EnumMap<>(PartSlot.class);
+        next.putAll(parts);
+        return of(next, paint, plate == null ? PlateLook.EMPTY : plate);
     }
 
     /** 塗装の id（{@code vehicles/<car>.json} の {@code paints[].id}）。null なら車種の既定の色。 */
@@ -229,7 +260,7 @@ public final class PartFitment {
     public PartFitment withPaint(@Nullable String paint) {
         EnumMap<PartSlot, Setting> next = new EnumMap<>(PartSlot.class);
         next.putAll(parts);
-        return of(next, sanitizePaint(paint));
+        return of(next, sanitizePaint(paint), plate);
     }
 
     /** その場所の状態。何もしていなければ {@link Setting#NONE}（null は返さない）。 */
@@ -275,7 +306,7 @@ public final class PartFitment {
     }
 
     public boolean isEmpty() {
-        return parts.isEmpty() && paint == null;
+        return parts.isEmpty() && paint == null && plate.isEmpty();
     }
 
     /**
@@ -307,7 +338,7 @@ public final class PartFitment {
                 next.put(slot, changed);
             }
         }
-        return of(next, paint);
+        return of(next, paint, plate);
     }
 
     /** 1 か所だけ入れ替えた装着状態。 */
@@ -328,7 +359,7 @@ public final class PartFitment {
         } else {
             next.put(slot, setting);
         }
-        return of(next, paint);
+        return of(next, paint, plate);
     }
 
     /**
@@ -428,7 +459,40 @@ public final class PartFitment {
         if (paint != null) {
             tag.putString(KEY_PAINT, paint);
         }
+        if (!plate.isEmpty()) {
+            tag.put(KEY_PLATE, savePlate(plate));
+        }
         return tag;
+    }
+
+    private static CompoundTag savePlate(PlateLook plate) {
+        CompoundTag tag = new CompoundTag();
+        if (!plate.text().isEmpty()) {
+            CompoundTag text = new CompoundTag();
+            plate.text().forEach(text::putString);
+            tag.put(KEY_PLATE_TEXT, text);
+        }
+        if (plate.front() != null) {
+            tag.putString(KEY_PLATE_FRONT, plate.front());
+        }
+        if (plate.rear() != null) {
+            tag.putString(KEY_PLATE_REAR, plate.rear());
+        }
+        return tag;
+    }
+
+    /** 読めない値は落とす（{@link PlateLook} が形を確かめる）。 */
+    private static PlateLook loadPlate(CompoundTag tag) {
+        Map<String, String> text = new java.util.LinkedHashMap<>();
+        CompoundTag stored = tag.getCompound(KEY_PLATE_TEXT);
+        for (String key : stored.getAllKeys()) {
+            if (stored.getTagType(key) == Tag.TAG_STRING) {
+                text.put(key, stored.getString(key));
+            }
+        }
+        String front = tag.getTagType(KEY_PLATE_FRONT) == Tag.TAG_STRING ? tag.getString(KEY_PLATE_FRONT) : null;
+        String rear = tag.getTagType(KEY_PLATE_REAR) == Tag.TAG_STRING ? tag.getString(KEY_PLATE_REAR) : null;
+        return new PlateLook(text, front, rear);
     }
 
     public static PartFitment load(CompoundTag tag) {
@@ -445,7 +509,9 @@ public final class PartFitment {
             }
         }
         String paint = tag.getTagType(KEY_PAINT) == Tag.TAG_STRING ? sanitizePaint(tag.getString(KEY_PAINT)) : null;
-        return of(parts, paint);
+        PlateLook plate = tag.getTagType(KEY_PLATE) == Tag.TAG_COMPOUND
+                ? loadPlate(tag.getCompound(KEY_PLATE)) : PlateLook.EMPTY;
+        return of(parts, paint, plate);
     }
 
     /**
@@ -488,12 +554,15 @@ public final class PartFitment {
      * <p>NBT と同じく場所の名前で引き、キーも小文字にしてある（手で読み書きされるため）。
      * 何もしていない場所は書かない。</p>
      *
-     * <p><b>塗装は書かない。</b>プリセットは走りの設定を持ち運ぶもので、読み込むたびに色まで
-     * 塗り替わると、同じセッティングを別の色の車で使えなくなる。</p>
+     * <p><b>塗装もナンバーも書かない。</b>プリセットは走りの設定を持ち運ぶもので、読み込むたびに色や
+     * ナンバーまで替わると、同じセッティングを別の車で使えなくなる。</p>
      */
     public JsonObject toJson() {
         JsonObject root = new JsonObject();
         for (Map.Entry<PartSlot, Setting> entry : parts.entrySet()) {
+            if (!entry.getKey().inPresets()) {
+                continue;
+            }
             Setting setting = entry.getValue();
             JsonObject slot = new JsonObject();
             if (setting.partId() != null) {
@@ -524,7 +593,7 @@ public final class PartFitment {
         EnumMap<PartSlot, Setting> parts = new EnumMap<>(PartSlot.class);
         for (String key : root.keySet()) {
             PartSlot slot = PartSlot.byName(key);
-            if (slot == null || !root.get(key).isJsonObject()) {
+            if (slot == null || !slot.inPresets() || !root.get(key).isJsonObject()) {
                 continue;
             }
             JsonObject entry = root.getAsJsonObject(key);
@@ -539,7 +608,7 @@ public final class PartFitment {
                 parts.put(slot, setting);
             }
         }
-        return of(parts, null);
+        return of(parts, null, PlateLook.EMPTY);
     }
 
     @Nullable
@@ -562,6 +631,33 @@ public final class PartFitment {
         if (paint != null) {
             buf.writeUtf(paint, PAINT_MAX_LENGTH);
         }
+        writePlate(buf, plate);
+    }
+
+    public static void writePlate(FriendlyByteBuf buf, PlateLook plate) {
+        buf.writeVarInt(plate.text().size());
+        plate.text().forEach((field, value) -> {
+            buf.writeUtf(field, PlateLook.FIELD_ID_MAX_LENGTH);
+            buf.writeUtf(value, PlateRules.FIELD_MAX_LENGTH * 2);
+        });
+        buf.writeUtf(plate.front() == null ? "" : plate.front(), PlateLook.MOUNT_MAX_LENGTH);
+        buf.writeUtf(plate.rear() == null ? "" : plate.rear(), PlateLook.MOUNT_MAX_LENGTH);
+    }
+
+    /** 送り手は信用できない。数・長さを上限で止め、形の合わないものは {@link PlateLook} が落とす。 */
+    public static PlateLook readPlate(FriendlyByteBuf buf) {
+        int count = buf.readVarInt();
+        if (count < 0 || count > PlateRules.MAX_FIELDS) {
+            throw new IllegalArgumentException("ナンバーの欄が多すぎます: " + count);
+        }
+        Map<String, String> text = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < count; i++) {
+            String field = buf.readUtf(PlateLook.FIELD_ID_MAX_LENGTH);
+            text.put(field, buf.readUtf(PlateRules.FIELD_MAX_LENGTH * 2));
+        }
+        String front = buf.readUtf(PlateLook.MOUNT_MAX_LENGTH);
+        String rear = buf.readUtf(PlateLook.MOUNT_MAX_LENGTH);
+        return new PlateLook(text, front.isEmpty() ? null : front, rear.isEmpty() ? null : rear);
     }
 
     public static PartFitment read(FriendlyByteBuf buf) {
@@ -579,7 +675,7 @@ public final class PartFitment {
         }
         // 送り手は信用できない。形の合わない id は既定の色に読み替える
         String paint = buf.readBoolean() ? sanitizePaint(buf.readUtf(PAINT_MAX_LENGTH)) : null;
-        return of(parts, paint);
+        return of(parts, paint, readPlate(buf));
     }
 
     public static void writeSetting(FriendlyByteBuf buf, Setting setting) {
@@ -629,16 +725,17 @@ public final class PartFitment {
     public boolean equals(Object other) {
         return this == other
                 || (other instanceof PartFitment fitment && parts.equals(fitment.parts)
-                && Objects.equals(paint, fitment.paint));
+                && Objects.equals(paint, fitment.paint) && plate.equals(fitment.plate));
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(parts, paint);
+        return Objects.hash(parts, paint, plate);
     }
 
     @Override
     public String toString() {
-        return "PartFitment" + parts + (paint == null ? "" : " paint=" + paint);
+        return "PartFitment" + parts + (paint == null ? "" : " paint=" + paint)
+                + (plate.isEmpty() ? "" : " plate=" + plate);
     }
 }

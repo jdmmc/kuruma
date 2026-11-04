@@ -1,0 +1,27 @@
+{
+  "plate": {
+    "model": "kurumamod:models/plate/us.obj",
+    "texture": "kurumamod:textures/plate/us.png",
+    "fields": {
+      "top": {
+        "font": "kurumamod:plate_fonts/barlowcondensed-semibold.ttf",
+        "color": "#1E326E",
+        "fit": "center",
+        "format": "upper"
+      },
+      "text": {
+        "font": "kurumamod:plate_fonts/barlowcondensed-semibold.ttf",
+        "color": "#1E326E",
+        "fit": "condense",
+        "format": "upper",
+        "emboss": 0.02
+      },
+      "bottom": {
+        "font": "kurumamod:plate_fonts/barlowcondensed-semibold.ttf",
+        "color": "#1E326E",
+        "fit": "center",
+        "format": "upper"
+      }
+    }
+  }
+}

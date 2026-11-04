@@ -12,6 +12,10 @@
     "exhaust": {
       "part": "kurumamod:stock_muffler",
       "removable": false
+    },
+    "plate": {
+      "part": "kurumamod:plate_jp_private",
+      "removable": true
     }
   }
 }

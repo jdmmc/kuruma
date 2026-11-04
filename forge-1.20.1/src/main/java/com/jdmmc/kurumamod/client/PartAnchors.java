@@ -130,6 +130,16 @@ public final class PartAnchors {
                 new double[]{midX + width * 0.3, minY + height * 0.12, maxZ},
                 new double[]{midX - width * 0.3, minY + height * 0.12, maxZ}));
         paint = projector.project(bodyFrame, midX, maxY, midZ + depth * 0.05);
+
+        // ナンバーは付ける位置（車体メッシュの座標）。前後のうちカメラに近いほう
+        PlateMounts.Mounts mounts = PlateMounts.get(car.getCarId());
+        PlateMounts.Mount front = PlateMounts.pick(mounts.front(), car.getFitment().plate().front());
+        PlateMounts.Mount rear = PlateMounts.pick(mounts.rear(), car.getFitment().plate().rear());
+        double[] frontPoint = front != null ? new double[]{front.x(), front.y(), front.z()}
+                : new double[]{midX, minY + height * 0.3, minZ};
+        double[] rearPoint = rear != null ? new double[]{rear.x(), rear.y(), rear.z()}
+                : new double[]{midX, minY + height * 0.4, maxZ};
+        put(PartSlot.PLATE, nearer(projector, bodyFrame, frontPoint, rearPoint));
     }
 
     private static void put(PartSlot slot, @Nullable float[] point) {

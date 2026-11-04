@@ -236,6 +236,10 @@ public final class CarClientDriver {
      * W・A・S・D とスペースが打てなくなる（プリセットの名前を付ける画面がそう）。</p>
      */
     public static boolean isDrivableScreen(Screen screen) {
+        // ナンバーの字を打っている間は運転しない。W・A・S・D を打つたびに車が動いてしまう
+        if (screen instanceof CarPartScreen parts && parts.isTyping()) {
+            return false;
+        }
         return screen instanceof CarTuningScreen || screen instanceof CarPartScreen
                 || screen instanceof KurumaMenuScreen || screen instanceof SeatScreen;
     }
@@ -305,6 +309,19 @@ public final class CarClientDriver {
             return;
         }
         KurumaNetwork.CHANNEL.sendToServer(new com.jdmmc.kurumamod.network.CarPaintRequestPacket(car.getId(), paint));
+    }
+
+    /**
+     * ナンバーの中身（打った字と付ける位置）を<b>要求</b>する。運転していなければ何もしない。
+     *
+     * <p>サーバーが様式の決まりとフィルタに通してから {@code CarPartsPacket} で配り直す。</p>
+     */
+    public static void requestPlate(com.jdmmc.kurumamod.plate.PlateLook plate) {
+        CarEntity car = driving;
+        if (car == null) {
+            return;
+        }
+        KurumaNetwork.CHANNEL.sendToServer(new com.jdmmc.kurumamod.network.CarPlateRequestPacket(car.getId(), plate));
     }
 
     /** 調整画面の値をサーバー側の車へ送る。運転していなければ何もしない。 */

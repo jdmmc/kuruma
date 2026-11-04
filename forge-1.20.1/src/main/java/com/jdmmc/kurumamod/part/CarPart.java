@@ -3,6 +3,7 @@ package com.jdmmc.kurumamod.part;
 import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
+import com.jdmmc.kurumamod.plate.PlateRules;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -37,9 +38,11 @@ import java.util.Set;
  * @param slot  付ける場所
  * @param order 一覧に並べる順。小さいものが先。同じなら id 順
  * @param cars  付けられる車種。空ならすべて
+ * @param plate ナンバーの欄の決まり。ナンバーの部品（{@link PartSlot#PLATE}）だけが持つ
  */
 public record CarPart(ResourceLocation id, PartSlot slot, int order, Set<ResourceLocation> cars,
-                      @Nullable Turbo turbo, @Nullable Tire tire, @Nullable Aero aero) {
+                      @Nullable Turbo turbo, @Nullable Tire tire, @Nullable Aero aero,
+                      @Nullable PlateRules plate) {
 
     /** 並び順を書かなかった部品の位置。 */
     public static final int DEFAULT_ORDER = 100;

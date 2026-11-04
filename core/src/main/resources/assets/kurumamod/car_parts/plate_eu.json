@@ -1,0 +1,20 @@
+{
+  "plate": {
+    "model": "kurumamod:models/plate/eu.obj",
+    "texture": "kurumamod:textures/plate/eu.png",
+    "fields": {
+      "country": {
+        "font": "kurumamod:plate_fonts/barlowcondensed-semibold.ttf",
+        "color": "#FFFFFF",
+        "fit": "center",
+        "format": "upper"
+      },
+      "text": {
+        "font": "kurumamod:plate_fonts/barlowcondensed-semibold.ttf",
+        "color": "#141414",
+        "fit": "condense",
+        "format": "upper"
+      }
+    }
+  }
+}

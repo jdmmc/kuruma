@@ -51,7 +51,15 @@ public enum PartSlot {
      * マフラー。<b>音と見た目だけ</b>（走りは変わらない）。音の性格（音程・音量・音源）は部品の見た目の定義
      * （{@code assets/<ns>/car_parts/<id>.json} の {@code exhaust}）に書く。
      */
-    EXHAUST("exhaust", null);
+    EXHAUST("exhaust", null),
+    /**
+     * ナンバープレート。<b>見た目だけ</b>。部品が様式（形・テクスチャ・字の枠と欄の決まり）を持ち、
+     * 打った字と付ける位置は装着状態の {@code PartFitment#plate()} が持つ。<b>何も付けていなければ付かない</b>
+     * （車が {@code default_parts.plate} を書いていれば、それが付く）。
+     *
+     * <p><b>プリセットには書かない</b>（塗装と同じ。走りの設定を読み込むたびにナンバーが替わると困る）。</p>
+     */
+    PLATE("plate", null);
 
     public static final PartSlot[] VALUES = values();
 
@@ -85,6 +93,11 @@ public enum PartSlot {
             case TIRE -> "screen.kurumamod.part.tire_normal";
             default -> "screen.kurumamod.part.none";
         };
+    }
+
+    /** プリセットに書く場所か。ナンバーは書かない（{@link #PLATE}）。 */
+    public boolean inPresets() {
+        return this != PLATE;
     }
 
     /** 見た目を車体の OBJ の中のオブジェクトで持つ場所か（別のメッシュを持たない）。 */

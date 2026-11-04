@@ -44,5 +44,12 @@
 
     "_comment_steer": "乗用車ほど切れない。角度はラジアンで、32 度 = 0.5585（既定は 35 度 = 0.6109）。度で書くと桁が違う値がそのまま通る",
     "max_steer": 0.5585
+  },
+  "_comment_plate": "ナンバーの初期装備。換装画面で替えたり外したりできる",
+  "default_parts": {
+    "plate": {
+      "part": "kurumamod:plate_jp_private",
+      "removable": true
+    }
   }
 }

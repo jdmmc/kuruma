@@ -56,15 +56,20 @@ public final class SeatScreen extends Screen {
 
     /** 何を動かすか。 */
     private enum Group {
-        SEAT, STEERING, DESIGN, WHEEL_PART
+        SEAT, STEERING, DESIGN, WHEEL_PART, PLATE
     }
 
     /** ページ。{@link #WHEEL} だけがホイールの JSON、残りは車の JSON のセクション。 */
     private enum Page {
-        BODY, SEAT, STEERING, WHEEL;
+        BODY, SEAT, STEERING, PLATE_FRONT, PLATE_REAR, WHEEL;
 
         boolean isCar() {
             return this != WHEEL;
+        }
+
+        /** ナンバーのページ（前・後ろ）か。 */
+        boolean isPlate() {
+            return this == PLATE_FRONT || this == PLATE_REAR;
         }
     }
 
@@ -133,6 +138,28 @@ public final class SeatScreen extends Screen {
             new Row(Group.WHEEL_PART, "rim_radius", RIM_RADIUS, 0.05, 1.5, 0.001),
     };
 
+    /** {@link Row#axis} のうち、ナンバーの向き [度]。位置は 0〜2（X 右・Y 上・Z 後ろ [m]）。 */
+    private static final int PLATE_PITCH = 6;
+    private static final int PLATE_YAW = 7;
+    /** {@link Row#axis} のうち、ナンバーの大きさの倍率。 */
+    private static final int PLATE_SCALE = 8;
+
+    /**
+     * ナンバーの付ける位置（{@code plates} の候補 1 つ）。位置は車体メッシュの座標（座席と同じ基準）。
+     * 範囲は車の外形より少し広く取ってある。
+     */
+    private static final Row[] PLATE_ROWS = {
+            new Row(Group.PLATE, "x", 0, -1.5, 1.5, 0.005),
+            new Row(Group.PLATE, "y", 1, -0.5, 2.0, 0.005),
+            new Row(Group.PLATE, "z", 2, -3.5, 3.5, 0.005),
+            new Row(Group.PLATE, "plate_pitch", PLATE_PITCH, -45.0, 45.0, 0.5),
+            new Row(Group.PLATE, "plate_yaw", PLATE_YAW, -60.0, 60.0, 0.5),
+            new Row(Group.PLATE, "plate_scale", PLATE_SCALE, PlateMounts.MIN_SCALE, PlateMounts.MAX_SCALE, 0.01),
+    };
+
+    /** ナンバーのページで動かしている候補が、その側の何番目か（前・後ろ）。 */
+    private static final int[] PLATE_INDEX = new int[2];
+
     /** いま開いているページ。開き直しても前のページから。 */
     private static Page page = Page.BODY;
     /** 車の JSON で最後に開いていたセクション。ホイールの JSON から戻るときにここへ戻す。 */
@@ -175,8 +202,109 @@ public final class SeatScreen extends Screen {
             case BODY -> BODY_ROWS;
             case SEAT -> SEAT_ROWS;
             case STEERING -> STEERING_ROWS;
+            case PLATE_FRONT, PLATE_REAR -> PLATE_ROWS;
             case WHEEL -> PART_ROWS;
         };
+    }
+
+    // ------------------------------------------------------------------
+    // ナンバー
+    // ------------------------------------------------------------------
+
+    /** いま動かしている候補。候補が無ければ null。 */
+    @org.jetbrains.annotations.Nullable
+    private PlateMounts.Mount plateMount() {
+        List<PlateMounts.Mount> side = PlateMounts.get(carId).side(plateFront());
+        if (side.isEmpty()) {
+            return null;
+        }
+        return side.get(plateIndex(side.size()));
+    }
+
+    /** 候補を 1 つ差し替える（この手元だけ・ゲームを閉じるまで）。 */
+    private void setPlateMount(PlateMounts.Mount mount) {
+        PlateMounts.Mounts mounts = PlateMounts.get(carId);
+        List<PlateMounts.Mount> side = new ArrayList<>(mounts.side(plateFront()));
+        if (side.isEmpty()) {
+            return;
+        }
+        side.set(plateIndex(side.size()), mount);
+        PlateMounts.setOverride(carId, mounts.withSide(plateFront(), side));
+    }
+
+    private static double plateValue(PlateMounts.Mount mount, Row row) {
+        return switch (row.axis()) {
+            case 0 -> mount.x();
+            case 1 -> mount.y();
+            case 2 -> mount.z();
+            case PLATE_PITCH -> mount.pitch();
+            case PLATE_SCALE -> mount.scale();
+            default -> mount.yaw();
+        };
+    }
+
+    /** JSON（と自動で置いた位置）の値。動かす前の値に戻すのに使う。見つからなければ NaN。 */
+    private double plateOriginal(Row row) {
+        PlateMounts.Mount now = plateMount();
+        if (now == null) {
+            return Double.NaN;
+        }
+        for (PlateMounts.Mount mount : PlateMounts.base(carId).side(plateFront())) {
+            if (mount.id().equals(now.id())) {
+                return plateValue(mount, row);
+            }
+        }
+        return Double.NaN;
+    }
+
+    /**
+     * 動かす候補を選ぶ。乗っている車もその候補に付け替える（動かしている位置がそのまま見えるように）。
+     * 先頭の候補は「指定なし」で持つ（換装画面と同じ）。
+     */
+    private void selectPlateMount(int index) {
+        boolean front = plateFront();
+        PLATE_INDEX[front ? 0 : 1] = index;
+        PlateMounts.Mount mount = plateMount();
+        CarEntity car = ridingCar();
+        if (mount != null && car != null) {
+            String stored = index == 0 ? null : mount.id();
+            var look = car.getFitment().plate();
+            CarClientDriver.requestPlate(front ? look.withFront(stored) : look.withRear(stored));
+        }
+        rebuildWidgets();
+    }
+
+    /** 付ける位置の候補をまるごと（{@code vehicles/<車>.json} に貼れる形）。 */
+    private String platesJson() {
+        PlateMounts.Mounts mounts = PlateMounts.get(carId);
+        return "\"plates\": { \"front\": " + mountsJson(mounts.front())
+                + ", \"rear\": " + mountsJson(mounts.rear()) + " }";
+    }
+
+    private static String mountsJson(List<PlateMounts.Mount> mounts) {
+        List<String> items = new ArrayList<>();
+        for (PlateMounts.Mount mount : mounts) {
+            items.add(mountJson(mount));
+        }
+        return "[" + String.join(", ", items) + "]";
+    }
+
+    private static String mountJson(PlateMounts.Mount mount) {
+        StringBuilder json = new StringBuilder("{ \"id\": \"" + mount.id() + "\", \"pos\": "
+                + array(new CarModel.Vec3(mount.x(), mount.y(), mount.z())));
+        if (mount.pitch() != 0.0F) {
+            json.append(", \"pitch\": ").append(number(mount.pitch()));
+        }
+        if (mount.yaw() != 0.0F) {
+            json.append(", \"yaw\": ").append(number(mount.yaw()));
+        }
+        if (mount.scale() != 1.0F) {
+            json.append(", \"scale\": ").append(number(mount.scale()));
+        }
+        if (mount.anchor() != PlateMounts.Anchor.CENTER) {
+            json.append(", \"anchor\": \"").append(mount.anchor().serializedName()).append('"');
+        }
+        return json.append(" }").toString();
     }
 
     private void open(Page next) {
@@ -184,7 +312,34 @@ public final class SeatScreen extends Screen {
         if (next.isCar()) {
             carPage = next;
         }
+        if (next.isPlate()) {
+            syncPlateIndex();
+        }
         rebuildWidgets();
+    }
+
+    /** その側でいま車に付いている候補から始める（見えているプレートを動かせるように）。 */
+    private void syncPlateIndex() {
+        CarEntity car = ridingCar();
+        if (car == null) {
+            return;
+        }
+        boolean front = plateFront();
+        List<PlateMounts.Mount> side = PlateMounts.get(carId).side(front);
+        PlateMounts.Mount used = PlateMounts.pick(side, front ? car.getFitment().plate().front()
+                : car.getFitment().plate().rear());
+        if (used != null) {
+            PLATE_INDEX[front ? 0 : 1] = side.indexOf(used);
+        }
+    }
+
+    /** いま開いているナンバーのページが前か。 */
+    private static boolean plateFront() {
+        return page != Page.PLATE_REAR;
+    }
+
+    private static int plateIndex(int size) {
+        return Mth.clamp(PLATE_INDEX[plateFront() ? 0 : 1], 0, Math.max(0, size - 1));
     }
 
     private static boolean isWheel(Row row) {
@@ -278,6 +433,10 @@ public final class SeatScreen extends Screen {
     }
 
     private double get(Row row) {
+        if (row.group() == Group.PLATE) {
+            PlateMounts.Mount mount = plateMount();
+            return mount == null ? 0.0 : plateValue(mount, row);
+        }
         if (row.group() == Group.DESIGN) {
             return component(CarModel.get(carId).design(), row);
         }
@@ -305,6 +464,10 @@ public final class SeatScreen extends Screen {
     }
 
     private double original(Row row) {
+        if (row.group() == Group.PLATE) {
+            double original = plateOriginal(row);
+            return Double.isNaN(original) ? get(row) : original;
+        }
         CarModel model = CarModel.fromJson(carId);
         if (row.group() == Group.DESIGN) {
             return component(model.design(), row);
@@ -346,6 +509,17 @@ public final class SeatScreen extends Screen {
         }
         // 0.1mm（傾きは 0.0001 度）単位に丸める（浮動小数の端数が JSON へ出ないよう）
         double v = Math.round(Mth.clamp(value, row.min(), row.max()) * 10000.0) / 10000.0;
+        if (row.group() == Group.PLATE) {
+            PlateMounts.Mount now = plateMount();
+            if (now != null) {
+                setPlateMount(now.with(
+                        row.axis() == 0 ? v : now.x(), row.axis() == 1 ? v : now.y(), row.axis() == 2 ? v : now.z(),
+                        row.axis() == PLATE_PITCH ? (float) v : now.pitch(),
+                        row.axis() == PLATE_YAW ? (float) v : now.yaw(),
+                        row.axis() == PLATE_SCALE ? (float) v : now.scale()));
+            }
+            return;
+        }
         if (row.group() == Group.WHEEL_PART) {
             ResourceLocation owner = meshOwner();
             if (owner != null) {
@@ -417,7 +591,8 @@ public final class SeatScreen extends Screen {
             int y = rowY(i);
             Slider slider = new Slider(x + BUTTON_WIDTH + 4, y, SLIDER_WIDTH, 20, row);
             // メッシュの持ち主がいない（車の JSON にメッシュを直接書いた以前の車）ときは動かせない
-            slider.active = !(row.group() == Group.WHEEL_PART && meshOwner() == null);
+            slider.active = !(row.group() == Group.WHEEL_PART && meshOwner() == null)
+                    && !(row.group() == Group.PLATE && plateMount() == null);
             sliders.add(slider);
             addRenderableWidget(Button.builder(Component.literal("-"), button -> nudge(row, slider, -1))
                     .bounds(x, y, BUTTON_WIDTH, 20).build());
@@ -447,15 +622,18 @@ public final class SeatScreen extends Screen {
         wheelTab.active = page.isCar();
         if (page.isCar()) {
             // 下段は車の JSON のセクション
-            Page[] sections = {Page.BODY, Page.SEAT, Page.STEERING};
+            Page[] sections = {Page.BODY, Page.SEAT, Page.STEERING, Page.PLATE_FRONT, Page.PLATE_REAR};
             for (int i = 0; i < sections.length; i++) {
                 Page section = sections[i];
                 Button tab = addRenderableWidget(Button.builder(Component.translatable(
                                 "screen.kurumamod.seat.section." + section.name().toLowerCase(Locale.ROOT)),
                                 button -> open(section))
-                        .bounds(width / 2 - 123 + i * 82, 32, 80, TAB_HEIGHT).build());
+                        .bounds(width / 2 - 170 + i * 68, 32, 66, TAB_HEIGHT).build());
                 tab.active = page != section;
             }
+        }
+        if (page.isPlate()) {
+            addPlateButtons(x, rowY(rows.length));
         }
 
         // 3 つ並べて 308。実効幅 427 の画面にも収まる
@@ -473,6 +651,10 @@ public final class SeatScreen extends Screen {
                         case BODY -> CarModel.clearDesignOverride(carId);
                         case SEAT -> CarSeat.clearOverride(carId);
                         case STEERING -> CarSeat.clearSteeringOverride(carId);
+                        case PLATE_FRONT, PLATE_REAR -> {
+                            PlateMounts.clearOverride(carId);
+                            rebuildWidgets();
+                        }
                         case WHEEL -> {
                             ResourceLocation part = meshOwner();
                             if (part != null) {
@@ -489,6 +671,43 @@ public final class SeatScreen extends Screen {
                 .bounds(width / 2 + 54, bottom, 100, 20).build());
     }
 
+    /**
+     * ナンバーのページの下の段。左がこの側のどの候補を動かすか（中央・左・右など）、右が揃える端。
+     * 候補を替えると乗っている車もその候補に付け替える。
+     */
+    private void addPlateButtons(int x, int y) {
+        List<PlateMounts.Mount> side = PlateMounts.get(carId).side(plateFront());
+        int half = (BUTTON_WIDTH + 4 + SLIDER_WIDTH + 4 + BUTTON_WIDTH - 4) / 2;
+        if (side.isEmpty()) {
+            return;
+        }
+        List<Integer> choices = new ArrayList<>();
+        for (int i = 0; i < side.size(); i++) {
+            choices.add(i);
+        }
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<Integer>builder(
+                        index -> Component.literal(side.get(index).id()))
+                .withValues(choices)
+                .withInitialValue(plateIndex(side.size()))
+                .create(x, y, half, 20, Component.translatable("screen.kurumamod.seat.plate.mount"),
+                        (button, index) -> selectPlateMount(index)));
+        PlateMounts.Mount mount = plateMount();
+        if (mount != null) {
+            addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<PlateMounts.Anchor>builder(
+                            anchor -> Component.translatable("screen.kurumamod.seat.plate.anchor."
+                                    + anchor.serializedName()))
+                    .withValues(PlateMounts.Anchor.values())
+                    .withInitialValue(mount.anchor())
+                    .create(x + half + 4, y, half, 20, Component.translatable("screen.kurumamod.seat.plate.anchor"),
+                            (button, anchor) -> {
+                                PlateMounts.Mount now = plateMount();
+                                if (now != null) {
+                                    setPlateMount(now.withAnchor(anchor));
+                                }
+                            }));
+        }
+    }
+
     private void nudge(Row row, Slider slider, int direction) {
         if (!slider.active) {
             return;
@@ -503,6 +722,7 @@ public final class SeatScreen extends Screen {
             case BODY -> designJson();
             case SEAT -> seatJson();
             case STEERING -> steeringJson();
+            case PLATE_FRONT, PLATE_REAR -> platesJson();
             case WHEEL -> {
                 ResourceLocation owner = meshOwner();
                 yield owner == null ? "" : wheelMeshJson(owner, true);
@@ -611,7 +831,8 @@ public final class SeatScreen extends Screen {
             int color = shadowed(row) ? 0x777777 : changed ? 0xFFFF55 : 0xFFFFFF;
             graphics.drawString(font, label, left, rowY(i) + 6, color);
         }
-        int below = rowY(rows.length) + 6;
+        // ナンバーのページは行の下に候補と端のボタンがあるので、説明はその下
+        int below = rowY(rows.length + (page.isPlate() ? 1 : 0)) + 6;
         switch (page) {
             case BODY -> {
                 graphics.drawCenteredString(font, Component.literal(designJson()), width / 2, below, 0xFFFFFF);
@@ -621,6 +842,18 @@ public final class SeatScreen extends Screen {
             case SEAT -> graphics.drawCenteredString(font, Component.literal(seatJson()), width / 2, below, 0xFFFFFF);
             case STEERING -> graphics.drawCenteredString(font, Component.literal(steeringJson()),
                     width / 2, below, 0xFFFFFF);
+            case PLATE_FRONT, PLATE_REAR -> {
+                PlateMounts.Mount mount = plateMount();
+                graphics.drawCenteredString(font, mount == null
+                                ? Component.translatable("screen.kurumamod.seat.plate.none")
+                                : Component.literal(mountJson(mount)),
+                        width / 2, below, mount == null ? 0xAAAAAA : 0xFFFFFF);
+                // 自動で置いた位置なら、それと分かるように（JSON に貼れば固定される）
+                if (PlateMounts.get(carId).automatic()) {
+                    graphics.drawCenteredString(font, Component.translatable("screen.kurumamod.seat.plate.auto"),
+                            width / 2, below + 12, 0xAAAAAA);
+                }
+            }
             case WHEEL -> {
                 ResourceLocation owner = meshOwner();
                 Component mesh = owner == null
@@ -782,6 +1015,10 @@ public final class SeatScreen extends Screen {
             }
             if (row.axis() == COLUMN) {
                 setMessage(columnText());
+                return;
+            }
+            if (row.group() == Group.PLATE && (row.axis() == PLATE_PITCH || row.axis() == PLATE_YAW)) {
+                setMessage(Component.literal(String.format(Locale.ROOT, "%+.1f°", get(row))));
                 return;
             }
             if (row.axis() != TILT) {

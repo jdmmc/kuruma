@@ -94,6 +94,10 @@ float pattern(float tx, float ty, float soften) {
 }
 
 float emitted(mat4 L, vec3 v, float soften) {
+    // ナンバー灯（L[3].w が 1）は煙を照らさない（プレートのまわりだけの弱い光）
+    if (L[3].w > 0.5) {
+        return 0.0;
+    }
     float along = dot(v, L[1].xyz);
     if (along <= 0.05) {
         return 0.0;

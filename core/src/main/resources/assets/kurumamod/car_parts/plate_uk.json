@@ -1,0 +1,15 @@
+{
+  "plate": {
+    "model": "kurumamod:models/plate/uk.obj",
+    "texture": "kurumamod:textures/plate/uk_front.png",
+    "texture_rear": "kurumamod:textures/plate/uk_rear.png",
+    "fields": {
+      "text": {
+        "font": "kurumamod:plate_fonts/barlowcondensed-semibold.ttf",
+        "color": "#141414",
+        "fit": "condense",
+        "format": "upper"
+      }
+    }
+  }
+}

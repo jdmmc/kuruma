@@ -12,6 +12,9 @@ import com.jdmmc.kurumamod.client.DustParticle;
 import com.jdmmc.kurumamod.client.SparkParticle;
 import com.jdmmc.kurumamod.client.KurumaMenuScreen;
 import com.jdmmc.kurumamod.client.ObjModel;
+import com.jdmmc.kurumamod.client.PlateModel;
+import com.jdmmc.kurumamod.client.PlateMounts;
+import com.jdmmc.kurumamod.client.PlateTextures;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
@@ -231,6 +234,9 @@ public class Kurumamod {
                 CarPartModel.clearCache();
                 CarPresets.clearCache();
                 CarIcons.clearCache();
+                PlateModel.clearCache();
+                PlateMounts.clearCache();
+                PlateTextures.clearCache();
             });
         }
 
