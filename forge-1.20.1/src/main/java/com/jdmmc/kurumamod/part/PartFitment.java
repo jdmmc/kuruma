@@ -315,10 +315,16 @@ public final class PartFitment {
      * <p>何も指定していない場所には初期装備の id を入れ、「なし」の印は null（何も付いていない）にする。
      * 角度などの調整値はそのまま残す。<b>保存・通信するのは元の状態のほう</b>——初期装備を書き込んで
      * しまうと、カーパックを更新して初期装備を変えても、置いてある車に反映されなくなる。</p>
+     *
+     * <p><b>部品の一覧に無い id（カーパックを外した）は、何も指定していないのと同じに扱う。</b>
+     * 初期装備があればそれ、無ければその場所の素の状態（純正・ノーマル・なし）に戻る。こうしないと
+     * 外せない初期装備まで消えて、車体に穴が開く。元の状態の id は消さないので、パックを入れ直せば戻る。
+     * 一覧が変われば結果も変わるので、呼ぶ側は {@link CarParts#generation()} も見て組み直すこと。</p>
      */
     public PartFitment resolve(Map<PartSlot, ResourceLocation> defaults) {
-        boolean anyNone = parts.values().stream().anyMatch(setting -> isNone(setting.partId()));
-        if (defaults.isEmpty() && !anyNone) {
+        boolean anyOdd = parts.values().stream()
+                .anyMatch(setting -> isNone(setting.partId()) || isUnknown(setting.partId()));
+        if (defaults.isEmpty() && !anyOdd) {
             return this;
         }
         EnumMap<PartSlot, Setting> next = new EnumMap<>(PartSlot.class);
@@ -326,7 +332,7 @@ public final class PartFitment {
         for (PartSlot slot : PartSlot.VALUES) {
             Setting setting = get(slot);
             ResourceLocation id = setting.partId();
-            ResourceLocation resolved = isNone(id) ? null : id != null ? id : defaults.get(slot);
+            ResourceLocation resolved = isNone(id) ? null : id != null && !isUnknown(id) ? id : defaults.get(slot);
             if (resolved == id) {
                 continue;
             }
@@ -339,6 +345,13 @@ public final class PartFitment {
             }
         }
         return of(next, paint, plate);
+    }
+
+    /**
+     * 部品の一覧に無い id か（カーパックを外した・まだ一覧が届いていない）。「なし」の印は含めない。
+     */
+    public static boolean isUnknown(@Nullable ResourceLocation partId) {
+        return partId != null && !isNone(partId) && CarParts.get(partId) == null;
     }
 
     /** 1 か所だけ入れ替えた装着状態。 */

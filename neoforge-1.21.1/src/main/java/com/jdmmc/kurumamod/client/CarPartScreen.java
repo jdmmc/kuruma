@@ -730,6 +730,10 @@ public class CarPartScreen extends Screen {
         // 装着中かどうかは車から読む。押した結果が返ってきて初めてここが変わる
         CarEntity car = CarClientDriver.driving();
         ResourceLocation fitted = car == null ? null : car.getFitment().getPart(slot);
+        // 知らない部品（カーパックを外した）は初期装備に戻って付いているので、先頭（純正）に印を付ける
+        if (PartFitment.isUnknown(fitted)) {
+            fitted = null;
+        }
         String painted = paintedId(car);
         for (PartTile tile : tiles) {
             tile.update(car != null, paintMode

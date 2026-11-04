@@ -699,10 +699,12 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
      */
     public PartFitment getEffectiveFitment() {
         CarType type = CarTypes.get(carId);
-        if (resolvedFrom != parts || resolvedType != type) {
+        // 部品の一覧が変わると「知らない部品」も変わる（カーパックの出し入れ・ログイン直後に一覧が届いたとき）
+        if (resolvedFrom != parts || resolvedType != type || resolvedGeneration != CarParts.generation()) {
             resolvedFitment = parts.resolve(type.defaultPartIds());
             resolvedFrom = parts;
             resolvedType = type;
+            resolvedGeneration = CarParts.generation();
         }
         return resolvedFitment;
     }
@@ -710,6 +712,7 @@ public class CarEntity extends Entity implements IEntityWithComplexSpawn {
     private PartFitment resolvedFitment = PartFitment.EMPTY;
     private PartFitment resolvedFrom;
     private CarType resolvedType;
+    private int resolvedGeneration = -1;
 
     private CarSpec effectiveSpec = CarSpec.DEFAULT;
     private CarSpec effectiveBase;
