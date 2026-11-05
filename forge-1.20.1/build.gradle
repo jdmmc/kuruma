@@ -5,6 +5,8 @@ plugins {
     // mixin。開発環境は official 名、配布 jar は SRG 名で走るので、Minecraft のメソッドへ
     // 割り込むときは名前の対応表（refmap）が jar に要る
     id 'org.spongepowered.mixin' version '0.7.+'
+    // CurseForge / Modrinth へのアップロード（中身は gradle/publish.gradle）
+    id 'me.modmuss50.mod-publish-plugin' version '0.8.4'
 }
 
 
@@ -361,3 +363,7 @@ if (!extraResourceMods.isEmpty()) {
     tasks.matching { it.name == 'runClient2' }
             .configureEach { dependsOn 'copyResourcePacksClient2' }
 }
+
+// CurseForge / Modrinth へのアップロード（./gradlew publishMods）
+ext.publish_loader = 'forge'
+apply from: rootProject.file('gradle/publish.gradle')

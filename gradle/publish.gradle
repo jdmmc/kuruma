@@ -1,0 +1,144 @@
+// CurseForge と Modrinth へのアップロード（Mod Publish Plugin）。forge-1.20.1/ と neoforge-1.21.1/ の
+// 両方が apply from で読む。読む側は先に publish_loader（forge / neoforge）を決めておくこと。
+//
+//   ./gradlew publishMods            両方の jar を、両方のサイトへ上げる
+//   ./gradlew publishMods -Pdry_run  上げずに中身だけ確かめる（build/publishMods/ に書き出す）
+//
+// トークンはリポジトリの外、~/.gradle/gradle.properties に書く（curseforge_token / modrinth_token）。
+// 環境変数 CURSEFORGE_TOKEN / MODRINTH_TOKEN でもよい。
+// 更新履歴は docs/release-notes/<mod_version>.md を、中身ごとそのまま載せる。
+//
+// 上げる前に、同じ版がもう上がっていないかをサイトごとに確かめる（上がっていたら止める）。
+// サイトごとなので、片方だけ失敗したときは残ったほう（publishCurseforge / publishModrinth）だけ
+// 上げ直せる。確かめられなかったときも止める。どうしても上げるなら -Pskip_published_check
+
+def secret = { String prop, String env ->
+    def v = findProperty(prop) ?: System.getenv(env)
+    return v ? v.toString() : null
+}
+
+// 更新履歴は版ごとのファイル（docs/release-notes/<mod_version>.md）。無いか空なら上げさせない
+// （空の更新履歴で公開してしまうのを防ぐ）。設定の段階では読まず、上げるときに読む
+def changelogText = providers.provider {
+    def path = "docs/release-notes/${mod_version}.md"
+    def file = rootProject.file(path)
+    if (!file.exists()) {
+        throw new GradleException("${path} がありません（この版の更新履歴を書くこと）")
+    }
+    def text = file.getText('UTF-8').replace('\r\n', '\n').trim()
+    if (text.isEmpty()) {
+        throw new GradleException("${path} が空です")
+    }
+    return text
+}
+
+def javaVersion = JavaVersion.toVersion(java.toolchain.languageVersion.get().asInt())
+
+publishMods {
+    file = tasks.named('jar', Jar).flatMap { it.archiveFile }
+    changelog = changelogText
+    // 版の文字列に alpha / beta が入っていればその扱いで出す
+    type = mod_version.contains('alpha') ? ALPHA : (mod_version.contains('beta') ? BETA : STABLE)
+    // 名前の付け方は 1.10.0 までに手で上げてきたものに揃える。
+    // CurseForge は jar のファイル名、Modrinth は「Kuruma <版>」（Modrinth のプロジェクト名）
+    displayName = tasks.named('jar', Jar).flatMap { it.archiveFileName }
+    version = "${mod_version}-${publish_loader}"
+    modLoaders.add(publish_loader)
+    dryRun = findProperty('dry_run') != null
+
+    def cfToken = secret('curseforge_token', 'CURSEFORGE_TOKEN')
+    if (findProperty('curseforge_project_id') && (cfToken || dryRun.get())) {
+        curseforge {
+            projectId = curseforge_project_id
+            accessToken = cfToken ?: 'dry-run'
+            minecraftVersions.add(minecraft_version)
+            javaVersions.add(javaVersion)
+            clientRequired = true
+            serverRequired = true
+        }
+    }
+
+    def mrToken = secret('modrinth_token', 'MODRINTH_TOKEN')
+    if (findProperty('modrinth_project_id') && (mrToken || dryRun.get())) {
+        modrinth {
+            projectId = modrinth_project_id
+            displayName = "Kuruma ${mod_version}"
+            accessToken = mrToken ?: 'dry-run'
+            minecraftVersions.add(minecraft_version)
+        }
+    }
+}
+
+// ---- 同じ版を二重に上げない -------------------------------------------------------------
+
+def fetchJson = { String url ->
+    def conn = (HttpURLConnection) new URL(url).openConnection()
+    conn.setRequestProperty('User-Agent', "${mod_id}-build")
+    conn.connectTimeout = 15000
+    conn.readTimeout = 15000
+    def code = conn.responseCode
+    if (code != 200) {
+        throw new GradleException("${url} が HTTP ${code} を返した")
+    }
+    return new groovy.json.JsonSlurper().parse(conn.inputStream, 'UTF-8')
+}
+
+// 見つかった・確かめられなかったときの扱い。ドライランでは止めずに知らせるだけ
+def guard = { Task task, String site, Closure<String> findExisting ->
+    if (findProperty('skip_published_check') != null) {
+        task.logger.warn("[${site}] 上げ済みかの確認を飛ばした（-Pskip_published_check）")
+        return
+    }
+    String problem
+    try {
+        problem = findExisting()
+    } catch (Exception e) {
+        problem = "上げ済みかを確かめられなかった: ${e.message}" +
+                "\n確かめずに上げるなら -Pskip_published_check を付ける"
+    }
+    if (problem == null) {
+        task.logger.lifecycle("[${site}] ${mod_version}（${publish_loader}）はまだ上がっていない")
+    } else if (findProperty('dry_run') != null) {
+        task.logger.warn("[${site}] ドライランなので続ける: ${problem}")
+    } else {
+        throw new GradleException("[${site}] ${problem}")
+    }
+}
+
+def checkCurseforge = tasks.register('checkCurseforgeNotPublished') {
+    group = 'publishing'
+    description = 'CurseForge に同じファイルがもう上がっていないか確かめる'
+    def fileName = tasks.named('jar', Jar).flatMap { it.archiveFileName }
+    doLast {
+        guard(it, 'CurseForge') {
+            // CurseForge の公式 API でファイル一覧を読むには別の鍵が要るので、公開のミラー（cfwidget）で見る
+            def files = fetchJson("https://api.cfwidget.com/${curseforge_project_id}").files
+            if (files == null) throw new GradleException('cfwidget の返事にファイル一覧が無い')
+            def name = fileName.get()
+            def hit = files.find { it.name == name || it.display == name }
+            hit ? "${name} はもう上がっている（${hit.url ?: hit.id}）。mod_version を上げること" : null
+        }
+    }
+}
+
+def checkModrinth = tasks.register('checkModrinthNotPublished') {
+    group = 'publishing'
+    description = 'Modrinth に同じ版がもう上がっていないか確かめる'
+    def versionNumber = "${mod_version}-${publish_loader}".toString()
+    doLast {
+        guard(it, 'Modrinth') {
+            def versions = fetchJson("https://api.modrinth.com/v2/project/${modrinth_project_id}/version")
+            def hit = versions.find { it.version_number == versionNumber }
+            hit ? "${versionNumber} はもう上がっている（https://modrinth.com/mod/${modrinth_project_id}/version/${hit.id}）。mod_version を上げること" : null
+        }
+    }
+}
+
+tasks.matching { it.name == 'publishCurseforge' }.configureEach { dependsOn checkCurseforge }
+tasks.matching { it.name == 'publishModrinth' }.configureEach { dependsOn checkModrinth }
+
+// Forge 版は reobfJar が jar を同じ場所で置き換える（SRG 名へ戻す）。置き換わる前の
+// 開発用の名前の jar を上げると、配布環境で起動しない
+if (tasks.names.contains('reobfJar')) {
+    tasks.matching { it.name.startsWith('publish') }.configureEach { dependsOn 'reobfJar' }
+}
