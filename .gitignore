@@ -9,14 +9,8 @@ build/
 sample/
 
 # 開発時の実行環境（ログ・設定・ワールドデータ）
-run/
-run-data/
-run-server/
-run-client2/
-run-perf-*/
+# runs/<Minecraft の版>/<ローダー>/。ワールド・設定・スクショが入る
 runs/
-run-neo*/
-run-fabric*/
 
 # IntelliJ IDEA
 .idea/

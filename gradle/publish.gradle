@@ -1,4 +1,4 @@
-// CurseForge と Modrinth へのアップロード（Mod Publish Plugin）。forge-1.20.1/ と neoforge-1.21.1/ の
+// CurseForge と Modrinth へのアップロード（Mod Publish Plugin）。versions/1.20.1/forge/ と versions/1.21.1/neoforge/ の
 // 両方が apply from で読む。読む側は先に publish_loader（forge / neoforge）を決めておくこと。
 //
 //   ./gradlew publishMods            両方の jar を、両方のサイトへ上げる

@@ -28,13 +28,22 @@ plugins {
 
 rootProject.name = 'kurumamod'
 
-// 1 回のビルドで 2 つの jar を出す。
-//   core/             物理・諸元（Minecraft に依存しない）と、両方で同じリソース（assets・車種・部品）
-//   forge-1.20.1/     Forge 47 / Minecraft 1.20.1 の jar
-//   neoforge-1.21.1/  NeoForge 21.1 / Minecraft 1.21.1 の jar
-//   fabric-1.21.1/    Fabric / Minecraft 1.21.1 の jar
-//   mc-1.21.1/        Minecraft 1.21.1 に触るが、ローダーには触らないコード（NeoForge 版と Fabric 版が取り込む）
-// core は Gradle のプロジェクトではなく、両方がソースとして取り込むだけのフォルダ
-include 'forge-1.20.1'
-include 'neoforge-1.21.1'
-include 'fabric-1.21.1'
+// 1 回のビルドで、ローダーごとの jar を出す。Minecraft の版ごとに versions/<版>/ の下へまとめてある。
+//   core/                     物理・諸元（Minecraft に依存しない）と、全部で同じリソース（assets・車種・部品）
+//   versions/1.20.1/forge/    Forge 47 / Minecraft 1.20.1 の jar
+//   versions/1.21.1/common/   Minecraft 1.21.1 に触るが、ローダーには触らないコード（下の 2 つが取り込む）
+//   versions/1.21.1/neoforge/ NeoForge 21.1 / Minecraft 1.21.1 の jar
+//   versions/1.21.1/fabric/   Fabric / Minecraft 1.21.1 の jar
+// core/ と common/ は Gradle のプロジェクトではなく、ソースとして取り込むだけのフォルダ。
+// 開発環境の実行フォルダは runs/<版>/<ローダー>/。
+//
+// <b>プロジェクト名（:forge-1.20.1 など）は置き場所と切り離してある。</b>タスク名（runClient1・runNeoClient1・
+// runFabricClient1）もプロジェクト名も、フォルダを動かす前と同じ
+[
+        'forge-1.20.1'   : 'versions/1.20.1/forge',
+        'neoforge-1.21.1': 'versions/1.21.1/neoforge',
+        'fabric-1.21.1'  : 'versions/1.21.1/fabric',
+].each { name, dir ->
+    include name
+    project(":${name}").projectDir = file(dir)
+}

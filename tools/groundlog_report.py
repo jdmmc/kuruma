@@ -1,8 +1,8 @@
 """接地の記録（GroundLog の CSV）を読んで、どこで・なぜ輪が浮いた／跳ねたかをまとめる。
 
 使い方:
-    python tools/groundlog_report.py run/kuruma-groundlog/groundlog-20261018-120000.csv
-    python tools/groundlog_report.py run/kuruma-groundlog            # フォルダなら一番新しいもの
+    python tools/groundlog_report.py runs/1.20.1/forge/kuruma-groundlog/groundlog-20261018-120000.csv
+    python tools/groundlog_report.py runs/1.20.1/forge/kuruma-groundlog            # フォルダなら一番新しいもの
 
 記録はゲーム内で運転中に Ctrl+H（キーは変えられる）で始めて、もう一度押すと止まる。
 地面の補間は Ctrl+J で切り替えられる（切 → 入・車体の向き → 入・進む向き）。記録の途中で切り替えたら、段ごとに分けてまとめる。

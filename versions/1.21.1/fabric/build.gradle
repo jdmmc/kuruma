@@ -1,0 +1,119 @@
+plugins {
+    // Fabric の開発環境。1.7 はこのリポジトリの Gradle 8.8 で動く最後の系統（1.8 以降は Gradle を上げる必要があり、
+    // ForgeGradle・ModDevGradle 側にも響く）
+    id 'fabric-loom' version '1.7.4'
+    // CurseForge / Modrinth へのアップロード（中身は gradle/publish.gradle）
+    id 'me.modmuss50.mod-publish-plugin' version '0.8.4'
+}
+
+// 手元だけの設定。書き方は gradle-local.properties.example。UTF-8 で読む（versions/1.20.1/forge/build.gradle と同じ事情）
+def localPropsFile = rootProject.file('gradle-local.properties')
+if (localPropsFile.exists()) {
+    def localProps = new Properties()
+    localPropsFile.withReader('UTF-8') { localProps.load(it) }
+    localProps.each { key, value -> project.ext.set(key.toString(), value.toString()) }
+}
+
+group = mod_group_id
+version = mod_version
+
+base {
+    // ルートの build/libs/ に Forge 版・NeoForge 版と並ぶので、どれ向けか名前で分かるようにする
+    archivesName = "${mod_id}-fabric-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+// 物理・諸元と共通のリソース（core/）、Minecraft 1.21.1 のコード（versions/1.21.1/common/）。NeoForge 1.21.1 版と同じものを取り込む。
+// versions/1.21.1/common/ から呼ぶローダーごとのクラス（KurumaNetwork・Config など）は、同じ名前・同じメソッドでここにも置く
+sourceSets.main.java { srcDir rootProject.file('core/src/main/java') }
+sourceSets.main.resources { srcDir rootProject.file('core/src/main/resources') }
+sourceSets.main.java { srcDir rootProject.file('versions/1.21.1/common/src/main/java') }
+sourceSets.main.resources { srcDir rootProject.file('versions/1.21.1/common/src/main/resources') }
+
+// 開発環境の実行フォルダ（runs/1.21.1/<名前>）。Loom の runDir はこのプロジェクトのフォルダからの相対で書く。
+// <b>loom { runs { ... } } の中では rootProject が別のもの（真偽値）を指す</b>ので、外で求めておく
+def runsRoot = rootProject.file('runs/1.21.1')
+def fabricRunDir = { String name -> project.relativePath(new File(runsRoot, name)) }
+
+loom {
+    mixin {
+        // Fabric は実行時に intermediary 名で走るので、mixin の名前の対応表（refmap）が jar に要る
+        defaultRefmapName = "${mod_id}.refmap.json"
+    }
+    runs {
+        // Loom が最初から持つ client / server は消す。runClient / runServer はルートから打つと Forge 版と同時に
+        // 起動してしまうため（NeoForge 版に Neo を付けたのと同じ理由）
+        // IntelliJ に実行構成を作らせないよう設定からは消す（タスクのほうは下で止める）
+        removeAll { it.name in ['client', 'server'] }
+        fabricClient1 {
+            client()
+            runDir = fabricRunDir('fabric')
+            programArgs '--width', '1920', '--height', '1080', '--username', 'Dev'
+        }
+        fabricClient2 {
+            client()
+            runDir = fabricRunDir('fabric-client2')
+            programArgs '--width', '1920', '--height', '1080', '--username', 'Dev2'
+        }
+        fabricServer {
+            server()
+            runDir = fabricRunDir('fabric-server')
+            programArgs '--nogui'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    // NeoForge 版・Forge 版と同じ Mojang の名前で書く
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+}
+
+// fabric.mod.json の ${...} を gradle.properties の値で埋める（NeoForge 版の neoforge.mods.toml と同じやり方）。
+// 版を直書きしないこと
+def replaceProperties = [mod_id                 : mod_id, mod_name: mod_name, mod_license: mod_license,
+                         mod_version            : mod_version, mod_authors: mod_authors,
+                         mod_description        : mod_description,
+                         minecraft_version_range: minecraft_version_range,
+                         loader_version         : loader_version]
+def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    inputs.properties replaceProperties
+    filteringCharset = 'UTF-8'
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+sourceSets.main.resources.srcDir generateModMetadata
+
+tasks.named('jar', Jar).configure {
+    // ライセンス条文を jar に同梱する（GPLv3 第 4 節の条件）
+    from(rootProject.file('LICENSE'))
+}
+
+// できた jar をルートの build/libs/ へも置く。Loom の配布用は remapJar（intermediary 名へ直したもの）
+tasks.named('build').configure {
+    doLast {
+        copy {
+            from tasks.named('remapJar').flatMap { it.archiveFile }
+            into rootProject.layout.buildDirectory.dir('libs')
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// CurseForge / Modrinth へのアップロード（./gradlew publishMods）。上げるのは remapJar の jar
+ext.publish_loader = 'fabric'
+ext.publish_jar_task = 'remapJar'
+apply from: rootProject.file('gradle/publish.gradle')
+
+// Loom が最初から持つ runClient / runServer を止める。設定を消してもタスクは残るので、動かないようにする。
+// 残っていると、ルートから runClient / runServer を打ったときに Forge 版と同時に起動する（実行すると飛ばされるだけになる）
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach { enabled = false }
