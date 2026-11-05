@@ -1032,6 +1032,11 @@ public final class SeatScreen extends Screen {
                 setMessage(Component.literal(String.format(Locale.ROOT, "%+.1f°", get(row))));
                 return;
             }
+            // 大きさは倍率（長さではない）
+            if (row.group() == Group.PLATE && row.axis() == PLATE_SCALE) {
+                setMessage(Component.literal(String.format(Locale.ROOT, "×%.2f", get(row))));
+                return;
+            }
             if (row.axis() != TILT) {
                 setMessage(Component.literal(String.format(Locale.ROOT, "%.3f m", get(row))));
                 return;
