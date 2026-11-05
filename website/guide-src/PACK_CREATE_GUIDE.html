@@ -1020,120 +1020,6 @@ description = '''...'''              # description in the mod list
 <p class="ja">オブジェクトに決まった名前を付けるだけで、ライトが光り、窓が透け、ミラーに後ろが映り、ハンドルが回ります。JSON には何も書きません。</p>
 <p class="en">Give an object one of a few set names and it lights up, turns see-through, reflects what is behind or turns with the steering. Nothing goes into the JSON.</p>
 
-<h3 id="lights" class="ja">ライトを光らせる</h3>
-<h3 id="lights-en" class="en">Make the lights work</h3>
-<ol class="steps ja">
-<li><span class="where where-blender">Blender</span><b>ライトのレンズを別のオブジェクトにして、名前を付ける。</b>ヘッドライトは <code>light_head</code>、テールランプは <code>light_tail</code>、バックランプは <code>light_reverse</code>。左右で 1 つのオブジェクトでよい（ミラーモディファイアのままでよい）</li>
-<li><span class="where where-blender">Blender</span><b>レンズの面を、車体から 1〜2mm 浮かせる。</b></li>
-<li><span class="where where-blender">Blender</span><b>レンズの UV は展開せず、1 点に潰してテクスチャの白い画素に置く。</b>色はゲームが付ける</li>
-</ol>
-<p class="ja">これで、<kbd>L</kbd> でヘッドライトが点き、テールランプはいつもうっすら光ってブレーキで明るくなり、ギアを R に入れるとバックランプが点きます。</p>
-<ol class="steps en">
-<li><span class="where where-blender">Blender</span><b>Make each lens its own object and name it.</b> <code>light_head</code> for headlights, <code>light_tail</code> for tail lights, <code>light_reverse</code> for reverse lights. One object for both sides is fine (a mirror modifier is fine)</li>
-<li><span class="where where-blender">Blender</span><b>Float the lens faces 1–2 mm proud of the body.</b></li>
-<li><span class="where where-blender">Blender</span><b>Don't unwrap the lens: collapse its UVs to one point on a white pixel of the texture.</b> The game adds the colour</li>
-</ol>
-<p class="en"><kbd>L</kbd> now turns the headlights on, the tail lights glow dimly and brighten under braking, and the reverse lights come on in R.</p>
-
-<figure>
-<div class="anno"><img src="img/blender-light.png" alt="Blender: the light_tail object selected on the S15" loading="lazy"></div>
-<figcaption class="ja">図 6. テールランプのレンズを <code>light_tail</code> という名前のオブジェクトにしたところ（見本の S15）。<code>light_head</code>・<code>light_reverse</code> も同じく役目ごとに 1 つ。左右は 1 つのオブジェクトのままでよい</figcaption>
-<figcaption class="en">Fig. 6. The tail-light lenses as one object named <code>light_tail</code> (the S15 example). <code>light_head</code> and <code>light_reverse</code> are one object per role in the same way; both sides can stay in one object.</figcaption>
-</figure>
-
-<div class="box warn ja">
-<span class="lbl"><code>light_</code> で始まる名前はこの 3 つだけ</span>
-<p><code>light_fog</code> のような名前を付けると、<b>そこが穴になって何も描かれません。</b>フォグランプは <code>light_head</code> に含めるか、ふつうの車体として作ります。</p>
-</div>
-<div class="box warn en">
-<span class="lbl">ONLY THESE THREE <code>light_</code> NAMES</span>
-<p>Name something <code>light_fog</code> and <b>it becomes a hole where nothing is drawn.</b> Fold fog lights into <code>light_head</code>, or model them as plain body.</p>
-</div>
-
-<h3 id="glass" class="ja">窓を透けさせる</h3>
-<h3 id="glass-en" class="en">Make the windows see-through</h3>
-<ol class="steps ja">
-<li><span class="where where-blender">Blender</span><b>窓を別のオブジェクトにして、名前を <code>glass</code> で始める。</b><code>glass</code>・<code>glass_side</code>・<code>glass.front</code> など</li>
-</ol>
-<p class="ja">これで、窓が透けます（濃さは 0.35）。</p>
-<ol class="steps en">
-<li><span class="where where-blender">Blender</span><b>Make the windows their own object and start the name with <code>glass</code>.</b> <code>glass</code>, <code>glass_side</code>, <code>glass.front</code> and so on</li>
-</ol>
-<p class="en">The windows are now see-through (opacity 0.35).</p>
-
-<figure>
-<div class="anno"><img src="img/blender-glass.png" alt="Blender: the glass objects selected on the S15" loading="lazy"></div>
-<figcaption class="ja">図 7. 窓を <code>glass_front</code>・<code>glass_rear</code>・<code>glass_side_front</code>・<code>glass_side_rear</code> に分けたところ。名前が <code>glass</code> で始まっていればよく、1 つにまとめてもよい</figcaption>
-<figcaption class="en">Fig. 7. The windows split into <code>glass_front</code>, <code>glass_rear</code>, <code>glass_side_front</code> and <code>glass_side_rear</code>. Any name starting with <code>glass</code> works, and one object for all of them is fine too.</figcaption>
-</figure>
-
-<h3 id="mirror" class="ja">ミラーに後ろを映す</h3>
-<h3 id="mirror-en" class="en">Make the mirrors reflect</h3>
-<ol class="steps ja">
-<li><span class="where where-blender">Blender</span><b>鏡を別のオブジェクトにして、名前を付ける。</b>ルームミラーは <code>mirror_rear</code>、ドアミラーは <code>mirror_left</code> と <code>mirror_right</code>。筐体ごとの箱 1 つでよい</li>
-<li><span class="where where-blender">Blender</span><b>左右のドアミラーは、別々のオブジェクトにする。</b>ミラーモディファイアで 1 つにしたままにしない（適用してから分ける）</li>
-<li><span class="where where-blender">Blender</span><b>鏡になる面（いちばん広い平らな面）を、運転席のほうへ向ける。</b>角度は合わせなくてよい</li>
-<li><span class="where where-game">ゲーム</span><b><kbd>H</kbd> のメニューで、ミラーを入れる。</b>既定は切</li>
-</ol>
-<p class="ja">これで、ミラーに後ろの景色が実際に映ります。</p>
-<ol class="steps en">
-<li><span class="where where-blender">Blender</span><b>Make each mirror its own object and name it.</b> <code>mirror_rear</code> for the rear-view mirror, <code>mirror_left</code> and <code>mirror_right</code> for the door mirrors. One box for the whole housing is fine</li>
-<li><span class="where where-blender">Blender</span><b>Keep the two door mirrors as separate objects.</b> Don't leave them joined by a mirror modifier (apply it, then separate)</li>
-<li><span class="where where-blender">Blender</span><b>Turn the mirror face (the largest flat face) towards the driver.</b> You don't need to aim it</li>
-<li><span class="where where-game">Game</span><b>Turn mirrors on in the <kbd>H</kbd> menu.</b> They are off by default</li>
-</ol>
-<p class="en">The mirrors now show what is really behind you.</p>
-
-<figure>
-<div class="anno"><img src="img/blender-mirror.png" alt="Blender: mirror_left, mirror_rear and mirror_right selected" loading="lazy"></div>
-<figcaption class="ja">図 8. <code>mirror_left</code>・<code>mirror_rear</code>・<code>mirror_right</code> を選んだところ。左右のドアミラーは別々のオブジェクト。鏡の面を運転席へ向けた箱でよい</figcaption>
-<figcaption class="en">Fig. 8. <code>mirror_left</code>, <code>mirror_rear</code> and <code>mirror_right</code> selected. The two door mirrors are separate objects; a box with its mirror face turned to the driver is enough.</figcaption>
-</figure>
-
-<h3 id="steering" class="ja">ハンドルを回す</h3>
-<h3 id="steering-en" class="en">Make the steering wheel turn</h3>
-<ol class="steps ja">
-<li><span class="where where-blender">Blender</span><b>ハンドルの回る部分（リムとスポーク）を別のオブジェクトにして、名前を <code>steering_wheel</code> にする。</b><code>steering</code> で始まればよい（大文字小文字は問わない）</li>
-<li><span class="where where-blender">Blender</span><b>コラム（ハンドルの付け根の筒）やメーターは入れない。</b>実車でも回らない部分なので、車体のままにする</li>
-</ol>
-<p class="ja">これで、ハンドルが切れ角に合わせて回り、運転している人の手がハンドルを握ります（一人称でも三人称でも）。回す中心と軸は形から自動で決まるので、原点の位置を合わせる必要も、JSON に書くこともありません。</p>
-<ol class="steps en">
-<li><span class="where where-blender">Blender</span><b>Make the part of the wheel that turns (rim and spokes) its own object and name it <code>steering_wheel</code>.</b> Any name starting with <code>steering</code> works (case doesn't matter)</li>
-<li><span class="where where-blender">Blender</span><b>Leave the column (the shroud the wheel sits on) and the gauges out of it.</b> They don't turn in a real car either, so keep them as body</li>
-</ol>
-<p class="en">The wheel now turns with the steering, and the driver's hands hold it (in first and third person). The centre and axis it turns about are worked out from its shape, so you don't need to place the origin or write anything in the JSON.</p>
-
-<figure>
-<div class="anno"><img src="img/blender-steer-wheel.png" alt="Blender: the steering_wheel object selected in the S15 cabin" loading="lazy"></div>
-<figcaption class="ja">図 9. 回る部分（リムとスポーク）だけを <code>steering_wheel</code> にしたところ。コラムやダッシュボードは車体のまま</figcaption>
-<figcaption class="en">Fig. 9. Only the part that turns (rim and spokes) is <code>steering_wheel</code>. The column and dashboard stay as body.</figcaption>
-</figure>
-
-<div class="box warn ja">
-<span class="lbl">平たい形でないと回らない</span>
-<p>回る軸は「いちばん薄い向き」から決めるので、形は丸くなくてもかまいません（F1 のような横長のハンドルも回ります）。ただし<b>コラムまで 1 つのオブジェクトに入れると軸が取れず、ハンドルは止まったまま描かれ、手も置かれません</b>（ログに理由が出ます）。リムとスポークだけにしてください。</p>
-</div>
-<div class="box warn en">
-<span class="lbl">IT MUST BE FLAT</span>
-<p>The axis is taken from the object's thinnest direction, so it doesn't have to be round (a wide F1-style wheel turns too). But <b>if the column is in the same object no axis can be found: the wheel is drawn but never turns, and no hands are placed</b> (the log says why). Keep it to the rim and spokes.</p>
-</div>
-<p class="ja"><b>ボタンや画面が付いて厚みのあるハンドル</b>（F1 のような形）は、形から軸が決まらないことがあります。そのときは <code>vehicles/&lt;車&gt;.json</code> にコラムの角度を書くと回ります。</p>
-<pre class="ja"><code>"steering": { "column": 10.0 }</code></pre>
-<ul class="ja">
-<li><code>column</code> はコラム（ハンドルの付け根の筒）の角度 [度]。<b>水平から、運転者へ向かって上がる向きが正</b>。0 でハンドルの面が垂直（F1）、90 で面が水平（バス）。普通の乗用車は 20〜30 くらい（S15 は 25）</li>
-<li>角度は座席の調整画面（<kbd>Ctrl</kbd>+<kbd>G</kbd>）の「ハンドル」の「コラム」の行で、乗ったまま合わせられます。ハンドルを切りながら動かし、<b>首を振らずに回るところ</b>が正しい角度です。「JSON をコピー」で <code>column</code> も一緒に書き出されます</li>
-<li>書いたときも、回す中心は形から決まります（外形の幅の真ん中）。形から測れたハンドルでは、コラムの行に「（形から）」と付いて測った角度が出ます</li>
-</ul>
-<p class="ja"><b>下が平らな D 型のハンドル</b>や、上にだけ画面が付いたハンドルは、外形の真ん中が本当の中心からずれ、<b>円を描くように揺れながら回ります</b>。そのときは同じ画面の「中心 上下」の行で、揺れが止まるところまで中心を動かします（直径 37cm で下を 3cm 削った形なら -0.015 くらい）。JSON には <code>"center": -0.015</code> のように書き出されます。</p>
-<p class="en"><b>A thick wheel with buttons and a screen</b> (like an F1 wheel) may not give an axis from its shape. Then write the column angle in <code>vehicles/&lt;car&gt;.json</code> and it turns.</p>
-<pre class="en"><code>"steering": { "column": 10.0 }</code></pre>
-<ul class="en">
-<li><code>column</code> is the angle of the column (the shroud the wheel sits on) in degrees, <b>measured from horizontal, positive as it rises towards the driver</b>. 0 makes the wheel face vertical (F1), 90 makes it flat (a bus). Ordinary cars are around 20 to 30 (the S15 is 25)</li>
-<li>You can set the angle from the driver's seat with the "Column" row under "Steering" in the seat screen (<kbd>Ctrl</kbd>+<kbd>G</kbd>). Move it while steering: the right angle is where the wheel <b>turns without wobbling</b>. "Copy JSON" writes <code>column</code> as well</li>
-<li>The centre it turns about is still worked out from the shape (the middle of its outline). For a wheel whose shape can be measured, the Column row shows the measured angle marked "(from shape)"</li>
-</ul>
-<p class="en">A <b>D-shaped wheel with a flat bottom</b>, or one with a screen only on top, has its outline's middle away from the real centre, so it <b>turns while circling</b>. Then move the centre with the "Centre up" row in the same screen until the circling stops (about -0.015 for a 37 cm wheel with 3 cm cut off the bottom). It is written out as <code>"center": -0.015</code>.</p>
-
 <figure>
 <svg viewBox="0 0 720 300" role="img" aria-label="Where the special names sit on the car">
   <line class="f-line" x1="30" y1="240" x2="690" y2="240"/>
@@ -1170,15 +1056,177 @@ description = '''...'''              # description in the mod list
   <text class="f-td ja" x="360" y="276" text-anchor="middle">これら以外のオブジェクトは、名前が何であっても全部「車体」</text>
   <text class="f-td en" x="360" y="276" text-anchor="middle">every other object, whatever it is called, is body</text>
 </svg>
-<figcaption class="ja">図 10. 名前で機能が決まる部位。ルームミラー（<code>mirror_rear</code>）は室内のフロントガラス上端に、ハンドル（<code>steering_wheel</code>）は室内の運転席の前にあります</figcaption>
-<figcaption class="en">Fig. 10. Where the meaningful names sit. The rear-view mirror (<code>mirror_rear</code>) is inside the cabin at the top of the windscreen, and the steering wheel (<code>steering_wheel</code>) is inside the cabin in front of the driver's seat.</figcaption>
+<figcaption class="ja">図 6. 名前で機能が決まる部位。ルームミラー（<code>mirror_rear</code>）は室内のフロントガラス上端に、ハンドル（<code>steering_wheel</code>）は室内の運転席の前にあります</figcaption>
+<figcaption class="en">Fig. 6. Where the meaningful names sit. The rear-view mirror (<code>mirror_rear</code>) is inside the cabin at the top of the windscreen, and the steering wheel (<code>steering_wheel</code>) is inside the cabin in front of the driver's seat.</figcaption>
 </figure>
 
 <figure>
 <div class="anno"><img src="img/blender-named-parts.png" alt="The S15 in Blender showing only its glass, light, mirror and steering wheel objects, selected in the outliner" loading="lazy"><svg class="anno-layer" viewBox="0 0 1418 733" preserveAspectRatio="none" role="img" aria-label="Annotations: glass, light, mirror and steering wheel objects"><g class="ja"><line class="an-line" x1="540" y1="155" x2="328" y2="244"/><circle class="an-dot" cx="328" cy="244" r="7"/><rect class="an-box" x="520" y="110" width="180" height="45" rx="7"/><text class="an-text" x="531" y="145">mirror_rear</text></g><g class="en"><line class="an-line" x1="540" y1="155" x2="328" y2="244"/><circle class="an-dot" cx="328" cy="244" r="7"/><rect class="an-box" x="520" y="110" width="180" height="45" rx="7"/><text class="an-text" x="531" y="145">mirror_rear</text></g><g class="ja"><line class="an-line" x1="140" y1="220" x2="145" y2="250"/><circle class="an-dot" cx="145" cy="250" r="7"/><line class="an-line" x1="240" y1="197" x2="264" y2="199"/><circle class="an-dot" cx="264" cy="199" r="7"/><rect class="an-box" x="70" y="175" width="166" height="45" rx="7"/><text class="an-text" x="81" y="210">light_head</text></g><g class="en"><line class="an-line" x1="140" y1="220" x2="145" y2="250"/><circle class="an-dot" cx="145" cy="250" r="7"/><line class="an-line" x1="240" y1="197" x2="264" y2="199"/><circle class="an-dot" cx="264" cy="199" r="7"/><rect class="an-box" x="70" y="175" width="166" height="45" rx="7"/><text class="an-text" x="81" y="210">light_head</text></g><g class="ja"><line class="an-line" x1="360" y1="170" x2="273" y2="245"/><circle class="an-dot" cx="273" cy="245" r="7"/><rect class="an-box" x="330" y="125" width="180" height="45" rx="7"/><text class="an-text" x="341" y="160">glass_front</text></g><g class="en"><line class="an-line" x1="360" y1="170" x2="273" y2="245"/><circle class="an-dot" cx="273" cy="245" r="7"/><rect class="an-box" x="330" y="125" width="180" height="45" rx="7"/><text class="an-text" x="341" y="160">glass_front</text></g><g class="ja"><line class="an-line" x1="580" y1="225" x2="358" y2="260"/><circle class="an-dot" cx="358" cy="260" r="7"/><rect class="an-box" x="560" y="180" width="223" height="45" rx="7"/><text class="an-text" x="571" y="215">steering_wheel</text></g><g class="en"><line class="an-line" x1="580" y1="225" x2="358" y2="260"/><circle class="an-dot" cx="358" cy="260" r="7"/><rect class="an-box" x="560" y="180" width="223" height="45" rx="7"/><text class="an-text" x="571" y="215">steering_wheel</text></g><g class="ja"><line class="an-line" x1="600" y1="330" x2="503" y2="368"/><circle class="an-dot" cx="503" cy="368" r="7"/><rect class="an-box" x="600" y="300" width="166" height="45" rx="7"/><text class="an-text" x="611" y="335">glass_rear</text></g><g class="en"><line class="an-line" x1="600" y1="330" x2="503" y2="368"/><circle class="an-dot" cx="503" cy="368" r="7"/><rect class="an-box" x="600" y="300" width="166" height="45" rx="7"/><text class="an-text" x="611" y="335">glass_rear</text></g><g class="ja"><line class="an-line" x1="180" y1="440" x2="276" y2="330"/><circle class="an-dot" cx="276" cy="330" r="7"/><rect class="an-box" x="20" y="440" width="194" height="45" rx="7"/><text class="an-text" x="31" y="475">glass_side_…</text></g><g class="en"><line class="an-line" x1="180" y1="440" x2="276" y2="330"/><circle class="an-dot" cx="276" cy="330" r="7"/><rect class="an-box" x="20" y="440" width="194" height="45" rx="7"/><text class="an-text" x="31" y="475">glass_side_…</text></g><g class="ja"><line class="an-line" x1="300" y1="620" x2="195" y2="307"/><circle class="an-dot" cx="195" cy="307" r="7"/><rect class="an-box" x="20" y="620" width="393" height="45" rx="7"/><text class="an-text" x="31" y="655">mirror_left / mirror_right</text></g><g class="en"><line class="an-line" x1="300" y1="620" x2="195" y2="307"/><circle class="an-dot" cx="195" cy="307" r="7"/><rect class="an-box" x="20" y="620" width="393" height="45" rx="7"/><text class="an-text" x="31" y="655">mirror_left / mirror_right</text></g><g class="ja"><line class="an-line" x1="520" y1="660" x2="595" y2="599"/><circle class="an-dot" cx="595" cy="599" r="7"/><line class="an-line" x1="700" y1="660" x2="718" y2="436"/><circle class="an-dot" cx="718" cy="436" r="7"/><rect class="an-box" x="420" y="660" width="393" height="45" rx="7"/><text class="an-text" x="431" y="695">light_tail / light_reverse</text></g><g class="en"><line class="an-line" x1="520" y1="660" x2="595" y2="599"/><circle class="an-dot" cx="595" cy="599" r="7"/><line class="an-line" x1="700" y1="660" x2="718" y2="436"/><circle class="an-dot" cx="718" cy="436" r="7"/><rect class="an-box" x="420" y="660" width="393" height="45" rx="7"/><text class="an-text" x="431" y="695">light_tail / light_reverse</text></g><g class="ja"><line class="an-line" x1="1300" y1="590" x2="1300" y2="520"/><circle class="an-dot" cx="1300" cy="520" r="7"/><rect class="an-box" x="1083" y="590" width="322" height="78" rx="7"/><text class="an-text" x="1094" y="625">選んだ行が、名前で</text><text class="an-text" x="1094" y="658">役目の決まるオブジェクト</text></g><g class="en"><line class="an-line" x1="1300" y1="590" x2="1300" y2="520"/><circle class="an-dot" cx="1300" cy="520" r="7"/><rect class="an-box" x="963" y="590" width="442" height="78" rx="7"/><text class="an-text" x="974" y="625">The selected rows are the</text><text class="an-text" x="974" y="658">objects whose names set a role</text></g></svg></div>
-<figcaption class="ja">図 11. 見本の S15 で、名前で役目が決まるオブジェクト（<code>glass_…</code>・<code>light_…</code>・<code>mirror_…</code>・<code>steering_wheel</code>）だけを表示したところ。<b>アウトライナーの名前が、そのままゲームの中の役目になります</b></figcaption>
-<figcaption class="en">Fig. 11. The S15 with only its role objects shown (<code>glass_…</code>, <code>light_…</code>, <code>mirror_…</code>, <code>steering_wheel</code>). <b>The names in the outliner are what the game reads.</b></figcaption>
+<figcaption class="ja">図 7. 見本の S15 で、名前で役目が決まるオブジェクト（<code>glass_…</code>・<code>light_…</code>・<code>mirror_…</code>・<code>steering_wheel</code>）だけを表示したところ。<b>アウトライナーの名前が、そのままゲームの中の役目になります</b></figcaption>
+<figcaption class="en">Fig. 7. The S15 with only its role objects shown (<code>glass_…</code>, <code>light_…</code>, <code>mirror_…</code>, <code>steering_wheel</code>). <b>The names in the outliner are what the game reads.</b></figcaption>
 </figure>
+
+<h3 id="lights" class="ja">ライトを光らせる</h3>
+<h3 id="lights-en" class="en">Make the lights work</h3>
+<table class="ja">
+<tr><th>オブジェクトの名前</th><th>ランプ</th><th>点くとき</th><th>色</th></tr>
+<tr><td><code>light_head</code></td><td>ヘッドライト</td><td><kbd>L</kbd> で点く・消える。路面を照らす</td><td>電球色</td></tr>
+<tr><td><code>light_tail</code></td><td>テールランプ</td><td>いつもうっすら光り、ブレーキで明るくなる</td><td>赤</td></tr>
+<tr><td><code>light_reverse</code></td><td>バックランプ</td><td>ギアを R に入れたとき</td><td>白</td></tr>
+</table>
+<table class="en">
+<tr><th>Object name</th><th>Lamp</th><th>When it lights</th><th>Colour</th></tr>
+<tr><td><code>light_head</code></td><td>Headlights</td><td>On and off with <kbd>L</kbd>; lights up the road</td><td>Warm white</td></tr>
+<tr><td><code>light_tail</code></td><td>Tail lights</td><td>Always glow dimly; brighten under braking</td><td>Red</td></tr>
+<tr><td><code>light_reverse</code></td><td>Reverse lights</td><td>When the gear is in R</td><td>White</td></tr>
+</table>
+<p class="ja">色はゲームが付けます（レンズの UV を展開してテクスチャに色を塗れば、その色が出ます）。<code>light_</code> で始まる名前は、この 3 つしか使えません。</p>
+<p class="en">The game adds the colour (unwrap the lens UVs and paint the texture to use your own). These three are the only <code>light_</code> names.</p>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>ライトのレンズを別のオブジェクトにして、上の表の名前を付ける。</b>左右で 1 つのオブジェクトでよい（ミラーモディファイアのままでよい）</li>
+<li><span class="where where-blender">Blender</span><b>レンズの面を、車体から 1〜2mm 浮かせる。</b></li>
+<li><span class="where where-blender">Blender</span><b>レンズの UV は展開せず、1 点に潰してテクスチャの白い画素に置く。</b>色はゲームが付ける</li>
+</ol>
+<p class="ja">これで、<kbd>L</kbd> でヘッドライトが点き、テールランプはいつもうっすら光ってブレーキで明るくなり、ギアを R に入れるとバックランプが点きます。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make each lens its own object and give it a name from the table above.</b> One object for both sides is fine (a mirror modifier is fine)</li>
+<li><span class="where where-blender">Blender</span><b>Float the lens faces 1–2 mm proud of the body.</b></li>
+<li><span class="where where-blender">Blender</span><b>Don't unwrap the lens: collapse its UVs to one point on a white pixel of the texture.</b> The game adds the colour</li>
+</ol>
+<p class="en"><kbd>L</kbd> now turns the headlights on, the tail lights glow dimly and brighten under braking, and the reverse lights come on in R.</p>
+
+<figure>
+<div class="anno"><img src="img/blender-light.png" alt="Blender: the light_tail object selected on the S15" loading="lazy"></div>
+<figcaption class="ja">図 8. テールランプのレンズを <code>light_tail</code> という名前のオブジェクトにしたところ（見本の S15）。<code>light_head</code>・<code>light_reverse</code> も同じく役目ごとに 1 つ。左右は 1 つのオブジェクトのままでよい</figcaption>
+<figcaption class="en">Fig. 8. The tail-light lenses as one object named <code>light_tail</code> (the S15 example). <code>light_head</code> and <code>light_reverse</code> are one object per role in the same way; both sides can stay in one object.</figcaption>
+</figure>
+
+<div class="box warn ja">
+<span class="lbl"><code>light_</code> で始まる名前はこの 3 つだけ</span>
+<p><code>light_fog</code> のような名前を付けると、<b>そこが穴になって何も描かれません。</b>フォグランプは <code>light_head</code> に含めるか、ふつうの車体として作ります。</p>
+</div>
+<div class="box warn en">
+<span class="lbl">ONLY THESE THREE <code>light_</code> NAMES</span>
+<p>Name something <code>light_fog</code> and <b>it becomes a hole where nothing is drawn.</b> Fold fog lights into <code>light_head</code>, or model them as plain body.</p>
+</div>
+
+<h3 id="glass" class="ja">窓を透けさせる</h3>
+<h3 id="glass-en" class="en">Make the windows see-through</h3>
+<table class="ja">
+<tr><th>オブジェクトの名前</th><th>ガラスになるか</th></tr>
+<tr><td><code>glass</code>・<code>glass_front</code>・<code>glass.side</code> など</td><td>なる。<code>glass</code> のすぐ後ろが <code>_</code> か <code>.</code> なら、何枚に分けてもよい</td></tr>
+<tr><td><code>glasshouse</code> のように続けた名前</td><td>ならない（ふつうの車体）</td></tr>
+</table>
+<table class="en">
+<tr><th>Object name</th><th>Is it glass?</th></tr>
+<tr><td><code>glass</code>, <code>glass_front</code>, <code>glass.side</code> and so on</td><td>Yes. As long as <code>glass</code> is followed by <code>_</code> or <code>.</code>, split it into as many as you like</td></tr>
+<tr><td>A run-on name like <code>glasshouse</code></td><td>No (plain body)</td></tr>
+</table>
+<p class="ja">濃さは 0.35 です。変えたいときはマテリアルの Alpha で（下の「ガラスの濃さを変えたい」）。</p>
+<p class="en">Opacity is 0.35. To change it, use the material's Alpha (see "Change how dark the glass is" below).</p>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>窓を別のオブジェクトにして、上の表のとおり名前を <code>glass</code> で始める。</b></li>
+</ol>
+<p class="ja">これで、窓が透けます（濃さは 0.35）。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make the windows their own object and start the name with <code>glass</code>, as in the table above.</b></li>
+</ol>
+<p class="en">The windows are now see-through (opacity 0.35).</p>
+
+<figure>
+<div class="anno"><img src="img/blender-glass.png" alt="Blender: the glass objects selected on the S15" loading="lazy"></div>
+<figcaption class="ja">図 9. 窓を <code>glass_front</code>・<code>glass_rear</code>・<code>glass_side_front</code>・<code>glass_side_rear</code> に分けたところ。名前が <code>glass</code> で始まっていればよく、1 つにまとめてもよい</figcaption>
+<figcaption class="en">Fig. 9. The windows split into <code>glass_front</code>, <code>glass_rear</code>, <code>glass_side_front</code> and <code>glass_side_rear</code>. Any name starting with <code>glass</code> works, and one object for all of them is fine too.</figcaption>
+</figure>
+
+<h3 id="mirror" class="ja">ミラーに後ろを映す</h3>
+<h3 id="mirror-en" class="en">Make the mirrors reflect</h3>
+<table class="ja">
+<tr><th>オブジェクトの名前</th><th>ミラー</th><th>映すもの</th></tr>
+<tr><td><code>mirror_rear</code></td><td>ルームミラー</td><td>真後ろ（1 度下向き）</td></tr>
+<tr><td><code>mirror_left</code></td><td>左のドアミラー</td><td>左後ろ（1.5 度下向き。内側に自分の車の横腹が少し映る）</td></tr>
+<tr><td><code>mirror_right</code></td><td>右のドアミラー</td><td>右後ろ（同じ）</td></tr>
+</table>
+<table class="en">
+<tr><th>Object name</th><th>Mirror</th><th>What it shows</th></tr>
+<tr><td><code>mirror_rear</code></td><td>Rear-view mirror</td><td>Straight behind (1° down)</td></tr>
+<tr><td><code>mirror_left</code></td><td>Left door mirror</td><td>Behind on the left (1.5° down, with a little of your own car's flank on the inside)</td></tr>
+<tr><td><code>mirror_right</code></td><td>Right door mirror</td><td>Behind on the right (likewise)</td></tr>
+</table>
+<p class="ja">映す向きはゲームが決めるので、鏡の角度は合わせなくてかまいません。ミラーは既定で切なので、<kbd>H</kbd> のメニューで入れます。</p>
+<p class="en">The game decides where each mirror looks, so you don't need to aim the glass. Mirrors are off by default; turn them on in the <kbd>H</kbd> menu.</p>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>鏡を別のオブジェクトにして、上の表の名前を付ける。</b>筐体ごとの箱 1 つでよい</li>
+<li><span class="where where-blender">Blender</span><b>左右のドアミラーは、別々のオブジェクトにする。</b>ミラーモディファイアで 1 つにしたままにしない（適用してから分ける）</li>
+<li><span class="where where-blender">Blender</span><b>鏡になる面（いちばん広い平らな面）を、運転席のほうへ向ける。</b>角度は合わせなくてよい</li>
+<li><span class="where where-game">ゲーム</span><b><kbd>H</kbd> のメニューで、ミラーを入れる。</b>既定は切</li>
+</ol>
+<p class="ja">これで、ミラーに後ろの景色が実際に映ります。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make each mirror its own object and give it a name from the table above.</b> One box for the whole housing is fine</li>
+<li><span class="where where-blender">Blender</span><b>Keep the two door mirrors as separate objects.</b> Don't leave them joined by a mirror modifier (apply it, then separate)</li>
+<li><span class="where where-blender">Blender</span><b>Turn the mirror face (the largest flat face) towards the driver.</b> You don't need to aim it</li>
+<li><span class="where where-game">Game</span><b>Turn mirrors on in the <kbd>H</kbd> menu.</b> They are off by default</li>
+</ol>
+<p class="en">The mirrors now show what is really behind you.</p>
+
+<figure>
+<div class="anno"><img src="img/blender-mirror.png" alt="Blender: mirror_left, mirror_rear and mirror_right selected" loading="lazy"></div>
+<figcaption class="ja">図 10. <code>mirror_left</code>・<code>mirror_rear</code>・<code>mirror_right</code> を選んだところ。左右のドアミラーは別々のオブジェクト。鏡の面を運転席へ向けた箱でよい</figcaption>
+<figcaption class="en">Fig. 10. <code>mirror_left</code>, <code>mirror_rear</code> and <code>mirror_right</code> selected. The two door mirrors are separate objects; a box with its mirror face turned to the driver is enough.</figcaption>
+</figure>
+
+<h3 id="steering" class="ja">ハンドルを回す</h3>
+<h3 id="steering-en" class="en">Make the steering wheel turn</h3>
+<table class="ja">
+<tr><th>オブジェクト</th><th>名前</th><th>動き</th></tr>
+<tr><td>ハンドルの回る部分（リムとスポーク）</td><td><code>steering</code> で始まる（<code>steering_wheel</code> など。大文字小文字は問わない）</td><td>切れ角に合わせて回り、運転している人の手が握る</td></tr>
+</table>
+<table class="en">
+<tr><th>Object</th><th>Name</th><th>What it does</th></tr>
+<tr><td>The part of the wheel that turns (rim and spokes)</td><td>Starts with <code>steering</code> (<code>steering_wheel</code> and so on; case doesn't matter)</td><td>Turns with the steering; the driver's hands hold it</td></tr>
+</table>
+<ol class="steps ja">
+<li><span class="where where-blender">Blender</span><b>ハンドルの回る部分（リムとスポーク）を別のオブジェクトにして、名前を <code>steering_wheel</code> にする。</b></li>
+<li><span class="where where-blender">Blender</span><b>コラム（ハンドルの付け根の筒）やメーターは入れない。</b>実車でも回らない部分なので、車体のままにする</li>
+</ol>
+<p class="ja">これで、ハンドルが切れ角に合わせて回り、運転している人の手がハンドルを握ります（一人称でも三人称でも）。回す中心と軸は形から自動で決まるので、原点の位置を合わせる必要も、JSON に書くこともありません。</p>
+<ol class="steps en">
+<li><span class="where where-blender">Blender</span><b>Make the part of the wheel that turns (rim and spokes) its own object and name it <code>steering_wheel</code>.</b></li>
+<li><span class="where where-blender">Blender</span><b>Leave the column (the shroud the wheel sits on) and the gauges out of it.</b> They don't turn in a real car either, so keep them as body</li>
+</ol>
+<p class="en">The wheel now turns with the steering, and the driver's hands hold it (in first and third person). The centre and axis it turns about are worked out from its shape, so you don't need to place the origin or write anything in the JSON.</p>
+
+<figure>
+<div class="anno"><img src="img/blender-steer-wheel.png" alt="Blender: the steering_wheel object selected in the S15 cabin" loading="lazy"></div>
+<figcaption class="ja">図 11. 回る部分（リムとスポーク）だけを <code>steering_wheel</code> にしたところ。コラムやダッシュボードは車体のまま</figcaption>
+<figcaption class="en">Fig. 11. Only the part that turns (rim and spokes) is <code>steering_wheel</code>. The column and dashboard stay as body.</figcaption>
+</figure>
+
+<div class="box tip ja">
+<span class="lbl">回らないときはコラムの角度を設定する</span>
+<p>回る軸は「いちばん薄い向き」から決めるので、形は丸くなくてもかまいません（F1 のような横長のハンドルも回ります）。ただ、<b>コラムまで 1 つのオブジェクトに入れたハンドルや、ボタンや画面で厚みのあるハンドルは、形から軸が取れず、止まったまま描かれます</b>（手も置かれません。ログに理由が出ます）。そのときは <kbd>Ctrl</kbd>+<kbd>G</kbd> でコラムの角度を設定すれば回ります（すぐ下）。リムとスポークだけに分けておけば、何も設定しなくても回ります。</p>
+</div>
+<div class="box tip en">
+<span class="lbl">IF IT DOESN'T TURN, SET THE COLUMN ANGLE</span>
+<p>The axis is taken from the object's thinnest direction, so it doesn't have to be round (a wide F1-style wheel turns too). But <b>a wheel with the column in the same object, or one made thick by buttons and a screen, gives no axis from its shape and is drawn without turning</b> (no hands are placed either; the log says why). Then set the column angle with <kbd>Ctrl</kbd>+<kbd>G</kbd> and it turns (just below). Keep it to the rim and spokes and it turns with nothing to set.</p>
+</div>
+<p class="ja"><b>形から軸が決まらないハンドル</b>（コラムまで入っている、ボタンや画面で厚みがある）は、コラムの角度を設定すると回ります。乗ったまま <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ハンドル」の「コラム」で合わせ、「JSON をコピー」で <code>vehicles/&lt;車&gt;.json</code> に貼ります。貼られるのはこの形です:</p>
+<pre class="ja"><code>"steering": { "column": 10.0 }</code></pre>
+<ul class="ja">
+<li><code>column</code> はコラム（ハンドルの付け根の筒）の角度 [度]。<b>水平から、運転者へ向かって上がる向きが正</b>。0 でハンドルの面が垂直（F1）、90 で面が水平（バス）。普通の乗用車は 20〜30 くらい（S15 は 25）</li>
+<li>角度は座席の調整画面（<kbd>Ctrl</kbd>+<kbd>G</kbd>）の「ハンドル」の「コラム」の行で、乗ったまま合わせられます。ハンドルを切りながら動かし、<b>首を振らずに回るところ</b>が正しい角度です。「JSON をコピー」で <code>column</code> も一緒に書き出されます</li>
+<li>書いたときも、回す中心は形から決まります（外形の幅の真ん中）。形から測れたハンドルでは、コラムの行に「（形から）」と付いて測った角度が出ます</li>
+</ul>
+<p class="ja"><b>下が平らな D 型のハンドル</b>や、上にだけ画面が付いたハンドルは、外形の真ん中が本当の中心からずれ、<b>円を描くように揺れながら回ります</b>。そのときは同じ画面の「中心 上下」の行で、揺れが止まるところまで中心を動かします（直径 37cm で下を 3cm 削った形なら -0.015 くらい）。JSON には <code>"center": -0.015</code> のように書き出されます。</p>
+<p class="en"><b>A wheel whose axis can't be found from its shape</b> (the column is included, or buttons and a screen make it thick) turns once you set the column angle. Set it from the driver's seat with "Column" under "Steering" in <kbd>Ctrl</kbd>+<kbd>G</kbd>, then paste it into <code>vehicles/&lt;car&gt;.json</code> with "Copy JSON". It looks like this:</p>
+<pre class="en"><code>"steering": { "column": 10.0 }</code></pre>
+<ul class="en">
+<li><code>column</code> is the angle of the column (the shroud the wheel sits on) in degrees, <b>measured from horizontal, positive as it rises towards the driver</b>. 0 makes the wheel face vertical (F1), 90 makes it flat (a bus). Ordinary cars are around 20 to 30 (the S15 is 25)</li>
+<li>You can set the angle from the driver's seat with the "Column" row under "Steering" in the seat screen (<kbd>Ctrl</kbd>+<kbd>G</kbd>). Move it while steering: the right angle is where the wheel <b>turns without wobbling</b>. "Copy JSON" writes <code>column</code> as well</li>
+<li>The centre it turns about is still worked out from the shape (the middle of its outline). For a wheel whose shape can be measured, the Column row shows the measured angle marked "(from shape)"</li>
+</ul>
+<p class="en">A <b>D-shaped wheel with a flat bottom</b>, or one with a screen only on top, has its outline's middle away from the real centre, so it <b>turns while circling</b>. Then move the centre with the "Centre up" row in the same screen until the circling stops (about -0.015 for a 37 cm wheel with 3 cm cut off the bottom). It is written out as <code>"center": -0.015</code>.</p>
 
 <h3 class="ja">名前の一覧</h3>
 <h3 class="en">All the names</h3>
@@ -2424,8 +2472,8 @@ description = '''...'''              # description in the mod list
 
 <figure>
 <div class="anno"><img src="img/plateedit.jpg" alt="The Plate front tab of the in-game look adjustment screen, with X, Y, Z, pitch, yaw and scale sliders above a blue S15 wearing a Japanese plate" loading="lazy"></div>
-<figcaption class="ja">図 16. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ナンバー前」。上から X・Y・Z・ピッチ・ヨー・大きさ、その下で候補と揃える端を選びます。動かしている候補の JSON がその下に出て、「JSON をコピー」で前後の <code>plates</code> がまとめてコピーされます。ゲームは止まらないので、車を見ながら合わせられます</figcaption>
-<figcaption class="en">Fig. 16. "Plate front" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. X, Y, Z, pitch, yaw and scale from the top, then the candidate ("Mount") and the edge to line up ("Align"). The JSON of the candidate you are moving is shown below them, and "Copy JSON" copies <code>plates</code> for both front and rear. The game keeps running, so you can watch the car as you adjust.</figcaption>
+<figcaption class="ja">図 15. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ナンバー前」。上から X・Y・Z・ピッチ・ヨー・大きさ、その下で候補と揃える端を選びます。動かしている候補の JSON がその下に出て、「JSON をコピー」で前後の <code>plates</code> がまとめてコピーされます。ゲームは止まらないので、車を見ながら合わせられます</figcaption>
+<figcaption class="en">Fig. 15. "Plate front" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. X, Y, Z, pitch, yaw and scale from the top, then the candidate ("Mount") and the edge to line up ("Align"). The JSON of the candidate you are moving is shown below them, and "Copy JSON" copies <code>plates</code> for both front and rear. The game keeps running, so you can watch the car as you adjust.</figcaption>
 </figure>
 
 <h3 class="ja">必要なときだけ</h3>
@@ -2551,8 +2599,8 @@ description = '''...'''              # description in the mod list
 
 <figure>
 <div class="anno"><img src="img/seatedit.jpg" alt="The Seat tab of the in-game look adjustment screen, with X, Y and Z sliders above a blue S15 seen from the front with the driver sitting inside" loading="lazy"></div>
-<figcaption class="ja">図 17. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「座席」。X（右）・Y（上）・Z（後ろ）の下に、コピーされる <code>seat</code> の行が出ます。いちばん上の「目線の高さ（車の原点から）」で、一人称の視線の高さも分かります</figcaption>
-<figcaption class="en">Fig. 17. "Seat" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. Below X (right), Y (up) and Z (back) is the <code>seat</code> line that gets copied. "Eye height above the car origin" at the very top tells you where the first-person view sits.</figcaption>
+<figcaption class="ja">図 16. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「座席」。X（右）・Y（上）・Z（後ろ）の下に、コピーされる <code>seat</code> の行が出ます。いちばん上の「目線の高さ（車の原点から）」で、一人称の視線の高さも分かります</figcaption>
+<figcaption class="en">Fig. 16. "Seat" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. Below X (right), Y (up) and Z (back) is the <code>seat</code> line that gets copied. "Eye height above the car origin" at the very top tells you where the first-person view sits.</figcaption>
 </figure>
 
 <h3 class="ja">必要なときだけ</h3>
@@ -2630,8 +2678,8 @@ description = '''...'''              # description in the mod list
 
 <figure>
 <div class="anno"><img src="img/steeredit.jpg" alt="The Steering tab of the in-game look adjustment screen in first person, with X, Y, Z, tilt, column and centre sliders above the S15's dashboard and steering wheel" loading="lazy"></div>
-<figcaption class="ja">図 18. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ハンドル」。上から X・Y・Z・角度・コラム・中心 上下。角度の横の括弧が足したあとのコラムの角度、コラムの「（形から）」はメッシュから測った値です。一人称で、ハンドルを切りながら合わせます</figcaption>
-<figcaption class="en">Fig. 18. "Steering" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. X, Y, Z, tilt, column and centre from the top. The bracket next to tilt is the resulting column angle, and "(from shape)" on the column means it was measured from the mesh. Line it up in first person while steering.</figcaption>
+<figcaption class="ja">図 17. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ハンドル」。上から X・Y・Z・角度・コラム・中心 上下。角度の横の括弧が足したあとのコラムの角度、コラムの「（形から）」はメッシュから測った値です。一人称で、ハンドルを切りながら合わせます</figcaption>
+<figcaption class="en">Fig. 17. "Steering" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. X, Y, Z, tilt, column and centre from the top. The bracket next to tilt is the resulting column angle, and "(from shape)" on the column means it was measured from the mesh. Line it up in first person while steering.</figcaption>
 </figure>
 
 <h3 class="ja">必要なときだけ</h3>
@@ -2678,7 +2726,7 @@ description = '''...'''              # description in the mod list
 <div class="more-body">
 <ul>
 <li><b>「ハンドル」を選んでも何も動かない</b> … 車体にハンドルのオブジェクトが無い。名前が <code>steering</code> で始まっているか（<a href="#s5">3 章</a>）</li>
-<li><b>切ると首を振るように回る</b> … 回す中心が合っていない。<code>column</code>・<code>center</code> を動かす。コラムまで 1 つのオブジェクトに入れていないかも見る</li>
+<li><b>切ると首を振るように回る</b> … 回す中心が合っていない。<kbd>Ctrl</kbd>+<kbd>G</kbd> の「コラム」と「中心 上下」を、首を振らなくなるところまで動かす</li>
 <li><b>手がハンドルから離れて見える</b> … 座席を先に決め、そのあとでハンドルの位置を合わせる</li>
 </ul>
 </div>
@@ -2688,7 +2736,7 @@ description = '''...'''              # description in the mod list
 <div class="more-body">
 <ul>
 <li><b>Picking "Steering" moves nothing</b> — the body has no steering wheel object. Check its name starts with <code>steering</code> (<a href="#s5">chapter 3</a>)</li>
-<li><b>It wobbles as it turns</b> — the turning centre is off. Adjust <code>column</code> and <code>center</code>, and check the column is not in the same object</li>
+<li><b>It wobbles as it turns</b> — the turning centre is off. Move "Column" and "Centre up" in <kbd>Ctrl</kbd>+<kbd>G</kbd> until it stops wobbling</li>
 <li><b>The hands look detached from the wheel</b> — set the seat first, then line up the wheel</li>
 </ul>
 </div>
@@ -2742,8 +2790,8 @@ description = '''...'''              # description in the mod list
 
 <figure>
 <div class="anno"><img src="img/soundedit.jpg" alt="The car sound debug screen opened over the car, with the engine type, pitch and roughness on throttle at the top and a pitch slider for each sound below" loading="lazy"></div>
-<figcaption class="ja">図 15. <kbd>Ctrl</kbd>+<kbd>H</kbd> の「車の音のデバッグ」。いちばん上が合成したエンジン音の種類・高さ・踏んだときの荒さ、その下にターボ・タイヤの鳴き・路面音・変速音などの高さが並びます。各行の「R」で元の値に戻り、下の「JSON をコピー」で <code>sounds</code> をコピーします。ゲームは止まらないので、走りながら聞き比べられます</figcaption>
-<figcaption class="en">Fig. 15. "Car sound debug" on <kbd>Ctrl</kbd>+<kbd>H</kbd>. The synthesised engine's type, pitch and roughness on throttle are at the top, with the pitch of the turbo, tyre squeal, surface noise, gear changes and so on below. "R" on each row resets it, and "Copy JSON" at the bottom copies <code>sounds</code>. The game keeps running, so you can compare them while driving.</figcaption>
+<figcaption class="ja">図 18. <kbd>Ctrl</kbd>+<kbd>H</kbd> の「車の音のデバッグ」。いちばん上が合成したエンジン音の種類・高さ・踏んだときの荒さ、その下にターボ・タイヤの鳴き・路面音・変速音などの高さが並びます。各行の「R」で元の値に戻り、下の「JSON をコピー」で <code>sounds</code> をコピーします。ゲームは止まらないので、走りながら聞き比べられます</figcaption>
+<figcaption class="en">Fig. 18. "Car sound debug" on <kbd>Ctrl</kbd>+<kbd>H</kbd>. The synthesised engine's type, pitch and roughness on throttle are at the top, with the pitch of the turbo, tyre squeal, surface noise, gear changes and so on below. "R" on each row resets it, and "Copy JSON" at the bottom copies <code>sounds</code>. The game keeps running, so you can compare them while driving.</figcaption>
 </figure>
 <p class="ja">エンジンの <code>type</code> に書ける種類（どれも KurumaMod が合成した音で、回転数ごとに作り分けてあります）:</p>
 <p class="en">Engine <code>type</code> values (all synthesised by KurumaMod, with separate audio for each rpm range):</p>
