@@ -21,9 +21,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * NeoForge の {@code AFTER_TRANSLUCENT_BLOCKS} とずれるため。NeoForge が割り込んでいるのと同じ位置に割り込む。</p>
  * <ul>
  *   <li>{@code AFTER_SKY} … {@code renderLevel} で {@code renderSky} を呼んだ直後</li>
- *   <li>{@code AFTER_TRANSLUCENT_BLOCKS} / {@code AFTER_TRIPWIRE_BLOCKS} … {@code renderSectionLayer} の終わり、
- *       {@code clearRenderState()} の手前（NeoForge の {@code ClientHooks.dispatchRenderStage(RenderType, ...)} と同じ）</li>
+ *   <li>{@code AFTER_TRANSLUCENT_BLOCKS} / {@code AFTER_TRIPWIRE_BLOCKS} … {@code renderSectionLayer} が戻る直前</li>
  * </ul>
+ *
+ * <p><b>層の段は {@code renderSectionLayer} の {@code RETURN} に割り込む。</b>NeoForge は中の {@code clearRenderState()} の
+ * 手前で飛ばすが、<b>Sodium はこのメソッドを丸ごと置き換える</b>（{@code @Overwrite}。中身は Sodium の描画と、最後に
+ * {@code PlatformLevelRenderHooks.runChunkLayerEvents}）ので、中の呼び出しを狙うと Sodium と一緒に入れたときに
+ * mixin が当たらず起動で落ちる（実際に落ちた）。戻る直前なら素の Minecraft でも Sodium でも当たる（mixin は置き換えを
+ * 先に済ませてから割り込みを足すので、置き換えに消されない）。素の Minecraft では描画の状態を片付けた後になるが、
+ * この段で描くものはどれも自分で状態を整えるので変わらない。</p>
  */
 @Mixin(LevelRenderer.class)
 public abstract class LevelRendererMixin {
@@ -36,8 +42,7 @@ public abstract class LevelRendererMixin {
         FabricLevelStages.fire(LevelRenderStage.Stage.AFTER_SKY, modelView, projection, camera);
     }
 
-    @Inject(method = "renderSectionLayer", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/RenderType;clearRenderState()V"))
+    @Inject(method = "renderSectionLayer", at = @At("RETURN"))
     private void kuruma$afterLayer(RenderType type, double x, double y, double z, Matrix4f modelView,
                                    Matrix4f projection, CallbackInfo ci) {
         LevelRenderStage.Stage stage;
