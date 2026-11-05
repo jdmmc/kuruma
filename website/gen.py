@@ -1031,9 +1031,21 @@ def build_guide():
         for inner in re.findall(r'\bid="([^"]+)"', body):
             id_pages.setdefault(inner, pages.split())
 
+    # 目次。章のリンクの組と、まとまり（<div class="toc-grp">「作る」「調整」など）の開き・閉じを順に拾う
     toc = []
-    for mo in re.finditer(r'<a href="#([^"]+)" data-guide="([^"]+)" class="ja">(.*?)</a><a href="#\1" data-guide="\2" class="en">(.*?)</a>', src):
-        toc.append((mo.group(1), mo.group(2).split(), mo.group(3), mo.group(4)))
+    nav = re.search(r'<nav class="toc">(.*?)</nav>', src, re.S).group(1)
+    grp_open = False
+    for mo in re.finditer(r'<a href="#([^"]+)" data-guide="([^"]+)" class="ja">(.*?)</a><a href="#\1" data-guide="\2" class="en">(.*?)</a>'
+                          r'|<div class="toc-grp" data-guide="([^"]+)"><span class="ja">(.*?)</span><span class="en">(.*?)</span>'
+                          r'|</div>', nav):
+        if mo.group(1):
+            toc.append(("a", mo.group(1), mo.group(2).split(), mo.group(3), mo.group(4)))
+        elif mo.group(5):
+            toc.append(("open", None, mo.group(5).split(), mo.group(6), mo.group(7)))
+            grp_open = True
+        elif grp_open:
+            toc.append(("close", None, [], None, None))
+            grp_open = False
     foot = re.search(r"<footer>(.*?)</footer>", src, re.S).group(1)
 
     def relink(html, page):
@@ -1060,8 +1072,20 @@ def build_guide():
             side = ""
             layout_cls = "glayout solo"
         else:
-            items = "".join(
-                f'<a href="#{sid}">{T(en, ja)}</a>' for sid, pages, ja, en in toc if key in pages)
+            items = ""
+            inside = False
+            for kind, sid, pages, ja, en in toc:
+                if kind == "close":
+                    if inside:
+                        items += "</div>"
+                    inside = False
+                elif key not in pages:
+                    continue
+                elif kind == "open":
+                    items += f'<div class="ggrp"><div class="gt">{T(en, ja)}</div>'
+                    inside = True
+                else:
+                    items += f'<a href="#{sid}">{T(en, ja)}</a>'
             side = f'<nav class="gtoc" aria-label="Contents"><div class="tt">{T("Contents", "目次")}</div>{items}</nav>'
             layout_cls = "glayout"
             body_secs += f'<div class="gfoot">{relink(foot, key)}</div>'

@@ -82,7 +82,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html" aria-current="page"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
-  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Place the files</span><span data-l="ja">6. ファイルを配置する</span></a><a href="#s-car-fit"><span data-l="en">7. Fit the tyres to the body</span><span data-l="ja">7. タイヤを車体に合わせる</span></a><a href="#s-sound"><span data-l="en">8. Add sounds (optional)</span><span data-l="ja">8. 音を付ける（オプション）</span></a><a href="#s-spec"><span data-l="en">9. Write the spec (how it drives)</span><span data-l="ja">9. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">10. Checklist</span><span data-l="ja">10. チェックリスト</span></a><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a></nav>
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-car-min"><span data-l="en">Make a minimal car</span><span data-l="ja">最小の車を作る</span></a><div class="ggrp"><div class="gt"><span data-l="en">Build</span><span data-l="ja">作る</span></div><a href="#s3"><span data-l="en">1. Place the gauge</span><span data-l="ja">1. ゲージを置く</span></a><a href="#s4"><span data-l="en">2. Build the body</span><span data-l="ja">2. 車体を作る</span></a><a href="#s5"><span data-l="en">3. Lights, glass, mirrors and the steering wheel (names that do things)</span><span data-l="ja">3. ライト・ガラス・ミラー・ハンドル（名前で決まる機能）</span></a><a href="#s7"><span data-l="en">4. Add a texture</span><span data-l="ja">4. テクスチャを貼る</span></a><a href="#s8"><span data-l="en">5. Export to OBJ</span><span data-l="ja">5. OBJ に書き出す</span></a><a href="#s9"><span data-l="en">6. Place the files</span><span data-l="ja">6. ファイルを配置する</span></a></div><div class="ggrp"><div class="gt"><span data-l="en">Adjust</span><span data-l="ja">調整</span></div><a href="#s-car-fit"><span data-l="en">7. Fit the tyres to the body</span><span data-l="ja">7. タイヤを車体に合わせる</span></a><a href="#s-plate-pos"><span data-l="en">8. Adjust the licence plate positions</span><span data-l="ja">8. ナンバープレートの位置を調整する</span></a><a href="#s-seat"><span data-l="en">9. Adjust the seat position</span><span data-l="ja">9. シートの位置を調整する</span></a><a href="#s-steer"><span data-l="en">10. Adjust the steering wheel position</span><span data-l="ja">10. ステアリングの位置を調整する</span></a></div><div class="ggrp"><div class="gt"><span data-l="en">Finish</span><span data-l="ja">仕上げ</span></div><a href="#s-sound"><span data-l="en">11. Make sounds<span class="opt">Optional</span></span><span data-l="ja">11. 音を作る<span class="opt">オプション</span></span></a><a href="#s-spec"><span data-l="en">12. Write the spec (how it drives)</span><span data-l="ja">12. 諸元（走り）を書く</span></a><a href="#s-chk-car"><span data-l="en">13. Checklist</span><span data-l="ja">13. チェックリスト</span></a></div><div class="ggrp"><div class="gt"><span data-l="en">Reference</span><span data-l="ja">付録</span></div><a href="#sc"><span data-l="en">Appendix A. Spec keys</span><span data-l="ja">付録 A. 諸元の全項目</span></a></div></nav>
   <div class="gdoc"><section class="gsec" id="s-car-min">
 <h2 class="ja">最小の車を作る</h2>
 <h2 class="en">Make a minimal car</h2>
@@ -95,26 +95,18 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><span class="where where-blender">Blender</span><b>ゲージを置く。</b>→ <a href="#s3">1 章</a></li>
 <li><span class="where where-blender">Blender</span><b>車体をモデリングする。</b> → <a href="#s4">2 章</a></li>
 <li><span class="where where-blender">Blender</span><b>車体を Wavefront (<code>.obj</code>/<code>.mtl</code>) で書き出す。</b> → <a href="#s8">5 章</a></li>
-<li><span class="where where-file">ファイル</span><b>自分のカーパックフォルダを用意する。</b> → <a href="guide-prep.html#s-pack">準備の 1 章</a></li>
-<li><span class="where where-file">ファイル</span><b>ファイルを配置する。</b> → <a href="#s9">6 章</a></li>
-<li><span class="where where-file">ファイル</span><b>車の JSON を用意する。</b> → <a href="#s9">6 章</a></li>
-<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b> → <a href="#s-spec">9 章</a></li>
-<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b> → <a href="#s9">6 章</a></li>
-<li><span class="where where-file">ファイル</span><b>フォルダの中身を jar に固めて、<code>mods/</code> に入れる。</b>フォルダごとではなく中身を固める → <a href="guide-ship.html#s-jar">配布の 1 章</a></li>
-<li><span class="where where-game">ゲーム</span><b>起動して、クリエイティブの「KurumaMod」タブから車を出して乗る。</b></li>
+<li><span class="where where-file">ファイル</span><b>車の JSON を配置する。</b> → <a href="#s9">6 章</a></li>
+<li><span class="where where-file">ファイル</span><b>車の諸元を設定する。</b> → <a href="#s-spec">12 章</a></li>
+<li><span class="where where-file">ファイル</span><b>フォルダの中身を jar に固めて、<code>mods/</code> に入れる。</b> → <a href="guide-ship.html#s-jar">配布の 1 章</a></li>
 </ol>
 <p class="ja">これで、自分の車体で、既定の諸元のまま走る車が 1 台増えます。</p>
 <ol class="steps en">
 <li><span class="where where-blender">Blender</span><b>Place the gauge.</b> → <a href="#s3">chapter 1</a></li>
 <li><span class="where where-blender">Blender</span><b>Model the body.</b> → <a href="#s4">chapter 2</a></li>
 <li><span class="where where-blender">Blender</span><b>Export the body as Wavefront (<code>.obj</code>/<code>.mtl</code>).</b> → <a href="#s8">chapter 5</a></li>
-<li><span class="where where-file">File</span><b>Set up your own car pack folder.</b> → <a href="guide-prep.html#s-pack">chapter 1 of Setup</a></li>
-<li><span class="where where-file">File</span><b>Place the files.</b> → <a href="#s9">chapter 6</a></li>
-<li><span class="where where-file">File</span><b>Prepare the car JSON.</b> → <a href="#s9">chapter 6</a></li>
-<li><span class="where where-file">File</span><b>Write the spec JSON.</b> → <a href="#s-spec">chapter 9</a></li>
-<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> → <a href="#s9">chapter 6</a></li>
-<li><span class="where where-file">File</span><b>Zip the folder's contents into a jar and put it in <code>mods/</code>.</b> Zip what is inside the folder, not the folder itself → <a href="guide-ship.html#s-jar">chapter 1 of Shipping</a></li>
-<li><span class="where where-game">Game</span><b>Start the game, take the car from the "KurumaMod" creative tab and get in.</b></li>
+<li><span class="where where-file">File</span><b>Place the car JSON.</b> → <a href="#s9">chapter 6</a></li>
+<li><span class="where where-file">File</span><b>Set the car's spec.</b> → <a href="#s-spec">chapter 12</a></li>
+<li><span class="where where-file">File</span><b>Zip the folder's contents into a jar and put it in <code>mods/</code>.</b> → <a href="guide-ship.html#s-jar">chapter 1 of Shipping</a></li>
 </ol>
 <p class="en">You now have one more car: your body, driving on the default spec.</p>
 
@@ -124,13 +116,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>jar を作らずに、まず見た目だけ確かめたい</summary>
 <div class="more-body">
-<p>リソースパックで KurumaMod の既定の車を自分の車体に差し替えれば、jar を作らずに <kbd>F3</kbd>+<kbd>T</kbd> で何度でも試せます。手順は<a href="#s9">6 章</a>の「A」にあります。</p>
+<p>リソースパックで KurumaMod の既定の車を自分の車体に差し替えれば、jar を作らずに <kbd>F3</kbd>+<kbd>T</kbd> で何度でも試せます。手順は<a href="#s9">6 章</a>の「既定の車の見た目だけ差し替えたい（リソースパック）」にあります。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Check the looks first, without building a jar</summary>
 <div class="more-body">
-<p>Override KurumaMod's built-in car with your body using a resource pack. No jar needed, and <kbd>F3</kbd>+<kbd>T</kbd> reloads it as often as you like. See route "A" in <a href="#s9">chapter 6</a>.</p>
+<p>Override KurumaMod's built-in car with your body using a resource pack. No jar needed, and <kbd>F3</kbd>+<kbd>T</kbd> reloads it as often as you like. See "Only replace the look of the built-in car (resource pack)" in <a href="#s9">chapter 6</a>.</p>
 </div>
 </details>
 
@@ -140,12 +132,16 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <table>
 <tr><th>やりたいこと</th><th>見る章</th></tr>
 <tr><td>ライトを光らせる・窓を透けさせる・ミラーに映す</td><td><a href="#s5">3 章</a></td></tr>
-<tr><td>テクスチャを描く</td><td><a href="#s7">4 章</a></td></tr>
-<tr><td>座席の位置・車体の大きさを直す</td><td><a href="#s9">6 章</a></td></tr>
+<tr><td>テクスチャを描く・色違いを選べるようにする</td><td><a href="#s7">4 章</a></td></tr>
+<tr><td>車体の大きさを直す</td><td><a href="#s9">6 章</a></td></tr>
 <tr><td>タイヤの大きさ・幅を車体に合わせる</td><td><a href="#s-car-fit">7 章</a></td></tr>
-<tr><td>エンジン音を変える</td><td><a href="#s-sound">8 章</a></td></tr>
-<tr><td>走り（重さ・エンジン・足まわり）を変える</td><td><a href="#s-spec">9 章</a></td></tr>
+<tr><td>ナンバーを付ける位置を直す</td><td><a href="#s-plate-pos">8 章</a></td></tr>
+<tr><td>座席の位置を直す</td><td><a href="#s-seat">9 章</a></td></tr>
+<tr><td>ハンドルの位置・傾きを直す</td><td><a href="#s-steer">10 章</a></td></tr>
+<tr><td>エンジン音を変える</td><td><a href="#s-sound">11 章</a></td></tr>
+<tr><td>走り（重さ・エンジン・足まわり）を変える</td><td><a href="#s-spec">12 章</a></td></tr>
 <tr><td>自分のホイールを履かせる</td><td><a href="guide-wheel.html#s6">ホイールの 1 章</a></td></tr>
+<tr><td>自分のタイヤを履かせる</td><td><a href="guide-tire.html#s-tire-model">タイヤの 1 章</a></td></tr>
 <tr><td>ウイングやバンパーを付け替えられるようにする</td><td><a href="guide-parts.html#s-body">パーツの 2 章</a></td></tr>
 </table>
 </div>
@@ -156,12 +152,16 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <table>
 <tr><th>What you want</th><th>Where</th></tr>
 <tr><td>Working lights, see-through windows, reflecting mirrors</td><td><a href="#s5">Chapter 3</a></td></tr>
-<tr><td>Paint a texture</td><td><a href="#s7">Chapter 4</a></td></tr>
-<tr><td>Fix the seat position or the body size</td><td><a href="#s9">Chapter 6</a></td></tr>
+<tr><td>Paint a texture, or let players pick the colour</td><td><a href="#s7">Chapter 4</a></td></tr>
+<tr><td>Fix the body size</td><td><a href="#s9">Chapter 6</a></td></tr>
 <tr><td>Fit the tyre size and track to the body</td><td><a href="#s-car-fit">Chapter 7</a></td></tr>
-<tr><td>Change the engine sound</td><td><a href="#s-sound">Chapter 8</a></td></tr>
-<tr><td>Change how it drives (weight, engine, suspension)</td><td><a href="#s-spec">Chapter 9</a></td></tr>
+<tr><td>Fix where the licence plates go</td><td><a href="#s-plate-pos">Chapter 8</a></td></tr>
+<tr><td>Fix the seat position</td><td><a href="#s-seat">Chapter 9</a></td></tr>
+<tr><td>Fix the steering wheel position or angle</td><td><a href="#s-steer">Chapter 10</a></td></tr>
+<tr><td>Change the engine sound</td><td><a href="#s-sound">Chapter 11</a></td></tr>
+<tr><td>Change how it drives (weight, engine, suspension)</td><td><a href="#s-spec">Chapter 12</a></td></tr>
 <tr><td>Fit your own wheels</td><td><a href="guide-wheel.html#s6">Chapter 1 of the Wheel guide</a></td></tr>
+<tr><td>Fit your own tyres</td><td><a href="guide-tire.html#s-tire-model">Chapter 1 of the Tyre guide</a></td></tr>
 <tr><td>Make wings or bumpers swappable</td><td><a href="guide-parts.html#s-body">Chapter 2 of the Parts guide</a></td></tr>
 </table>
 </div>
@@ -195,10 +195,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>MOD 一覧に出ない</b> … フォルダごと jar に固めた（<code>META-INF/</code> が jar の直下にない）。または <code>modId</code> に <code>-</code> や <code>.</code> を使った</li>
 <li><b>タブに車が出ない</b> … <code>data/mypack/cars/ae86.json</code> の場所か、JSON の書き方が違う。理由はログに出る</li>
 <li><b>出てくるが、既定の車の姿のまま</b> … 見た目の JSON のファイル名が諸元と違う。または <code>body.model</code> のパスか名前空間（<code>mypack:</code>）が違う</li>
-<li><b>表示名が <code>ae86</code> のまま</b> … lang のキーが <code>car.mypack.ae86</code> になっていない</li>
-<li><b>車体が大きすぎ・小さすぎ・タイヤとずれる</b> … ゲージに合わせて作れていない。<code>designWheelBase</code> に実際の寸法を書く（<a href="#s9">6 章</a>）</li>
 </ul>
-<p>ほかの症状は<a href="guide-ship.html#s11">配布の 3 章</a>にあります。</p>
+<p>ほかの症状は<a href="#s9">6 章</a>の「うまくいかないとき」と<a href="guide-ship.html#s11">配布の 3 章</a>にあります。</p>
 </div>
 </details>
 <details class="more en">
@@ -208,10 +206,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>Not in the mod list</b> — you zipped the folder itself (<code>META-INF/</code> is not at the top of the jar), or <code>modId</code> contains <code>-</code> or <code>.</code></li>
 <li><b>No car in the tab</b> — <code>data/mypack/cars/ae86.json</code> is in the wrong place or not valid JSON. The reason is in the log</li>
 <li><b>It appears, but with the default car's body</b> — the look JSON's file name differs from the spec's, or the <code>body.model</code> path or namespace (<code>mypack:</code>) is wrong</li>
-<li><b>The display name shows as <code>ae86</code></b> — the lang key is not <code>car.mypack.ae86</code></li>
-<li><b>The body is too big, too small, or off from the wheels</b> — it does not match the gauge. Write your real size into <code>designWheelBase</code> (<a href="#s9">chapter 6</a>)</li>
 </ul>
-<p>Other symptoms are in <a href="guide-ship.html#s11">chapter 3 of Shipping</a>.</p>
+<p>Other symptoms are in "When it doesn't work" in <a href="#s9">chapter 6</a> and in <a href="guide-ship.html#s11">chapter 3 of Shipping</a>.</p>
 </div>
 </details>
 </section><section class="gsec" id="s3">
@@ -313,28 +309,38 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>実車と同じ大きさのゲージにしたい</summary>
 <div class="more-body">
-<p>スクリプトの先頭の <code>SCALE = 1.2</code> を <code>1.0</code> にします。そのときは諸元（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）の <code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code> も同じ寸法に揃えます（<a href="#s-spec">9 章</a>）。揃えないと、タイヤだけが元の位置と大きさで出ます。</p>
+<p>スクリプトの先頭の <code>SCALE = 1.2</code> を <code>1.0</code> にします。そのときは諸元（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）の <code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code> も同じ寸法に揃えます（<a href="#s-spec">12 章</a>）。揃えないと、タイヤだけが元の位置と大きさで出ます。</p>
 <p><b>はじめての車では触らないでください。</b></p>
 </div>
 </details>
 <details class="more en">
 <summary>Use a real-world-size gauge</summary>
 <div class="more-body">
-<p>Change <code>SCALE = 1.2</code> at the top of the script to <code>1.0</code>. Then set <code>wheel_base</code>, <code>track_width</code> and <code>wheel_radius</code> in the spec (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) to the same sizes (<a href="#s-spec">chapter 9</a>). If you don't, the wheels still appear at the old positions and size.</p>
+<p>Change <code>SCALE = 1.2</code> at the top of the script to <code>1.0</code>. Then set <code>wheel_base</code>, <code>track_width</code> and <code>wheel_radius</code> in the spec (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>) to the same sizes (<a href="#s-spec">chapter 12</a>). If you don't, the wheels still appear at the old positions and size.</p>
 <p><b>Leave it alone for your first car.</b></p>
 </div>
 </details>
 
 <details class="more ja">
-<summary>ホイールを作りたい</summary>
+<summary>ホイール・タイヤを作りたい</summary>
 <div class="more-body">
-<p>ホイールは車体とは別のファイルで作り、専用のゲージ（<code>modeling_tools/blender_wheel_gauge.py</code>）を使います。<a href="guide-wheel.html#s6">ホイールの 1 章</a>を見てください。</p>
+<p>ホイールもタイヤも車体とは別のファイルで作り、それぞれ専用のゲージを使います。</p>
+<ul>
+<li>ホイール（リム） … <code>modeling_tools/blender_wheel_gauge.py</code>。<a href="guide-wheel.html#s6">ホイールの 1 章</a></li>
+<li>タイヤ … <code>modeling_tools/blender_tire_gauge.py</code>。<a href="guide-tire.html#s-tire-model">タイヤの 1 章</a></li>
+</ul>
+<p>作らなければ KurumaMod のホイールとタイヤが付きます。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Build a wheel</summary>
+<summary>Make wheels or tyres</summary>
 <div class="more-body">
-<p>Wheels are built in a separate file with their own gauge, <code>modeling_tools/blender_wheel_gauge.py</code>. See <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a>.</p>
+<p>Wheels and tyres are both made in files separate from the body, each with its own gauge.</p>
+<ul>
+<li>Wheel (rim) — <code>modeling_tools/blender_wheel_gauge.py</code>. <a href="guide-wheel.html#s6">Chapter 1 of the Wheel guide</a></li>
+<li>Tyre — <code>modeling_tools/blender_tire_gauge.py</code>. <a href="guide-tire.html#s-tire-model">Chapter 1 of the Tyre guide</a></li>
+</ul>
+<p>If you make neither, the car gets KurumaMod's wheels and tyres.</p>
 </div>
 </details>
 </section><section class="gsec" id="s4">
@@ -712,38 +718,6 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h3 class="en">Only when you need it</h3>
 
 <details class="more ja">
-<summary>ハンドルの位置や傾きを、座席に合わせて直したい</summary>
-<div class="more-body">
-<p>ゲームの中で <kbd>Ctrl</kbd>+<kbd>G</kbd> を開き、「車の JSON」の「座席」「ハンドル」を選ぶと、乗ったまま座席とハンドルを動かせます。ハンドルは位置（X・Y・Z）と角度を動かせ、角度は正でコラムが起きます（ハンドルの面が寝る）。決まったら「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> に貼ります。</p>
-<pre><code>"seat": [0.5, -0.55, 0.2],
-"steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
-<p><code>offset</code> は <code>seat</code> と同じ向き（+X 右・+Y 上・-Z 前、メートル）。画面で動かした値はその場で効きますが、自分の画面だけで、ゲームを閉じると消えます。モデルを直すより手早く合わせられます。</p>
-</div>
-</details>
-<details class="more en">
-<summary>Adjust the wheel's position or angle to suit the seat</summary>
-<div class="more-body">
-<p>In game, open <kbd>Ctrl</kbd>+<kbd>G</kbd> and pick "Seat" or "Steering" under "Car JSON" to move the seat and the steering wheel while sitting in the car. The wheel can be moved (X, Y, Z) and tilted; a positive tilt stands the column up (the wheel face lies flatter). When it looks right, press "Copy JSON" and paste into <code>vehicles/&lt;car&gt;.json</code>.</p>
-<pre><code>"seat": [0.5, -0.55, 0.2],
-"steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre>
-<p><code>offset</code> uses the same directions as <code>seat</code> (+X right, +Y up, -Z forward, metres). Changes made on the screen apply at once, but only on your screen and only until you quit. It is quicker than editing the model.</p>
-</div>
-</details>
-
-<details class="more ja">
-<summary>ハンドルが何回転するか</summary>
-<div class="more-body">
-<p>どの車もフルロックで 1 回転半（540 度）です。比は最大切れ角から自動で決まり、35 度の車で 15.4、90 度まで切れる車で 6.0 になります。書く項目はありません。</p>
-</div>
-</details>
-<details class="more en">
-<summary>How far the wheel turns</summary>
-<div class="more-body">
-<p>Every car reaches full lock at one and a half turns (540°). The ratio follows the car's maximum steering angle: 15.4 for 35°, 6.0 for a car that steers to 90°. There is nothing to set.</p>
-</div>
-</details>
-
-<details class="more ja">
 <summary>オブジェクトを分けずに、一部の面だけをライトやガラスにしたい</summary>
 <div class="more-body">
 <p>面に割り当てるマテリアルの名前を <code>light_tail</code>・<code>glass</code>・<code>mirror_left</code> などにします。その面だけがその働きになります。バンパーの一部の面をテールランプにする、といった使い方です。</p>
@@ -1019,21 +993,17 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </details>
 
 <details class="more ja">
-<summary>タイヤにも自分のテクスチャを使いたい</summary>
+<summary>ホイールやタイヤにも自分のテクスチャを使いたい</summary>
 <div class="more-body">
-<p>車体とタイヤは別々のテクスチャを指せます。見た目の JSON の <code>wheel</code> に書きます:</p>
-<pre><code>"wheel": { "model": "mypack:models/entity/mywheel.obj",
-           "texture": "mypack:textures/entity/mywheel.png" }</code></pre>
-<p>タイヤのモデルの作り方は<a href="guide-wheel.html#s6">ホイールの 1 章</a>にあります。</p>
+<p>ホイールとタイヤは車体とは別の部品で、テクスチャもそれぞれの部品の JSON に書きます。作り方は<a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-tire.html#s-tire-model">タイヤの 1 章</a>、部品にして車に履かせる方法は<a href="guide-wheel.html#s-parts">ホイールの 2 章</a>・<a href="guide-tire.html#s-tire">タイヤの 2 章</a>にあります。</p>
+<p>車体のテクスチャとは関係しません。車体の色違い（塗装）を選んでも、ホイールとタイヤの色は変わりません。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Use your own texture on the wheels too</summary>
+<summary>Use your own texture on the wheels or tyres</summary>
 <div class="more-body">
-<p>Body and wheels can point at different textures. Write it into <code>wheel</code> in the look JSON:</p>
-<pre><code>"wheel": { "model": "mypack:models/entity/mywheel.obj",
-           "texture": "mypack:textures/entity/mywheel.png" }</code></pre>
-<p>How to model the wheel is in <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a>.</p>
+<p>Wheels and tyres are parts separate from the body, and each part's JSON names its own texture. How to make them is in <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a> and <a href="guide-tire.html#s-tire-model">chapter 1 of the Tyre guide</a>; how to make them parts and fit them to the car is in <a href="guide-wheel.html#s-parts">chapter 2 of the Wheel guide</a> and <a href="guide-tire.html#s-tire">chapter 2 of the Tyre guide</a>.</p>
+<p>They are independent of the body texture: picking a body colour (paint) does not change the wheels or tyres.</p>
 </div>
 </details>
 
@@ -1151,15 +1121,15 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h3 class="en">Only when you need it</h3>
 
 <details class="more ja">
-<summary>タイヤも書き出したい</summary>
+<summary>ホイールやタイヤも書き出したい</summary>
 <div class="more-body">
-<p>タイヤは車体とは<b>別のファイル</b>に書き出します（例 <code>mywheel.obj</code>）。設定は車体と同じです。作り方は<a href="guide-wheel.html#s6">ホイールの 1 章</a>にあります。KurumaMod のタイヤを借りるなら、書き出す必要はありません。</p>
+<p>ホイールとタイヤは車体とは<b>別のファイル</b>に書き出します（例 <code>my_wheel.obj</code>・<code>my_tire.obj</code>）。設定は車体と同じです。作り方は<a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-tire.html#s-tire-model">タイヤの 1 章</a>にあります。KurumaMod のホイールとタイヤを使うなら、書き出す必要はありません。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Export the wheel too</summary>
+<summary>Export wheels or tyres too</summary>
 <div class="more-body">
-<p>The wheel goes into a <b>separate file</b> from the body (for example <code>mywheel.obj</code>), with the same settings. How to build it is in <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a>. If you borrow KurumaMod's wheel, there is nothing to export.</p>
+<p>Wheels and tyres go into <b>files separate from the body</b> (e.g. <code>my_wheel.obj</code>, <code>my_tire.obj</code>), with the same settings as the body. How to make them is in <a href="guide-wheel.html#s6">chapter 1 of the Wheel guide</a> and <a href="guide-tire.html#s-tire-model">chapter 1 of the Tyre guide</a>. If you use KurumaMod's wheels and tyres, there is nothing to export.</p>
 </div>
 </details>
 
@@ -1248,7 +1218,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
-<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">9 章</a>で詰める）:
+<li><span class="where where-file">ファイル</span><b>諸元の JSON を書く。</b><code>data/mypack/cars/sample.json</code> を <code>ae86.json</code> に改名して、中身をこうする（走りは<a href="#s-spec">12 章</a>で詰める）:
 <pre><code>{
   "values": { "mass": 1200.0 }
 }</code></pre></li>
@@ -1264,7 +1234,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   "body":  { "model": "mypack:models/entity/ae86.obj",
              "texture": "mypack:textures/entity/ae86.png" }
 }</code></pre></li>
-<li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 9</a>):
+<li><span class="where where-file">File</span><b>Write the spec JSON.</b> Rename <code>data/mypack/cars/sample.json</code> to <code>ae86.json</code> and make it (tune the handling in <a href="#s-spec">chapter 12</a>):
 <pre><code>{
   "values": { "mass": 1200.0 }
 }</code></pre></li>
@@ -1441,35 +1411,6 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </details>
 
 <details class="more ja">
-<summary>座席の位置を直したい</summary>
-<div class="more-body">
-<p>見た目の JSON のいちばん外側に <code>seat</code> を書きます。運転席の位置で、助手席は左右反転で自動的に置かれます。</p>
-<pre><code>"seat": [0.5, -0.55, 0.2]</code></pre>
-<ul>
-<li><code>[x, y, z]</code> [m]。+X 右・+Y 上・−Z 前。既定は右ハンドル（x が正）</li>
-<li>前後（z）は前後輪の中点から、左右（x）と高さ（y）はシャシー基準面の中心から測る</li>
-<li><b>足元の位置で、目線ではありません。</b>一人称の視点はここから 1.62m 上に来ます。目線で決めたいなら 1.62 を引く</li>
-<li>座面に合わせると視線が高くなり、目線に合わせると足が床下へ潜ります。どちらにするかは車ごとの好み</li>
-<li>メッシュから測るときは、<code>designWheelBase</code> などで拡大・縮小された後の大きさで測る</li>
-</ul>
-</div>
-</details>
-<details class="more en">
-<summary>Move the seat</summary>
-<div class="more-body">
-<p>Write <code>seat</code> at the top level of the looks JSON. It is the driver's seat; the passenger seat is mirrored automatically.</p>
-<pre><code>"seat": [0.5, -0.55, 0.2]</code></pre>
-<ul>
-<li><code>[x, y, z]</code> in m, with +X right, +Y up, −Z forward. The default is right-hand drive (positive x)</li>
-<li>Front-to-back (z) is measured from the midpoint of the axles; side (x) and height (y) from the centre of the chassis plane</li>
-<li><b>It is where the feet go, not the eyes.</b> The first-person camera sits 1.62 m above it; subtract 1.62 to place the eye line instead</li>
-<li>Match the cushion and the view sits high; match the eye line and the feet sink through the floor. Pick per car</li>
-<li>If you measure from the mesh, measure it after the scaling from <code>designWheelBase</code> and friends</li>
-</ul>
-</div>
-</details>
-
-<details class="more ja">
 <summary>タイヤが車体からはみ出す・引っ込む・前後にずれる</summary>
 <div class="more-body">
 <p><b>見た目の JSON にはホイールの項目がありません。</b>タイヤの位置は諸元の寸法が決めます。物理はその位置にタイヤがあるものとして走りを解いているので、見た目だけでタイヤを動かすことはできません。</p>
@@ -1477,7 +1418,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>幅</b> … 諸元のトレッド（<code>data/mypack/cars/&lt;車&gt;.json</code> の <code>track_width</code>）。幅の広い車は、物理的にもトレッドが広い</li>
 <li><b>前後</b> … 諸元のホイールベース（<code>wheel_base</code>）。車体のほうを合わせるなら <code>designWheelBase</code>（上の「車体の大きさ・位置を合わせたい」）</li>
 <li><b>大きさ</b> … 諸元のタイヤ半径（<code>wheel_radius</code>）。ゲージのタイヤは実車の比率より大きめなので、<b>実車の比率で車体を作ると、タイヤがタイヤハウスに収まらない</b>ことがある。そのときは <code>wheel_radius</code> と <code>track_width</code> を車体に合わせて書く（<a href="#s-car-fit">7 章</a>）</li>
-<li>どれもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">9 章</a>）</li>
+<li>どれもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">12 章</a>）</li>
 <li>どのホイールを履かせるか、キャンバー、太さ、ツラ（少し出す・引っ込める）は、ホイールの JSON に書く（<a href="guide-wheel.html#s6">ホイールの 1 章</a>・<a href="guide-wheel.html#s-parts">2 章</a>）。プレイヤーは換装画面で変えられる</li>
 </ul>
 </div>
@@ -1490,7 +1431,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>Width</b> — the spec's track (<code>track_width</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>). A wide car has a wide track in physics too</li>
 <li><b>Front to back</b> — the spec's wheelbase (<code>wheel_base</code>). To fit the body instead, use <code>designWheelBase</code> ("Make the body the right size and position" above)</li>
 <li><b>Size</b> — the spec's tyre radius (<code>wheel_radius</code>). The gauge tyres are larger than real-car proportions, so <b>a body built to real proportions may not fit them in its wheel arches</b>. Then write <code>wheel_radius</code> and <code>track_width</code> to suit the body (<a href="#s-car-fit">chapter 7</a>)</li>
-<li>All of them can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 9</a>)</li>
+<li>All of them can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 12</a>)</li>
 <li>Which wheel to fit, camber, width and the offset (pushing it slightly in or out) go in the wheel's JSON (<a href="guide-wheel.html#s6">Wheel guide chapter 1</a> and <a href="guide-wheel.html#s-parts">2</a>). Players can change them in the parts screen</li>
 </ul>
 </div>
@@ -1509,15 +1450,17 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>wheel</code>（<code>model</code>・<code>texture</code>・<code>offset</code>・<code>camber</code>・<code>scale</code>・<code>rimRadius</code>）、<code>designWheelRadius</code></td><td>—</td><td>以前の書き方（読める）。いまはホイールの JSON に書き、諸元の <code>default_parts.wheel</code> で指す（書かなければ TE37）。タイヤの位置は諸元のトレッド・ホイールベース</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>メッシュのホイールアーチが何 m 離れているか</td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
-<tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転</td></tr>
+<tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転（<a href="#s-seat">9 章</a>）</td></tr>
+<tr><td><code>steering</code></td><td>なし</td><td>ハンドルの位置・傾き（<code>offset</code>・<code>tilt</code>・<code>column</code>・<code>center</code>）（<a href="#s-steer">10 章</a>）</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
 <tr><td><code>icon</code></td><td>車のモデルから作る</td><td>アイテムのアイコンの画像。テクスチャのパスを <code>.png</code> まで書く（例 <code>mypack:textures/item/kei.png</code>）</td></tr>
-<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">8 章</a>）</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">11 章</a>）</td></tr>
 <tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>plates</code></td><td>車体の形から自動で置く</td><td>ナンバーを付ける位置の候補（前・後ろ）。<a href="#s-plate-pos">8 章</a></td></tr>
 <tr><td><code>paints</code></td><td>なし</td><td>選べる色違いのテクスチャ。先頭が新車の色（<a href="#paint">4 章</a>）</td></tr>
 </table>
 <p><b>アイコンは用意しなくても構いません。</b><code>icon</code> を書かなければ、車のモデルを斜め前から写した絵が自動で作られます。自分で描いた絵にしたいときだけ、PNG を <code>assets/&lt;パック&gt;/textures/item/</code> に置いて <code>icon</code> に書きます。正方形で、32×32 か 64×64 がおすすめ。持ち物・手に持ったとき・地面に落ちたときのどれにもこの絵が出ます。パスを間違えると、自動で作った絵に戻ってログに残ります。</p>
-<p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">9 章</a>）。</p>
+<p>走りを決める値（車重・トルクなど）はここには書けません。<code>data/</code> の諸元に書きます（<a href="#s-spec">12 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
@@ -1533,28 +1476,30 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>wheel</code> (<code>model</code>, <code>texture</code>, <code>offset</code>, <code>camber</code>, <code>scale</code>, <code>rimRadius</code>), <code>designWheelRadius</code></td><td>—</td><td>The older way (still read). Now write them in the wheel's JSON and point to it with <code>default_parts.wheel</code> in the spec (left out, the TE37). Wheel position comes from the spec's track and wheelbase</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>How far apart the arches are in your mesh</td></tr>
 <tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
-<tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored</td></tr>
+<tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored (<a href="#s-seat">chapter 9</a>)</td></tr>
+<tr><td><code>steering</code></td><td>none</td><td>Steering wheel position and angle (<code>offset</code>, <code>tilt</code>, <code>column</code>, <code>center</code>) (<a href="#s-steer">chapter 10</a>)</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
 <tr><td><code>icon</code></td><td>made from the car model</td><td>Image for the item icon. Write the texture path including <code>.png</code> (e.g. <code>mypack:textures/item/kei.png</code>)</td></tr>
-<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 8</a>)</td></tr>
+<tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 11</a>)</td></tr>
 <tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td><code>plates</code></td><td>placed from the body shape</td><td>Candidate licence plate positions (front and rear). See <a href="#s-plate-pos">chapter 8</a></td></tr>
 <tr><td><code>paints</code></td><td>none</td><td>Colour versions of the body texture players can pick. The first is the factory colour (<a href="#paint-en">chapter 4</a>)</td></tr>
 </table>
 <p><b>You do not have to make an icon.</b> Without <code>icon</code>, a picture of your car model seen from the front corner is made automatically. Only if you want your own drawing, put a PNG under <code>assets/&lt;pack&gt;/textures/item/</code> and name it in <code>icon</code>. Make it square; 32×32 or 64×64 works well. The same picture is used in the inventory, in the hand and when dropped on the ground. If the path is wrong, the automatic picture is used and the log says so.</p>
-<p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 9</a>).</p>
+<p>Handling values (mass, torque and so on) cannot go here. They go in the spec under <code>data/</code> (<a href="#s-spec">chapter 12</a>).</p>
 </div>
 </details>
 
 <details class="more ja">
-<summary>外装パーツを付けたい・最初から付けておきたい</summary>
+<summary>外装パーツを付け替えられるようにしたい</summary>
 <div class="more-body">
-<p>見た目の JSON の <code>parts</code>（オブジェクト名の対応）と、諸元の JSON の <code>default_parts</code>（初期装備）を使います。書き方は<a href="guide-parts.html#s-body">パーツの 2 章</a>にあります。</p>
+<p>部品のオブジェクトを車体のモデルに入れ、必要なら見た目の JSON の <code>parts</code> でオブジェクト名と部品を対応させます。書き方は<a href="guide-parts.html#s-body">パーツの 2 章</a>にあります。出したときから付けておくなら<a href="#s-spec">12 章</a>の「最初から部品を付けておきたい」。</p>
 </div>
 </details>
 <details class="more en">
-<summary>Add body parts, or fit them from the start</summary>
+<summary>Make body parts swappable</summary>
 <div class="more-body">
-<p>Use <code>parts</code> in the looks JSON (object names) and <code>default_parts</code> in the spec JSON (default parts). See <a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>.</p>
+<p>Put the part objects inside the body model and, if needed, map object names to parts with <code>parts</code> in the looks JSON. See <a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>. To have them fitted when the car is spawned, see "Fit parts from the start" in <a href="#s-spec">chapter 12</a>.</p>
 </div>
 </details>
 
@@ -1658,7 +1603,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>車体が埋まる・浮く</b> … <code>designRideHeight</code>。メッシュの原点が地面の高さにあるか</li>
 <li><b>タイヤが大きすぎる・小さすぎる</b> … ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> がメッシュの実寸か</li>
 <li><b>調整画面で寸法を変えたらタイヤがフェンダーからはみ出した</b> … 仕様。タイヤは諸元に合わせて動き、車体は動かない。車体も合わせるなら <code>body.scale</code></li>
-<li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">9 章</a>）</li>
+<li><b>見た目の JSON に <code>mass</code> などを書いても効かない</b> … 走りの値は <code>data/</code> の諸元に書く（<a href="#s-spec">12 章</a>）</li>
 </ul>
 <p>ほかの症状は<a href="guide-ship.html#s11">配布の 3 章</a>にあります。</p>
 </div>
@@ -1675,7 +1620,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>The body sinks or floats</b> — <code>designRideHeight</code>. Is the mesh origin at ground level?</li>
 <li><b>Wheels too big or small</b> — for a wheel not built to the gauge, is <code>designRadius</code> inside <code>wheel</code> the real size of your mesh?</li>
 <li><b>After changing sizes in the tuning screen, the wheels stick out of the fenders</b> — expected. Wheels follow the spec; the body does not. Use <code>body.scale</code> to match the body</li>
-<li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 9</a>)</li>
+<li><b><code>mass</code> and the like in the looks JSON do nothing</b> — handling values go in the spec under <code>data/</code> (<a href="#s-spec">chapter 12</a>)</li>
 </ul>
 <p>More symptoms in <a href="guide-ship.html#s11">chapter 3 of the Shipping guide</a>.</p>
 </div>
@@ -1733,34 +1678,348 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li>Leave room above the tyre in the arch. When the suspension compresses over bumps, the tyre rises relative to the body</li>
 <li>Changing the tyre radius barely changes acceleration or top speed (the final drive follows the radius). What changes is the ride height</li>
 </ul>
-</section><section class="gsec" id="s-sound">
-<h2 class="ja"><span class="num">8</span>音を付ける（オプション）</h2>
-<h2 class="en"><span class="num">8</span>Add sounds (optional)</h2>
-<p class="ja">エンジン音などを車ごとに変えます。書かなかった音は KurumaMod の音のままなので、この章は飛ばしてもかまいません。</p>
-<p class="en">Give a car its own engine note and other sounds. Anything you leave out stays KurumaMod's, so you can skip this chapter.</p>
-<p class="ja"><b>まずは音源を作らずに、数字だけで変えてみてください。</b>エンジンの種類を選び、高さを変えるだけで、車ごとの違いはかなり出せます。自分で録った音や作った音を使いたいときだけ、その下の「最小のエンジン音を付ける」へ進みます。</p>
-<p class="en"><b>Try changing things with numbers first, before making any audio.</b> Picking an engine type and adjusting pitch already sets cars apart. Only go on to "Add a minimal engine sound" below if you want to use audio you recorded or made yourself.</p>
+</section><section class="gsec" id="s-plate-pos">
+<h2 class="ja"><span class="num">8</span>ナンバープレートの位置を調整する<span class="ver">1.11.0〜</span></h2>
+<h2 class="en"><span class="num">8</span>Adjust the licence plate positions<span class="ver">1.11.0+</span></h2>
+<p class="ja">何も書かなくても、ナンバーは車体の形から自動で置かれます（前は中央・左・右、後ろは中央）。ずれているときだけ、乗ったまま <kbd>Ctrl</kbd>+<kbd>G</kbd> で動かして、コピーした JSON を貼ります。数字を手で探す必要はありません。</p>
+<p class="en">Even if you write nothing, plates are placed from the body shape (centre, left and right at the front; centre at the rear). Only when they are off, move them with <kbd>Ctrl</kbd>+<kbd>G</kbd> while sitting in the car and paste the JSON it copies. No need to hunt for numbers by hand.</p>
 
-<h3 class="ja">音源を作らずに変える（数字だけ）<span class="ver">1.10.0〜</span></h3>
-<h3 class="en">Change sounds without making audio (numbers only)<span class="ver">1.10.0+</span></h3>
+<h3 class="ja">位置を合わせる</h3>
+<h3 class="en">Line them up</h3>
 <ol class="steps ja">
-<li><span class="where where-file">ファイル</span><b><code>vehicles/ae86.json</code> に <code>sounds</code> を足す。</b>
-<pre><code>"sounds": {
-  "engine": { "type": "i4", "pitch": 1.05, "load": 0.9 },
-  "turbo":  { "pitch": 1.2 },
-  "shift":  { "pitch": 0.9 }
-}</code></pre></li>
-<li><span class="where where-game">ゲーム</span><b>F3+T で読み直して、乗って聞く。</b></li>
+<li><span class="where where-game">ゲーム</span><b>車に乗り、<kbd>G</kbd> →「パーツ」→「ナンバー」でナンバーを付ける。</b>付いていないと何も見えない</li>
+<li><span class="where where-game">ゲーム</span><b><kbd>Ctrl</kbd>+<kbd>G</kbd> を開き、「車の JSON」の「ナンバー前」か「ナンバー後」を選ぶ。</b></li>
+<li><span class="where where-game">ゲーム</span><b>「候補」で動かす位置（中央・左・右）を選ぶ。</b>車に付くナンバーもその位置へ移る</li>
+<li><span class="where where-game">ゲーム</span><b>X・Y・Z・ピッチ・ヨー・大きさ・揃える端を動かして、バンパーやナンバーのくぼみに合わせる。</b></li>
+<li><span class="where where-file">ファイル</span><b>「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> のいちばん外側に貼る。</b>前後の両方がまとめて <code>plates</code> としてコピーされる。前からあれば置き換える</li>
 </ol>
 <ol class="steps en">
-<li><span class="where where-file">File</span><b>Add <code>sounds</code> to <code>vehicles/ae86.json</code>.</b>
+<li><span class="where where-game">Game</span><b>Get in the car and fit a plate under <kbd>G</kbd> → "Parts" → "Licence plate".</b> Without one there is nothing to see</li>
+<li><span class="where where-game">Game</span><b>Open <kbd>Ctrl</kbd>+<kbd>G</kbd> and pick "Plate front" or "Plate rear" under "Car JSON".</b></li>
+<li><span class="where where-game">Game</span><b>Pick the position to move (centre, left or right) under "Mount".</b> The fitted plate moves there too</li>
+<li><span class="where where-game">Game</span><b>Move X, Y, Z, pitch, yaw, scale and "Align" until it sits on the bumper or in the plate recess.</b></li>
+<li><span class="where where-file">File</span><b>Press "Copy JSON" and paste it at the top level of <code>vehicles/&lt;car&gt;.json</code>.</b> Front and rear are copied together as <code>plates</code>; replace it if it is already there</li>
+</ol>
+<p class="ja">画面で動かした値は自分の画面だけで、ゲームを閉じると消えます。貼るまでは JSON に残りません。「全部戻す」で JSON の値（書いていなければ自動の位置）に戻ります。</p>
+<p class="en">Changes made on the screen apply only on your screen and only until you quit; nothing is saved to the JSON until you paste it. "Reset all" goes back to the JSON (or to the automatic positions if you wrote none).</p>
+
+<figure>
+<div class="anno"><img src="img/plateedit.jpg" alt="The Plate front tab of the in-game look adjustment screen, with X, Y, Z, pitch, yaw and scale sliders above a blue S15 wearing a Japanese plate" loading="lazy"></div>
+<figcaption class="ja">図 16. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ナンバー前」。上から X・Y・Z・ピッチ・ヨー・大きさ、その下で候補と揃える端を選びます。動かしている候補の JSON がその下に出て、「JSON をコピー」で前後の <code>plates</code> がまとめてコピーされます。ゲームは止まらないので、車を見ながら合わせられます</figcaption>
+<figcaption class="en">Fig. 16. "Plate front" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. X, Y, Z, pitch, yaw and scale from the top, then the candidate ("Mount") and the edge to line up ("Align"). The JSON of the candidate you are moving is shown below them, and "Copy JSON" copies <code>plates</code> for both front and rear. The game keeps running, so you can watch the car as you adjust.</figcaption>
+</figure>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>候補を足したい・消したい（JSON を直接書く）</summary>
+<div class="more-body">
+<p>貼られる JSON はこの形です。候補の数や名前を変えるときは、ここを直接書き換えます:</p>
+<pre><code>"plates": {
+  "front": [
+    { "id": "center", "pos": [0.0, 0.635, -2.404] },
+    { "id": "left",   "pos": [-0.5377, 0.88, -2.404], "yaw": -14, "anchor": "left" }
+  ],
+  "rear": [
+    { "id": "center", "pos": [0.0, 0.595, 2.504], "pitch": -8 }
+  ]
+}</code></pre>
+<ul>
+<li><b>候補の先頭が既定</b>で、どれに付けるかはプレイヤーが換装画面で選ぶ</li>
+<li><code>pos</code> … プレートの原点（取り付け面の中心）を置く位置 [m]。基準は <code>seat</code> と同じ（+X 右・+Y 上・−Z 前）</li>
+<li><code>yaw</code> … 上から見て時計回りが正 [度]。<code>pitch</code> … 表が上を向くのが正 [度]。<code>scale</code> … この位置だけの大きさの倍率（0.1〜3）</li>
+<li><code>anchor</code> … <code>pos</code> に揃える端。<code>center</code>・<code>left</code>・<code>right</code>（<b>車から見た左右</b>）。角に寄せた候補は角の側の端を揃えると、横に長いプレート（EU など）は内側へ伸びる</li>
+<li><code>id</code> … <code>center</code>・<code>left</code>・<code>right</code> は換装画面に「中央」「左」「右」と出る。ほかの名前はそのまま出る（lang に <code>"screen.kurumamod.plate.mount.&lt;id&gt;"</code> を書けば訳せる）</li>
+<li>片側を書かなければ、その側には付かない（後ろにしか付かない車なら <code>rear</code> だけ）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Add or remove candidates (write the JSON yourself)</summary>
+<div class="more-body">
+<p>The pasted JSON looks like this. To change how many candidates there are or what they are called, edit it directly:</p>
+<pre><code>"plates": {
+  "front": [
+    { "id": "center", "pos": [0.0, 0.635, -2.404] },
+    { "id": "left",   "pos": [-0.5377, 0.88, -2.404], "yaw": -14, "anchor": "left" }
+  ],
+  "rear": [
+    { "id": "center", "pos": [0.0, 0.595, 2.504], "pitch": -8 }
+  ]
+}</code></pre>
+<ul>
+<li><b>The first candidate is the default</b>; players pick which one to use in the parts screen</li>
+<li><code>pos</code> — where the plate's origin (the centre of its mounting face) goes [m]. Same reference as <code>seat</code> (+X right, +Y up, −Z forward)</li>
+<li><code>yaw</code> — clockwise seen from above is positive [degrees]. <code>pitch</code> — face tilted up is positive [degrees]. <code>scale</code> — size multiplier for this position only (0.1 to 3)</li>
+<li><code>anchor</code> — which edge lines up with <code>pos</code>: <code>center</code>, <code>left</code> or <code>right</code> (<b>as seen from the car</b>). For a corner position, anchor the corner-side edge so long plates (EU and the like) grow inwards</li>
+<li><code>id</code> — <code>center</code>, <code>left</code> and <code>right</code> show as "Centre", "Left" and "Right" in the parts screen. Other names are shown as written (add <code>"screen.kurumamod.plate.mount.&lt;id&gt;"</code> to your lang to translate them)</li>
+<li>Leave a side out and no plate goes on that side (for a rear-only car, write just <code>rear</code>)</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>出したときからナンバーを付けておきたい</summary>
+<div class="more-body">
+<p>諸元の <code>default_parts</code> にナンバーを書きます（<a href="#s-spec">12 章</a>の「最初から部品を付けておきたい」）。書かなければ、プレイヤーが選ぶまでナンバーは付きません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Have a plate fitted when the car is spawned</summary>
+<div class="more-body">
+<p>Add it to <code>default_parts</code> in the spec (<a href="#s-spec">chapter 12</a>, "Fit parts from the start"). Otherwise there is no plate until the player picks one.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>自分のデザインのナンバーを作りたい</summary>
+<div class="more-body">
+<p>ナンバーの種類（形・絵・字の決まり）は部品として作ります。<a href="guide-parts.html#s-plate">パーツの 4 章</a>にあります。どの種類のナンバーも、この章で決めた位置に付きます。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Make a plate of your own design</summary>
+<div class="more-body">
+<p>Plate styles (shape, picture and text rules) are made as parts; see <a href="guide-parts.html#s-plate">chapter 4 of the Parts guide</a>. Every style goes on the positions you set in this chapter.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>ナンバーが見えない</b> … <kbd>G</kbd> の「パーツ」でナンバーを付けていない。または <code>plates</code> でその側を書いていない</li>
+<li><b>「この側には付ける位置がありません」と出る</b> … <code>plates</code> にその側（<code>front</code> / <code>rear</code>）が無い。候補を書き足す</li>
+<li><b>横に長いプレートが車体からはみ出す</b> … 角に寄せた候補なら、<code>anchor</code> を角の側の端にする</li>
+<li><b>動かした位置が、次に起動すると戻っている</b> … JSON を貼っていない。画面の値はゲームを閉じると消える</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>No plate to be seen</b> — no plate is fitted under "Parts" in <kbd>G</kbd>, or <code>plates</code> leaves that side out</li>
+<li><b>The screen says there is no position on this side</b> — <code>plates</code> has no <code>front</code> / <code>rear</code> for that side. Add a candidate</li>
+<li><b>A long plate sticks out past the body</b> — for a corner position, set <code>anchor</code> to the corner-side edge</li>
+<li><b>The position is back where it was after a restart</b> — the JSON was not pasted. On-screen values are lost when you quit</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-seat">
+<h2 class="ja"><span class="num">9</span>シートの位置を調整する</h2>
+<h2 class="en"><span class="num">9</span>Adjust the seat position</h2>
+<p class="ja">運転席の位置です。助手席は左右反転で自動的に置かれます。何も書かなければ既定の位置（右ハンドル）に座ります。<b>乗ったまま <kbd>Ctrl</kbd>+<kbd>G</kbd> で動かして、コピーした JSON を貼ります。</b></p>
+<p class="en">Where the driver sits; the passenger seat is mirrored automatically. Write nothing and the default position (right-hand drive) is used. <b>Move it with <kbd>Ctrl</kbd>+<kbd>G</kbd> while sitting in the car, then paste the JSON it copies.</b></p>
+
+<h3 class="ja">位置を合わせる</h3>
+<h3 class="en">Line it up</h3>
+<ol class="steps ja">
+<li><span class="where where-game">ゲーム</span><b>車に乗り、<kbd>Ctrl</kbd>+<kbd>G</kbd> を開いて、「車の JSON」の「座席」を選ぶ。</b></li>
+<li><span class="where where-game">ゲーム</span><b>X（右）・Y（上）・Z（後ろ）を動かす。</b>一人称（<kbd>F5</kbd> で切り替え）で前の見え方を、三人称で座った姿を確かめる</li>
+<li><span class="where where-file">ファイル</span><b>「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> のいちばん外側に貼る。</b><code>"seat": [0.5, -0.55, 0.2]</code> の形でコピーされる。前からあれば置き換える</li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-game">Game</span><b>Get in the car, open <kbd>Ctrl</kbd>+<kbd>G</kbd> and pick "Seat" under "Car JSON".</b></li>
+<li><span class="where where-game">Game</span><b>Move X (right), Y (up) and Z (back).</b> Check the view ahead in first person and how the driver sits in third person (switch with <kbd>F5</kbd>)</li>
+<li><span class="where where-file">File</span><b>Press "Copy JSON" and paste it at the top level of <code>vehicles/&lt;car&gt;.json</code>.</b> It is copied as <code>"seat": [0.5, -0.55, 0.2]</code>; replace it if it is already there</li>
+</ol>
+<p class="ja">画面で動かした値は自分の画面だけで、ゲームを閉じると消えます。貼るまでは JSON に残りません。座席を動かしたら、ハンドルも合わせ直します（<a href="#s-steer">10 章</a>）。</p>
+<p class="en">Changes made on the screen apply only on your screen and only until you quit; nothing is saved to the JSON until you paste it. After moving the seat, set the steering wheel to match (<a href="#s-steer">chapter 10</a>).</p>
+
+<figure>
+<div class="anno"><img src="img/seatedit.jpg" alt="The Seat tab of the in-game look adjustment screen, with X, Y and Z sliders above a blue S15 seen from the front with the driver sitting inside" loading="lazy"></div>
+<figcaption class="ja">図 17. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「座席」。X（右）・Y（上）・Z（後ろ）の下に、コピーされる <code>seat</code> の行が出ます。いちばん上の「目線の高さ（車の原点から）」で、一人称の視線の高さも分かります</figcaption>
+<figcaption class="en">Fig. 17. "Seat" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. Below X (right), Y (up) and Z (back) is the <code>seat</code> line that gets copied. "Eye height above the car origin" at the very top tells you where the first-person view sits.</figcaption>
+</figure>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>数字の意味を知りたい（JSON を直接書く）</summary>
+<div class="more-body">
+<ul>
+<li><code>[x, y, z]</code> [m]。+X 右・+Y 上・−Z 前。既定は右ハンドル（x が正）。左ハンドルなら x を負にする</li>
+<li>前後（z）は前後輪の中点から、左右（x）と高さ（y）はシャシー基準面の中心から測る</li>
+<li><b>足元の位置で、目線ではありません。</b>一人称の視点はここから 1.62m 上に来ます。目線で決めたいなら 1.62 を引く</li>
+<li>座面に合わせると視線が高くなり、目線に合わせると足が床下へ潜ります。どちらにするかは車ごとの好み</li>
+<li>メッシュから測るときは、<code>designWheelBase</code> などで拡大・縮小された後の大きさで測る</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>What the numbers mean (write the JSON yourself)</summary>
+<div class="more-body">
+<ul>
+<li><code>[x, y, z]</code> in m, with +X right, +Y up, −Z forward. The default is right-hand drive (positive x); make x negative for left-hand drive</li>
+<li>Front-to-back (z) is measured from the midpoint of the axles; side (x) and height (y) from the centre of the chassis plane</li>
+<li><b>It is where the feet go, not the eyes.</b> The first-person camera sits 1.62 m above it; subtract 1.62 to place the eye line instead</li>
+<li>Match the cushion and the view sits high; match the eye line and the feet sink through the floor. Pick per car</li>
+<li>If you measure from the mesh, measure it after the scaling from <code>designWheelBase</code> and friends</li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>座った人の足が床から突き出る・頭が屋根を抜ける</b> … Y（上）を動かす。足元の位置なので、目線ではなく座面に合わせる</li>
+<li><b>一人称で前が見えない</b> … 目線は座席から 1.62m 上。Y を下げるか、Z を前へ</li>
+<li><b>動かした位置が、次に起動すると戻っている</b> … JSON を貼っていない。画面の値はゲームを閉じると消える</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>The driver's feet poke through the floor or the head through the roof</b> — move Y (up). It is where the feet go, so match the cushion, not the eyes</li>
+<li><b>Nothing to see ahead in first person</b> — the eyes are 1.62 m above the seat. Lower Y or move Z forward</li>
+<li><b>The position is back where it was after a restart</b> — the JSON was not pasted. On-screen values are lost when you quit</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-steer">
+<h2 class="ja"><span class="num">10</span>ステアリングの位置を調整する</h2>
+<h2 class="en"><span class="num">10</span>Adjust the steering wheel position</h2>
+<p class="ja">ハンドル（<code>steering</code> で始まるオブジェクト。<a href="#s5">3 章</a>）を、座席に合わせて動かしたり傾けたりします。モデルを直すより手早く合わせられます。<b>先に座席を決めてから</b>（<a href="#s-seat">9 章</a>）、乗ったまま <kbd>Ctrl</kbd>+<kbd>G</kbd> で動かします。</p>
+<p class="en">Move or tilt the steering wheel (the object starting with <code>steering</code>; <a href="#s5">chapter 3</a>) to suit the seat. It is quicker than editing the model. <b>Set the seat first</b> (<a href="#s-seat">chapter 9</a>), then move it with <kbd>Ctrl</kbd>+<kbd>G</kbd> while sitting in the car.</p>
+
+<h3 class="ja">位置を合わせる</h3>
+<h3 class="en">Line it up</h3>
+<ol class="steps ja">
+<li><span class="where where-game">ゲーム</span><b>車に乗り、<kbd>Ctrl</kbd>+<kbd>G</kbd> を開いて、「車の JSON」の「ハンドル」を選ぶ。</b></li>
+<li><span class="where where-game">ゲーム</span><b>X・Y・Z で位置を、「角度」で傾きを合わせる。</b>角度は正でコラムが起きる（ハンドルの面が寝る）。ハンドルを切りながら動かし、<b>首を振らずに回る</b>ところを探す</li>
+<li><span class="where where-file">ファイル</span><b>「JSON をコピー」を押し、<code>vehicles/&lt;車&gt;.json</code> のいちばん外側に貼る。</b>前からあれば置き換える。貼られるのはこの形:
+<pre><code>"steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre></li>
+</ol>
+<ol class="steps en">
+<li><span class="where where-game">Game</span><b>Get in the car, open <kbd>Ctrl</kbd>+<kbd>G</kbd> and pick "Steering" under "Car JSON".</b></li>
+<li><span class="where where-game">Game</span><b>Set the position with X, Y and Z, and the angle with "Tilt".</b> A positive tilt stands the column up (the wheel face lies flatter). Move it while steering and look for where it <b>turns without wobbling</b></li>
+<li><span class="where where-file">File</span><b>Press "Copy JSON" and paste it at the top level of <code>vehicles/&lt;car&gt;.json</code>,</b> replacing any that is already there. It looks like this:
+<pre><code>"steering": { "offset": [0.0, 0.02, 0.05], "tilt": 3.0 }</code></pre></li>
+</ol>
+<p class="ja">画面で動かした値は自分の画面だけで、ゲームを閉じると消えます。貼るまでは JSON に残りません。</p>
+<p class="en">Changes made on the screen apply only on your screen and only until you quit; nothing is saved to the JSON until you paste it.</p>
+
+<figure>
+<div class="anno"><img src="img/steeredit.jpg" alt="The Steering tab of the in-game look adjustment screen in first person, with X, Y, Z, tilt, column and centre sliders above the S15's dashboard and steering wheel" loading="lazy"></div>
+<figcaption class="ja">図 18. <kbd>Ctrl</kbd>+<kbd>G</kbd> の「ハンドル」。上から X・Y・Z・角度・コラム・中心 上下。角度の横の括弧が足したあとのコラムの角度、コラムの「（形から）」はメッシュから測った値です。一人称で、ハンドルを切りながら合わせます</figcaption>
+<figcaption class="en">Fig. 18. "Steering" on <kbd>Ctrl</kbd>+<kbd>G</kbd>. X, Y, Z, tilt, column and centre from the top. The bracket next to tilt is the resulting column angle, and "(from shape)" on the column means it was measured from the mesh. Line it up in first person while steering.</figcaption>
+</figure>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>数字の意味を知りたい（JSON を直接書く）</summary>
+<div class="more-body">
+<ul>
+<li><code>offset</code> … ハンドルをずらす量 [m]。<code>seat</code> と同じ向き（+X 右・+Y 上・−Z 前）。回す中心も一緒に動くので、ずらしても振れずに回る</li>
+<li><code>tilt</code> … コラムの傾きの足し分 [度]。正でコラムが起きる</li>
+<li><code>column</code> … コラムの角度そのもの [度]。形から軸が決まらないハンドルのためのもの（<a href="#s5">3 章</a>）。<kbd>Ctrl</kbd>+<kbd>G</kbd> の「コラム」でも動かせる</li>
+<li><code>center</code> … 回す中心を面に沿って上へずらす量 [m]。下が平らな D 型のハンドルのため。<kbd>Ctrl</kbd>+<kbd>G</kbd> の「中心 上下」でも動かせる</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>What the numbers mean (write the JSON yourself)</summary>
+<div class="more-body">
+<ul>
+<li><code>offset</code> — how far to move the wheel [m], in the same directions as <code>seat</code> (+X right, +Y up, −Z forward). The centre it turns about moves too, so it still turns without wobbling</li>
+<li><code>tilt</code> — extra column angle [degrees]. Positive stands the column up</li>
+<li><code>column</code> — the column angle itself [degrees], for wheels whose axis can't be found from the shape (<a href="#s5">chapter 3</a>). Also adjustable with "Column" in <kbd>Ctrl</kbd>+<kbd>G</kbd></li>
+<li><code>center</code> — moves the turning centre up along the face [m], for flat-bottomed D-shaped wheels. Also adjustable in <kbd>Ctrl</kbd>+<kbd>G</kbd></li>
+</ul>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ハンドルが何回転するか</summary>
+<div class="more-body">
+<p>どの車もフルロックで 1 回転半（540 度）です。比は最大切れ角から自動で決まり、35 度の車で 15.4、90 度まで切れる車で 6.0 になります。書く項目はありません。</p>
+</div>
+</details>
+<details class="more en">
+<summary>How far the wheel turns</summary>
+<div class="more-body">
+<p>Every car reaches full lock at one and a half turns (540°). The ratio follows the car's maximum steering angle: 15.4 for 35°, 6.0 for a car that steers to 90°. There is nothing to set.</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>「ハンドル」を選んでも何も動かない</b> … 車体にハンドルのオブジェクトが無い。名前が <code>steering</code> で始まっているか（<a href="#s5">3 章</a>）</li>
+<li><b>切ると首を振るように回る</b> … 回す中心が合っていない。<code>column</code>・<code>center</code> を動かす。コラムまで 1 つのオブジェクトに入れていないかも見る</li>
+<li><b>手がハンドルから離れて見える</b> … 座席を先に決め、そのあとでハンドルの位置を合わせる</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>Picking "Steering" moves nothing</b> — the body has no steering wheel object. Check its name starts with <code>steering</code> (<a href="#s5">chapter 3</a>)</li>
+<li><b>It wobbles as it turns</b> — the turning centre is off. Adjust <code>column</code> and <code>center</code>, and check the column is not in the same object</li>
+<li><b>The hands look detached from the wheel</b> — set the seat first, then line up the wheel</li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-sound">
+<h2 class="ja"><span class="num">11</span>音を作る<span class="opt">オプション</span></h2>
+<h2 class="en"><span class="num">11</span>Make sounds<span class="opt">Optional</span></h2>
+<p class="ja">エンジン音は車ごとに変えられます。この章はオプションです。何も設定しなければ、S15 と同じ音が鳴ります。</p>
+<p class="en">Each car can have its own engine sound. This chapter is optional: set nothing and the car sounds the same as the S15.</p>
+<p class="ja">やり方は 2 通りあります。<b>まずは A を試し、足りないときだけ B へ進んでください。</b></p>
+<table class="ja">
+<tr><th></th><th>やり方</th><th>要るもの</th></tr>
+<tr><td><b>A. 音源を使わない（おすすめ）</b></td><td>KurumaMod の合成音から、エンジンの種類を選んで高さなどを変える。種類と高さだけで、車ごとの違いはかなり出せる → <a href="#sound-synth">音源を作らずに変える</a></td><td>JSON だけ。値は乗ったまま <kbd>Ctrl</kbd>+<kbd>H</kbd> で決められる</td></tr>
+<tr><td><b>B. 音源を付ける</b></td><td>自分で録った音・作った音を鳴らす → <a href="#sound-file">最小のエンジン音を付ける</a></td><td>OGG の音源と、高回転用の音源（Python の道具で作る）</td></tr>
+</table>
+<p class="en">There are two ways. <b>Try A first, and go on to B only if it is not enough.</b></p>
+<table class="en">
+<tr><th></th><th>How</th><th>What you need</th></tr>
+<tr><td><b>A. No audio files (recommended)</b></td><td>Pick an engine type from KurumaMod's synthesised sounds and adjust pitch and the like. Type and pitch alone already set cars apart → <a href="#sound-synth-en">Change sounds without making audio</a></td><td>Only JSON. Set the values from the driver's seat with <kbd>Ctrl</kbd>+<kbd>H</kbd></td></tr>
+<tr><td><b>B. Your own audio</b></td><td>Play sounds you recorded or made → <a href="#sound-file-en">Add a minimal engine sound</a></td><td>OGG audio, plus a high-rev copy (made with a Python tool)</td></tr>
+</table>
+
+<h3 id="sound-synth" class="ja">A. 音源を作らずに変える（数字だけ）<span class="ver">1.10.0〜</span></h3>
+<h3 id="sound-synth-en" class="en">A. Change sounds without making audio (numbers only)<span class="ver">1.10.0+</span></h3>
+<ol class="steps ja">
+<li><span class="where where-game">ゲーム</span><b>自分の車に乗り、<kbd>Ctrl</kbd>+<kbd>H</kbd> を押す。</b>「車の音のデバッグ」が開き、その車種の音が並ぶ</li>
+<li><span class="where where-game">ゲーム</span><b>エンジンの「種類」「高さ」「踏んだときの荒さ」、ターボ・変速音などの「高さ」を動かす。</b>ゲームは止まらないので、走りながらその場で聞き比べられる</li>
+<li><span class="where where-game">ゲーム</span><b>決まったら「JSON をコピー」を押す。</b></li>
+<li><span class="where where-file">ファイル</span><b><code>vehicles/ae86.json</code> のいちばん外側に貼る。</b>前から <code>sounds</code> があれば置き換える。貼られるのはこの形:
 <pre><code>"sounds": {
   "engine": { "type": "i4", "pitch": 1.05, "load": 0.9 },
   "turbo":  { "pitch": 1.2 },
   "shift":  { "pitch": 0.9 }
 }</code></pre></li>
-<li><span class="where where-game">Game</span><b>Reload with F3+T, get in and listen.</b></li>
 </ol>
+<p class="ja">画面で動かした値は自分の画面だけで、ゲームを閉じると消えます。貼って <kbd>F3</kbd>+<kbd>T</kbd> で読み直せば、パックの音になります。もちろん、JSON を手で書いて <kbd>F3</kbd>+<kbd>T</kbd> で聞いてもかまいません。</p>
+<ol class="steps en">
+<li><span class="where where-game">Game</span><b>Get in your car and press <kbd>Ctrl</kbd>+<kbd>H</kbd>.</b> "Car sound debug" opens with that model's sounds</li>
+<li><span class="where where-game">Game</span><b>Move the engine's "Type", "Pitch" and "Roughness on throttle", and the "Pitch" of the turbo, shifts and so on.</b> The game keeps running, so you can compare them while driving</li>
+<li><span class="where where-game">Game</span><b>When it sounds right, press "Copy JSON".</b></li>
+<li><span class="where where-file">File</span><b>Paste it at the top level of <code>vehicles/ae86.json</code>,</b> replacing any <code>sounds</code> already there. It looks like this:
+<pre><code>"sounds": {
+  "engine": { "type": "i4", "pitch": 1.05, "load": 0.9 },
+  "turbo":  { "pitch": 1.2 },
+  "shift":  { "pitch": 0.9 }
+}</code></pre></li>
+</ol>
+<p class="en">Changes made on the screen apply only on your screen and only until you quit. Paste them and reload with <kbd>F3</kbd>+<kbd>T</kbd> to make them the pack's sounds. Writing the JSON by hand and listening after <kbd>F3</kbd>+<kbd>T</kbd> works too.</p>
+
+<figure>
+<div class="anno"><img src="img/soundedit.jpg" alt="The car sound debug screen opened over the car, with the engine type, pitch and roughness on throttle at the top and a pitch slider for each sound below" loading="lazy"></div>
+<figcaption class="ja">図 15. <kbd>Ctrl</kbd>+<kbd>H</kbd> の「車の音のデバッグ」。いちばん上が合成したエンジン音の種類・高さ・踏んだときの荒さ、その下にターボ・タイヤの鳴き・路面音・変速音などの高さが並びます。各行の「R」で元の値に戻り、下の「JSON をコピー」で <code>sounds</code> をコピーします。ゲームは止まらないので、走りながら聞き比べられます</figcaption>
+<figcaption class="en">Fig. 15. "Car sound debug" on <kbd>Ctrl</kbd>+<kbd>H</kbd>. The synthesised engine's type, pitch and roughness on throttle are at the top, with the pitch of the turbo, tyre squeal, surface noise, gear changes and so on below. "R" on each row resets it, and "Copy JSON" at the bottom copies <code>sounds</code>. The game keeps running, so you can compare them while driving.</figcaption>
+</figure>
 <p class="ja">エンジンの <code>type</code> に書ける種類（どれも KurumaMod が合成した音で、回転数ごとに作り分けてあります）:</p>
 <p class="en">Engine <code>type</code> values (all synthesised by KurumaMod, with separate audio for each rpm range):</p>
 <table class="ja">
@@ -1786,14 +2045,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <table class="ja">
 <tr><th>値</th><th>意味</th><th>範囲（既定）</th></tr>
 <tr><td><code>pitch</code></td><td>高さの倍率。エンジンなら回転数に対する高さをまるごとずらす</td><td>0.5〜2.0（1）</td></tr>
-<tr><td><code>sound</code></td><td>音源の差し替え（下の「最小のエンジン音を付ける」と同じ。文字列だけで書いてもよい）</td><td>—</td></tr>
+<tr><td><code>sound</code></td><td>音源の差し替え（下の「B. 最小のエンジン音を付ける」と同じ。文字列だけで書いてもよい）</td><td>—</td></tr>
 <tr><td><code>type</code>（<code>engine</code> だけ）</td><td>エンジンの種類（上の表）</td><td><code>i4_turbo</code></td></tr>
 <tr><td><code>load</code>（<code>engine</code> だけ）</td><td>アクセルを踏んだときの荒い音の出方。下げると上品に、上げると荒く</td><td>0〜1.5（1）</td></tr>
 </table>
 <table class="en">
 <tr><th>Value</th><th>Meaning</th><th>Range (default)</th></tr>
 <tr><td><code>pitch</code></td><td>Pitch multiplier. For the engine it shifts the whole note against rpm</td><td>0.5–2.0 (1)</td></tr>
-<tr><td><code>sound</code></td><td>Replace the audio (same as "Add a minimal engine sound" below; a plain string works too)</td><td>—</td></tr>
+<tr><td><code>sound</code></td><td>Replace the audio (same as "B. Add a minimal engine sound" below; a plain string works too)</td><td>—</td></tr>
 <tr><td><code>type</code> (<code>engine</code> only)</td><td>Engine type (table above)</td><td><code>i4_turbo</code></td></tr>
 <tr><td><code>load</code> (<code>engine</code> only)</td><td>How much the rough on-throttle sound comes through. Lower is smoother, higher is rawer</td><td>0–1.5 (1)</td></tr>
 </table>
@@ -1808,8 +2067,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>You can't set <code>volume</code>.</b> Players choose the volume of each kind of sound themselves under "Sound" in the H settings screen</li>
 </ul>
 
-<h3 class="ja">最小のエンジン音を付ける</h3>
-<h3 class="en">Add a minimal engine sound</h3>
+<h3 id="sound-file" class="ja">B. 最小のエンジン音を付ける</h3>
+<h3 id="sound-file-en" class="en">B. Add a minimal engine sound</h3>
 <ol class="steps ja">
 <li><span class="where where-file">ファイル</span><b>音源を置く。</b><code>assets/mypack/sounds/ae86_exhaust.ogg</code>。OGG・モノラルで、継ぎ目なくループするもの</li>
 <li><span class="where where-file">ファイル</span><b>高回転用の音源を作って、同じ場所に置く。</b>同梱の道具を使う（Python が要る）:
@@ -1996,8 +2255,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </div>
 </details>
 </section><section class="gsec" id="s-spec">
-<h2 class="ja"><span class="num">9</span>諸元（走り）を書く</h2>
-<h2 class="en"><span class="num">9</span>Write the spec (how it drives)</h2>
+<h2 class="ja"><span class="num">12</span>諸元（走り）を書く</h2>
+<h2 class="en"><span class="num">12</span>Write the spec (how it drives)</h2>
 <p class="ja">加速・ブレーキ・曲がりかたを決める値（諸元）を書きます。置き場所は <code>data/mypack/cars/&lt;車&gt;.json</code> です。</p>
 <p class="en">This sets the values that decide acceleration, braking and cornering (the spec). They go in <code>data/mypack/cars/&lt;car&gt;.json</code>.</p>
 
@@ -2142,13 +2401,45 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <details class="more ja">
 <summary>最初から部品を付けておきたい</summary>
 <div class="more-body">
-<p>いちばん外側の <code>default_parts</code> に書きます（<code>values</code> と同じ階層）。書き方は<a href="guide-parts.html#s-body">パーツの 2 章</a>にあります。</p>
+<p>いちばん外側の <code>default_parts</code> に、場所ごとに部品の id を書きます（<code>values</code> と同じ階層）。換装画面ではこれが「純正」になります。</p>
+<pre><code>{
+  "values": { ... },
+  "default_parts": {
+    "wheel": "mypack:my_wheel",
+    "plate": "kurumamod:plate_jp_private",
+    "front_bumper": { "part": "mypack:stock_bumper", "removable": false }
+  }
+}</code></pre>
+<p>外すと穴が開く部品は <code>"removable": false</code> にします。場所ごとの書き方:</p>
+<ul>
+<li>ホイール … <a href="guide-wheel.html#s-parts">ホイールの 2 章</a></li>
+<li>タイヤ … <a href="guide-tire.html#s-tire">タイヤの 2 章</a></li>
+<li>ターボ・ブローオフバルブ … <a href="guide-parts.html#s-turbo">パーツの 1 章</a></li>
+<li>外装パーツ・マフラー … <a href="guide-parts.html#s-body">パーツの 2 章</a>・<a href="guide-parts.html#s-exhaust">3 章</a></li>
+<li>ナンバー … <a href="guide-parts.html#s-plate">パーツの 4 章</a></li>
+</ul>
 </div>
 </details>
 <details class="more en">
 <summary>Fit parts from the start</summary>
 <div class="more-body">
-<p>Write <code>default_parts</code> at the top level, next to <code>values</code>. See <a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>.</p>
+<p>Write a part id per slot in <code>default_parts</code> at the top level (next to <code>values</code>). These become "Stock" in the parts screen.</p>
+<pre><code>{
+  "values": { ... },
+  "default_parts": {
+    "wheel": "mypack:my_wheel",
+    "plate": "kurumamod:plate_jp_private",
+    "front_bumper": { "part": "mypack:stock_bumper", "removable": false }
+  }
+}</code></pre>
+<p>Use <code>"removable": false</code> for a part whose removal would leave a hole. Per slot:</p>
+<ul>
+<li>Wheels — <a href="guide-wheel.html#s-parts">chapter 2 of the Wheel guide</a></li>
+<li>Tyres — <a href="guide-tire.html#s-tire">chapter 2 of the Tyre guide</a></li>
+<li>Turbos and blow-off valves — <a href="guide-parts.html#s-turbo">chapter 1 of the Parts guide</a></li>
+<li>Body parts and exhausts — <a href="guide-parts.html#s-body">chapters 2</a> and <a href="guide-parts.html#s-exhaust">3 of the Parts guide</a></li>
+<li>Licence plates — <a href="guide-parts.html#s-plate">chapter 4 of the Parts guide</a></li>
+</ul>
 </div>
 </details>
 
@@ -2175,8 +2466,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </div>
 </details>
 </section><section class="gsec" id="s-chk-car">
-<h2 class="ja"><span class="num">10</span>チェックリスト</h2>
-<h2 class="en"><span class="num">10</span>Checklist</h2>
+<h2 class="ja"><span class="num">13</span>チェックリスト</h2>
+<h2 class="en"><span class="num">13</span>Checklist</h2>
 <p class="ja">見落としやすいところを並べます。症状が出てから探すときは<a href="guide-ship.html#s11">配布の 3 章</a>へ。</p>
 <p class="en">What is easy to miss. If something is already wrong, go to <a href="guide-ship.html#s11">chapter 3 of Shipping</a>.</p>
 
@@ -2254,9 +2545,9 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 </section><section class="gsec" id="sc">
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">9 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">12 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
 <p class="ja"><b>既定は、何も書かなかったときの値です。</b>寸法（<code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code>）の既定はゲージの寸法と同じです。KurumaMod の既定の車（S15）は、車体を実車の比率で作ってあり、ゲージのタイヤでは大きすぎるので <code>wheel_base</code> 3.15・<code>track_width</code> 1.9・<code>wheel_radius</code> 0.4 だけ書いています。そのほかは既定のままです。</p>
-<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 9</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 12</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
 <p class="en"><b>A default is the value used when you leave the key out.</b> The size defaults (<code>wheel_base</code>, <code>track_width</code>, <code>wheel_radius</code>) match the gauge. KurumaMod's default car (the S15) is built to real-car proportions, where the gauge tyres are too big, so it writes only <code>wheel_base</code> 3.15, <code>track_width</code> 1.9 and <code>wheel_radius</code> 0.4; everything else is at the default.</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
@@ -2487,8 +2778,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>traction_control</code></td><td>Traction control</td><td>strength (0 = off)</td><td>1</td><td>0 – 1</td></tr>
 </table>
 </section><div class="gfoot">
-  <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code>・<code>modeling_tools/blender_wheel_gauge.py</code>・<code>modeling_tools/blender_tire_gauge.py</code>。</p>
-  <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code>, <code>modeling_tools/blender_wheel_gauge.py</code> and <code>modeling_tools/blender_tire_gauge.py</code>.</p>
+  <p class="ja">KurumaMod — 諸元の全項目は<a href="#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code>・<code>modeling_tools/blender_wheel_gauge.py</code>・<code>modeling_tools/blender_tire_gauge.py</code>、ナンバーは <code>modeling_tools/blender_plate_gauge_*.py</code>。</p>
+  <p class="en">KurumaMod — every spec key is in <a href="#sc">Appendix A of the Car guide</a>. The gauge scripts are <code>modeling_tools/blender_gauge.py</code>, <code>modeling_tools/blender_wheel_gauge.py</code> and <code>modeling_tools/blender_tire_gauge.py</code>, plus <code>modeling_tools/blender_plate_gauge_*.py</code> for plates.</p>
 </div></div>
 </div>
 

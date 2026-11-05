@@ -43,7 +43,7 @@ you need is inside:
 
 | | |
 |---|---|
-| `modeling_tools/` | Blender scripts that drop in a size gauge for the body, the wheel and the tyre |
+| `modeling_tools/` | Blender scripts that drop in a size gauge for the body, the wheel, the tyre and licence plates |
 | `sound_tools/` | `make_octave_up.py` — makes the high-rpm engine sound from your engine loop |
 
 How to make one is in the **[Car Pack Creation Guide](https://kuruma.jdm-mc.com/guide.html)** on the website — separate pages for the car, wheels and parts, each built around the minimum steps: the mesh in Blender, lights and glass, **its own engine sound**, the handling specs, swappable wheels, **aero parts and mufflers** shaped right in your car model, and packing the jar, with every key you can write. Written for people who have never opened Blender.
@@ -114,7 +114,7 @@ All rights reserved. Do not redistribute.
 
 | | |
 |---|---|
-| `modeling_tools/` | 車体・ホイール・タイヤの寸法合わせのゲージを置く Blender 用スクリプト |
+| `modeling_tools/` | 車体・ホイール・タイヤ・ナンバーの寸法合わせのゲージを置く Blender 用スクリプト |
 | `sound_tools/` | `make_octave_up.py` — エンジン音のループから高回転側の音を作る |
 
 作り方はサイトの **[カーパック作成ガイド](https://kuruma.jdm-mc.com/guide.html)** にあります。車・ホイール・パーツのページに分け、どれも最低限の手順から書いてあります。Blender でのメッシュ作り、灯火とガラス、**自前のエンジン音**、諸元（走り）、換装できるホイール、車のモデルの中で作る**エアロパーツとマフラー**、jar への固め方、書ける項目の全一覧まで。Blender を触ったことがない人向け。
