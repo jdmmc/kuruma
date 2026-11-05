@@ -9,6 +9,7 @@
     "FrustumMixin",
     "IrisPipelineMixin",
     "KeyMappingAccessor",
+    "MainRenderTargetMixin",
     "PlayerModelMixin"
   ],
   "injectors": {

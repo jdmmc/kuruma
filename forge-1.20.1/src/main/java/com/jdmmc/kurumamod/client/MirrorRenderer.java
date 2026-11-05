@@ -21,12 +21,12 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Method;
@@ -86,9 +86,10 @@ import java.util.List;
  *   <li>設定が切ってある（H のメニュー。既定は<b>切</b>——重いので、要る人が入れる）</li>
  *   <li>描画設定が「最高（Fabulous）」。この設定では {@code renderLevel} が自分で
  *       描き先を持ち替えるので、こちらの差し替えが上書きされる</li>
- *   <li>Iris / Oculus が入っている（<b>パックを切っていても</b>）。描画の入れ子を前提にしていない。
- *       パックを使っている間だけ止めるようにしたら、使っている間は画面全体が真っ黒になり、
- *       切っている間も鏡の面が描かれず消えた（Oculus で確認）。設定が切のときと同じ暗いガラスにする</li>
+ *   <li>シェーダーパックを使っている（Iris / Oculus）。描き直しを入れ子にすると画面全体が真っ黒になる。
+ *       <b>入っているだけ（パックを切っている）なら映す</b>。以前はこのとき鏡面が消えたが、原因は 2 つあった。
+ *       描き先の不透明度が 0 になること（{@code renderFace} の終わりで 1 に塗り直す）と、描画の途中で画面の
+ *       描き先へつなぎ直されること（{@link #drawingTarget()}）</li>
  *   <li>運転していない。<b>映すのは自分が運転している車のミラーだけ</b>——他人の車のぶんまで
  *       描くと、映っているのを誰も見ないまま台数ぶん重くなる</li>
  * </ul>
@@ -140,10 +141,12 @@ public final class MirrorRenderer {
     private static int next;
     /** ミラーのために世界を描いている最中か。<b>入れ子で自分を映さないための旗。</b> */
     private static boolean rendering;
+    /** 描画に失敗したので、この車を降りるまで描かない。 */
+    private static boolean broken;
     /** 同じ理由で何度もログへ出さないための旗。 */
     private static String complaint;
-    /** シェーダーパックが入っているか。{@link ModList} は起動直後には引けないので遅延で見る。 */
-    private static Boolean shaderPack;
+    /** いま描いている鏡の描き先（{@link #drawingTarget()}）。 */
+    private static RenderTarget drawingTarget;
 
     private record Slot(String name, RenderTarget target) {
     }
@@ -171,6 +174,18 @@ public final class MirrorRenderer {
     }
 
     /** その鏡に貼る GL のテクスチャ id。{@link KurumaRenderTypes#mirror} が描く直前に聞きにくる。 */
+    /**
+     * ミラーのために世界を描いている間の描き先。それ以外のときは null。
+     *
+     * <p>{@code mixin/MainRenderTargetMixin} が、この間 {@code Minecraft#getMainRenderTarget()} の答えをこれに
+     * 差し替える。<b>描画の途中で「画面の描き先」へつなぎ直す所がいくつもあり</b>（バニラの輪郭の枝、Iris / Oculus。
+     * シェーダーパックを切っていてもつなぎ直す）、そのたびにミラー用の地形や物が画面の描き先へ流れ出て、
+     * 本編の描画に上書きされていた。鏡には描き始めに塗った空の色しか残らなかった（1.21.1 の Iris で確認）。</p>
+     */
+    public static RenderTarget drawingTarget() {
+        return rendering ? drawingTarget : null;
+    }
+
     public static int textureId(int slot) {
         return slot >= 0 && slot < SLOTS.size() ? SLOTS.get(slot).target().getColorTextureId() : 0;
     }
@@ -192,7 +207,13 @@ public final class MirrorRenderer {
         }
         Minecraft mc = Minecraft.getInstance();
         CarEntity car = drivenCar(mc);
-        if (car == null || !available(mc)) {
+        if (car == null) {
+            // 降りたら、失敗して止めていたのを解く（次に乗ったときにもう一度試す）
+            broken = false;
+            release();
+            return;
+        }
+        if (broken || !available(mc)) {
             release();
             return;
         }
@@ -224,11 +245,14 @@ public final class MirrorRenderer {
         try {
             renderFace(mc, car, model, faces.get(next), SLOTS.get(next), event.renderTickTime);
         } catch (ReflectiveOperationException | RuntimeException e) {
-            complain("ミラーの描画に失敗した。以後は暗いガラスとして描く", e);
+            complain("ミラーの描画に失敗した。この車を降りるまで暗いガラスとして描く", e);
+            // 止めておかないと、次のフレームで描き先を作り直してはまた失敗し続ける
+            broken = true;
             release();
         } finally {
             mc.gameRenderer.setPanoramicMode(false);
             rendering = false;
+            drawingTarget = null;
             // 失敗しても必ず画面へ戻す。ここを飛ばすと、以降の描画がミラーの
             // フレームバッファへ流れ込んで画面が真っ黒になる
             mc.getMainRenderTarget().bindWrite(true);
@@ -305,6 +329,7 @@ public final class MirrorRenderer {
         SET_ROTATION.invoke(CAMERA, yaw, pitch);
 
         RenderTarget target = slot.target();
+        drawingTarget = target;
         target.setClearColor(0.0F, 0.0F, 0.0F, 1.0F);
         target.clear(Minecraft.ON_OSX);
         target.bindWrite(true);
@@ -327,6 +352,15 @@ public final class MirrorRenderer {
         // ミラーのために余分な仕事をさせない（見えている本編の描画を優先する）
         mc.levelRenderer.renderLevel(view, partialTick, System.nanoTime(), false, CAMERA,
                 mc.gameRenderer, mc.gameRenderer.lightTexture(), projection);
+
+        // <b>不透明度だけを 1 に塗り直す</b>（色はそのまま）。鏡面は position_tex_color で貼るが、このシェーダーは
+        // 不透明度の低い画素を捨てる（discard）。Iris / Oculus が入っていると、シェーダーパックを切っていても
+        // 世界を描いた結果の不透明度が 0 になり、鏡面がまるごと捨てられて透けて消えた（1.21.1 の Iris で確認）
+        target.bindWrite(false);
+        RenderSystem.colorMask(false, false, false, true);
+        RenderSystem.clearColor(0.0F, 0.0F, 0.0F, 1.0F);
+        RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT, Minecraft.ON_OSX);
+        RenderSystem.colorMask(true, true, true, true);
     }
 
     // ------------------------------------------------------------------
@@ -416,16 +450,20 @@ public final class MirrorRenderer {
         if (mc.level == null || mc.player == null || mc.isPaused()) {
             return false;
         }
+        // ワールドを抜ける途中（保存して終了）は、画面のカメラが追う実体がもう無い。そのまま世界を描くと、
+        // 霧の計算（NeoForge の ClientHooks#onFogRender など）が実体を引いて落ちる（Sodium の雲の描画から実際に落ちた）
+        if (mc.gameRenderer.getMainCamera().getEntity() == null || mc.getCameraEntity() == null) {
+            return false;
+        }
         if (Minecraft.useShaderTransparency()) {
             complain("描画設定が「最高」のあいだはミラーに映せない（描き先を持ち替えられるため）。"
                     + "「きれい」以下にすると映る", null);
             return false;
         }
-        if (shaderPack == null) {
-            shaderPack = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
-        }
-        if (shaderPack) {
-            complain("シェーダーパック（Iris / Oculus）と一緒には使えない。ミラーは暗いガラスになる", null);
+        // Iris / Oculus が入っているだけなら映す。パックを実際に使っている間は、世界の描き直しを
+        // 入れ子にすると画面全体が真っ黒になる（Oculus で確認）。パックを切り替えたらその場で効く
+        if (HeadlightVolume.ShaderPacks.inUse()) {
+            complain("シェーダーパックを使っている間はミラーに映せない。ミラーは暗いガラスになる", null);
             return false;
         }
         return true;
