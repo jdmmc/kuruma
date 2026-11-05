@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.jdmmc.kurumamod.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ServerEntityMixin"
+  ],
+  "client": [
+    "AbstractClientPlayerMixin",
+    "CameraSetupMixin",
+    "GameRendererMixin",
+    "GuiMixin",
+    "ItemInHandRendererMixin",
+    "KeyMappingMixin",
+    "LevelRendererMixin",
+    "LivingEntityRendererMixin",
+    "MinecraftMixin",
+    "SoundEngineMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

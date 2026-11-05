@@ -104,6 +104,12 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 sourceSets.main.java { srcDir rootProject.file('core/src/main/java') }
 sourceSets.main.resources { srcDir rootProject.file('core/src/main/resources') }
 
+// Minecraft 1.21.1 に触るが、ローダーには触らないコードとリソース。Fabric 1.21.1 版も同じものを取り込む。
+// ここから呼ぶローダーごとのクラス（KurumaNetwork・Config など）は、同じ名前・同じメソッドで
+// このプロジェクトと fabric-1.21.1/ の両方が持つ
+sourceSets.main.java { srcDir rootProject.file('mc-1.21.1/src/main/java') }
+sourceSets.main.resources { srcDir rootProject.file('mc-1.21.1/src/main/resources') }
+
 // 開発環境へ持ち込む外部 MOD（1.21.1 用）。gradle-local.properties の
 // neo_extra_mods_dir（場所）と neo_extra_mods（jar のファイル名を , 区切り）。
 // 1.20.1 版の extra_mods とは別の項目にしてある——同じ gradle-local.properties を

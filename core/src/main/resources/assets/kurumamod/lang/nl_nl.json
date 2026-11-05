@@ -5,6 +5,8 @@
   "car.kurumamod.car": "Nissan S15 Silvia",
   "entity.kurumamod.car": "Nissan S15 Silvia",
   "key.categories.kurumamod": "KurumaMod",
+  "key.kurumamod.modifier.control": "CTRL + %s",
+  "key.kurumamod.modifier.control.mac": "CMD + %s",
   "key.kurumamod.tuning": "Tuningmenu",
   "screen.kurumamod.tuning.title": "Voertuig setup",
   "screen.kurumamod.tuning.hint": "Wijzigingen worden direct toegepast  Hover over een instelling voor uitleg  Esc om te sluiten",

@@ -3,15 +3,16 @@
 // ./gradlew build で 2 つの jar ができ、どちらもルートの build/libs/ へ集まる
 //   kurumamod-forge-1.20.1-<version>.jar
 //   kurumamod-neoforge-1.21.1-<version>.jar
+//   kurumamod-fabric-1.21.1-<version>.jar
 
 tasks.register('build') {
     group = 'build'
-    description = '両方の jar を作ってルートの build/libs/ へ集める'
-    dependsOn ':forge-1.20.1:build', ':neoforge-1.21.1:build'
+    description = 'すべての jar を作ってルートの build/libs/ へ集める'
+    dependsOn ':forge-1.20.1:build', ':neoforge-1.21.1:build', ':fabric-1.21.1:build'
 }
 
 tasks.register('clean', Delete) {
     group = 'build'
-    dependsOn ':forge-1.20.1:clean', ':neoforge-1.21.1:clean'
+    dependsOn ':forge-1.20.1:clean', ':neoforge-1.21.1:clean', ':fabric-1.21.1:clean'
     delete layout.buildDirectory
 }

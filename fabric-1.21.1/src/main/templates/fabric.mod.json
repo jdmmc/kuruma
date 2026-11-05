@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": ["${mod_authors}"],
+  "contact": {
+    "homepage": "https://kuruma.jdm-mc.com/"
+  },
+  "license": "${mod_license}",
+  "icon": "kurumamod.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.jdmmc.kurumamod.Kurumamod"],
+    "client": ["com.jdmmc.kurumamod.client.KurumamodClient"]
+  },
+  "mixins": ["${mod_id}.mixins.json", "${mod_id}.fabric.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version_range}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

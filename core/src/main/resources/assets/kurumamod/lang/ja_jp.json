@@ -5,6 +5,8 @@
   "car.kurumamod.car": "日産 シルビア S15",
   "entity.kurumamod.car": "日産 シルビア S15",
   "key.categories.kurumamod": "KurumaMod",
+  "key.kurumamod.modifier.control": "CTRL + %s",
+  "key.kurumamod.modifier.control.mac": "CMD + %s",
   "key.kurumamod.tuning": "セッティング画面",
   "screen.kurumamod.tuning.title": "車のセッティング",
   "screen.kurumamod.tuning.hint": "変更はすぐ反映されます  項目名にカーソルで解説  Esc で閉じる",

@@ -1,23 +1,15 @@
 package com.jdmmc.kurumamod;
 
-import net.neoforged.neoforge.network.PacketDistributor;
-import com.jdmmc.kurumamod.client.CarIcons;
+import com.jdmmc.kurumamod.client.hook.ClientHooks;
+import com.jdmmc.kurumamod.hook.CommonHooks;
+import com.jdmmc.kurumamod.network.KurumaNetwork;
 import com.jdmmc.kurumamod.client.CarItemRenderer;
-import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
-import com.jdmmc.kurumamod.client.CarPartModel;
-import com.jdmmc.kurumamod.client.CarPresets;
-import com.jdmmc.kurumamod.client.CarSoundSet;
 import com.jdmmc.kurumamod.client.DustParticle;
 import com.jdmmc.kurumamod.client.SparkParticle;
 import com.jdmmc.kurumamod.client.KurumaMenuScreen;
-import com.jdmmc.kurumamod.client.ObjModel;
-import com.jdmmc.kurumamod.client.PlateModel;
-import com.jdmmc.kurumamod.client.PlateMounts;
-import com.jdmmc.kurumamod.client.PlateTextures;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
-import com.jdmmc.kurumamod.network.KurumaNetwork;
 import com.jdmmc.kurumamod.particle.KurumaParticles;
 import com.jdmmc.kurumamod.sound.KurumaSounds;
 import com.mojang.logging.LogUtils;
@@ -44,15 +36,11 @@ import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypeLoader;
 import com.jdmmc.kurumamod.part.CarPartLoader;
 import com.jdmmc.kurumamod.car.CarTypes;
-import com.jdmmc.kurumamod.network.CarRulesPacket;
-import com.jdmmc.kurumamod.network.CarTypesPacket;
-import com.jdmmc.kurumamod.network.CarPartTypesPacket;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -118,20 +106,22 @@ public class Kurumamod {
         // 各レジストリが登録されるよう DeferredRegister を MOD イベントバスへ登録する
         ITEMS.register(modEventBus);
         ENTITY_TYPES.register(modEventBus);
-        KurumaSounds.SOUNDS.register(modEventBus);
-        KurumaParticles.PARTICLE_TYPES.register(modEventBus);
+        // 音と粒は共有側（mc-1.21.1/）のクラスが Registrar へ出す。読み込ませてから締め切る
+        KurumaSounds.init();
+        KurumaParticles.init();
+        Registrar.registerAll(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
 
         // サーバーイベントなど、購読したいゲーム内イベントのために自身を登録する
         NeoForge.EVENT_BUS.register(this);
 
-        // NeoForge が設定ファイルを生成・読み込みできるよう、この MOD の ModConfigSpec を登録する。
-        // CLIENT は画面の好みなので別ファイル（kurumamod-client.toml）。サーバーには置かれない
-        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
-        modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
-
-        // Mod 一覧の「Config」ボタンから設定画面を開けるようにする（クライアントだけ）
+        // 設定は NeoForge の仕組みを使わず、自前で読む（config/ConfigSpec。Fabric 版と同じ画面を使うため）。
+        // ファイル名は NeoForge に任せていた頃と同じなので、それまでの値がそのまま読める。
+        // CLIENT は画面の好みなので別ファイル（kurumamod-client.toml）。サーバーには置かない
+        Config.load();
         if (FMLEnvironment.dist == Dist.CLIENT) {
+            ClientConfig.load();
+            // Mod 一覧の「Config」ボタンから設定画面を開けるようにする（クライアントだけ）
             ClientModEvents.registerConfigScreen(modContainer);
         }
     }
@@ -140,9 +130,7 @@ public class Kurumamod {
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         LOGGER.info("サーバー起動処理を実行します");
-        // 走行のルールはサーバーの設定が正。ここで一度移しておき、以降は
-        // ログイン時とコマンドで配る（クライアントは自分の toml を見ない）
-        CarRules.setCarCollision(Config.carCollision);
+        CommonHooks.serverStarting();
     }
 
     /**
@@ -171,15 +159,8 @@ public class Kurumamod {
      */
     @SubscribeEvent
     public void onDatapackSync(OnDatapackSyncEvent event) {
-        CarTypesPacket packet = CarTypesPacket.current();
-        CarPartTypesPacket parts = CarPartTypesPacket.current();
-        CarRulesPacket rules = CarRulesPacket.current();
         // ログイン時は本人へ、/reload 時は全員へ（どちらの場合も NeoForge が相手を数え上げてくれる）
-        event.getRelevantPlayers().forEach(player -> {
-            PacketDistributor.sendToPlayer(player, packet);
-            PacketDistributor.sendToPlayer(player, parts);
-            PacketDistributor.sendToPlayer(player, rules);
-        });
+        event.getRelevantPlayers().forEach(CommonHooks::syncDataPack);
     }
 
     // EventBusSubscriber を付けると、そのクラス内の SubscribeEvent 付き static メソッドが自動で登録される
@@ -227,17 +208,7 @@ public class Kurumamod {
          */
         @SubscribeEvent
         public static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
-            event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
-                ObjModel.clearCache();
-                CarModel.clearCache();
-                CarSoundSet.clearReports();
-                CarPartModel.clearCache();
-                CarPresets.clearCache();
-                CarIcons.clearCache();
-                PlateModel.clearCache();
-                PlateMounts.clearCache();
-                PlateTextures.clearCache();
-            });
+            event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> ClientHooks.resourcesReloaded());
         }
 
         /**

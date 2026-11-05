@@ -5,6 +5,8 @@
   "car.kurumamod.car": "Nissan S15 Silvia",
   "entity.kurumamod.car": "Nissan S15 Silvia",
   "key.categories.kurumamod": "KurumaMod",
+  "key.kurumamod.modifier.control": "CTRL + %s",
+  "key.kurumamod.modifier.control.mac": "CMD + %s",
   "key.kurumamod.tuning": "Setup-Bildschirm",
   "screen.kurumamod.tuning.title": "Fahrzeug-Setup",
   "screen.kurumamod.tuning.hint": "Änderungen wirken sofort · Für Hilfe auf einen Namen zeigen · Esc zum Schließen",

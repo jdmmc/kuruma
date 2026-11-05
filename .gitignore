@@ -16,6 +16,7 @@ run-client2/
 run-perf-*/
 runs/
 run-neo*/
+run-fabric*/
 
 # IntelliJ IDEA
 .idea/

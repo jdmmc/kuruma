@@ -284,6 +284,15 @@ public final class MirrorRenderer {
         double fov = Mth.clamp(Math.toDegrees(2.0 * Math.atan(Math.tan(horizontal * 0.5) / aspect)),
                 MIN_FOV, MAX_FOV);
 
+        // 遠くの面が決まるまで（ワールドに入ってから本編が 1 回描かれるまで）は映さない。getDepthFar() は
+        // GameRenderer#renderLevel が初めて走ったときに決まり、それまでは 0。0 のまま射影を作ると
+        // 視錐台が潰れ、視錐台を合わせる繰り返し（Frustum#offsetToFullyIncludeCameraCube）から抜けられず
+        // 画面が固まる（乗ったままワールドに入った最初のフレームで、1.21.1 の Fabric 版で実際に起きた）
+        float far = mc.gameRenderer.getDepthFar();
+        if (!(far > 1.0F)) {
+            return;
+        }
+
         // 乗っているプレイヤーをカメラの持ち主にしておくと、LevelRenderer が
         // 「一人称なので自分は描かない」と判断してくれる（鏡に自分の顔は要らない）
         CAMERA.setup(mc.level, mc.player, false, false, partialTick);
@@ -303,7 +312,7 @@ public final class MirrorRenderer {
         // 射影は<b>鏡の横縦比で作る</b>。バニラの getProjectionMatrix は画面の比を使うので、
         // 横長の鏡に貼ると引き伸ばされる
         Matrix4f projection = new Matrix4f().perspective(
-                (float) (fov * Mth.DEG_TO_RAD), (float) aspect, 0.05F, mc.gameRenderer.getDepthFar());
+                (float) (fov * Mth.DEG_TO_RAD), (float) aspect, 0.05F, far);
         mc.gameRenderer.resetProjectionMatrix(projection);
 
         // GameRenderer#renderLevel がやっているのと同じ順で組む

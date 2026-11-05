@@ -34,14 +34,18 @@ def changelogText = providers.provider {
 
 def javaVersion = JavaVersion.toVersion(java.toolchain.languageVersion.get().asInt())
 
+// 上げる jar を作るタスク。Fabric 版は remapJar（実行時の intermediary 名に直したもの）。
+// 読む側が publish_jar_task で決める（無ければ jar）
+def publishJar = tasks.named(findProperty('publish_jar_task') ?: 'jar', AbstractArchiveTask)
+
 publishMods {
-    file = tasks.named('jar', Jar).flatMap { it.archiveFile }
+    file = publishJar.flatMap { it.archiveFile }
     changelog = changelogText
     // 版の文字列に alpha / beta が入っていればその扱いで出す
     type = mod_version.contains('alpha') ? ALPHA : (mod_version.contains('beta') ? BETA : STABLE)
     // 名前の付け方は 1.10.0 までに手で上げてきたものに揃える。
     // CurseForge は jar のファイル名、Modrinth は「Kuruma <版>」（Modrinth のプロジェクト名）
-    displayName = tasks.named('jar', Jar).flatMap { it.archiveFileName }
+    displayName = publishJar.flatMap { it.archiveFileName }
     version = "${mod_version}-${publish_loader}"
     modLoaders.add(publish_loader)
     dryRun = findProperty('dry_run') != null
@@ -55,6 +59,9 @@ publishMods {
             javaVersions.add(javaVersion)
             clientRequired = true
             serverRequired = true
+            if (publish_loader == 'fabric') {
+                requires('fabric-api')
+            }
         }
     }
 
@@ -65,6 +72,9 @@ publishMods {
             displayName = "Kuruma ${mod_version}"
             accessToken = mrToken ?: 'dry-run'
             minecraftVersions.add(minecraft_version)
+            if (publish_loader == 'fabric') {
+                requires('fabric-api')
+            }
         }
     }
 }
@@ -108,7 +118,7 @@ def guard = { Task task, String site, Closure<String> findExisting ->
 def checkCurseforge = tasks.register('checkCurseforgeNotPublished') {
     group = 'publishing'
     description = 'CurseForge に同じファイルがもう上がっていないか確かめる'
-    def fileName = tasks.named('jar', Jar).flatMap { it.archiveFileName }
+    def fileName = publishJar.flatMap { it.archiveFileName }
     doLast {
         guard(it, 'CurseForge') {
             // CurseForge の公式 API でファイル一覧を読むには別の鍵が要るので、公開のミラー（cfwidget）で見る

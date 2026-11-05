@@ -5,6 +5,8 @@
   "car.kurumamod.car": "日产 Silvia S15",
   "entity.kurumamod.car": "日产 Silvia S15",
   "key.categories.kurumamod": "KurumaMod",
+  "key.kurumamod.modifier.control": "CTRL + %s",
+  "key.kurumamod.modifier.control.mac": "CMD + %s",
   "key.kurumamod.tuning": "调校界面",
   "screen.kurumamod.tuning.title": "车辆调校",
   "screen.kurumamod.tuning.hint": "更改立即生效  光标悬停项目名可查看说明  Esc 关闭",
