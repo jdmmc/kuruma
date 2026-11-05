@@ -94,27 +94,35 @@ public final class CourseRenderer {
         }
         List<CourseLinesPacket.Gate> shown = gates;
         // 頂点は描く直前（同じフレームのうち）に積まれる。設定はここで読んだ値を使う
-        collector.submitCustomGeometry(new PoseStack(), EffectRenderTypes.TRANSLUCENT_OVERLAY, (pose, consumer) -> {
-            Sink sink = new Sink(consumer, pose.pose(), eye);
-            for (CourseLinesPacket.Gate gate : shown) {
-                double midX = (gate.ax() + gate.bx()) / 2.0;
-                double midZ = (gate.az() + gate.bz()) / 2.0;
-                if (Math.hypot(midX - eye.x, midZ - eye.z) > VIEW_DISTANCE) {
-                    continue;
-                }
-                float[] color = gate.start() ? START_COLOR : CHECKPOINT_COLOR;
-                if (display.showsPlane()) {
-                    // 面。くぐる場所がそのまま見える。コースが長いと視界が板だらけになるので切れる
-                    quad(sink, gate.ax(), gate.az(), gate.bx(), gate.bz(),
-                            gate.yBottom(), gate.yTop(), color, PLANE_ALPHA);
-                }
-                if (display.showsPosts()) {
-                    // 両端の柱。どこからどこまでが有効な幅かを示す
-                    post(sink, gate.ax(), gate.az(), gate.bx(), gate.bz(), gate, color);
-                    post(sink, gate.bx(), gate.bz(), gate.ax(), gate.az(), gate, color);
-                }
+        if (DeferredGlows.active()) {
+            // シェーダーパック使用中は記録だけして、パックの仕上げの直前（ヘッドライトの後）に半透明で重ねる
+            // （そのまま出すとパックの gbuffer に乗り、ゲートが空に映る）
+            emit(new Sink(DeferredGlows.GATES, new Matrix4f(), eye), shown, display, eye);
+            return;
+        }
+        collector.submitCustomGeometry(new PoseStack(), EffectRenderTypes.TRANSLUCENT_OVERLAY,
+                (pose, consumer) -> emit(new Sink(consumer, pose.pose(), eye), shown, display, eye));
+    }
+
+    private static void emit(Sink sink, List<CourseLinesPacket.Gate> shown, GateDisplay display, Vec3 eye) {
+        for (CourseLinesPacket.Gate gate : shown) {
+            double midX = (gate.ax() + gate.bx()) / 2.0;
+            double midZ = (gate.az() + gate.bz()) / 2.0;
+            if (Math.hypot(midX - eye.x, midZ - eye.z) > VIEW_DISTANCE) {
+                continue;
             }
-        });
+            float[] color = gate.start() ? START_COLOR : CHECKPOINT_COLOR;
+            if (display.showsPlane()) {
+                // 面。くぐる場所がそのまま見える。コースが長いと視界が板だらけになるので切れる
+                quad(sink, gate.ax(), gate.az(), gate.bx(), gate.bz(),
+                        gate.yBottom(), gate.yTop(), color, PLANE_ALPHA);
+            }
+            if (display.showsPosts()) {
+                // 両端の柱。どこからどこまでが有効な幅かを示す
+                post(sink, gate.ax(), gate.az(), gate.bx(), gate.bz(), gate, color);
+                post(sink, gate.bx(), gate.bz(), gate.ax(), gate.az(), gate, color);
+            }
+        }
     }
 
     /** 頂点の書き込み先。カメラからの差を double のまま取ってから行列を掛ける。 */

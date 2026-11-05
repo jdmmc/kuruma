@@ -1500,7 +1500,7 @@ public final class ObjModel {
 
     /** 面の 4 隅を積む順。 */
     private static final int[] CORNERS = {0, 1, 2, 3};
-    private static final int[] MIRRORED_CORNERS = {0, 3, 2, 1};
+    private static final int[] MIRRORED_CORNERS = {2, 1, 0, 3};
 
     /**
      * 面の 4 隅を積む順。<b>鏡像（{@code flip} が負）のときは逆に回す。</b>
@@ -1508,9 +1508,44 @@ public final class ObjModel {
      * <p>X を反転すると面の巻き方向が裏返る。1.21.1 はカリング無しなので気にしなくてよかったが、
      * 26.3 の {@code entity_cutout} は<b>表と裏で陰影を分けて付ける</b>（{@code PER_FACE_LIGHTING}。裏から見た面は
      * 法線を反転して照らす）ので、裏返ったままだと右側のタイヤだけ陰影が逆になる。積む順を逆にして表に戻す。</p>
+     *
+     * <p><b>逆に回すときは 2-1-0-3 にすること（0-3-2-1 ではいけない）。</b>三角形は 3 番目の頂点を 2 回積んだ
+     * 縮退四角形（a, b, c, c）なので、0-3-2-1 だと a, c, c, b となり<b>最初の 3 頂点のうち 2 つが同じ点</b>になる。
+     * シェーダーパック（Iris）は 4 頂点ごとに最初の 3 頂点から接線を求めて頂点に足す
+     * （{@code ModelToEntityVertexSerializer}・{@code MixinBufferBuilder#fillExtendedData}）ので、ここで 0 割りになって
+     * 接線が NaN になり、パックの後段のぼかしが NaN を広げて<b>右のタイヤから空へ伸びる巨大な黒い三角</b>になった
+     * （タイヤの回転に合わせて動く。パック無しでは出ない）。2-1-0-3 なら c, b, a, c で最初の 3 つが揃わず、
+     * 四角形を割る対角線（0-2）も 0-1-2-3 と同じまま（{@code QUADS} は 1 枚目の頂点から割る）。</p>
      */
     static int[] cornerOrder(float flip) {
         return flip < 0.0F ? MIRRORED_CORNERS : CORNERS;
+    }
+
+    /** UV をずらす量（積む順の 4 隅ごと）。テクスチャの 1 画素よりずっと小さい。 */
+    private static final float UV_NUDGE = 2.0e-6F;
+    static final float[] NUDGE_U = {0.0F, UV_NUDGE, UV_NUDGE, 0.0F};
+    static final float[] NUDGE_V = {0.0F, 0.0F, UV_NUDGE, UV_NUDGE};
+
+    /**
+     * 面の UV が 1 点（か 1 本の線）に潰れているか。積む順（{@code corners}）の最初の 3 頂点で見る。
+     *
+     * <p><b>シェーダーパック（Iris）は 4 頂点ごとに位置と UV から接線を求めて頂点に足す</b>
+     * （{@code NormalHelper#computeTangent}）。UV が潰れていると接線が長さ 0 になり、パックのシェーダーが
+     * {@code normalize} して NaN になる。NaN はパックの後段（ブルーム・TAA・ぼかし）で周りへ広がり、
+     * <b>タイヤから空へ伸びる巨大な黒い三角</b>になった（タイヤの回転に合わせて動く。左右どちらの輪でも出る）。
+     * 色を 1 画素で指すだけのホイール・タイヤ・ナンバー灯の面は UV が 1 点に潰れているのがふつうなので、
+     * パック使用中だけ 4 隅の UV をほんの少し（{@link #UV_NUDGE}）ずらして接線が決まるようにする。
+     * 指している色は変わらない。パック無しではずらさない。</p>
+     */
+    static boolean uvDegenerate(float[] vertices, int base, int[] corners, int stride) {
+        int o0 = base + corners[0] * stride;
+        int o1 = base + corners[1] * stride;
+        int o2 = base + corners[2] * stride;
+        float du1 = vertices[o1 + 6] - vertices[o0 + 6];
+        float dv1 = vertices[o1 + 7] - vertices[o0 + 7];
+        float du2 = vertices[o2 + 6] - vertices[o0 + 6];
+        float dv2 = vertices[o2 + 7] - vertices[o0 + 7];
+        return Math.abs(du1 * dv2 - du2 * dv1) < 1.0e-12F;
     }
 
     private void renderFaces(int[] faces, Matrix4f matrix, Matrix3f normal, float flip, VertexConsumer consumer,
@@ -1526,8 +1561,11 @@ public final class ObjModel {
         // 1.21 の VertexConsumer には Matrix3f で法線を回す口が無いので、ここで回して渡す
         Vector3f n = new Vector3f();
         int[] corners = cornerOrder(flip);
+        // シェーダーパック使用中は、UV の潰れた面の UV を少しずらす（uvDegenerate）
+        boolean pack = IrisScene.packActive();
         for (int face : faces) {
             int base = face * FACE_FLOATS;
+            boolean nudge = pack && uvDegenerate(vertices, base, corners, STRIDE);
             for (int k = 0; k < 4; k++) {
                 int offset = base + corners[k] * STRIDE;
                 normal.transform(n.set(flip * vertices[offset + 3], vertices[offset + 4], vertices[offset + 5]));
@@ -1536,7 +1574,8 @@ public final class ObjModel {
                                 vertices[offset + 9] * tintGreen,
                                 vertices[offset + 10] * tintBlue,
                                 vertices[offset + ALPHA_OFFSET] * alpha)
-                        .setUv(vertices[offset + 6], vertices[offset + 7])
+                        .setUv(vertices[offset + 6] + (nudge ? NUDGE_U[k] : 0.0F),
+                                vertices[offset + 7] + (nudge ? NUDGE_V[k] : 0.0F))
                         .setOverlay(packedOverlay)
                         .setLight(packedLight)
                         .setNormal(n.x, n.y, n.z);
@@ -1555,14 +1594,18 @@ public final class ObjModel {
         Matrix4f matrix = pose.pose();
         Matrix3f normal = pose.normal();
         Vector3f n = new Vector3f();
+        boolean pack = IrisScene.packActive();
         for (int index : face.faces()) {
             int base = index * FACE_FLOATS;
+            // シェーダーパック使用中は、UV の潰れた面の UV を少しずらす（uvDegenerate）
+            boolean nudge = pack && uvDegenerate(vertices, base, CORNERS, STRIDE);
             for (int corner = 0; corner < 4; corner++) {
                 int offset = base + corner * STRIDE;
                 normal.transform(n.set(vertices[offset + 3], vertices[offset + 4], vertices[offset + 5]));
                 consumer.addVertex(matrix, vertices[offset], vertices[offset + 1], vertices[offset + 2])
                         .setColor(red, green, blue, 1.0F)
-                        .setUv(vertices[offset + 6], vertices[offset + 7])
+                        .setUv(vertices[offset + 6] + (nudge ? NUDGE_U[corner] : 0.0F),
+                                vertices[offset + 7] + (nudge ? NUDGE_V[corner] : 0.0F))
                         .setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
                         .setLight(packedLight)
                         .setNormal(n.x, n.y, n.z);

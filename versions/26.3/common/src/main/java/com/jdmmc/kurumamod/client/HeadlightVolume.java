@@ -122,9 +122,22 @@ public final class HeadlightVolume {
             .withUniform("VoxelSampler", UniformType.COMBINED_IMAGE_SAMPLER)
             .build();
 
-    /** 画面いっぱいに光を足す。色はシェーダーが全部決めるので混色も深度も要らない。 */
-    private static final RenderPipeline VOLUME_PIPELINE = RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
-            .withLocation(id("pipeline/headlight_volume"))
+    /** 画面いっぱいに光を足す。色はシェーダーが全部決めるので混色も深度も要らない。描き先は主画面（RGBA8）。 */
+    private static final RenderPipeline VOLUME_PIPELINE = volumeBuilder("pipeline/headlight_volume")
+            .withColorTargetState(ColorTargetState.DEFAULT)
+            .build();
+
+    /**
+     * 同じものを浮動小数の描き先へ（シェーダーパックの仕上げ前の絵。{@link IrisScene#target()}）。
+     * パイプラインは描き先の色の形式ごとに要る。
+     */
+    private static final RenderPipeline VOLUME_PIPELINE_HDR = volumeBuilder("pipeline/headlight_volume_hdr")
+            .withColorTargetState(new ColorTargetState(Optional.empty(), GpuFormat.RGBA16_FLOAT, ColorTargetState.WRITE_ALL))
+            .build();
+
+    private static RenderPipeline.Builder volumeBuilder(String location) {
+        return RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
+            .withLocation(id(location))
             .withVertexShader(id("core/headlight_volume"))
             .withFragmentShader(id("core/headlight_volume"))
             .withBindGroupLayout(BindGroupLayouts.PROJECTION)
@@ -136,9 +149,8 @@ public final class HeadlightVolume {
                     .withUniform("DepthSampler", UniformType.COMBINED_IMAGE_SAMPLER)
                     .withUniform("ShadowSampler", UniformType.COMBINED_IMAGE_SAMPLER)
                     .build())
-            .withColorTargetState(ColorTargetState.DEFAULT)
-            .withCull(false)
-            .build();
+            .withCull(false);
+    }
 
     /** ランプから見た距離の地図を描く（{@link HeadlightShadows}）。 */
     private static final RenderPipeline SHADOW_PIPELINE = RenderPipeline.builder(RenderPipelines.POST_PROCESSING_SNIPPET)
@@ -155,9 +167,13 @@ public final class HeadlightVolume {
     private static CompiledRenderPipeline volumeCompiled;
     private static CompiledRenderPipeline shadowCompiled;
 
-    /** 主画面の色の写し。シェーダーはこれを読み、主画面へ書く（書いている最中の画面は同時に読めない）。 */
-    private static GpuTexture copy;
-    private static GpuTextureView copyView;
+    /**
+     * 描き先の色の写し。シェーダーはこれを読み、描き先へ書く（書いている最中の画面は同時に読めない）。
+     * 描き先の形式ごとに 1 枚（パック使用中は仕上げ前の RGBA16F と主画面の RGBA8 を同じフレームで使うので、
+     * 1 枚を使い回すと毎フレーム 2 回作り直すことになる）。
+     */
+    private static final java.util.Map<GpuFormat, GpuTexture> COPIES = new java.util.EnumMap<>(GpuFormat.class);
+    private static final java.util.Map<GpuFormat, GpuTextureView> COPY_VIEWS = new java.util.EnumMap<>(GpuFormat.class);
 
     /** {@code HeadlightInfo} の入れ物。3 つを回して、GPU が読んでいる最中のものに書かない。 */
     private static MappableRingBuffer infoRing;
@@ -168,6 +184,12 @@ public final class HeadlightVolume {
     /** 最後に光を描いたフレーム（{@link #bindLampsForSmoke} が古い値を渡さないため）。 */
     private static long lastFrame = -1;
     private static long frame;
+    /** 影の地図を描いたフレーム（仕上げ前と後の 2 回に分けて描くとき、2 回目は使い回す）。 */
+    private static long mapFrame = -1;
+    /** このフレームはシェーダーパックの仕上げ前に路面を描いた。後では光線だけを足す（PackMode 2）。 */
+    private static boolean packSurfaceDone;
+    /** 仕上げ前に集めた灯数（後で光線を足すときに使い回す）。 */
+    private static int packLampCount;
 
     private static final Matrix4f[] LAMPS = new Matrix4f[MAX_LAMPS];
     private static boolean announced;
@@ -218,8 +240,14 @@ public final class HeadlightVolume {
      * ワールドを描き終えたところで呼ぶ（{@code LevelStageHooks#levelEnd}）。光を主画面に描き足す。
      * <b>例外は外へ出さない。</b>失敗したら代用に切り替える。
      */
-    public static void levelEnd(CameraRenderState camera) {
+    /** ワールドを描き始めるところ（{@code LevelStageHooks#levelStart}）。ミラーの描画中は呼ばれない。 */
+    public static void levelStart() {
         frame++;
+        packSurfaceDone = false;
+        packLampCount = 0;
+    }
+
+    public static void levelEnd(CameraRenderState camera) {
         if (failed || !camera.initialized || MirrorRenderer.isRendering()) {
             return;
         }
@@ -238,17 +266,19 @@ public final class HeadlightVolume {
         }
         try {
             float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
-            int count = collect(level, camera.pos, partialTick);
+            // パックの仕上げ前に路面を描いていれば、ランプはそのとき集めたもの
+            int count = packSurfaceDone ? packLampCount : collect(level, camera.pos, partialTick);
             if (count == 0) {
                 lastLampCount = 0;
                 return;
             }
-            // 主画面の色を写し、それを読んで主画面へ書く。シェーダーパックの仕上げ前の絵へ描くようにするときは、
-            // ここの「読む絵」と「書く先」と PackMode を差し替える（1.21.1 の renderBeforePackComposite）
+            // 主画面の色を写し、それを読んで主画面へ書く。パック使用中は仕上がった絵に重ねる:
+            // 路面を仕上げ前に入れていれば光線だけ（PackMode 2）、入れられなかったら両方（PackMode 3）
+            float packMode = packSurfaceDone ? 2.0F : ShaderPacks.inUse() ? 3.0F : 0.0F;
             CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-            GpuTextureView scene = snapshot(encoder, main);
+            GpuTextureView scene = snapshot(encoder, main.getColorTexture());
             render(encoder, level, camera, count, partialTick, main.getColorTextureView(), scene,
-                    main.getDepthTextureView(), ShaderPacks.inUse() ? 3.0F : 0.0F);
+                    main.getDepthTextureView(), packMode);
         } catch (RuntimeException e) {
             fail("ヘッドライトを描けなかった", e);
         }
@@ -257,7 +287,7 @@ public final class HeadlightVolume {
     /**
      * 光を描く。<b>描く処理はここ 1 つ</b>（後でシェーダーパックの仕上げの前へ入れるときも、これを呼ぶ）。
      *
-     * @param target    書く先（色）。{@code ColorTargetState.DEFAULT} と同じ RGBA8 であること
+     * @param target    書く先（色）。RGBA8（主画面）か RGBA16F（パックの仕上げ前の絵）
      * @param scene     照らす前の絵（{@code target} の写し。{@code target} そのものは読めない）
      * @param depth     世界の深度（逆向き）
      * @param packMode  シェーダーの PackMode（0 = パック無し、1 = パックの仕上げ前に路面だけ、
@@ -265,9 +295,18 @@ public final class HeadlightVolume {
      */
     static void render(CommandEncoder encoder, ClientLevel level, CameraRenderState camera, int count, float partialTick,
                        GpuTextureView target, GpuTextureView scene, GpuTextureView depth, float packMode) {
-        // 影。ブロックの格子を少し読み直し、ランプを送ってから、ランプから見た距離の地図を描く
-        HeadlightShadows.update(encoder, level, camera.pos);
-        HeadlightShadows.uploadLamps(encoder, LAMPS, count);
+        CompiledRenderPipeline pipeline = target.texture().getFormat() == GpuFormat.RGBA16_FLOAT
+                ? RenderSystem.getCompiledPipelineNullable(VOLUME_PIPELINE_HDR) : volumeCompiled;
+        if (pipeline == null) {
+            throw new IllegalStateException("ヘッドライトのパイプラインが無い（" + target.texture().getFormat() + "）");
+        }
+        // 影。ブロックの格子を少し読み直し、ランプを送ってから、ランプから見た距離の地図を描く。
+        // 同じフレームの 2 回目（パックの仕上げの前と後に分けて描くとき）は使い回す
+        boolean mapReady = mapFrame == frame;
+        if (!mapReady) {
+            HeadlightShadows.update(encoder, level, camera.pos);
+            HeadlightShadows.uploadLamps(encoder, LAMPS, count);
+        }
 
         if (infoRing == null) {
             infoRing = new MappableRingBuffer(() -> "kurumamod HeadlightInfo",
@@ -279,11 +318,14 @@ public final class HeadlightVolume {
                     target.getWidth(0), target.getHeight(0), packMode);
         }
 
-        HeadlightShadows.renderMap(encoder, shadowCompiled, info, count);
+        if (!mapReady) {
+            HeadlightShadows.renderMap(encoder, shadowCompiled, info, count);
+            mapFrame = frame;
+        }
 
         try (RenderPass pass = encoder.createRenderPass(() -> "kurumamod headlight volume", target,
                 Optional.empty(), null, OptionalDouble.empty())) {
-            pass.setPipeline(volumeCompiled);
+            pass.setPipeline(pipeline);
             // Projection（ワールドを描いたときの射影。画面の揺れ込み）と Globals
             RenderSystem.bindDefaultUniforms(pass);
             pass.setUniform("HeadlightInfo", info);
@@ -333,23 +375,25 @@ public final class HeadlightVolume {
         out.putVec4(color[0], color[1], color[2], 0.0F);
     }
 
-    /** 主画面の色を写しへ写す（大きさが違えば作り直す）。 */
-    private static GpuTextureView snapshot(CommandEncoder encoder, RenderTarget main) {
-        GpuTexture source = main.getColorTexture();
+    /** 描き先の色を写しへ写す（大きさか形式が違えば作り直す）。 */
+    private static GpuTextureView snapshot(CommandEncoder encoder, GpuTexture source) {
         int width = source.getWidth(0);
         int height = source.getHeight(0);
-        if (copy == null || copy.getWidth(0) != width || copy.getHeight(0) != height || copy.getFormat() != source.getFormat()) {
+        GpuFormat format = source.getFormat();
+        GpuTexture copy = COPIES.get(format);
+        if (copy == null || copy.getWidth(0) != width || copy.getHeight(0) != height) {
             if (copy != null) {
-                copyView.close();
+                COPY_VIEWS.get(format).close();
                 copy.close();
             }
             GpuDevice device = RenderSystem.getDevice();
             copy = device.createTexture("kurumamod headlight scene copy",
-                    GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING, source.getFormat(), width, height, 1, 1);
-            copyView = device.createTextureView(copy);
+                    GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING, format, width, height, 1, 1);
+            COPIES.put(format, copy);
+            COPY_VIEWS.put(format, device.createTextureView(copy));
         }
         encoder.copyTextureToTexture(source, copy, 0, 0, 0, 0, 0, width, height);
-        return copyView;
+        return COPY_VIEWS.get(format);
     }
 
     /** 近い車から順に、ヘッドライトを点けている車のランプを詰める。 */
@@ -533,9 +577,39 @@ public final class HeadlightVolume {
     }
 
     /**
-     * シェーダーパックの仕上げの直前（{@code IrisPipelineMixin}）。<b>26.3 ではまだ何も描かない</b>
-     * （Iris を入れて合わせるときに、仕上げ前の絵を {@link #render} の読む絵・書く先にして PackMode 1 で呼ぶ）。
+     * シェーダーパック（Iris）が仕上げ（composite・final）を流す<b>直前</b>に、仕上げ前の絵へ路面の照り返しを
+     * 入れる（PackMode 1。{@code LevelStageHooks#beforePackComposite} から、{@link IrisScene#beginPreComposite()} の後に）。
+     * ここならブロックの色が残った絵を明るくでき、パックに霧・ブルーム・トーンマップを一度だけ掛けてもらえる。
+     * 光線（霧の中の光）は後で仕上がった絵に足す（PackMode 2、{@link #levelEnd}）。
+     *
+     * <p>設定 {@code headlightPackPreComposite} を切っていれば何もしない（{@link #levelEnd} が両方を描く）。
+     * <b>例外は外へ出さない。</b></p>
      */
-    public static void renderBeforePackComposite() {
+    public static void renderBeforePackComposite(CameraRenderState camera, GpuTextureView target) {
+        if (failed || camera == null || !camera.initialized || MirrorRenderer.isRendering()
+                || !ClientConfig.headlightPackPreComposite || !isActive()) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        ClientLevel level = mc.level;
+        RenderTarget main = mc.gameRenderer.mainRenderTarget();
+        if (level == null || main.getDepthTextureView() == null || !ensureCompiled()) {
+            return;
+        }
+        try {
+            float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
+            int count = collect(level, camera.pos, partialTick);
+            packLampCount = count;
+            packSurfaceDone = true;
+            if (count == 0) {
+                return;
+            }
+            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+            GpuTextureView scene = snapshot(encoder, target.texture());
+            render(encoder, level, camera, count, partialTick, target, scene, main.getDepthTextureView(), 1.0F);
+        } catch (RuntimeException e) {
+            packSurfaceDone = false;
+            fail("シェーダーパックの仕上げ前にヘッドライトを描けなかった", e);
+        }
     }
 }

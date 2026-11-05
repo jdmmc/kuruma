@@ -346,6 +346,9 @@ public final class CarLights {
         // 画素ごとに解く光（HeadlightVolume）が使えるなら、路面と光の筋はそちらに任せる。
         // こちらは光芒だけ描く。使えないとき（シェーダーパックなど）はここで形を積んで代用する
         boolean screenSpace = HeadlightVolume.isActive();
+        // シェーダーパック使用中は、加算の面をワールドの描画に乗せず記録して後から足す（DeferredGlows）。
+        // そのまま出すとパックの gbuffer へ描かれ、灰色の板や黒い面になる
+        boolean deferred = DeferredGlows.active();
         if (beam != null && !screenSpace && !MirrorRenderer.isRendering()) {
             float strength = darkness;
             if (strength > 0.03F && eye.lengthSqr() < GROUND_MAX_DISTANCE * GROUND_MAX_DISTANCE) {
@@ -359,13 +362,21 @@ public final class CarLights {
                     // 頂点はここで求め終えてあるので、積むのは後（同じフレームのうち）でよい
                     Textured textured = lit.textured;
                     Vertices groundGlow = lit.glow;
-                    if (textured.count > 0) {
-                        collector.submitCustomGeometry(pose, EffectRenderTypes.LIT_SURFACE,
-                                (p, consumer) -> textured.emit(p, consumer));
-                    }
-                    if (groundGlow.count > 0) {
-                        collector.submitCustomGeometry(pose, EffectRenderTypes.LIGHT_ADDITIVE,
-                                (p, consumer) -> groundGlow.emit(p.pose(), consumer, GROUND_ADD));
+                    if (deferred) {
+                        // シェーダーパック使用中は、テクスチャで描き直す面は描けない（パックの gbuffer に乗る）。
+                        // 加算の色味だけを後から足す
+                        if (groundGlow.count > 0) {
+                            groundGlow.emit(pose.last().pose(), DeferredGlows.GLOWS, GROUND_ADD);
+                        }
+                    } else {
+                        if (textured.count > 0) {
+                            collector.submitCustomGeometry(pose, EffectRenderTypes.LIT_SURFACE,
+                                    (p, consumer) -> textured.emit(p, consumer));
+                        }
+                        if (groundGlow.count > 0) {
+                            collector.submitCustomGeometry(pose, EffectRenderTypes.LIGHT_ADDITIVE,
+                                    (p, consumer) -> groundGlow.emit(p.pose(), consumer, GROUND_ADD));
+                        }
                     }
                 }
                 beam.field = field;
@@ -404,8 +415,12 @@ public final class CarLights {
             }
         }
         if (additive.count > 0) {
-            collector.submitCustomGeometry(pose, EffectRenderTypes.LIGHT_ADDITIVE,
-                    (p, consumer) -> additive.emit(p.pose(), consumer));
+            if (deferred) {
+                additive.emit(pose.last().pose(), DeferredGlows.GLOWS);
+            } else {
+                collector.submitCustomGeometry(pose, EffectRenderTypes.LIGHT_ADDITIVE,
+                        (p, consumer) -> additive.emit(p.pose(), consumer));
+            }
         }
     }
 

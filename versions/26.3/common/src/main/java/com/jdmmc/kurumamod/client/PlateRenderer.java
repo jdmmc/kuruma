@@ -158,10 +158,12 @@ public final class PlateRenderer {
 
     private static void quad(VertexConsumer consumer, PoseStack.Pose entry, int light,
                              float nx, float ny, float nz, float... corners) {
+        // シェーダーパック使用中は UV を 1 点にしない（接線が決まらず NaN になる。ObjModel#uvDegenerate）
+        boolean nudge = IrisScene.packActive();
         for (int i = 0; i < 4; i++) {
             consumer.addVertex(entry, corners[i * 3], corners[i * 3 + 1], corners[i * 3 + 2])
                     .setColor(1.0F, 1.0F, 1.0F, 1.0F)
-                    .setUv(0.5F, 0.5F)
+                    .setUv(0.5F + (nudge ? ObjModel.NUDGE_U[i] : 0.0F), 0.5F + (nudge ? ObjModel.NUDGE_V[i] : 0.0F))
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(light)
                     .setNormal(entry, nx, ny, nz);

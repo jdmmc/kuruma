@@ -442,17 +442,27 @@ public final class CarSkidMarks {
         if (vertices.isEmpty()) {
             return;
         }
-        collector.submitCustomGeometry(new PoseStack(), EffectRenderTypes.TRANSLUCENT_OVERLAY, (pose, consumer) -> {
-            Matrix4f matrix = pose.pose();
-            for (int i = 0; i < vertices.size(); i++) {
-                double[] v = vertices.get(i);
-                float fade = fades.get(i);
-                // 面のまわりを一周する順（QUADS）
-                for (int k = 0; k < 16; k += 4) {
-                    vertex(consumer, matrix, eye, v[k], v[k + 1], v[k + 2], (float) v[k + 3], fade);
-                }
+        if (DeferredGlows.active()) {
+            // シェーダーパック使用中は記録だけして、パックの仕上げの直前に路面の色へ掛けて暗くする
+            // （そのまま出すとパックの gbuffer に乗り、跡が空に折り返して映る。docs/rendering.md「タイヤ痕とシェーダーパック」）。
+            // α は「ほぼ黒（SHADE）を α で重ねたとき」と同じ暗さになる量
+            emit(DeferredGlows.MARKS, new Matrix4f(), eye, vertices, fades, 1.0F - SHADE);
+            return;
+        }
+        collector.submitCustomGeometry(new PoseStack(), EffectRenderTypes.TRANSLUCENT_OVERLAY,
+                (pose, consumer) -> emit(consumer, pose.pose(), eye, vertices, fades, 1.0F));
+    }
+
+    private static void emit(VertexConsumer consumer, Matrix4f matrix, Vec3 eye, List<double[]> vertices,
+                             List<Float> fades, float alphaScale) {
+        for (int i = 0; i < vertices.size(); i++) {
+            double[] v = vertices.get(i);
+            float fade = fades.get(i) * alphaScale;
+            // 面のまわりを一周する順（QUADS）
+            for (int k = 0; k < 16; k += 4) {
+                vertex(consumer, matrix, eye, v[k], v[k + 1], v[k + 2], (float) v[k + 3], fade);
             }
-        });
+        }
     }
 
     /** 頂点を 1 つ積む。 */

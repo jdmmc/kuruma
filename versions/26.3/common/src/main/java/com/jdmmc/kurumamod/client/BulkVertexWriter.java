@@ -128,12 +128,18 @@ final class BulkVertexWriter {
         int corner = 0;
         // 鏡像のときは 4 隅を逆に回して面を表に戻す（ObjModel#cornerOrder）
         int[] corners = ObjModel.cornerOrder(flip);
+        // シェーダーパック使用中は、UV の潰れた面の UV を少しずらす（ObjModel#uvDegenerate）
+        boolean pack = IrisScene.packActive();
+        boolean nudge = false;
         while (written < total) {
             int count = Math.min(BATCH, total - written);
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 long start = stack.nmalloc(count * STRIDE);
                 long ptr = start;
                 for (int i = 0; i < count; i++) {
+                    if (corner == 0) {
+                        nudge = pack && ObjModel.uvDegenerate(vertices, faces[faceIndex] * faceFloats, corners, stride);
+                    }
                     int offset = faces[faceIndex] * faceFloats + corners[corner] * stride;
                     float x = flip * vertices[offset];
                     float y = vertices[offset + 1];
@@ -147,8 +153,8 @@ final class BulkVertexWriter {
                     MemoryUtil.memPutFloat(ptr + 8, matrix.m02() * x + matrix.m12() * y + matrix.m22() * z + matrix.m32());
                     MemoryUtil.memPutInt(ptr + 12, abgr(vertices[offset + 8] * tintRed, vertices[offset + 9] * tintGreen,
                             vertices[offset + 10] * tintBlue, vertices[offset + alphaOffset] * alpha));
-                    MemoryUtil.memPutFloat(ptr + 16, vertices[offset + 6]);
-                    MemoryUtil.memPutFloat(ptr + 20, vertices[offset + 7]);
+                    MemoryUtil.memPutFloat(ptr + 16, vertices[offset + 6] + (nudge ? ObjModel.NUDGE_U[corner] : 0.0F));
+                    MemoryUtil.memPutFloat(ptr + 20, vertices[offset + 7] + (nudge ? ObjModel.NUDGE_V[corner] : 0.0F));
                     MemoryUtil.memPutInt(ptr + 24, packedOverlay);
                     MemoryUtil.memPutInt(ptr + 28, packedLight);
                     MemoryUtil.memPutInt(ptr + 32, normal(

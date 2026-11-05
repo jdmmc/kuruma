@@ -107,9 +107,9 @@ import java.util.OptionalDouble;
  * 先に描くと、深度を書かない煙をヘッドライトが路面として明るくするうえ、ランプが 1 フレーム古くなる。</p>
  *
  * <h2>シェーダーパック</h2>
- * <p>26.3 には Iris などのパックが無い前提で、パックの仕上げの直前に描く口（{@link #renderBeforePackComposite}）は
- * 何もしない。パックが使われていれば、1.21.1 でパックの絵が読めなかったときと同じく、仕上がった画面へ
- * 描く（霧はパックに任せ、明るさは H メニューの倍率）。</p>
+ * <p>Iris のパック使用中は、パックが仕上げ（composite）を流す直前に、仕上げ前の絵（{@link IrisScene#target()}、
+ * RGBA16F）へ描く（{@link #renderBeforePackComposite}。霧・トーンマップはパックが煙の上にも掛ける）。その絵が
+ * 読めなかったときは、仕上がった画面へ描く（霧はパックに任せ、明るさは H メニューの倍率）。どちらも 1.21.1 と同じ。</p>
  *
  * <h2>失敗したら</h2>
  * <p>パイプラインのコンパイルや描画に失敗したら、ログを 1 回出して {@link #usable()} を false にする。
@@ -666,44 +666,74 @@ public final class TireSmokeVolume {
      * <b>例外は外へ出さない</b>（失敗したら粒の煙に落とす）。
      */
     public static void renderAfterLevel(CameraRenderState camera) {
+        if (drawnBeforePackComposite) {
+            // このフレームの煙はパックの仕上げ前の絵へ入れてある
+            drawnBeforePackComposite = false;
+            return;
+        }
         if (camera == null || !camera.initialized || PUFFS.count() == 0 || MirrorRenderer.isRendering() || !usable()) {
             return;
         }
         try {
-            VIEW.set(camera.viewRotationMatrix);
-            PROJECTION.set(camera.projectionMatrix);
-            frameCamera = camera.pos;
-            // 視線の向き（世界の向き）= 視点の回転の逆で (0, 0, -1) を戻したもの
-            new Matrix4f(VIEW).invert().transformDirection(FRAME_LOOK.set(0.0F, 0.0F, -1.0F)).normalize();
-            framePartialTick = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-            // パックが使われていれば、霧はパックに任せ、明るさは H メニューの倍率（26.3 にはパックの絵へ描く口が無い）
+            prepare(camera);
+            // パックが使われていれば（仕上げ前の絵へ入れられなかったとき）、仕上がった絵に重ねる。
+            // 霧はパックに任せ、明るさは H メニューの倍率
             boolean pack = HeadlightVolume.ShaderPacks.inUse();
-            draw(pack ? (float) ClientConfig.smokePackBrightness : 1.0F, !pack);
+            RenderTarget main = Minecraft.getInstance().gameRenderer.mainRenderTarget();
+            draw(main.getColorTexture(), main.getColorTextureView(),
+                    pack ? (float) ClientConfig.smokePackBrightness : 1.0F, !pack);
         } catch (RuntimeException e) {
             // 描けない環境（形式が使えない・パスが張れない等）。以後は粒の煙に落とす
             fail("タイヤの煙を体積で描けなかった。以後は粒の煙で代用する", e);
         }
     }
 
-    /** シェーダーパックの仕上げの直前（{@code IrisPipelineMixin}）。26.3 にはパックが無い前提で、何も描かない。 */
-    public static void renderBeforePackComposite() {
+    /** このフレームの煙をパックの仕上げ前の絵へ入れた（{@link #renderAfterLevel} では描かない）。 */
+    private static boolean drawnBeforePackComposite;
+
+    private static void prepare(CameraRenderState camera) {
+        VIEW.set(camera.viewRotationMatrix);
+        PROJECTION.set(camera.projectionMatrix);
+        frameCamera = camera.pos;
+        // 視線の向き（世界の向き）= 視点の回転の逆で (0, 0, -1) を戻したもの
+        new Matrix4f(VIEW).invert().transformDirection(FRAME_LOOK.set(0.0F, 0.0F, -1.0F)).normalize();
+        framePartialTick = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+    }
+
+    /**
+     * シェーダーパック（Iris）が仕上げを流す<b>直前</b>に、仕上げ前の絵（{@link IrisScene#target()}）へ煙を入れる
+     * （{@code LevelStageHooks#beforePackComposite}。ヘッドライトの路面の後）。霧・ブルーム・トーンマップは
+     * パックが煙の上にも掛ける。明るさは H メニューの倍率（{@code smokePackBrightness}）。
+     */
+    public static void renderBeforePackComposite(CameraRenderState camera, GpuTextureView target) {
+        drawnBeforePackComposite = false;
+        if (camera == null || !camera.initialized || PUFFS.count() == 0 || MirrorRenderer.isRendering() || !usable()) {
+            return;
+        }
+        try {
+            prepare(camera);
+            draw(target.texture(), target, (float) ClientConfig.smokePackBrightness, false);
+            drawnBeforePackComposite = true;
+        } catch (RuntimeException e) {
+            fail("タイヤの煙をシェーダーパックの仕上げ前に描けなかった。以後は粒の煙で代用する", e);
+        }
     }
 
     /**
      * 塊を縮小した枠へ描き、深度を見て拡大しながら主画面へ重ねる。
      *
-     * @param brightness 重ねるときの明るさの倍率（パック使用中だけ 1 以外）
-     * @param fog        バニラの霧を掛けるか（パック使用中はパックが掛ける）
+     * @param mainColor     重ねる先の色（主画面か、パックの仕上げ前の絵）
+     * @param mainColorView その view
+     * @param brightness    重ねるときの明るさの倍率（パック使用中だけ 1 以外）
+     * @param fog           バニラの霧を掛けるか（パック使用中はパックが掛ける）
      */
-    private static void draw(float brightness, boolean fog) {
+    private static void draw(GpuTexture mainColor, GpuTextureView mainColorView, float brightness, boolean fog) {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         if (level == null) {
             return;
         }
         RenderTarget main = minecraft.gameRenderer.mainRenderTarget();
-        GpuTexture mainColor = main.getColorTexture();
-        GpuTextureView mainColorView = main.getColorTextureView();
         GpuTextureView mainDepthView = main.getDepthTextureView();
         if (mainColor == null || mainColorView == null || mainDepthView == null) {
             return;

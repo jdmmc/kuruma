@@ -130,6 +130,11 @@ public final class EffectRenderTypes {
     private EffectRenderTypes() {
     }
 
+    /** 照らされた面のパイプライン（シェーダーパックに割り当てるため。{@link IrisScene#assignPrograms()}）。 */
+    static RenderPipeline litSurfacePipeline() {
+        return LIT_SURFACE_PIPELINE;
+    }
+
     private static Identifier id(String path) {
         return Identifier.fromNamespaceAndPath(Kurumamod.MODID, path);
     }
