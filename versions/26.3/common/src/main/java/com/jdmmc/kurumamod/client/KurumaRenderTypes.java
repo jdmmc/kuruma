@@ -231,9 +231,17 @@ public final class KurumaRenderTypes {
     // ミラー
     // ------------------------------------------------------------------
 
-    /** 鏡面に景色を貼るパイプライン。明るさを掛けない・混色しない・深度は普通に読み書きする。 */
+    /**
+     * 鏡面に景色を貼るパイプライン。明るさを掛けない・混色しない・深度は普通に読み書きする。
+     *
+     * <p><b>画素の捨て方だけ自前のシェーダー（{@code kurumamod:core/mirror}）にしてある。</b>バニラの
+     * {@code position_tex_color} は不透明度が 0 の画素を捨てるが、26.3 のワールドの描画は描き先を
+     * <b>不透明度 0 の霧の色</b>で塗ってから始まり、空はその不透明度を書き換えない。そのまま貼ると
+     * 鏡に映った空の部分がまるごと捨てられ、鏡が透けた（1.21.1 では描いた後に不透明度を 1 に塗り直していた）。</p>
+     */
     public static final RenderPipeline MIRROR_PIPELINE = RenderPipeline.builder(RenderPipelines.GUI_TEXTURED_SNIPPET)
             .withLocation(pipelineId("mirror"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath(Kurumamod.MODID, "core/mirror"))
             .withColorTargetState(ColorTargetState.DEFAULT)
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withCull(false)

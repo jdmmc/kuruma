@@ -2,8 +2,10 @@ package com.jdmmc.kurumamod.client.hook;
 
 import com.jdmmc.kurumamod.client.CarSkidMarks;
 import com.jdmmc.kurumamod.client.CourseRenderer;
+import com.jdmmc.kurumamod.client.HeadlightVolume;
 import com.jdmmc.kurumamod.client.PartAnchors;
 import com.jdmmc.kurumamod.client.RiderPoseRenderer;
+import com.jdmmc.kurumamod.client.TireSmokeVolume;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -64,6 +66,10 @@ public final class LevelStageHooks {
     public static void levelEnd(CameraRenderState camera) {
         LevelRenderStage event = stage(LevelRenderStage.Stage.AFTER_LEVEL, camera);
         try {
+            // ヘッドライトの路面の照り返しと霧の光線（描き終えた主画面に足す。失敗は中で拾って代用に落ちる）
+            HeadlightVolume.levelEnd(camera);
+            // タイヤの煙の体積。ヘッドライトの後（先に描くと煙が路面として照らされる。ランプも同じフレームのものになる）
+            TireSmokeVolume.renderAfterLevel(camera);
             PartAnchors.onRenderLevel(event);
             RiderPoseRenderer.onRenderLevelStage(event);
         } catch (RuntimeException e) {

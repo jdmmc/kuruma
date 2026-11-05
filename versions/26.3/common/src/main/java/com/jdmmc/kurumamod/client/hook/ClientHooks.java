@@ -125,6 +125,7 @@ public final class ClientHooks {
      */
     public static void registerShaders(ShaderRegistrar registrar) {
         EffectRenderTypes.Registration.onRegisterShaders(registrar);
+        TireSmokeVolume.Registration.onRegisterShaders(registrar);
     }
 
     /**

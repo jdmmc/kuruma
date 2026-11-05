@@ -241,7 +241,7 @@ public final class HeadlightScreen extends Screen {
             rebuildWidgets();
         }
         // renderBackground は呼ばない。光を見ながら動かす画面なので
-        graphics.centeredText(font, title, width / 2, 16, 0xFFFFFF);
+        graphics.centeredText(font, title, width / 2, 16, 0xFFFFFFFF);
         int left = left();
         for (int i = 0; i < ROWS.length; i++) {
             drawLabel(graphics, ROWS[i], left, rowY(i));
@@ -253,9 +253,9 @@ public final class HeadlightScreen extends Screen {
             for (AbstractWidget widget : packWidgets) {
                 widget.active = packOn;
             }
-            int dim = 0x888888;
+            int dim = 0xFF888888;
             graphics.text(font, Component.translatable("screen.kurumamod.headlight.pack_header"),
-                    packLeft(), rowY(packFirstRow() - 1) + 6, packOn ? 0xFFFFFF : dim);
+                    packLeft(), rowY(packFirstRow() - 1) + 6, packOn ? 0xFFFFFFFF : dim);
             for (int i = 0; i < PACK_ROWS.length; i++) {
                 if (packOn) {
                     drawLabel(graphics, PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i));
@@ -266,17 +266,17 @@ public final class HeadlightScreen extends Screen {
             }
             graphics.text(font, Component.translatable("screen.kurumamod.headlight.pack_pre_composite"),
                     packLeft(), rowY(packFirstRow() + PACK_ROWS.length) + 6,
-                    !packOn ? dim : ClientConfig.headlightPackPreComposite ? 0xFFFFFF : 0xFFFF55);
+                    !packOn ? dim : ClientConfig.headlightPackPreComposite ? 0xFFFFFFFF : 0xFFFFFF55);
         }
         graphics.text(font, Component.translatable("screen.kurumamod.headlight.with_shader_packs"),
-                left, rowY(ROWS.length) + 6, ClientConfig.headlightWithShaderPacks ? 0xFFFFFF : 0xFFFF55);
+                left, rowY(ROWS.length) + 6, ClientConfig.headlightWithShaderPacks ? 0xFFFFFFFF : 0xFFFFFF55);
         graphics.text(font, Component.translatable("screen.kurumamod.headlight.color"),
                 left, rowY(ROWS.length + 1) + 6,
-                ClientConfig.headlightColor == HeadlightColor.HALOGEN ? 0xFFFFFF : 0xFFFF55);
+                ClientConfig.headlightColor == HeadlightColor.HALOGEN ? 0xFFFFFFFF : 0xFFFFFF55);
         if (HeadlightVolume.suppressedByShaderPack()) {
             // パックの間は光の効果を描かないので、スライダーを動かしても何も変わらない
             graphics.centeredText(font, Component.translatable("screen.kurumamod.headlight.shader_pack"),
-                    width / 2, rowY(bottomRow()) + 36, 0xFFAA55);
+                    width / 2, rowY(bottomRow()) + 36, 0xFFFFAA55);
         }
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
@@ -285,7 +285,7 @@ public final class HeadlightScreen extends Screen {
         // 既定から変えた項目は黄色（調整画面と同じ）
         boolean changed = Math.abs(row.get() - row.defaultValue()) > row.step() * 0.5;
         graphics.text(font, Component.translatable("screen.kurumamod.headlight." + row.key()),
-                x, y + 6, changed ? 0xFFFF55 : 0xFFFFFF);
+                x, y + 6, changed ? 0xFFFFFF55 : 0xFFFFFFFF);
     }
 
     @Override

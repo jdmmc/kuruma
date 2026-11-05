@@ -11,6 +11,7 @@
     "IrisPipelineMixin",
     "KeyMappingAccessor",
     "LevelRendererStagesMixin",
+    "MirrorCameraAccessor", "MirrorGameRendererAccessor", "MirrorGameRendererMixin", "MirrorSectionTrackerMixin", "MirrorSectionsMixin", "MirrorSkyRendererMixin", "MirrorViewAreaMixin",
     "PlayerModelMixin",
     "RiderExtractMixin",
     "RiderRenderMixin"

@@ -809,7 +809,7 @@ public final class SeatScreen extends Screen {
             head = head.copy().append("    ").append(Component.translatable("screen.kurumamod.seat.eye",
                     String.format(Locale.ROOT, "%.3f", eye)));
         }
-        graphics.centeredText(font, head, width / 2, 4, 0xFFFFFF);
+        graphics.centeredText(font, head, width / 2, 4, 0xFFFFFFFF);
         Row[] rows = rows();
         int left = left();
         for (int i = 0; i < rows.length; i++) {
@@ -828,30 +828,30 @@ public final class SeatScreen extends Screen {
                     ? Component.translatable("screen.kurumamod.seat.wheel." + row.key())
                     : Component.translatable("screen.kurumamod.seat." + row.key());
             // 動かしても見えない行は灰色（換装画面の上書き・部品の指定が勝っている、メッシュの持ち主がいない）
-            int color = shadowed(row) ? 0x777777 : changed ? 0xFFFF55 : 0xFFFFFF;
+            int color = shadowed(row) ? 0xFF777777 : changed ? 0xFFFFFF55 : 0xFFFFFFFF;
             graphics.text(font, label, left, rowY(i) + 6, color);
         }
         // ナンバーのページは行の下に候補と端のボタンがあるので、説明はその下
         int below = rowY(rows.length + (page.isPlate() ? 1 : 0)) + 6;
         switch (page) {
             case BODY -> {
-                graphics.centeredText(font, Component.literal(designJson()), width / 2, below, 0xFFFFFF);
+                graphics.centeredText(font, Component.literal(designJson()), width / 2, below, 0xFFFFFFFF);
                 graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.design.note"),
-                        width / 2, below + 14, 0xAAAAAA);
+                        width / 2, below + 14, 0xFFAAAAAA);
             }
-            case SEAT -> graphics.centeredText(font, Component.literal(seatJson()), width / 2, below, 0xFFFFFF);
+            case SEAT -> graphics.centeredText(font, Component.literal(seatJson()), width / 2, below, 0xFFFFFFFF);
             case STEERING -> graphics.centeredText(font, Component.literal(steeringJson()),
-                    width / 2, below, 0xFFFFFF);
+                    width / 2, below, 0xFFFFFFFF);
             case PLATE_FRONT, PLATE_REAR -> {
                 PlateMounts.Mount mount = plateMount();
                 graphics.centeredText(font, mount == null
                                 ? Component.translatable("screen.kurumamod.seat.plate.none")
                                 : Component.literal(mountJson(mount)),
-                        width / 2, below, mount == null ? 0xAAAAAA : 0xFFFFFF);
+                        width / 2, below, mount == null ? 0xFFAAAAAA : 0xFFFFFFFF);
                 // 自動で置いた位置なら、それと分かるように（JSON に貼れば固定される）
                 if (PlateMounts.get(carId).automatic()) {
                     graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.plate.auto"),
-                            width / 2, below + 12, 0xAAAAAA);
+                            width / 2, below + 12, 0xFFAAAAAA);
                 }
             }
             case WHEEL -> {
@@ -859,28 +859,28 @@ public final class SeatScreen extends Screen {
                 Component mesh = owner == null
                         ? Component.translatable("screen.kurumamod.seat.wheel.legacy")
                         : Component.literal(wheelMeshJson(owner, false));
-                graphics.centeredText(font, mesh, width / 2, below, owner == null ? 0xAAAAAA : 0xFFFFFF);
+                graphics.centeredText(font, mesh, width / 2, below, owner == null ? 0xFFAAAAAA : 0xFFFFFFFF);
                 // 触らなくてよいことを先に言う。ずれて見えると、まずここを動かしたくなるので
                 graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.wheel.gauge_note"),
-                        width / 2, below + 14, 0xAAAAAA);
+                        width / 2, below + 14, 0xFFAAAAAA);
             }
         }
         // 「コピーした」は説明の行に重ねて出す（縦に余裕が無い）
         if (copiedFrames > 0) {
             copiedFrames--;
             graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.copied"),
-                    width / 2, rowY(BOTTOM_ROW) + 26, 0x55FF55);
+                    width / 2, rowY(BOTTOM_ROW) + 26, 0xFF55FF55);
         } else if (anyShadowed()) {
             graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.wheel.shadowed"),
-                    width / 2, rowY(BOTTOM_ROW) + 26, 0xAAAAAA);
+                    width / 2, rowY(BOTTOM_ROW) + 26, 0xFFAAAAAA);
         } else {
             // 貼り先は開いているタブのファイル
             graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.hint", pasteTarget()),
-                    width / 2, rowY(BOTTOM_ROW) + 26, 0xAAAAAA);
+                    width / 2, rowY(BOTTOM_ROW) + 26, 0xFFAAAAAA);
         }
         // 車に重ねている水色の線が何か（色は CarObjRenderer のゲージと揃える）
         graphics.centeredText(font, Component.translatable("screen.kurumamod.seat.gauge_legend"),
-                width / 2, rowY(BOTTOM_ROW) + 38, 0x4DE6FF);
+                width / 2, rowY(BOTTOM_ROW) + 38, 0xFF4DE6FF);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
