@@ -1,0 +1,31 @@
+# MOD の情報（Forge 26.3）。ドル記号と波括弧の値は build.gradle の processResources が gradle.properties の値で埋める
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+displayURL = "https://kuruma.jdm-mc.com/"
+# Mod 一覧に出すロゴ。jar のルートからの名前で書く。
+# tools/LogoRender.java が s15.obj / wheel.obj を焼いて作ったもの
+logoFile = "kurumamod.png"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+
+# mixin の設定は mods.toml ではなく jar のマニフェスト（MixinConfigs）に書く（Forge の決まり。build.gradle の jar）
+
+[[dependencies."${mod_id}"]]
+modId = "forge"
+mandatory = true
+versionRange = "${forge_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

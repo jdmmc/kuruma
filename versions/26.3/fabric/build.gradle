@@ -1,0 +1,67 @@
+plugins {
+    // 26.x の Minecraft は難読化されていないので、Loom は名前の対応表（mappings）を使わない系統（fabric-loom）になる。
+    // 配布 jar の名前の付け直し（remapJar）も無い
+    id 'net.fabricmc.fabric-loom' version '1.19-SNAPSHOT'
+}
+
+apply from: rootProject.file('common.gradle')
+
+base {
+    archivesName = "${mod_id}-fabric-${minecraft_version}"
+}
+
+// loom { runs { ... } } の中では rootProject が別のものを指すので、外で求めておく
+def runsRoot = new File(repoRoot, 'runs/26.3')
+def fabricRunDir = { String name -> project.relativePath(new File(runsRoot, name)) }
+
+loom {
+    runs {
+        removeAll { it.name in ['client', 'server'] }
+        fabricClient1 {
+            client()
+            runDir = fabricRunDir('fabric')
+            programArgs '--width', '1920', '--height', '1080', '--username', 'Dev'
+        }
+        fabricClient2 {
+            client()
+            runDir = fabricRunDir('fabric-client2')
+            programArgs '--width', '1920', '--height', '1080', '--username', 'Dev2'
+        }
+        fabricServer {
+            server()
+            runDir = fabricRunDir('fabric-server')
+            programArgs '--nogui'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+}
+
+def replaceProperties = [mod_id                 : mod_id, mod_name: mod_name, mod_license: mod_license,
+                         mod_version            : mod_version, mod_authors: mod_authors,
+                         mod_description        : mod_description,
+                         minecraft_version_range: minecraft_version_range,
+                         loader_version         : loader_version]
+def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    inputs.properties replaceProperties
+    filteringCharset = 'UTF-8'
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+sourceSets.main.resources.srcDir generateModMetadata
+
+tasks.named('build').configure {
+    doLast {
+        copy {
+            from tasks.named('jar').flatMap { it.archiveFile }
+            into new File(repoRoot, 'build/libs')
+        }
+    }
+}
+
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach { enabled = false }

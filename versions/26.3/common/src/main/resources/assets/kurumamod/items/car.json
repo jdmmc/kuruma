@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "kurumamod:item/car_special",
+    "model": {
+      "type": "kurumamod:car"
+    }
+  }
+}

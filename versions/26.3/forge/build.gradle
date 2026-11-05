@@ -1,0 +1,80 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+}
+
+apply from: rootProject.file('common.gradle')
+
+base {
+    archivesName = "${mod_id}-forge-${minecraft_version}"
+}
+
+def runsRoot = new File(repoRoot, 'runs/26.3')
+
+// mixin の設定。共有のもの（versions/26.3/common/）と Forge だけのもの。Forge は mods.toml ではなく
+// jar のマニフェスト（MixinConfigs）と、開発環境では起動引数（--mixin.config）で読ませる
+def mixinConfigs = ["${mod_id}.mixins.json", "${mod_id}.forge.mixins.json"]
+
+minecraft {
+    runs {
+        // 作業ディレクトリは runs/26.3/forge*。タスクは runClient / runServer。
+        //
+        // <b>実行の名前は Forge の決めた名前（client・server）にしか付けられない。</b>ForgeGradle 7 は Forge が配る
+        // 起動の設定（起動するクラス・引数）を名前で引くので、client1 のような名前にすると起動するクラスが空になって
+        // 止まる。2 人目（マルチプレイの確かめ）は ./gradlew runClient -Pclient2 で、作業ディレクトリと名前だけ替える
+        configureEach {
+            mixinConfigs.each { args '--mixin.config', it }
+        }
+        register('client') {
+            def second = project.hasProperty('client2')
+            workingDir = new File(runsRoot, second ? 'forge-client2' : 'forge')
+            args '--width', '1920', '--height', '1080', '--username', second ? 'Dev2' : 'Dev'
+        }
+        register('server') {
+            workingDir = new File(runsRoot, 'forge-server')
+            args '--nogui'
+        }
+    }
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.6'
+}
+
+def replaceProperties = [minecraft_version      : minecraft_version,
+                         minecraft_version_range: minecraft_version_range,
+                         forge_version          : forge_version,
+                         forge_version_range    : forge_version_range,
+                         loader_version_range   : loader_version_range,
+                         mod_id                 : mod_id, mod_name: mod_name, mod_license: mod_license,
+                         mod_version            : mod_version, mod_authors: mod_authors,
+                         mod_description        : mod_description]
+tasks.named('processResources', ProcessResources).configure {
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml']) {
+        filteringCharset = 'UTF-8'
+        expand replaceProperties
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest.attributes('MixinConfigs': mixinConfigs.join(','))
+}
+
+tasks.named('build').configure {
+    doLast {
+        copy {
+            from tasks.named('jar').flatMap { it.archiveFile }
+            into new File(repoRoot, 'build/libs')
+        }
+    }
+}

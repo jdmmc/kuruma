@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:dirt",
+    "minecraft:farmland",
+    "minecraft:dirt_path",
+    "minecraft:mud",
+    "minecraft:muddy_mangrove_roots",
+    "minecraft:clay",
+    "minecraft:soul_soil",
+    "minecraft:mycelium"
+  ]
+}

@@ -1,0 +1,71 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+apply from: rootProject.file('common.gradle')
+
+base {
+    archivesName = "${mod_id}-neoforge-${minecraft_version}"
+}
+
+def runsRoot = new File(repoRoot, 'runs/26.3')
+
+neoForge {
+    version = neo_version
+
+    // 作業ディレクトリは runs/26.3/neoforge*（ほかの版のワールドを変換させないため別）。
+    // 名前に Neo を付けてある（Fabric 版・Forge 版と同時に起動しないように）
+    runs {
+        neoClient1 {
+            client()
+            gameDirectory = new File(runsRoot, 'neoforge')
+            programArguments.addAll '--width', '1920', '--height', '1080', '--username', 'Dev'
+        }
+        neoClient2 {
+            client()
+            gameDirectory = new File(runsRoot, 'neoforge-client2')
+            programArguments.addAll '--width', '1920', '--height', '1080', '--username', 'Dev2'
+        }
+        neoServer {
+            server()
+            gameDirectory = new File(runsRoot, 'neoforge-server')
+            programArgument '--nogui'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [minecraft_version      : minecraft_version,
+                             minecraft_version_range: minecraft_version_range,
+                             neo_version            : neo_version,
+                             neo_version_range      : neo_version_range,
+                             loader_version_range   : loader_version_range,
+                             mod_id                 : mod_id, mod_name: mod_name, mod_license: mod_license,
+                             mod_version            : mod_version, mod_authors: mod_authors,
+                             mod_description        : mod_description]
+    inputs.properties replaceProperties
+    filteringCharset = 'UTF-8'
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+// できた jar をルートの build/libs/ へも置く
+tasks.named('build').configure {
+    doLast {
+        copy {
+            from tasks.named('jar').flatMap { it.archiveFile }
+            into new File(repoRoot, 'build/libs')
+        }
+    }
+}

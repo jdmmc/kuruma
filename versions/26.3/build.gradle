@@ -1,0 +1,14 @@
+// 26.3 のビルドのまとめ役。MOD 共通の値（mod_id・mod_version など）は、ルートのビルドと同じ
+// gradle.properties（リポジトリのいちばん上）を読んで、各プロジェクトへ配る。版を上げるときに 2 か所を直さずに済む
+def repoRoot = rootProject.file('../..')
+def shared = new Properties()
+new File(repoRoot, 'gradle.properties').withReader('UTF-8') { shared.load(it) }
+subprojects {
+    shared.each { key, value ->
+        if (!project.hasProperty(key.toString())) {
+            project.ext.set(key.toString(), value.toString())
+        }
+    }
+    // リポジトリのいちばん上（core/・runs/・LICENSE・ルートの build/libs/ がある場所）
+    project.ext.repoRoot = repoRoot
+}

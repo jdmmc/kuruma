@@ -1,0 +1,39 @@
+// 3 つのローダーの build.gradle が読む、26.3 で共通の決めごと。
+//
+// 取り込むもの: 物理・諸元（core/）と、Minecraft 26.3 に触るがローダーには触らないコード（versions/26.3/common/）。
+// <b>core/ のリソースからシェーダーだけは外す。</b>26.3 の描画（renderpearl）はシェーダーの書き方が違うので、
+// 26.3 用のものを versions/26.3/common/ に置いてある（同じ名前で両方を入れると jar の中でぶつかる）
+def repoRoot = project.ext.repoRoot
+group = mod_group_id
+version = mod_version
+
+// 26.x は Java 25
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+sourceSets.main.java { srcDir new File(repoRoot, 'core/src/main/java') }
+sourceSets.main.java { srcDir rootProject.file('common/src/main/java') }
+sourceSets.main.resources { srcDir rootProject.file('common/src/main/resources') }
+tasks.named('processResources', ProcessResources).configure {
+    from(new File(repoRoot, 'core/src/main/resources')) {
+        exclude 'assets/kurumamod/shaders/**'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('jar', Jar).configure {
+    // ライセンス条文を jar に同梱する（GPLv3 第 4 節の条件）
+    from(new File(repoRoot, 'LICENSE'))
+}
+
+// 開発用: コンパイルのクラスパスを build/compile-classpath.txt へ書き出す（Gradle を通さず javac で試すため）
+tasks.register('writeCompileClasspath') {
+    def cp = sourceSets.main.compileClasspath
+    def out = layout.buildDirectory.file('compile-classpath.txt')
+    inputs.files cp
+    outputs.file out
+    doLast { out.get().asFile.text = cp.files.join(File.pathSeparator) }
+}

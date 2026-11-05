@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.jdmmc.kurumamod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraAccessor",
+    "CameraMixin",
+    "FrustumMixin",
+    "GuiGraphicsExtractorAccessor",
+    "IrisPipelineMixin",
+    "KeyMappingAccessor",
+    "LevelRendererStagesMixin",
+    "PlayerModelMixin",
+    "RiderExtractMixin",
+    "RiderRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
