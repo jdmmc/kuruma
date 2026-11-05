@@ -241,13 +241,13 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><th>名前</th><th>何か</th></tr>
 <tr><td><code>gauge_wheel_FL</code> ほか 4 つ</td><td>タイヤの位置と大きさ。<b>ここにタイヤハウスが来るように車体を作る</b></td></tr>
 <tr><td><code>gauge_ground</code></td><td>地面（Z = 0）。ワールド原点はこの高さ</td></tr>
-<tr><td><code>gauge_chassis_plane</code></td><td>シャシー基準面（Z = 0.602m）。ゲームが車の「位置」とする高さ。4 隅が車軸の真上</td></tr>
+<tr><td><code>gauge_chassis_plane</code></td><td>シャシー基準面（Z = 0.632m）。ゲームが車の「位置」とする高さ。4 隅が車軸の真上</td></tr>
 </table>
 <table class="en">
 <tr><th>Name</th><th>What it is</th></tr>
 <tr><td><code>gauge_wheel_FL</code> and 3 more</td><td>Where the wheels sit and how big they are. <b>Build the wheel arches around these</b></td></tr>
 <tr><td><code>gauge_ground</code></td><td>The ground (Z = 0). The world origin is at this height</td></tr>
-<tr><td><code>gauge_chassis_plane</code></td><td>The chassis plane (Z = 0.602 m), the height the game treats as the car's position. Its corners sit right above the axles</td></tr>
+<tr><td><code>gauge_chassis_plane</code></td><td>The chassis plane (Z = 0.632 m), the height the game treats as the car's position. Its corners sit right above the axles</td></tr>
 </table>
 
 <h3 class="ja">必要なときだけ</h3>
@@ -273,9 +273,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <div class="more-body">
 <table>
 <tr><th>ホイールベース</th><td>3.12 m（前後輪の距離）</td></tr>
-<tr><th>トレッド</th><td>1.80 m（左右輪の距離）</td></tr>
+<tr><th>トレッド</th><td>2.00 m（左右輪の距離）</td></tr>
 <tr><th>タイヤ半径</th><td>0.45 m（直径 90cm）</td></tr>
-<tr><th>シャシー基準面</th><td>0.602 m</td></tr>
+<tr><th>シャシー基準面</th><td>0.632 m</td></tr>
 </table>
 <p>実車より 2 割大きめです。Minecraft のプレイヤーはずんぐりしているので、実寸だと車が小さく見えるためです。</p>
 </div>
@@ -285,9 +285,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <div class="more-body">
 <table>
 <tr><th>Wheelbase</th><td>3.12 m (front axle to rear axle)</td></tr>
-<tr><th>Track</th><td>1.80 m (left wheel to right wheel)</td></tr>
+<tr><th>Track</th><td>2.00 m (left wheel to right wheel)</td></tr>
 <tr><th>Wheel radius</th><td>0.45 m (90 cm diameter)</td></tr>
-<tr><th>Chassis plane</th><td>0.602 m</td></tr>
+<tr><th>Chassis plane</th><td>0.632 m</td></tr>
 </table>
 <p>That is 20% bigger than a real car. Minecraft players are stocky, and a true-size car looks small next to them.</p>
 </div>
@@ -389,8 +389,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <line x1="203" y1="326" x2="577" y2="326"/>
   </g>
   <path class="f-accf" d="M203 326 l10 -4 v8 z"/><path class="f-accf" d="M577 326 l-10 -4 v8 z"/>
-  <text class="f-ta ja" x="24" y="36">シャシー基準面 ＝ Z 0.602 m</text>
-  <text class="f-ta en" x="24" y="36">chassis plane = Z 0.602 m</text>
+  <text class="f-ta ja" x="24" y="36">シャシー基準面 ＝ Z 0.632 m</text>
+  <text class="f-ta en" x="24" y="36">chassis plane = Z 0.632 m</text>
   <text class="f-ta ja" x="390" y="52" text-anchor="middle">前後輪の中点</text>
   <text class="f-ta en" x="390" y="52" text-anchor="middle">midpoint of the axles</text>
   <text class="f-td ja" x="698" y="270" text-anchor="end">地面 ＝ Z 0</text>
@@ -459,14 +459,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>ボンネットやバンパーを別のオブジェクトに分けたい</summary>
 <div class="more-body">
-<p>分けても分けなくても同じです。ゲームは名前の決まっていないオブジェクトを全部まとめて車体として描きます。同梱の車体は作業のしやすさで <code>body</code> / <code>hood</code> / <code>trunk</code> / <code>bumper_f</code> / <code>bumper_r</code> に分けてあります。</p>
+<p>分けても分けなくても同じです。ゲームは名前の決まっていないオブジェクトを全部まとめて車体として描きます。同梱の S15 は、車体の大部分を <code>body</code> 1 つにまとめ、ドアミラーの筐体や車内などを作業のしやすさで別のオブジェクトにしています。</p>
 <p>ライト・ガラス・ミラー・ハンドル・付け替える部品だけは名前で働きが決まるので、別のオブジェクト（または別のマテリアル）にします（<a href="#s5">3 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Split the bonnet or bumpers into their own objects</summary>
 <div class="more-body">
-<p>Split or not, it makes no difference. The game draws every object without a special name as body. The bundled body is split into <code>body</code> / <code>hood</code> / <code>trunk</code> / <code>bumper_f</code> / <code>bumper_r</code> only for convenience while modelling.</p>
+<p>Split or not, it makes no difference. The game draws every object without a special name as body. The bundled S15 keeps most of the body in one <code>body</code> object and splits off the mirror housings, the cabin and so on only for convenience while modelling.</p>
 <p>Lights, glass, mirrors, the steering wheel and swappable parts are the exception: their names decide what they do, so they need their own objects (or materials) (<a href="#s5">chapter 3</a>).</p>
 </div>
 </details>
@@ -474,26 +474,26 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <details class="more ja">
 <summary>車内（内装）も作りたい</summary>
 <div class="more-body">
-<p>作らなくてもかまいません。何も作らなければ、車体の裏面がそのまま内装として見えます。作るなら、ふつうの車体として作れば描かれます。座席の位置は見た目の JSON の <code>seat</code> で決まり、座席のメッシュとは関係ありません（<a href="#s9">6 章</a>）。</p>
+<p>作らなくてもかまいません。何も作らなければ、車体の裏面がそのまま内装として見えます。作るなら、ふつうの車体として作れば描かれます。座席の位置は見た目の JSON の <code>seat</code> で決まり、座席のメッシュとは関係ありません（<a href="#s-seat">9 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Model an interior</summary>
 <div class="more-body">
-<p>You don't have to. Without one, the back faces of the body show through and serve as the cabin. If you do model one, build it as ordinary body and it is drawn. Where the player sits comes from <code>seat</code> in the look JSON, not from any seat mesh (<a href="#s9">chapter 6</a>).</p>
+<p>You don't have to. Without one, the back faces of the body show through and serve as the cabin. If you do model one, build it as ordinary body and it is drawn. Where the player sits comes from <code>seat</code> in the look JSON, not from any seat mesh (<a href="#s-seat">chapter 9</a>).</p>
 </div>
 </details>
 
 <details class="more ja">
 <summary>ポリゴン数の目安を知りたい</summary>
 <div class="more-body">
-<p>あまり気にしなくてかまいません。同梱の車体は 671 面、タイヤは 344 面です。面は四角形のままにしておくと軽く描けます（<a href="#s8">5 章</a>）。</p>
+<p>あまり気にしなくてかまいません。同梱の S15 の車体は約 3,200 面、ホイール（TE37）は約 1,200 面、タイヤは約 380 面です。面は四角形のままにしておくと軽く描けます（<a href="#s8">5 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>How many polygons?</summary>
 <div class="more-body">
-<p>Don't worry much about it. The bundled body is 671 faces and the wheel 344. Keeping faces as quads draws faster (<a href="#s8">chapter 5</a>).</p>
+<p>Don't worry much about it. The bundled S15 body is about 3,200 faces, the wheel (TE37) about 1,200 and the tyre about 380. Keeping faces as quads draws faster (<a href="#s8">chapter 5</a>).</p>
 </div>
 </details>
 
@@ -746,6 +746,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>steering</code> で始まる</td><td>ハンドル。切れ角に合わせて回り、運転者の手が握る</td></tr>
 <tr><td><code>part_</code> で始まる</td><td>付け替える部品。その部品を付けているときだけ描かれる（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
 <tr><td><code>gauge_</code> で始まる</td><td>捨てられる（ゲージが混ざっても描かれない）</td></tr>
+<tr><td><code>text_</code> で始まる</td><td>描かれない（ナンバーの字の枠のための名前）。<b>車体に付けると、そこが穴になる</b></td></tr>
+<tr><td><code>susp</code> で始まる</td><td>車体として描かれるが、シェーダーパックの影に落ちない。ダンパーやバネなど足まわりに使う（大文字小文字は問わない）</td></tr>
 <tr><td>それ以外</td><td>車体</td></tr>
 </table>
 <table class="en">
@@ -759,6 +761,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td>starts with <code>steering</code></td><td>Steering wheel. Turns with the steering; the driver's hands hold it</td></tr>
 <tr><td>starts with <code>part_</code></td><td>A swappable part. Drawn only while that part is fitted (<a href="guide-parts.html#s-body">chapter 2 of the Parts guide</a>)</td></tr>
 <tr><td>starts with <code>gauge_</code></td><td>Discarded, so a stray gauge is never drawn</td></tr>
+<tr><td>starts with <code>text_</code></td><td>Not drawn (reserved for licence plate text boxes). <b>On the body it leaves a hole</b></td></tr>
+<tr><td>starts with <code>susp</code></td><td>Drawn as body, but casts no shadow under shader packs. For dampers, springs and other suspension parts (case doesn't matter)</td></tr>
 <tr><td>anything else</td><td>Body</td></tr>
 </table>
 
@@ -1368,7 +1372,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 ├── pack.mcmeta
 └── assets/kurumamod/
     ├── models/entity/car.obj      ← 自分の車体（.mtl も一緒に）
-    ├── models/entity/wheel.obj    ← 自分のタイヤ
+    ├── models/entity/tire.obj     ← 自分のタイヤ（全車に効く）
     ├── textures/entity/car.png
     └── vehicles/car.json          ← 見た目の JSON（書き方は最小のカーパックと同じ）</code></pre></li>
 <li><code>pack.mcmeta</code> を書く:
@@ -1378,6 +1382,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li>ゲームの設定でリソースパックを有効にする</li>
 </ol>
 <p>開発環境で試すときは <code>run/resourcepacks/</code> に置きます。人に配るなら、最小のカーパックの形にします。</p>
+<p><code>vehicles/car.json</code> を上書きすると、既定の車の塗装（<code>paints</code>）・部品の対応（<code>parts</code>）・ナンバーの位置（<code>plates</code>）も、書いたものに置き換わります。残したいものは書き写してください。</p>
 </div>
 </details>
 <details class="more en">
@@ -1390,7 +1395,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 ├── pack.mcmeta
 └── assets/kurumamod/
     ├── models/entity/car.obj      &lt;- your body (keep the .mtl with it)
-    ├── models/entity/wheel.obj    &lt;- your wheel
+    ├── models/entity/tire.obj     &lt;- your tyre (applies to every car)
     ├── textures/entity/car.png
     └── vehicles/car.json          &lt;- looks JSON (written as in the minimal car pack)</code></pre></li>
 <li>Write <code>pack.mcmeta</code>:
@@ -1400,6 +1405,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li>Enable the pack in the game's settings</li>
 </ol>
 <p>In a development environment it goes in <code>run/resourcepacks/</code>. To hand the car to others, use the minimal car pack layout instead.</p>
+<p>Overriding <code>vehicles/car.json</code> also replaces the built-in car's paints (<code>paints</code>), part mapping (<code>parts</code>) and plate positions (<code>plates</code>) with whatever you write. Copy over anything you want to keep.</p>
 </div>
 </details>
 
@@ -1412,11 +1418,11 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
              "texture": "mypack:textures/entity/ae86.png" },
 
   "designWheelBase": 3.12,
-  "designRideHeight": 0.6019
+  "designRideHeight": 0.632
 }</code></pre>
 <ul>
 <li><code>designWheelBase</code> … メッシュの前後のホイールアーチが何 m 離れているか（既定 3.12）。5.2m で作ってしまったなら <code>5.2</code> と書けば、ゲージの大きさに縮みます</li>
-<li><code>designRideHeight</code> … 車体をシャシー基準面から下げる量 [m]（既定 0.6019）。車体が埋まる・浮くときに直す</li>
+<li><code>designRideHeight</code> … 車体をシャシー基準面から下げる量 [m]（既定 0.632）。車体が埋まる・浮くときに直す</li>
 <li>どれも「この車の寸法」ではなく「メッシュの寸法」です。実際の寸法は諸元にあり、ゲームはその比でメッシュを拡大します</li>
 </ul>
 <p>あとは <code>body</code> の中で細かく直せます:</p>
@@ -1427,7 +1433,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><code>offset</code> … 車体をずらす [m]。<code>[x, y, z]</code> で +X 右・+Y 上・−Z 前</li>
 <li><code>scale</code> … 大きさの微調整。数字 1 つでも <code>[x, y, z]</code> でもよい。原点が地面なので上へ伸びる</li>
 </ul>
-<p><b>大きい車にしたいときは、ここではなく諸元を変えます。</b>ゲームの調整画面でホイールベースとトレッドを広げ、<code>body.scale</code> を同じ倍率にします（1.2 倍なら 3.12→3.74m、1.8→2.16m、<code>scale</code> 1.2）。</p>
+<p><b>大きい車にしたいときは、ここではなく諸元を変えます。</b>ゲームの調整画面でホイールベースとトレッドを広げ、<code>body.scale</code> を同じ倍率にします（1.2 倍なら 3.12→3.74m、2.0→2.4m、<code>scale</code> 1.2）。</p>
 </div>
 </details>
 <details class="more en">
@@ -1439,11 +1445,11 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
              "texture": "mypack:textures/entity/ae86.png" },
 
   "designWheelBase": 3.12,
-  "designRideHeight": 0.6019
+  "designRideHeight": 0.632
 }</code></pre>
 <ul>
 <li><code>designWheelBase</code> — how far apart the front and rear arches are in your mesh, in m (default 3.12). If you built it at 5.2 m, write <code>5.2</code> and it shrinks to the gauge's size</li>
-<li><code>designRideHeight</code> — how far to drop the body below the chassis plane, in m (default 0.6019). Change it if the body sinks or floats</li>
+<li><code>designRideHeight</code> — how far to drop the body below the chassis plane, in m (default 0.632). Change it if the body sinks or floats</li>
 <li>These describe the mesh, not the car. The car's real sizes are in the spec, and the game scales the mesh by the ratio</li>
 </ul>
 <p>Then fine-tune inside <code>body</code>:</p>
@@ -1454,7 +1460,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><code>offset</code> — shift the body, in m. <code>[x, y, z]</code> with +X right, +Y up, −Z forward</li>
 <li><code>scale</code> — fine size adjustment; one number or <code>[x, y, z]</code>. The origin is on the ground, so it grows upward</li>
 </ul>
-<p><b>For a bigger car, change the spec instead.</b> Widen the wheelbase and track in the game's tuning screen, and set <code>body.scale</code> to the same ratio (for 1.2×: 3.12→3.74 m, 1.8→2.16 m, <code>scale</code> 1.2).</p>
+<p><b>For a bigger car, change the spec instead.</b> Widen the wheelbase and track in the game's tuning screen, and set <code>body.scale</code> to the same ratio (for 1.2×: 3.12→3.74 m, 2.0→2.4 m, <code>scale</code> 1.2).</p>
 </div>
 </details>
 
@@ -1497,7 +1503,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>車体の大きさの微調整。数字 1 つか <code>[x,y,z]</code>。上へ伸びる</td></tr>
 <tr><td><code>wheel</code>（<code>model</code>・<code>texture</code>・<code>offset</code>・<code>camber</code>・<code>scale</code>・<code>rimRadius</code>）、<code>designWheelRadius</code></td><td>—</td><td>以前の書き方（読める）。いまはホイールの JSON に書き、諸元の <code>default_parts.wheel</code> で指す（書かなければ TE37）。タイヤの位置は諸元のトレッド・ホイールベース</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>メッシュのホイールアーチが何 m 離れているか</td></tr>
-<tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
+<tr><td><code>designRideHeight</code></td><td><code>0.632</code></td><td>車体をシャシー基準面から下げる量 [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>運転席の位置 [m]。右ハンドル。助手席は左右反転（<a href="#s-seat">9 章</a>）</td></tr>
 <tr><td><code>steering</code></td><td>なし</td><td>ハンドルの位置・傾き（<code>offset</code>・<code>tilt</code>・<code>column</code>・<code>center</code>）（<a href="#s-steer">10 章</a>）</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
@@ -1523,7 +1529,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>body.scale</code></td><td><code>1.0</code></td><td>Fine size adjustment; one number or <code>[x,y,z]</code>. Grows upward</td></tr>
 <tr><td><code>wheel</code> (<code>model</code>, <code>texture</code>, <code>offset</code>, <code>camber</code>, <code>scale</code>, <code>rimRadius</code>), <code>designWheelRadius</code></td><td>—</td><td>The older way (still read). Now write them in the wheel's JSON and point to it with <code>default_parts.wheel</code> in the spec (left out, the TE37). Wheel position comes from the spec's track and wheelbase</td></tr>
 <tr><td><code>designWheelBase</code></td><td><code>3.12</code></td><td>How far apart the arches are in your mesh</td></tr>
-<tr><td><code>designRideHeight</code></td><td><code>0.6019</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
+<tr><td><code>designRideHeight</code></td><td><code>0.632</code></td><td>How far to drop the body below the chassis plane [m]</td></tr>
 <tr><td><code>seat</code></td><td><code>[0.5, -0.55, 0.2]</code></td><td>Driver's seat [m]. Right-hand drive; the passenger seat is mirrored (<a href="#s-seat">chapter 9</a>)</td></tr>
 <tr><td><code>steering</code></td><td>none</td><td>Steering wheel position and angle (<code>offset</code>, <code>tilt</code>, <code>column</code>, <code>center</code>) (<a href="#s-steer">chapter 10</a>)</td></tr>
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
@@ -1891,7 +1897,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <ul>
 <li><code>[x, y, z]</code> [m]。+X 右・+Y 上・−Z 前。既定は右ハンドル（x が正）。左ハンドルなら x を負にする</li>
 <li>前後（z）は前後輪の中点から、左右（x）と高さ（y）はシャシー基準面の中心から測る</li>
-<li><b>足元の位置で、目線ではありません。</b>一人称の視点はここから 1.62m 上に来ます。目線で決めたいなら 1.62 を引く</li>
+<li><b>座る位置で、目線ではありません。</b>一人称の視点はここから約 1.27m 上に来ます。目線で決めたいなら 1.27 を引く。<kbd>Ctrl</kbd>+<kbd>G</kbd> の画面の上に「目線の高さ（車の原点から）」が出るので、それで確かめるのが確実</li>
 <li>座面に合わせると視線が高くなり、目線に合わせると足が床下へ潜ります。どちらにするかは車ごとの好み</li>
 <li>メッシュから測るときは、<code>designWheelBase</code> などで拡大・縮小された後の大きさで測る</li>
 </ul>
@@ -1903,7 +1909,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <ul>
 <li><code>[x, y, z]</code> in m, with +X right, +Y up, −Z forward. The default is right-hand drive (positive x); make x negative for left-hand drive</li>
 <li>Front-to-back (z) is measured from the midpoint of the axles; side (x) and height (y) from the centre of the chassis plane</li>
-<li><b>It is where the feet go, not the eyes.</b> The first-person camera sits 1.62 m above it; subtract 1.62 to place the eye line instead</li>
+<li><b>It is where the driver sits, not the eyes.</b> The first-person camera sits about 1.27 m above it; subtract 1.27 to place the eye line instead. The top of the <kbd>Ctrl</kbd>+<kbd>G</kbd> screen shows "Eye height above the car origin", which is the surest check</li>
 <li>Match the cushion and the view sits high; match the eye line and the feet sink through the floor. Pick per car</li>
 <li>If you measure from the mesh, measure it after the scaling from <code>designWheelBase</code> and friends</li>
 </ul>
@@ -1914,8 +1920,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <summary>うまくいかないとき</summary>
 <div class="more-body">
 <ul>
-<li><b>座った人の足が床から突き出る・頭が屋根を抜ける</b> … Y（上）を動かす。足元の位置なので、目線ではなく座面に合わせる</li>
-<li><b>一人称で前が見えない</b> … 目線は座席から 1.62m 上。Y を下げるか、Z を前へ</li>
+<li><b>座った人の足が床から突き出る・頭が屋根を抜ける</b> … Y（上）を動かす。目線ではなく座面に合わせる</li>
+<li><b>一人称で前が見えない</b> … 目線は座席から約 1.27m 上（画面の上の「目線の高さ」で分かる）。Y を下げるか、Z を前へ</li>
 <li><b>動かした位置が、次に起動すると戻っている</b> … JSON を貼っていない。画面の値はゲームを閉じると消える</li>
 </ul>
 </div>
@@ -1924,8 +1930,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <summary>When it doesn't work</summary>
 <div class="more-body">
 <ul>
-<li><b>The driver's feet poke through the floor or the head through the roof</b> — move Y (up). It is where the feet go, so match the cushion, not the eyes</li>
-<li><b>Nothing to see ahead in first person</b> — the eyes are 1.62 m above the seat. Lower Y or move Z forward</li>
+<li><b>The driver's feet poke through the floor or the head through the roof</b> — move Y (up). Match the cushion, not the eyes</li>
+<li><b>Nothing to see ahead in first person</b> — the eyes are about 1.27 m above the seat (shown as "Eye height" at the top of the screen). Lower Y or move Z forward</li>
 <li><b>The position is back where it was after a restart</b> — the JSON was not pasted. On-screen values are lost when you quit</li>
 </ul>
 </div>
@@ -2094,14 +2100,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><th>値</th><th>意味</th><th>範囲（既定）</th></tr>
 <tr><td><code>pitch</code></td><td>高さの倍率。エンジンなら回転数に対する高さをまるごとずらす</td><td>0.5〜2.0（1）</td></tr>
 <tr><td><code>sound</code></td><td>音源の差し替え（下の「B. 最小のエンジン音を付ける」と同じ。文字列だけで書いてもよい）</td><td>—</td></tr>
-<tr><td><code>type</code>（<code>engine</code> だけ）</td><td>エンジンの種類（上の表）</td><td><code>i4_turbo</code></td></tr>
+<tr><td><code>type</code>（<code>engine</code> だけ）</td><td>エンジンの種類（上の表）。種類だけなら <code>"engine": "flat6"</code> のように文字列で書いてもよい</td><td><code>i4_turbo</code></td></tr>
 <tr><td><code>load</code>（<code>engine</code> だけ）</td><td>アクセルを踏んだときの荒い音の出方。下げると上品に、上げると荒く</td><td>0〜1.5（1）</td></tr>
 </table>
 <table class="en">
 <tr><th>Value</th><th>Meaning</th><th>Range (default)</th></tr>
 <tr><td><code>pitch</code></td><td>Pitch multiplier. For the engine it shifts the whole note against rpm</td><td>0.5–2.0 (1)</td></tr>
 <tr><td><code>sound</code></td><td>Replace the audio (same as "B. Add a minimal engine sound" below; a plain string works too)</td><td>—</td></tr>
-<tr><td><code>type</code> (<code>engine</code> only)</td><td>Engine type (table above)</td><td><code>i4_turbo</code></td></tr>
+<tr><td><code>type</code> (<code>engine</code> only)</td><td>Engine type (table above). For the type alone, a plain string works: <code>"engine": "flat6"</code></td><td><code>i4_turbo</code></td></tr>
 <tr><td><code>load</code> (<code>engine</code> only)</td><td>How much the rough on-throttle sound comes through. Lower is smoother, higher is rawer</td><td>0–1.5 (1)</td></tr>
 </table>
 <ul class="ja">
@@ -2590,12 +2596,23 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <li>No extension on <code>"name"</code> in <code>sounds.json</code></li>
 <li><code>sounds</code> in <code>vehicles/&lt;car&gt;.json</code> (for an exhaust part, <code>exhaust.sound</code> in its looks JSON) points at names from <code>sounds.json</code></li>
 </ul>
+
+<h3 class="ja">ゲームの中で調整したとき</h3>
+<h3 class="en">If you adjusted things in game</h3>
+<ul class="chk ja">
+<li><kbd>Ctrl</kbd>+<kbd>G</kbd>（ナンバー・座席・ハンドル）と <kbd>Ctrl</kbd>+<kbd>H</kbd>（音）で決めた値を、「JSON をコピー」で <code>vehicles/&lt;車&gt;.json</code> に貼った（画面の値はゲームを閉じると消える）</li>
+<li>調整画面（<kbd>G</kbd>）で決めた走りの値を、諸元の <code>values</code> に書いた。角度はラジアン</li>
+</ul>
+<ul class="chk en">
+<li>Values set with <kbd>Ctrl</kbd>+<kbd>G</kbd> (plates, seat, steering) and <kbd>Ctrl</kbd>+<kbd>H</kbd> (sounds) were pasted into <code>vehicles/&lt;car&gt;.json</code> with "Copy JSON" (on-screen values are lost when you quit)</li>
+<li>Handling values tuned in the <kbd>G</kbd> screen are written into the spec's <code>values</code>, with angles in radians</li>
+</ul>
 </section><section class="gsec" id="sc">
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（57 項目）。書き方は <a href="#s-spec">12 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="ja">これで全部（65 項目）。書き方は <a href="#s-spec">12 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
 <p class="ja"><b>既定は、何も書かなかったときの値です。</b>寸法（<code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code>）の既定はゲージの寸法と同じです。KurumaMod の既定の車（S15）は、車体を実車の比率で作ってあり、ゲージのタイヤでは大きすぎるので <code>wheel_base</code> 3.15・<code>track_width</code> 1.9・<code>wheel_radius</code> 0.4 だけ書いています。そのほかは既定のままです。</p>
-<p class="en">That is all of them (57 keys). How to write them is in <a href="#s-spec">chapter 12</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="en">That is all of them (65 keys). How to write them is in <a href="#s-spec">chapter 12</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
 <p class="en"><b>A default is the value used when you leave the key out.</b> The size defaults (<code>wheel_base</code>, <code>track_width</code>, <code>wheel_radius</code>) match the gauge. KurumaMod's default car (the S15) is built to real-car proportions, where the gauge tyres are too big, so it writes only <code>wheel_base</code> 3.15, <code>track_width</code> 1.9 and <code>wheel_radius</code> 0.4; everything else is at the default.</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
@@ -2605,6 +2622,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>body_clearance</code></td><td>ボディの地上高（当たり判定）</td><td>m</td><td>0.25</td><td>0.1 – 1.2</td></tr>
 <tr><td><code>front_anti_roll</code></td><td>フロント スタビライザー</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
 <tr><td><code>rear_anti_roll</code></td><td>リア スタビライザー</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
+<tr><td><code>front_solid_axle</code></td><td>フロントのサス形式</td><td>0 = 独立・1 = リジッドアクスル</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>rear_solid_axle</code></td><td>リアのサス形式</td><td>0 = 独立・1 = リジッドアクスル</td><td>0</td><td>0 – 1</td></tr>
 <tr><td><code>front_roll_center</code></td><td>フロント ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
 <tr><td><code>rear_roll_center</code></td><td>リア ロールセンター</td><td>重心高に対する割合</td><td>0.4</td><td>0 – 0.8</td></tr>
 </table>
@@ -2656,7 +2675,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>peak_power_rpm</code></td><td>最高出力回転数</td><td>rpm</td><td>最大トルク回転数の 1.59 倍（6676.4）</td><td>2500 – 12000</td></tr>
 <tr><td><code>idle_rpm</code></td><td>アイドル回転数</td><td>rpm</td><td>800</td><td>500 – 2000</td></tr>
 <tr><td><code>redline_rpm</code></td><td>レブリミット</td><td>rpm</td><td>7000</td><td>4000 – 12000</td></tr>
-<tr><td><code>engine_brake</code></td><td>エンジンブレーキ</td><td>N·m</td><td>35</td><td>0 – 120</td></tr>
+<tr><td><code>engine_brake</code></td><td>エンジンブレーキ</td><td>N·m</td><td>90</td><td>0 – 200</td></tr>
 <tr><td><code>engine_inertia</code></td><td>エンジンの慣性</td><td>kg·m²</td><td>0.25</td><td>0.05 – 1</td></tr>
 </table>
 <h4 class="ja">変速機</h4>
@@ -2668,6 +2687,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>drivetrain_efficiency</code></td><td>駆動系の伝達効率</td><td>—</td><td>0.9</td><td>0.7 – 1</td></tr>
 <tr><td><code>shift_time</code></td><td>変速にかかる時間</td><td>秒</td><td>0.35</td><td>0 – 1.5</td></tr>
 <tr><td><code>manual_transmission</code></td><td>変速</td><td>0 = AT・1 = MT</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>rev_match</code></td><td>回転合わせ</td><td>0 = 切・1 = 入（MT のシフトダウンで回転を合わせる。AT は常に入）</td><td>1</td><td>0 – 1</td></tr>
 </table>
 <h4 class="ja">駆動系・デフ</h4>
 <table class="ja">
@@ -2680,7 +2700,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>center_diff_lock</code></td><td>センターデフ 締結の強さ</td><td>—</td><td>0</td><td>0 – 1</td></tr>
 </table>
 <p class="ja"><code>diff_lock_ratio</code> と <code>diff_preload</code> がどちらも 0 ならオープンデフ。<code>diff_coast_ratio</code> は 0 で 1way、0.5 で 1.5way、1 で 2way。</p>
-<p class="ja"><code>torque_split</code> と <code>center_diff_lock</code> は 4WD（<code>drive_layout</code> が 2）のときだけ効きます。<code>torque_split</code> は前後へ配る駆動力の割合で、後ろへ寄せるほど踏んだときに尻が出やすくなります（FR 寄り）。<code>center_diff_lock</code> が 0 ならオープンで配分どおり、上げると前後の回転差を揃えにいき、空転しかけた軸から掴んでいる軸へトルクが移ります（1 で直結）。締めるほど配分の意味は薄れ、低速で小さく回ったときに止まろうとします（タイトコーナーブレーキング）。サイドブレーキを引いている間は自動で切れます。古い <code>drive_bias</code>（0 = FF・1 = FR・間は 4WD の配分）も読めます。</p>
+<p class="ja"><code>torque_split</code> と <code>center_diff_lock</code> は 4WD（<code>drive_layout</code> が 2）のときだけ効きます。<code>torque_split</code> は前後へ配る駆動力の割合で、後ろへ寄せるほど踏んだときに尻が出やすくなります（FR 寄り）。<code>center_diff_lock</code> が 0 ならオープンで配分どおり、上げると前後の回転差を揃えにいき、空転しかけた軸から掴んでいる軸へトルクが移ります（1 で直結）。締めるほど配分の意味は薄れ、低速で小さく回ったときに止まろうとします（タイトコーナーブレーキング）。サイドブレーキを引いている間は自動で切れます。古い <code>drive_bias</code>（0 = FF・1 = FR・間は 4WD の配分）と <code>torque_falloff</code>（トルク曲線の落ち方）も読めます。</p>
 <h4 class="ja">ブレーキ・走行抵抗</h4>
 <table class="ja">
 <tr><th>名前</th><th>調整画面での名前</th><th>単位</th><th>既定</th><th>範囲</th></tr>
@@ -2703,12 +2723,12 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>max_steer</code></td><td>最大切れ角</td><td><b>rad</b></td><td>0.6109（＝35°）</td><td>0.1745 – 1.5708</td></tr>
 <tr><td><code>steer_grip_margin</code></td><td>切れ角の余裕（大で滑らせやすい）</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
 <tr><td><code>visual_slip_limit</code></td><td>見た目のタイヤ角</td><td><b>rad</b>（0 で無効）</td><td>0.7854（＝45°）</td><td>0 – 1.5708</td></tr>
-<tr><td><code>steer_rate</code></td><td>舵が入るまでの時間</td><td>秒</td><td>0.18</td><td>0 – 1</td></tr>
-<tr><td><code>steer_return</code></td><td>舵が中立へ戻る時間</td><td>秒</td><td>0.11</td><td>0 – 1</td></tr>
+<tr><td><code>steer_rate</code></td><td>舵が入るまでの時間</td><td>秒</td><td>0.25</td><td>0 – 1</td></tr>
+<tr><td><code>steer_return</code></td><td>舵が中立へ戻る時間</td><td>秒</td><td>0.25</td><td>0 – 1</td></tr>
 <tr><td><code>self_aligning</code></td><td>舵の自己復元</td><td>—（0 で中立へ戻る）</td><td>0</td><td>0 – 1</td></tr>
-<tr><td><code>pedal_press</code></td><td>ペダルを踏みきる時間</td><td>秒</td><td>0.25</td><td>0 – 1</td></tr>
-<tr><td><code>pedal_release</code></td><td>ペダルを戻しきる時間</td><td>秒</td><td>0.12</td><td>0 – 1</td></tr>
-<tr><td><code>handbrake_press</code></td><td>サイドブレーキが効ききる時間</td><td>秒</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_press</code></td><td>ペダルを踏みきる時間</td><td>秒</td><td>0.15</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_release</code></td><td>ペダルを戻しきる時間</td><td>秒</td><td>0.15</td><td>0 – 1</td></tr>
+<tr><td><code>handbrake_press</code></td><td>サイドブレーキが効ききる時間</td><td>秒</td><td>0.15</td><td>0 – 1</td></tr>
 <tr><td><code>traction_control</code></td><td>トラクションコントロール</td><td>強さ（0 で無効）</td><td>1</td><td>0 – 1</td></tr>
 </table>
 <h4 class="en">Suspension</h4>
@@ -2719,6 +2739,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>body_clearance</code></td><td>Body clearance (collision)</td><td>m</td><td>0.25</td><td>0.1 – 1.2</td></tr>
 <tr><td><code>front_anti_roll</code></td><td>Front anti-roll bar</td><td>N/m</td><td>2500</td><td>0 – 20000</td></tr>
 <tr><td><code>rear_anti_roll</code></td><td>Rear anti-roll bar</td><td>N/m</td><td>1500</td><td>0 – 20000</td></tr>
+<tr><td><code>front_solid_axle</code></td><td>Front suspension type</td><td>0 = independent, 1 = solid axle</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>rear_solid_axle</code></td><td>Rear suspension type</td><td>0 = independent, 1 = solid axle</td><td>0</td><td>0 – 1</td></tr>
 <tr><td><code>front_roll_center</code></td><td>Front roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
 <tr><td><code>rear_roll_center</code></td><td>Rear roll centre</td><td>fraction of CG height</td><td>0.4</td><td>0 – 0.8</td></tr>
 </table>
@@ -2770,7 +2792,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>peak_power_rpm</code></td><td>Peak power rpm</td><td>rpm</td><td>1.59 × peak torque rpm (6676.4)</td><td>2500 – 12000</td></tr>
 <tr><td><code>idle_rpm</code></td><td>Idle rpm</td><td>rpm</td><td>800</td><td>500 – 2000</td></tr>
 <tr><td><code>redline_rpm</code></td><td>Redline</td><td>rpm</td><td>7000</td><td>4000 – 12000</td></tr>
-<tr><td><code>engine_brake</code></td><td>Engine braking</td><td>N·m</td><td>35</td><td>0 – 120</td></tr>
+<tr><td><code>engine_brake</code></td><td>Engine braking</td><td>N·m</td><td>90</td><td>0 – 200</td></tr>
 <tr><td><code>engine_inertia</code></td><td>Engine inertia</td><td>kg·m²</td><td>0.25</td><td>0.05 – 1</td></tr>
 </table>
 <h4 class="en">Gearbox</h4>
@@ -2782,6 +2804,7 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>drivetrain_efficiency</code></td><td>Drivetrain efficiency</td><td>—</td><td>0.9</td><td>0.7 – 1</td></tr>
 <tr><td><code>shift_time</code></td><td>Shift time</td><td>s</td><td>0.35</td><td>0 – 1.5</td></tr>
 <tr><td><code>manual_transmission</code></td><td>Transmission</td><td>0 = AT, 1 = MT</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>rev_match</code></td><td>Rev matching</td><td>0 = off, 1 = on (matches revs on MT downshifts; always on for AT)</td><td>1</td><td>0 – 1</td></tr>
 </table>
 <h4 class="en">Driveline & Differential</h4>
 <table class="en">
@@ -2817,12 +2840,12 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <tr><td><code>max_steer</code></td><td>Max steering angle</td><td><b>rad</b></td><td>0.6109 (= 35°)</td><td>0.1745 – 1.5708</td></tr>
 <tr><td><code>steer_grip_margin</code></td><td>Steering margin (higher = slides more)</td><td>—</td><td>1</td><td>0.8 – 8</td></tr>
 <tr><td><code>visual_slip_limit</code></td><td>Visual wheel angle</td><td><b>rad</b> (0 = off)</td><td>0.7854 (= 45°)</td><td>0 – 1.5708</td></tr>
-<tr><td><code>steer_rate</code></td><td>Steering lock-to-lock time</td><td>s</td><td>0.18</td><td>0 – 1</td></tr>
-<tr><td><code>steer_return</code></td><td>Steering return time</td><td>s</td><td>0.11</td><td>0 – 1</td></tr>
+<tr><td><code>steer_rate</code></td><td>Steering lock-to-lock time</td><td>s</td><td>0.25</td><td>0 – 1</td></tr>
+<tr><td><code>steer_return</code></td><td>Steering return time</td><td>s</td><td>0.25</td><td>0 – 1</td></tr>
 <tr><td><code>self_aligning</code></td><td>Self-aligning torque</td><td>— (0 = returns to centre)</td><td>0</td><td>0 – 1</td></tr>
-<tr><td><code>pedal_press</code></td><td>Pedal press time</td><td>s</td><td>0.25</td><td>0 – 1</td></tr>
-<tr><td><code>pedal_release</code></td><td>Pedal release time</td><td>s</td><td>0.12</td><td>0 – 1</td></tr>
-<tr><td><code>handbrake_press</code></td><td>Handbrake press time</td><td>s</td><td>0</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_press</code></td><td>Pedal press time</td><td>s</td><td>0.15</td><td>0 – 1</td></tr>
+<tr><td><code>pedal_release</code></td><td>Pedal release time</td><td>s</td><td>0.15</td><td>0 – 1</td></tr>
+<tr><td><code>handbrake_press</code></td><td>Handbrake press time</td><td>s</td><td>0.15</td><td>0 – 1</td></tr>
 <tr><td><code>traction_control</code></td><td>Traction control</td><td>strength (0 = off)</td><td>1</td><td>0 – 1</td></tr>
 </table>
 </section><div class="gfoot">

@@ -100,7 +100,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h3 class="ja">最小のタイヤを作る</h3>
 <h3 class="en">Make a minimal tyre</h3>
 <ol class="steps ja">
-<li><span class="where where-blender">Blender</span><b>新しいファイルで、ゲージを置く。</b><code>Scripting</code> タブで <code>modeling_tools/blender_tire_gauge.py</code> を実行する。同梱のノーマルタイヤの寸法（外径 0.45m・内径 0.334m・幅 0.38m）で、外形の円柱・内径の円柱・踏面の幅・断面・車軸の線・地面が置かれる</li>
+<li><span class="where where-blender">Blender</span><b>新しいファイルで、ゲージを置く。</b><code>Scripting</code> タブで <code>modeling_tools/blender_tire_gauge.py</code> を実行する。同梱のノーマルタイヤの寸法（外側の半径 0.45m・内側の半径 0.334m・幅 0.38m）で、外形の円柱・内側の円柱・踏面の幅・断面・車軸の線・地面が置かれる</li>
 <li><span class="where where-blender">Blender</span><b>外形の円柱に収まるように、タイヤだけを作る。</b>ビードを内径の円柱の両端に合わせる（幅 0.32m はホイールのリムと同じ規格なので、これでどのホイールにも嵌まる）。原点は車軸の中心、回転軸は左右（X）。ホイールは入れない</li>
 <li><span class="where where-blender">Blender</span><b>ゲージを除いてタイヤだけを選び、OBJ に書き出す。</b>「Selected Only」を入れ、「Triangulated Mesh」は入れない（設定の全体は<a href="guide-car.html#s8">車の 5 章</a>と同じ）</li>
 <li><span class="where where-file">ファイル</span><b>書き出したファイルとテクスチャを置く。</b><code>assets/mypack/models/entity/my_tire.obj</code>（<code>.mtl</code> も一緒に）と <code>assets/mypack/textures/entity/my_tire.png</code></li>
@@ -392,6 +392,18 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </details>
 
 <details class="more ja">
+<summary>タイヤのパックを外したら、履いていた車はどうなる？</summary>
+<div class="more-body">
+<p>その車の初期装備（<code>default_parts</code>）に戻ります。初期装備が無ければ純正（ホイールは TE37、タイヤはノーマル）です。タイヤなら性能も戻ります。付けていた部品の id は残っているので、パックを入れ直せば元の部品に戻ります。</p>
+</div>
+</details>
+<details class="more en">
+<summary>What happens to cars on these tyres if the pack is removed?</summary>
+<div class="more-body">
+<p>They go back to the car's default part (<code>default_parts</code>), or to stock if there is none (the TE37 wheel, the normal tyre). For tyres the grip goes back too. The fitted part's id is kept, so putting the pack back restores it.</p>
+</div>
+</details>
+<details class="more ja">
 <summary>うまくいかないとき</summary>
 <div class="more-body">
 <ul>
@@ -443,6 +455,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </section><section class="gsec" id="se-tire">
 <h2 class="ja">付録 A. タイヤの全項目</h2>
 <h2 class="en">Appendix A. Every tyre key</h2>
+<p class="ja"><code>_</code> で始まるキーは読み飛ばされます。JSON にはコメントが書けないので、<code>"_comment": "…"</code> のようにメモを残せます。</p>
+<p class="en">Keys starting with <code>_</code> are skipped. JSON has no comments, so use <code>"_comment": "…"</code> to leave notes.</p>
 <h4 class="ja">素性 — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>

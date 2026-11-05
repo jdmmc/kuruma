@@ -117,7 +117,9 @@ displayName = "My Car Pack"          # MOD 一覧に出る名前
 logoFile = "<span class="hl">mypack</span>.png"              # 置き換える
 description = '''...'''              # MOD 一覧に出る説明文
 
-[[dependencies.<span class="hl">mypack</span>]]              # 置き換える（2 か所とも）</code></pre></li>
+[[dependencies.<span class="hl">mypack</span>]]              # 置き換える（2 か所とも）</code></pre>
+KurumaMod への依存の <code>versionRange</code> は、使う機能が入った版を下限にする（エンジン音の <code>type</code>・<code>load</code> は 1.10.0、ナンバーは 1.11.0 から）。古い本体に入れると、新しい書き方は黙って無視される</li>
+<li><code>pack.mcmeta</code> の <code>"description"</code> を自分のものにする。<code>"supported_formats"</code> は消さない（Forge と NeoForge の両方で読まれるのに要る）</li>
 <li>JSON の中のパス</li>
 </ul>
 <p class="en"><b>Replace every <code>kurumamod_example_carpack</code> with <code>mypack</code>.</b> Use only <code>a-z</code>, <code>0-9</code> and <code>_</code></p>
@@ -132,7 +134,9 @@ displayName = "My Car Pack"          # name in the mod list
 logoFile = "<span class="hl">mypack</span>.png"              # replace
 description = '''...'''              # description in the mod list
 
-[[dependencies.<span class="hl">mypack</span>]]              # replace (both of them)</code></pre></li>
+[[dependencies.<span class="hl">mypack</span>]]              # replace (both of them)</code></pre>
+Set the <code>versionRange</code> of the KurumaMod dependency to the version that introduced the features you use (engine sound <code>type</code> and <code>load</code> from 1.10.0, licence plates from 1.11.0). On an older KurumaMod, newer keys are silently ignored</li>
+<li>Make <code>"description"</code> in <code>pack.mcmeta</code> your own. Keep <code>"supported_formats"</code> (needed for both Forge and NeoForge to read it)</li>
 <li>The paths inside the JSON</li>
 </ul>
 
@@ -202,7 +206,7 @@ description = '''...'''              # description in the mod list
 │   │   └── sample_wheel.json
 │   └── cars/
 │       └── sample.json
-├── modeling_tools/                 ← 作るための道具。配布時に消す
+├── modeling_tools/                 ← ゲージ（車体・ホイール・タイヤ・ナンバー）。配布時に消す
 └── sound_tools/                    ← 音を生成するツール。配布時に消す</code></pre>
 <pre class="en"><code><span class="hl">mypack</span>/
 ├── META-INF/
@@ -228,7 +232,7 @@ description = '''...'''              # description in the mod list
 │   │   └── sample_wheel.json
 │   └── cars/
 │       └── sample.json
-├── modeling_tools/                 &lt;- tools for making packs; delete before shipping
+├── modeling_tools/                 &lt;- gauges (body, wheel, tyre, licence plates); delete before shipping
 └── sound_tools/                    &lt;- tools for generating sounds; delete before shipping</code></pre>
 <p class="ja">これで、自分のカーパックフォルダができます。jar への固め方は<a href="guide-ship.html#s-jar">配布の 1 章</a>です。</p>
 <p class="en">That is your car pack folder. Packing it into a jar is in <a href="guide-ship.html#s-jar">chapter 1 of Shipping</a>.</p>

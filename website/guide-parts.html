@@ -86,8 +86,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   <div class="gdoc"><section class="gsec" id="s-turbo">
 <h2 class="ja"><span class="num">1</span>ターボとブローオフバルブ</h2>
 <h2 class="en"><span class="num">1</span>Turbos and blow-off valves</h2>
-<p class="ja">ターボは加速が変わる部品、ブローオフバルブはアクセルを抜いたときに「プシュッ」と鳴るだけの部品です。どちらもモデルは要りません。</p>
-<p class="en">A turbo changes how the car accelerates; a blow-off valve only adds the "pssh" when you lift off. Neither needs a model.</p>
+<p class="ja">ターボは加速が変わる部品、ブローオフバルブは、ブーストが掛かった状態でアクセルを抜いたときやシフトアップのときに「プシュッ」と鳴るだけの部品です。どちらもモデルは要りません。</p>
+<p class="en">A turbo changes how the car accelerates; a blow-off valve only adds the "pssh" when you lift off or shift up under boost. Neither needs a model.</p>
 
 <h3 class="ja">最小のターボを作る</h3>
 <h3 class="en">Make a minimal turbo</h3>
@@ -389,6 +389,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><code>"removable": false</code> なら外せない。外すと穴だけ残る部品に使う</li>
 <li>置いてある車にも効く。パックで初期装備を変えれば、すでに置いた車も変わる</li>
 </ul>
+<p><b>部品のカーパックを外すと</b>、その部品を付けていた車は、その場所の初期装備（無ければ純正・ノーマル・なし）に戻ります。外せない初期装備が消えて穴が開くことはありません。付けていた部品の id は残っているので、パックを入れ直せば元の部品に戻ります。</p>
 </div>
 </details>
 <details class="more en">
@@ -407,6 +408,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><code>"removable": false</code> means it cannot come off. Use it for parts that would leave a hole</li>
 <li>It reaches cars already placed: change the default in the pack and existing cars follow</li>
 </ul>
+<p><b>If a part's car pack is removed</b>, cars that had the part fitted go back to that slot's default part (or to stock, normal or none if there is no default). A non-removable default never disappears to leave a hole. The fitted part's id is kept, so putting the pack back restores the part.</p>
 </div>
 </details>
 
@@ -940,6 +942,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <h2 class="en">Appendix A. Every part key</h2>
 <p class="ja">ホイールとタイヤの項目は、<a href="guide-wheel.html#se-wheel">ホイールの付録 A</a>・<a href="guide-tire.html#se-tire">タイヤの付録 A</a>にあります。</p>
 <p class="en">Wheel and tyre keys are in <a href="guide-wheel.html#se-wheel">the Wheel guide's Appendix A</a> and <a href="guide-tire.html#se-tire">the Tyre guide's Appendix A</a>.</p>
+<p class="ja"><code>_</code> で始まるキーは読み飛ばされます。JSON にはコメントが書けないので、<code>"_comment": "…"</code> のようにメモを残せます。</p>
+<p class="en">Keys starting with <code>_</code> are skipped. JSON has no comments, so use <code>"_comment": "…"</code> to leave notes.</p>
 <h4 class="ja">素性 — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="ja">
 <tr><th>キー</th><th>型</th><th>既定値</th><th>意味</th></tr>
@@ -947,14 +951,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>order</code></td><td>整数</td><td><code>100</code></td><td>換装画面に並ぶ順</td></tr>
 <tr><td><code>cars</code></td><td>車種 id の配列</td><td>（すべての車種）</td><td>付けられる車種。読める値が 1 つも無ければ、その部品は捨てられる</td></tr>
 <tr><td><code>turbo.boost</code></td><td>数字</td><td><code>0.35</code></td><td>ターボだけ。ブーストいっぱいでトルクを何割増やすか（0〜1.5）</td></tr>
-<tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1）</td></tr>
-<tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合</td></tr>
+<tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1。0〜0.95）</td></tr>
+<tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合（<code>spool_from</code> より少し上〜1）</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
 <tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="#s-body">パーツの 2 章</a>）</td></tr>
 <tr><td><code>aero.angle</code></td><td>数字</td><td><code>0.5</code></td><td>外装パーツだけ。調整していないときの角度（0〜1）</td></tr>
-<tr><td><code>plate.fields.&lt;欄&gt;.max</code></td><td>整数</td><td><code>16</code></td><td>ナンバーだけ。字の数の上限（1〜16）。欄は 8 つまで、並べた順が入力欄の順</td></tr>
+<tr><td><code>plate.fields.&lt;欄&gt;.max</code></td><td>整数</td><td><code>16</code></td><td>ナンバーだけ。字の数の上限（1〜16）。欄は 8 つまで、並べた順が入力欄の順。欄の名前は小文字・数字・<code>_ -</code> の 32 字まで</td></tr>
 <tr><td><code>plate.fields.&lt;欄&gt;.chars</code></td><td>文字列の配列</td><td>（どの字でも）</td><td>ナンバーだけ。使える字。範囲 <code>"0-9"</code>・1 字・名前（<code>hiragana</code>・<code>katakana</code>・<code>kanji</code>・<code>latin</code>・<code>digits</code>）</td></tr>
-<tr><td><code>plate.fields.&lt;欄&gt;.default</code></td><td>文字列</td><td><code>""</code></td><td>ナンバーだけ。最初に出ている字</td></tr>
+<tr><td><code>plate.fields.&lt;欄&gt;.default</code></td><td>文字列</td><td><code>""</code></td><td>ナンバーだけ。最初に出ている字（<code>chars</code> と <code>max</code> に合わない字は落とされる）</td></tr>
 </table>
 <h4 class="en">Definition — <code>data/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code></h4>
 <table class="en">
@@ -963,14 +967,14 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>order</code></td><td>integer</td><td><code>100</code></td><td>Position in the parts screen</td></tr>
 <tr><td><code>cars</code></td><td>array of car ids</td><td>(every car)</td><td>Which cars can fit it. If none of the values can be read, the part is dropped</td></tr>
 <tr><td><code>turbo.boost</code></td><td>number</td><td><code>0.35</code></td><td>Turbos only. Extra torque at full boost (0 to 1.5)</td></tr>
-<tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1)</td></tr>
-<tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full</td></tr>
+<tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1); 0 to 0.95</td></tr>
+<tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full (just above <code>spool_from</code> to 1)</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
 <tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
 <tr><td><code>aero.angle</code></td><td>number</td><td><code>0.5</code></td><td>Body parts only. Default angle (0 to 1)</td></tr>
-<tr><td><code>plate.fields.&lt;field&gt;.max</code></td><td>integer</td><td><code>16</code></td><td>Plates only. Maximum length (1 to 16). Up to 8 fields; the order is the order of the text boxes</td></tr>
+<tr><td><code>plate.fields.&lt;field&gt;.max</code></td><td>integer</td><td><code>16</code></td><td>Plates only. Maximum length (1 to 16). Up to 8 fields; the order is the order of the text boxes. Field names: lower case, digits and <code>_ -</code>, up to 32 characters</td></tr>
 <tr><td><code>plate.fields.&lt;field&gt;.chars</code></td><td>array of strings</td><td>(anything)</td><td>Plates only. Allowed characters: ranges like <code>"0-9"</code>, single characters, or names (<code>hiragana</code>, <code>katakana</code>, <code>kanji</code>, <code>latin</code>, <code>digits</code>)</td></tr>
-<tr><td><code>plate.fields.&lt;field&gt;.default</code></td><td>string</td><td><code>""</code></td><td>Plates only. The text shown at first</td></tr>
+<tr><td><code>plate.fields.&lt;field&gt;.default</code></td><td>string</td><td><code>""</code></td><td>Plates only. The text shown at first (characters outside <code>chars</code> or beyond <code>max</code> are dropped)</td></tr>
 </table>
 <h4 class="ja">マフラーの音 — <code>assets/&lt;pack&gt;/car_parts/&lt;part&gt;.json</code>（<code>"exhaust": { ... }</code> の中。<b>いちばん外側には書けない</b>）</h4>
 <table class="ja">

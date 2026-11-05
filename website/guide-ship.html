@@ -204,6 +204,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <li>諸元・見た目・lang のファイル名と翻訳キーが車種 id と揃っている</li>
 <li>部品の表示名を <code>part.&lt;パック&gt;.&lt;部品名&gt;</code> で lang に書いた</li>
 <li><code>default_parts</code> を <code>values</code> の中ではなく、いちばん外側に書いた</li>
+<li><code>mods.toml</code>・<code>neoforge.mods.toml</code> の KurumaMod への <code>versionRange</code> が、使った機能の入った版から始まっている</li>
 <li>諸元の角度をラジアンで書いた（ゲーム内で書き出したなら問題ない）</li>
 <li><code>META-INF/</code> と <code>pack.mcmeta</code> が jar のいちばん上にある</li>
 <li>マルチプレイなら、サーバーにも入れた</li>
@@ -213,6 +214,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <li>Spec, looks and lang file names and translation keys all match the car id</li>
 <li>Part display names are in lang as <code>part.&lt;pack&gt;.&lt;part&gt;</code></li>
 <li><code>default_parts</code> is at the top level, not inside <code>values</code></li>
+<li>The KurumaMod <code>versionRange</code> in <code>mods.toml</code> and <code>neoforge.mods.toml</code> starts at a version that has the features you used</li>
 <li>Spec angles are in radians (fine if you exported from in game)</li>
 <li><code>META-INF/</code> and <code>pack.mcmeta</code> sit at the top of the jar</li>
 <li>For multiplayer, installed on the server too</li>
@@ -232,7 +234,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>車が 1 台も増えない</td><td><code>data/&lt;パック&gt;/cars/*.json</code> を置く。ログの <code>車種を N 件読み込みました</code> を見る</td></tr>
 <tr><td>その 1 台だけ増えない</td><td>その JSON が壊れている。理由はログに</td></tr>
 <tr><td>表示名が <code>ae86</code> のように出る</td><td>lang のキーを <code>car.&lt;パック&gt;.&lt;車&gt;</code> にする</td></tr>
-<tr><td>走るのに姿が既定の車のまま</td><td><code>vehicles/</code> の JSON のファイル名とパス、名前空間（<code>mypack:</code>）を車種 id に揃える</td></tr>
+<tr><td>走るのに姿が既定の車のまま</td><td><code>vehicles/</code> の JSON のファイル名とパス、名前空間（<code>mypack:</code>）を車種 id に揃える。ログに <code>車の見た目の定義が見つかりません</code> と出る</td></tr>
 <tr><td>直したのに何も変わらない</td><td>見た目は <kbd>F3</kbd>+<kbd>T</kbd>、<code>data/</code> は <code>/reload</code>。リソースパックで試しているなら、有効にしたか見る</td></tr>
 <tr><td>舵が切れすぎる／効かない</td><td>諸元の角度を度で書いている。<b>ラジアン</b>で書く</td></tr>
 </table>
@@ -243,7 +245,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>No cars added at all</td><td>Add <code>data/&lt;pack&gt;/cars/*.json</code>. Check the <code>車種を N 件読み込みました</code> line in the log</td></tr>
 <tr><td>Only that one car is missing</td><td>That JSON is broken. The reason is in the log</td></tr>
 <tr><td>The name shows as <code>ae86</code></td><td>Make the lang key <code>car.&lt;pack&gt;.&lt;car&gt;</code></td></tr>
-<tr><td>It drives, but looks like the built-in car</td><td>Match the file name and path in <code>vehicles/</code> and the namespace (<code>mypack:</code>) to the car id</td></tr>
+<tr><td>It drives, but looks like the built-in car</td><td>Match the file name and path in <code>vehicles/</code> and the namespace (<code>mypack:</code>) to the car id. The log says <code>車の見た目の定義が見つかりません</code> ("looks definition not found")</td></tr>
 <tr><td>You fixed it but nothing changed</td><td>Looks: <kbd>F3</kbd>+<kbd>T</kbd>. <code>data/</code>: <code>/reload</code>. Testing with a resource pack? Check it is enabled</td></tr>
 <tr><td>Steering is wild, or does nothing</td><td>A spec angle is in degrees. Write it in <b>radians</b></td></tr>
 </table>
@@ -254,8 +256,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><th>症状</th><th>直しかた</th></tr>
 <tr><td>車体だけ大きい／小さい</td><td><code>designWheelBase</code> をメッシュの実寸にする。微調整は <code>body.scale</code></td></tr>
 <tr><td>車体が地面に埋まる／浮く</td><td><code>designRideHeight</code> を見る。原点は車体の底ではなく地面の高さに</td></tr>
-<tr><td>タイヤが前後にずれる</td><td><code>designWheelBase</code> を見る。ゲームで前後の荷重配分を動かしたなら、それで正しい（車体は追従しない）</td></tr>
-<tr><td>タイヤが大きすぎ／小さすぎ</td><td>ゲージと違う大きさのホイールなら、<code>wheel</code> の中の <code>designRadius</code> をメッシュの実寸にする（車でも部品でも同じ）</td></tr>
+<tr><td>タイヤが前後にずれる</td><td><code>designWheelBase</code> を見る。諸元の <code>wheel_base</code> も（<a href="guide-car.html#s-car-fit">車の 7 章</a>）。ゲームで前後の荷重配分を動かしたなら、それで正しい（車体は追従しない）</td></tr>
+<tr><td>タイヤが大きすぎ／小さすぎ</td><td>ゲージと違う大きさのホイールなら、ホイールの部品の見た目の JSON の <code>wheel</code> の中の <code>designRadius</code> をメッシュの実寸にする（<a href="guide-wheel.html#se-wheel">ホイールの付録 A</a>）。車体に対してタイヤが大きいなら、諸元の <code>wheel_radius</code>・<code>track_width</code> を合わせる（<a href="guide-car.html#s-car-fit">車の 7 章</a>）</td></tr>
 <tr><td>タイヤが横倒し／転がりかたが変</td><td>回転軸を X に。原点を車軸の中心に</td></tr>
 <tr><td>右のタイヤだけ内側を向く</td><td>左側用として作る。表を +X へ</td></tr>
 <tr><td>前後が逆／左右が鏡像</td><td>書き出しの <code>Forward Axis</code> を既定に戻す</td></tr>
@@ -266,8 +268,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><th>Symptom</th><th>Fix</th></tr>
 <tr><td>Body too big / too small</td><td>Set <code>designWheelBase</code> to your mesh's real size. Fine-tune with <code>body.scale</code></td></tr>
 <tr><td>Body sunk into or floating above the ground</td><td>Check <code>designRideHeight</code>. The origin belongs at ground level, not the underside of the body</td></tr>
-<tr><td>Wheels sit too far forward or back</td><td>Check <code>designWheelBase</code>. If you moved the weight distribution in game, this is correct (the body does not follow)</td></tr>
-<tr><td>Wheels too big / too small</td><td>For a wheel not built to the gauge, set <code>designRadius</code> inside <code>wheel</code> to your mesh's real size (same for cars and parts)</td></tr>
+<tr><td>Wheels sit too far forward or back</td><td>Check <code>designWheelBase</code>, and <code>wheel_base</code> in the spec (<a href="guide-car.html#s-car-fit">Car guide, chapter 7</a>). If you moved the weight distribution in game, this is correct (the body does not follow)</td></tr>
+<tr><td>Wheels too big / too small</td><td>For a wheel not built to the gauge, set <code>designRadius</code> inside <code>wheel</code> in the wheel part's looks JSON to your mesh's real size (<a href="guide-wheel.html#se-wheel">Wheel guide, Appendix A</a>). If the tyres are too big for the body, match <code>wheel_radius</code> and <code>track_width</code> in the spec (<a href="guide-car.html#s-car-fit">Car guide, chapter 7</a>)</td></tr>
 <tr><td>Wheels lie on their side / roll oddly</td><td>Make X the spin axis. Put the origin at the axle centre</td></tr>
 <tr><td>Only the right wheels face inward</td><td>Build it as the left wheel, face towards +X</td></tr>
 <tr><td>Front and back swapped / mirrored</td><td>Put <code>Forward Axis</code> in the exporter back to the default</td></tr>
@@ -290,6 +292,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>左右のミラーに同じ景色が映る</td><td>ミラーモディファイアで 1 つにしている。左右を別のオブジェクトに</td></tr>
 <tr><td>ミラーが地面ばかり映す</td><td>板の角度は関係ない。鏡の位置を見る（車体の中心から 0.35m 以内はルームミラーになる）</td></tr>
 <tr><td>車内が暗い</td><td>車体の裏面が見えている。それで正しい</td></tr>
+<tr><td>「塗装」のタブが出ない・ある色だけ出ない</td><td><code>paints</code> を 2 つ以上書く。<code>id</code> は小文字・数字・<code>_ - .</code>、<code>texture</code> を書く。読めない塗装はログに <code>paints</code> で始まる理由が出る（<a href="guide-car.html#paint">車の 4 章</a>）</td></tr>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Fix</th></tr>
@@ -304,6 +307,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>Both door mirrors show the same view</td><td>They are one object via a mirror modifier. Make them separate objects</td></tr>
 <tr><td>A mirror only shows the ground</td><td>The modelled angle does not matter. Check its position (within 0.35 m of the centreline it counts as the rear-view mirror)</td></tr>
 <tr><td>The cabin is dark</td><td>You are seeing the back of the body faces. That is correct</td></tr>
+<tr><td>No "Paint" tab, or one colour missing</td><td>Write at least two <code>paints</code>. Use lower case, digits and <code>_ - .</code> for <code>id</code>, and give a <code>texture</code>. A paint that can't be read is logged with the reason (<a href="guide-car.html#paint-en">Car guide, chapter 4</a>)</td></tr>
 </table>
 
 <h3 class="ja">パーツ</h3>
@@ -319,6 +323,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>「ブローオフ」のタブが出ない</td><td>先にターボを付ける</td></tr>
 <tr><td>ホイールが換装画面に出ない</td><td><code>data/&lt;パック&gt;/car_parts/</code> に置き、<code>slot</code> を書く。<code>cars</code> にその車を入れる</td></tr>
 <tr><td>ホイールを選んでも見た目が変わらない</td><td><code>assets/&lt;パック&gt;/car_parts/</code> のファイル名を、<code>data/</code> 側と同じにする</td></tr>
+<tr><td>タイヤ部品を付けても走りが変わらない</td><td>素性の JSON に <code>tire</code> が無い。ログに <code>タイヤの部品に tire が書かれていません</code> と出る（<a href="guide-tire.html#s-tire">タイヤの 2 章</a>）</td></tr>
+<tr><td>ナンバーが付かない・白い板になる</td><td>付ける位置は車の <code>plates</code>（<a href="guide-car.html#s-plate-pos">車の 8 章</a>）。自作のナンバーなら見た目の JSON と地の絵を見る。ログに <code>ナンバーの地の絵が見つかりません</code> などと出る（<a href="guide-parts.html#s-plate">パーツの 4 章</a>）</td></tr>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Fix</th></tr>
@@ -331,6 +337,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>No "Blow-off" tab</td><td>Fit a turbo first</td></tr>
 <tr><td>A wheel is missing from the parts screen</td><td>Put it in <code>data/&lt;pack&gt;/car_parts/</code> with a <code>slot</code>. Include the car in <code>cars</code></td></tr>
 <tr><td>Picking a wheel changes nothing</td><td>Give the file in <code>assets/&lt;pack&gt;/car_parts/</code> the same name as the one in <code>data/</code></td></tr>
+<tr><td>Fitting a tyre part doesn't change the driving</td><td>The definition JSON has no <code>tire</code>. The log says <code>タイヤの部品に tire が書かれていません</code> ("no tire in the tyre part") (<a href="guide-tire.html#s-tire">Tyre guide, chapter 2</a>)</td></tr>
+<tr><td>No licence plate, or a blank white plate</td><td>Positions come from the car's <code>plates</code> (<a href="guide-car.html#s-plate-pos">Car guide, chapter 8</a>). For your own plate, check its looks JSON and background picture; the log says e.g. <code>ナンバーの地の絵が見つかりません</code> ("plate background not found") (<a href="guide-parts.html#s-plate">Parts guide, chapter 4</a>)</td></tr>
 </table>
 
 <h3 class="ja">音</h3>
@@ -342,6 +350,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>どこにいても同じ大きさで聞こえる</td><td>ogg をモノラルにする</td></tr>
 <tr><td>レブ付近で音程が上がりきらない</td><td><code>exhaust_high</code> を置く（<a href="guide-car.html#s-sound">車の 11 章</a>）</td></tr>
 <tr><td>エンジン音が周期的にうねる</td><td>素材の音量を一定に均してから書き出す</td></tr>
+<tr><td>エンジンの種類を変えたのにいつもの音</td><td><code>sounds.engine.type</code> の綴りを見る。ログに <code>sounds.engine の type に知らない種類があります</code> と出る（<a href="guide-car.html#s-sound">車の 11 章</a>）</td></tr>
+<tr><td>書いた音の名前が効かない</td><td>書けるのは決まった名前だけ。ログに <code>sounds に知らない名前があります</code> と書ける名前の一覧が出る</td></tr>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Fix</th></tr>
@@ -350,6 +360,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td>Equally loud everywhere</td><td>Make the ogg mono</td></tr>
 <tr><td>The pitch stops rising near the redline</td><td>Add <code>exhaust_high</code> (<a href="guide-car.html#s-sound">Car guide, chapter 11</a>)</td></tr>
 <tr><td>The engine swells periodically</td><td>Even out the level in the file before exporting</td></tr>
+<tr><td>Changed the engine type but it sounds the same</td><td>Check the spelling of <code>sounds.engine.type</code>. The log says <code>sounds.engine の type に知らない種類があります</code> ("unknown engine type") (<a href="guide-car.html#s-sound">Car guide, chapter 11</a>)</td></tr>
+<tr><td>A sound name you wrote has no effect</td><td>Only fixed names are allowed. The log says <code>sounds に知らない名前があります</code> ("unknown name in sounds") and lists the allowed ones</td></tr>
 </table>
 </section><div class="gfoot">
   <p class="ja">KurumaMod — 諸元の全項目は<a href="guide-car.html#sc">車の付録 A</a>。ゲージスクリプトは <code>modeling_tools/blender_gauge.py</code>・<code>modeling_tools/blender_wheel_gauge.py</code>・<code>modeling_tools/blender_tire_gauge.py</code>、ナンバーは <code>modeling_tools/blender_plate_gauge_*.py</code>。</p>
