@@ -17,7 +17,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   gtag('config', 'G-4NCQ47HCMC');
 }
 </script>
-<meta name="description" content="Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.">
+<meta name="description" content="Body parts such as aero and fenders, exhausts, and turbos and blow-off valves.">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="img/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
@@ -25,7 +25,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="KurumaMod">
 <meta property="og:title" content="Make parts | Car Pack Guide | KurumaMod">
-<meta property="og:description" content="Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.">
+<meta property="og:description" content="Body parts such as aero and fenders, exhausts, and turbos and blow-off valves.">
 <meta property="og:url" content="https://kuruma.jdm-mc.com/guide-parts.html">
 <meta property="og:image" content="https://kuruma.jdm-mc.com/img/ogp.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -77,172 +77,16 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   <div class="wrap">
     <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Car Pack Guide</span><span data-l="ja">カーパック作成ガイド</span> / <span data-l="en">Parts</span><span data-l="ja">パーツ</span></div>
     <h1><span data-l="en">Make parts</span><span data-l="ja">パーツを作る</span></h1>
-    <p><span data-l="en">Turbos and blow-off valves, body parts such as aero and fenders, and exhausts.</span><span data-l="ja">ターボとブローオフバルブ、エアロやフェンダーなどの外装パーツ、マフラー。</span></p>
+    <p><span data-l="en">Body parts such as aero and fenders, exhausts, and turbos and blow-off valves.</span><span data-l="ja">エアロやフェンダーなどの外装パーツ、マフラー、ターボとブローオフバルブ。</span></p>
   </div>
 </section>
-<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html" aria-current="page"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-parts.html" aria-current="page"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
-  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-turbo"><span data-l="en">1. Turbos and blow-off valves</span><span data-l="ja">1. ターボとブローオフバルブ</span></a><a href="#s-body"><span data-l="en">2. Body parts</span><span data-l="ja">2. 外装パーツ</span></a><a href="#s-exhaust"><span data-l="en">3. Exhausts</span><span data-l="ja">3. マフラー</span></a><a href="#s-plate"><span data-l="en">4. Licence plates</span><span data-l="ja">4. ナンバープレート</span></a><a href="#s-chk-parts"><span data-l="en">5. Checklist</span><span data-l="ja">5. チェックリスト</span></a><a href="#se"><span data-l="en">Appendix A. Part keys</span><span data-l="ja">付録 A. 部品の全項目</span></a></nav>
-  <div class="gdoc"><section class="gsec" id="s-turbo">
-<h2 class="ja"><span class="num">1</span>ターボとブローオフバルブ</h2>
-<h2 class="en"><span class="num">1</span>Turbos and blow-off valves</h2>
-<p class="ja">ターボは加速が変わる部品、ブローオフバルブは、ブーストが掛かった状態でアクセルを抜いたときやシフトアップのときに「プシュッ」と鳴るだけの部品です。どちらもモデルは要りません。</p>
-<p class="en">A turbo changes how the car accelerates; a blow-off valve only adds the "pssh" when you lift off or shift up under boost. Neither needs a model.</p>
-
-<h3 class="ja">最小のターボを作る</h3>
-<h3 class="en">Make a minimal turbo</h3>
-<ol class="steps ja">
-<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_turbo.json</code>:
-<pre><code>{
-  "slot": "turbo",
-  "turbo": { "boost": 0.5 }
-}</code></pre></li>
-<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_turbo": "マイタービン"</code></li>
-</ol>
-<p class="ja">これで、ゲームの <kbd>G</kbd> →「パーツ」→「ターボ」のタブに並びます。<code>boost</code> は全開のときにトルクを何割増やすか（0.5 で 1.5 倍）です。</p>
-<ol class="steps en">
-<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_turbo.json</code>:
-<pre><code>{
-  "slot": "turbo",
-  "turbo": { "boost": 0.5 }
-}</code></pre></li>
-<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_turbo": "My Turbo"</code></li>
-</ol>
-<p class="en">It now appears under <kbd>G</kbd> → "Parts" → the "Turbo" tab. <code>boost</code> is how much extra torque at full boost (0.5 means 1.5×).</p>
-
-<h3 class="ja">最小のブローオフバルブを作る</h3>
-<h3 class="en">Make a minimal blow-off valve</h3>
-<ol class="steps ja">
-<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_bov.json</code>:
-<pre><code>{ "slot": "blowoff" }</code></pre></li>
-<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_bov": "マイブローオフ"</code></li>
-</ol>
-<p class="ja">ターボを付けている車にだけ、「ブローオフ」のタブが出ます。</p>
-<ol class="steps en">
-<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_bov.json</code>:
-<pre><code>{ "slot": "blowoff" }</code></pre></li>
-<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_bov": "My Blow-off"</code></li>
-</ol>
-<p class="en">The "Blow-off" tab only appears on a car with a turbo fitted.</p>
-
-<h3 class="ja">必要なときだけ</h3>
-<h3 class="en">Only when you need it</h3>
-
-<details class="more ja">
-<summary>ターボの効き方を変えたい（立ち上がり・ターボラグ）</summary>
-<div class="more-body">
-<pre><code>{
-  "slot": "turbo",
-  "turbo": {
-    "boost": 0.50,
-    "spool_from": 0.30,
-    "spool_full": 0.65,
-    "spool_rate": 2.0
-  }
-}</code></pre>
-<ul>
-<li><code>boost</code> … 全開のときにトルクを何割増やすか（0〜1.5）</li>
-<li><code>spool_from</code> / <code>spool_full</code> … 効き始める回転と、いっぱいに効く回転。アイドルを 0、レブリミットを 1 とした割合で書く。大きいタービンほど高い回転へ寄せる</li>
-<li><code>spool_rate</code> … 効きが上がる速さ（0.1〜20）。小さいほどターボラグが長い</li>
-<li>書かなかった項目は、純正タービンくらいの値になる</li>
-</ul>
-<p>同梱の 2 つ（比べる目安）:</p>
-<table class="ja">
-<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>既定の車の 0-160km/h</th></tr>
-<tr><td>なし</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 秒</td></tr>
-<tr><td>純正タービン</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 秒</td></tr>
-<tr><td>ビッグタービン</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 秒</td></tr>
-</table>
-</div>
-</details>
-<details class="more en">
-<summary>Change how the turbo behaves (spool, lag)</summary>
-<div class="more-body">
-<pre><code>{
-  "slot": "turbo",
-  "turbo": {
-    "boost": 0.50,
-    "spool_from": 0.30,
-    "spool_full": 0.65,
-    "spool_rate": 2.0
-  }
-}</code></pre>
-<ul>
-<li><code>boost</code> — extra torque at full boost (0 to 1.5)</li>
-<li><code>spool_from</code> / <code>spool_full</code> — where boost starts and where it is full, as a fraction from idle (0) to the rev limit (1). Bigger turbos sit higher</li>
-<li><code>spool_rate</code> — how fast boost builds (0.1 to 20). Smaller means more lag</li>
-<li>Anything you leave out takes roughly stock-turbo values</li>
-</ul>
-<p>The two bundled turbos, for reference:</p>
-<table class="en">
-<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>Default car 0-160 km/h</th></tr>
-<tr><td>None</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 s</td></tr>
-<tr><td>Stock turbo</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 s</td></tr>
-<tr><td>Big turbo</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 s</td></tr>
-</table>
-</div>
-</details>
-
-<details class="more ja">
-<summary>決まった車種にだけ付けたい</summary>
-<div class="more-body">
-<p><code>cars</code> に車種の id を並べます（ディーゼル車専用のタービン、など）。書かなければ、どの車種にも付けられます。</p>
-<pre><code>{
-  "slot": "turbo",
-  "cars": ["mypack:prado"],
-  "turbo": { "boost": 0.4 }
-}</code></pre>
-</div>
-</details>
-<details class="more en">
-<summary>Only fit certain cars</summary>
-<div class="more-body">
-<p>List car ids in <code>cars</code> (a turbo only for a diesel, say). Leave it out and every car can fit it.</p>
-<pre><code>{
-  "slot": "turbo",
-  "cars": ["mypack:prado"],
-  "turbo": { "boost": 0.4 }
-}</code></pre>
-</div>
-</details>
-
-<details class="more ja">
-<summary>ブローオフの音を変えたい</summary>
-<div class="more-body">
-<p>音は部品ではなく車の側で変えます。車の <code>vehicles/&lt;車&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="guide-car.html#s-sound">車の 11 章</a>）。</p>
-</div>
-</details>
-<details class="more en">
-<summary>Change the blow-off sound</summary>
-<div class="more-body">
-<p>The sound belongs to the car, not the part: set <code>"blowoff"</code> in <code>sounds</code> in the car's <code>vehicles/&lt;car&gt;.json</code> (<a href="guide-car.html#s-sound">chapter 11 of the Car guide</a>).</p>
-</div>
-</details>
-
-<details class="more ja">
-<summary>うまくいかないとき</summary>
-<div class="more-body">
-<ul>
-<li><b>「ブローオフ」のタブが出ない</b> … ターボが付いていない。先にターボを付ける</li>
-<li><b>ログに「ターボの部品に turbo が書かれていません」と出る</b> … <code>"turbo": { ... }</code> を書く（書かないと純正タービンくらいの値になる）</li>
-<li><b>見た目が変わらない</b> … ターボとブローオフは、いまは見た目を持たない（換装画面の絵とメーターの TURBO ランプだけ）</li>
-</ul>
-</div>
-</details>
-<details class="more en">
-<summary>When it doesn't work</summary>
-<div class="more-body">
-<ul>
-<li><b>No "Blow-off" tab</b> — no turbo is fitted. Fit a turbo first</li>
-<li><b>The log says the turbo part has no turbo</b> — add <code>"turbo": { ... }</code> (without it you get roughly stock-turbo values)</li>
-<li><b>Nothing changes on the car's body</b> — turbos and blow-off valves have no looks yet (only the parts-screen icon and the TURBO lamp on the gauges)</li>
-</ul>
-</div>
-</details>
-</section><section class="gsec" id="s-body">
-<h2 class="ja"><span class="num">2</span>外装パーツ</h2>
-<h2 class="en"><span class="num">2</span>Body parts</h2>
+  <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-body"><span data-l="en">1. Body parts</span><span data-l="ja">1. 外装パーツ</span></a><a href="#s-exhaust"><span data-l="en">2. Exhausts</span><span data-l="ja">2. マフラー</span></a><a href="#s-turbo"><span data-l="en">3. Turbos and blow-off valves</span><span data-l="ja">3. ターボとブローオフバルブ</span></a><a href="#s-plate"><span data-l="en">4. Licence plates</span><span data-l="ja">4. ナンバープレート</span></a><a href="#s-chk-parts"><span data-l="en">5. Checklist</span><span data-l="ja">5. チェックリスト</span></a><a href="#se"><span data-l="en">Appendix A. Part keys</span><span data-l="ja">付録 A. 部品の全項目</span></a></nav>
+  <div class="gdoc"><section class="gsec" id="s-body">
+<h2 class="ja"><span class="num">1</span>外装パーツ</h2>
+<h2 class="en"><span class="num">1</span>Body parts</h2>
 <p class="ja">ウイング・バンパー・フェンダーなど、車体に固定される部品です。</p>
 <p class="en">Wings, bumpers, fenders — parts fixed to the body.</p>
 
@@ -280,7 +124,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>fender</code></td><td>オーバーフェンダー</td></tr>
 <tr><td><code>rear_wing</code></td><td>スポイラー、ウイング、ダックテール</td></tr>
 <tr><td><code>rear_diffuser</code></td><td>リアバンパー、ディフューザー</td></tr>
-<tr><td><code>exhaust</code></td><td>マフラー（<a href="#s-exhaust">3 章</a>）</td></tr>
+<tr><td><code>exhaust</code></td><td>マフラー（<a href="#s-exhaust">2 章</a>）</td></tr>
 </table>
 <table class="en">
 <tr><th><code>slot</code></th><th>What goes there</th></tr>
@@ -289,7 +133,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>fender</code></td><td>Over-fenders</td></tr>
 <tr><td><code>rear_wing</code></td><td>Spoiler, wing, duck tail</td></tr>
 <tr><td><code>rear_diffuser</code></td><td>Rear bumper, diffuser</td></tr>
-<tr><td><code>exhaust</code></td><td>Exhaust (<a href="#s-exhaust">chapter 3</a>)</td></tr>
+<tr><td><code>exhaust</code></td><td>Exhaust (<a href="#s-exhaust">chapter 2</a>)</td></tr>
 </table>
 <p class="ja">その車にオブジェクトのある部品も初期装備も無い場所は、タブが出ません。</p>
 <p class="en">A slot's tab only appears if the car has an object for one of its parts, or a default part.</p>
@@ -460,8 +304,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </div>
 </details>
 </section><section class="gsec" id="s-exhaust">
-<h2 class="ja"><span class="num">3</span>マフラー</h2>
-<h2 class="en"><span class="num">3</span>Exhausts</h2>
+<h2 class="ja"><span class="num">2</span>マフラー</h2>
+<h2 class="en"><span class="num">2</span>Exhausts</h2>
 <p class="ja">見た目と排気音を変える部品です。走りは変わりません。</p>
 <p class="en">A part that changes the look and the exhaust note. Driving does not change.</p>
 
@@ -577,7 +421,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     "exhaust": { "part": "mypack:stock", "removable": false }
   }
 }</code></pre>
-<p>初期装備の詳しいことは<a href="#s-body">2 章</a>の「最初から付いている部品にしたい」にあります。</p>
+<p>初期装備の詳しいことは<a href="#s-body">1 章</a>の「最初から付いている部品にしたい」にあります。</p>
 </div>
 </details>
 <details class="more en">
@@ -590,7 +434,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     "exhaust": { "part": "mypack:stock", "removable": false }
   }
 }</code></pre>
-<p>More on default parts in <a href="#s-body">chapter 2</a>, "Have it fitted from the start".</p>
+<p>More on default parts in <a href="#s-body">chapter 1</a>, "Have it fitted from the start".</p>
 </div>
 </details>
 
@@ -611,6 +455,162 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li><b>No "Exhaust" tab</b> — the object is not in the OBJ. Check it was not hidden when you exported</li>
 <li><b>Your sound does not play; it is the usual one</b> — the <code>sound</code> name is missing from <code>sounds.json</code>. A warning is in the log</li>
 <li><b><code>pitch</code> above 1 does not raise it</b> — Minecraft's pitch ceiling. Replace the source with a higher one via <code>sound</code></li>
+</ul>
+</div>
+</details>
+</section><section class="gsec" id="s-turbo">
+<h2 class="ja"><span class="num">3</span>ターボとブローオフバルブ</h2>
+<h2 class="en"><span class="num">3</span>Turbos and blow-off valves</h2>
+<p class="ja">ターボは加速が変わる部品、ブローオフバルブは、ブーストが掛かった状態でアクセルを抜いたときやシフトアップのときに「プシュッ」と鳴るだけの部品です。どちらもモデルは要りません。</p>
+<p class="en">A turbo changes how the car accelerates; a blow-off valve only adds the "pssh" when you lift off or shift up under boost. Neither needs a model.</p>
+
+<h3 class="ja">最小のターボを作る</h3>
+<h3 class="en">Make a minimal turbo</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_turbo.json</code>:
+<pre><code>{
+  "slot": "turbo",
+  "turbo": { "boost": 0.5 }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_turbo": "マイタービン"</code></li>
+</ol>
+<p class="ja">これで、ゲームの <kbd>G</kbd> →「パーツ」→「ターボ」のタブに並びます。<code>boost</code> は全開のときにトルクを何割増やすか（0.5 で 1.5 倍）です。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_turbo.json</code>:
+<pre><code>{
+  "slot": "turbo",
+  "turbo": { "boost": 0.5 }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_turbo": "My Turbo"</code></li>
+</ol>
+<p class="en">It now appears under <kbd>G</kbd> → "Parts" → the "Turbo" tab. <code>boost</code> is how much extra torque at full boost (0.5 means 1.5×).</p>
+
+<h3 class="ja">最小のブローオフバルブを作る</h3>
+<h3 class="en">Make a minimal blow-off valve</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_bov.json</code>:
+<pre><code>{ "slot": "blowoff" }</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_bov": "マイブローオフ"</code></li>
+</ol>
+<p class="ja">ターボを付けている車にだけ、「ブローオフ」のタブが出ます。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_bov.json</code>:
+<pre><code>{ "slot": "blowoff" }</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_bov": "My Blow-off"</code></li>
+</ol>
+<p class="en">The "Blow-off" tab only appears on a car with a turbo fitted.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>ターボの効き方を変えたい（立ち上がり・ターボラグ）</summary>
+<div class="more-body">
+<pre><code>{
+  "slot": "turbo",
+  "turbo": {
+    "boost": 0.50,
+    "spool_from": 0.30,
+    "spool_full": 0.65,
+    "spool_rate": 2.0
+  }
+}</code></pre>
+<ul>
+<li><code>boost</code> … 全開のときにトルクを何割増やすか（0〜1.5）</li>
+<li><code>spool_from</code> / <code>spool_full</code> … 効き始める回転と、いっぱいに効く回転。アイドルを 0、レブリミットを 1 とした割合で書く。大きいタービンほど高い回転へ寄せる</li>
+<li><code>spool_rate</code> … 効きが上がる速さ（0.1〜20）。小さいほどターボラグが長い</li>
+<li>書かなかった項目は、純正タービンくらいの値になる</li>
+</ul>
+<p>同梱の 2 つ（比べる目安）:</p>
+<table class="ja">
+<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>既定の車の 0-160km/h</th></tr>
+<tr><td>なし</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 秒</td></tr>
+<tr><td>純正タービン</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 秒</td></tr>
+<tr><td>ビッグタービン</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 秒</td></tr>
+</table>
+</div>
+</details>
+<details class="more en">
+<summary>Change how the turbo behaves (spool, lag)</summary>
+<div class="more-body">
+<pre><code>{
+  "slot": "turbo",
+  "turbo": {
+    "boost": 0.50,
+    "spool_from": 0.30,
+    "spool_full": 0.65,
+    "spool_rate": 2.0
+  }
+}</code></pre>
+<ul>
+<li><code>boost</code> — extra torque at full boost (0 to 1.5)</li>
+<li><code>spool_from</code> / <code>spool_full</code> — where boost starts and where it is full, as a fraction from idle (0) to the rev limit (1). Bigger turbos sit higher</li>
+<li><code>spool_rate</code> — how fast boost builds (0.1 to 20). Smaller means more lag</li>
+<li>Anything you leave out takes roughly stock-turbo values</li>
+</ul>
+<p>The two bundled turbos, for reference:</p>
+<table class="en">
+<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>Default car 0-160 km/h</th></tr>
+<tr><td>None</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 s</td></tr>
+<tr><td>Stock turbo</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 s</td></tr>
+<tr><td>Big turbo</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 s</td></tr>
+</table>
+</div>
+</details>
+
+<details class="more ja">
+<summary>決まった車種にだけ付けたい</summary>
+<div class="more-body">
+<p><code>cars</code> に車種の id を並べます（ディーゼル車専用のタービン、など）。書かなければ、どの車種にも付けられます。</p>
+<pre><code>{
+  "slot": "turbo",
+  "cars": ["mypack:prado"],
+  "turbo": { "boost": 0.4 }
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Only fit certain cars</summary>
+<div class="more-body">
+<p>List car ids in <code>cars</code> (a turbo only for a diesel, say). Leave it out and every car can fit it.</p>
+<pre><code>{
+  "slot": "turbo",
+  "cars": ["mypack:prado"],
+  "turbo": { "boost": 0.4 }
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ブローオフの音を変えたい</summary>
+<div class="more-body">
+<p>音は部品ではなく車の側で変えます。車の <code>vehicles/&lt;車&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="guide-car.html#s-sound">車の 11 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change the blow-off sound</summary>
+<div class="more-body">
+<p>The sound belongs to the car, not the part: set <code>"blowoff"</code> in <code>sounds</code> in the car's <code>vehicles/&lt;car&gt;.json</code> (<a href="guide-car.html#s-sound">chapter 11 of the Car guide</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>「ブローオフ」のタブが出ない</b> … ターボが付いていない。先にターボを付ける</li>
+<li><b>ログに「ターボの部品に turbo が書かれていません」と出る</b> … <code>"turbo": { ... }</code> を書く（書かないと純正タービンくらいの値になる）</li>
+<li><b>見た目が変わらない</b> … ターボとブローオフは、いまは見た目を持たない（換装画面の絵とメーターの TURBO ランプだけ）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>No "Blow-off" tab</b> — no turbo is fitted. Fit a turbo first</li>
+<li><b>The log says the turbo part has no turbo</b> — add <code>"turbo": { ... }</code> (without it you get roughly stock-turbo values)</li>
+<li><b>Nothing changes on the car's body</b> — turbos and blow-off valves have no looks yet (only the parts-screen icon and the TURBO lamp on the gauges)</li>
 </ul>
 </div>
 </details>
@@ -955,7 +955,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1。0〜0.95）</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合（<code>spool_from</code> より少し上〜1）</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
-<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="#s-body">パーツの 1 章</a>）</td></tr>
 <tr><td><code>aero.angle</code></td><td>数字</td><td><code>0.5</code></td><td>外装パーツだけ。調整していないときの角度（0〜1）</td></tr>
 <tr><td><code>plate.fields.&lt;欄&gt;.max</code></td><td>整数</td><td><code>16</code></td><td>ナンバーだけ。字の数の上限（1〜16）。欄は 8 つまで、並べた順が入力欄の順。欄の名前は小文字・数字・<code>_ -</code> の 32 字まで</td></tr>
 <tr><td><code>plate.fields.&lt;欄&gt;.chars</code></td><td>文字列の配列</td><td>（どの字でも）</td><td>ナンバーだけ。使える字。範囲 <code>"0-9"</code>・1 字・名前（<code>hiragana</code>・<code>katakana</code>・<code>kanji</code>・<code>latin</code>・<code>digits</code>）</td></tr>
@@ -971,7 +971,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1); 0 to 0.95</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full (just above <code>spool_from</code> to 1)</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
-<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="#s-body">chapter 1 of the Parts guide</a>)</td></tr>
 <tr><td><code>aero.angle</code></td><td>number</td><td><code>0.5</code></td><td>Body parts only. Default angle (0 to 1)</td></tr>
 <tr><td><code>plate.fields.&lt;field&gt;.max</code></td><td>integer</td><td><code>16</code></td><td>Plates only. Maximum length (1 to 16). Up to 8 fields; the order is the order of the text boxes. Field names: lower case, digits and <code>_ -</code>, up to 32 characters</td></tr>
 <tr><td><code>plate.fields.&lt;field&gt;.chars</code></td><td>array of strings</td><td>(anything)</td><td>Plates only. Allowed characters: ranges like <code>"0-9"</code>, single characters, or names (<code>hiragana</code>, <code>katakana</code>, <code>kanji</code>, <code>latin</code>, <code>digits</code>)</td></tr>

@@ -262,9 +262,9 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
   <a href="#s-jar" data-guide="ship" class="ja">1. jar に固めて配る</a><a href="#s-jar" data-guide="ship" class="en">1. Pack it into a jar and ship it</a>
   <a href="#s-chk-ship" data-guide="ship" class="ja">2. チェックリスト</a><a href="#s-chk-ship" data-guide="ship" class="en">2. Checklist</a>
   <a href="#s11" data-guide="ship" class="ja">3. 症状別の直しかた</a><a href="#s11" data-guide="ship" class="en">3. Troubleshooting</a>
-  <a href="#s-turbo" data-guide="parts" class="ja">1. ターボとブローオフバルブ</a><a href="#s-turbo" data-guide="parts" class="en">1. Turbos and blow-off valves</a>
-  <a href="#s-body" data-guide="parts" class="ja">2. 外装パーツ</a><a href="#s-body" data-guide="parts" class="en">2. Body parts</a>
-  <a href="#s-exhaust" data-guide="parts" class="ja">3. マフラー</a><a href="#s-exhaust" data-guide="parts" class="en">3. Exhausts</a>
+  <a href="#s-body" data-guide="parts" class="ja">1. 外装パーツ</a><a href="#s-body" data-guide="parts" class="en">1. Body parts</a>
+  <a href="#s-exhaust" data-guide="parts" class="ja">2. マフラー</a><a href="#s-exhaust" data-guide="parts" class="en">2. Exhausts</a>
+  <a href="#s-turbo" data-guide="parts" class="ja">3. ターボとブローオフバルブ</a><a href="#s-turbo" data-guide="parts" class="en">3. Turbos and blow-off valves</a>
   <a href="#s-plate" data-guide="parts" class="ja">4. ナンバープレート</a><a href="#s-plate" data-guide="parts" class="en">4. Licence plates</a>
   <a href="#s-chk-parts" data-guide="parts" class="ja">5. チェックリスト</a><a href="#s-chk-parts" data-guide="parts" class="en">5. Checklist</a>
   <a href="#se-wheel" data-guide="wheel" class="ja">付録 A. ホイールの全項目</a><a href="#se-wheel" data-guide="wheel" class="en">Appendix A. Wheel keys</a>
@@ -291,6 +291,11 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
     <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
     <span class="card-d en">Body model, lights, glass and mirrors, file layout and JSON, sounds, the spec (how it drives)</span>
   </a>
+  <a class="card" href="#parts">
+    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
+    <span class="card-d ja">外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）、ターボとブローオフバルブ（モデルは要りません）、ナンバープレート</span>
+    <span class="card-d en">Body parts such as aero and fenders and exhausts (added as objects inside the car model), turbos and blow-off valves (no model needed), and licence plates</span>
+  </a>
   <a class="card" href="#wheel">
     <span class="card-t ja">ホイールを作る</span><span class="card-t en">Make a wheel</span>
     <span class="card-d ja">ホイール（リム）のモデルと、換装画面で選べるホイール部品にする方法。見た目だけの部品</span>
@@ -300,11 +305,6 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
     <span class="card-t ja">タイヤを作る</span><span class="card-t en">Make a tyre</span>
     <span class="card-d ja">タイヤのモデルと、路面ごとのグリップが変わるタイヤ部品にする方法（ダート用・オフロード用など）</span>
     <span class="card-d en">The tyre model, and turning it into a tyre part whose grip changes by surface (gravel, mud-terrain and so on)</span>
-  </a>
-  <a class="card" href="#parts">
-    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
-    <span class="card-d ja">ターボとブローオフバルブ（モデルは要りません）、外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）、ナンバープレート</span>
-    <span class="card-d en">Turbos and blow-off valves (no model needed), body parts such as aero and fenders, exhausts (added as objects inside the car model), and licence plates</span>
   </a>
 </div>
 <p class="step-k ja">作り終えたら</p><p class="step-k en">When you are done</p>
@@ -342,9 +342,9 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>ホイールを作って換装画面で選べるようにしたい</td><td><a href="#s6">ホイールの 1 章</a>・<a href="#s-parts">2 章</a></td></tr>
 <tr><td>タイヤの見た目（トレッド）を作りたい</td><td><a href="#s-tire-model">タイヤの 1 章</a></td></tr>
 <tr><td>性能の違うタイヤを作りたい</td><td><a href="#s-tire">タイヤの 2 章</a></td></tr>
-<tr><td>ターボ・ブローオフバルブを作りたい</td><td><a href="#s-turbo">パーツの 1 章</a></td></tr>
-<tr><td>ウイング・バンパーなどの外装パーツを作りたい</td><td><a href="#s-body">パーツの 2 章</a></td></tr>
-<tr><td>マフラーを作りたい</td><td><a href="#s-exhaust">パーツの 3 章</a></td></tr>
+<tr><td>ターボ・ブローオフバルブを作りたい</td><td><a href="#s-turbo">パーツの 3 章</a></td></tr>
+<tr><td>ウイング・バンパーなどの外装パーツを作りたい</td><td><a href="#s-body">パーツの 1 章</a></td></tr>
+<tr><td>マフラーを作りたい</td><td><a href="#s-exhaust">パーツの 2 章</a></td></tr>
 <tr><td>自分のデザインのナンバーを作りたい</td><td><a href="#s-plate">パーツの 4 章</a></td></tr>
 <tr><td>jar にして配りたい</td><td><a href="#s-jar">配布の 1 章</a></td></tr>
 <tr><td>うまく動かない</td><td><a href="#s11">配布の 3 章</a></td></tr>
@@ -375,9 +375,9 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>Make a wheel players can pick in the parts screen</td><td><a href="#s6">Wheel guide, chapters 1</a> and <a href="#s-parts">2</a></td></tr>
 <tr><td>Model a tyre (its tread)</td><td><a href="#s-tire-model">Tyre guide, chapter 1</a></td></tr>
 <tr><td>Make tyres with different grip</td><td><a href="#s-tire">Tyre guide, chapter 2</a></td></tr>
-<tr><td>Make a turbo or blow-off valve</td><td><a href="#s-turbo">Parts guide, chapter 1</a></td></tr>
-<tr><td>Make body parts such as wings and bumpers</td><td><a href="#s-body">Parts guide, chapter 2</a></td></tr>
-<tr><td>Make an exhaust</td><td><a href="#s-exhaust">Parts guide, chapter 3</a></td></tr>
+<tr><td>Make a turbo or blow-off valve</td><td><a href="#s-turbo">Parts guide, chapter 3</a></td></tr>
+<tr><td>Make body parts such as wings and bumpers</td><td><a href="#s-body">Parts guide, chapter 1</a></td></tr>
+<tr><td>Make an exhaust</td><td><a href="#s-exhaust">Parts guide, chapter 2</a></td></tr>
 <tr><td>Make a licence plate of my own design</td><td><a href="#s-plate">Parts guide, chapter 4</a></td></tr>
 <tr><td>Pack it into a jar and share it</td><td><a href="#s-jar">Shipping, chapter 1</a></td></tr>
 <tr><td>Fix something that doesn't work</td><td><a href="#s11">Shipping, chapter 3</a></td></tr>
@@ -492,8 +492,9 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <p class="en">It is right if <code>META-INF/</code> and <code>pack.mcmeta</code> sit directly inside <code>mypack/</code>.</p>
 <pre class="ja"><code><span class="hl">mypack</span>/
 ├── META-INF/
-│   ├── mods.toml                   ← Forge 1.20.1 用。modId を <span class="hl">mypack</span> に
-│   └── neoforge.mods.toml          ← NeoForge 1.21.1 用。modId を <span class="hl">mypack</span> に
+│   ├── mods.toml                   ← Forge 用。modId を <span class="hl">mypack</span> に
+│   └── neoforge.mods.toml          ← NeoForge 用。modId を <span class="hl">mypack</span> に
+├── fabric.mod.json                 ← Fabric 用。id を <span class="hl">mypack</span> に
 ├── pack.mcmeta
 ├── <span class="hl">mypack</span>.png                      ← ロゴ画像
 ├── assets/<span class="hl">mypack</span>/                  ← 見た目
@@ -518,8 +519,9 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 └── sound_tools/                    ← 音を生成するツール。配布時に消す</code></pre>
 <pre class="en"><code><span class="hl">mypack</span>/
 ├── META-INF/
-│   ├── mods.toml                   &lt;- for Forge 1.20.1; modId is <span class="hl">mypack</span>
-│   └── neoforge.mods.toml          &lt;- for NeoForge 1.21.1; modId is <span class="hl">mypack</span>
+│   ├── mods.toml                   &lt;- for Forge; modId is <span class="hl">mypack</span>
+│   └── neoforge.mods.toml          &lt;- for NeoForge; modId is <span class="hl">mypack</span>
+├── fabric.mod.json                 &lt;- for Fabric; id is <span class="hl">mypack</span>
 ├── pack.mcmeta
 ├── <span class="hl">mypack</span>.png                      &lt;- logo image
 ├── assets/<span class="hl">mypack</span>/                  &lt;- looks
@@ -575,6 +577,11 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
     <span class="card-d ja">車体のモデル、灯火・ガラス・ミラー、置き場所と JSON、音、諸元（走り）</span>
     <span class="card-d en">Body model, lights, glass and mirrors, file layout and JSON, sounds, the spec (how it drives)</span>
   </a>
+  <a class="card" href="#parts">
+    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
+    <span class="card-d ja">外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）、ターボとブローオフバルブ（モデルは要りません）、ナンバープレート</span>
+    <span class="card-d en">Body parts such as aero and fenders and exhausts (added as objects inside the car model), turbos and blow-off valves (no model needed), and licence plates</span>
+  </a>
   <a class="card" href="#wheel">
     <span class="card-t ja">ホイールを作る</span><span class="card-t en">Make a wheel</span>
     <span class="card-d ja">ホイール（リム）のモデルと、換装画面で選べるホイール部品にする方法。見た目だけの部品</span>
@@ -584,11 +591,6 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
     <span class="card-t ja">タイヤを作る</span><span class="card-t en">Make a tyre</span>
     <span class="card-d ja">タイヤのモデルと、路面ごとのグリップが変わるタイヤ部品にする方法（ダート用・オフロード用など）</span>
     <span class="card-d en">The tyre model, and turning it into a tyre part whose grip changes by surface (gravel, mud-terrain and so on)</span>
-  </a>
-  <a class="card" href="#parts">
-    <span class="card-t ja">パーツを作る</span><span class="card-t en">Make parts</span>
-    <span class="card-d ja">ターボとブローオフバルブ（モデルは要りません）、外装パーツ（エアロ・フェンダーなど）とマフラー（部品のオブジェクトを車体のモデルに入れる）、ナンバープレート</span>
-    <span class="card-d en">Turbos and blow-off valves (no model needed), body parts such as aero and fenders, exhausts (added as objects inside the car model), and licence plates</span>
   </a>
 </div>
 <p class="step-k ja">作り終えたら</p><p class="step-k en">When you are done</p>
@@ -658,7 +660,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <tr><td>走り（重さ・エンジン・足まわり）を変える</td><td><a href="#s-spec">12 章</a></td></tr>
 <tr><td>自分のホイールを履かせる</td><td><a href="#s6">ホイールの 1 章</a></td></tr>
 <tr><td>自分のタイヤを履かせる</td><td><a href="#s-tire-model">タイヤの 1 章</a></td></tr>
-<tr><td>ウイングやバンパーを付け替えられるようにする</td><td><a href="#s-body">パーツの 2 章</a></td></tr>
+<tr><td>ウイングやバンパーを付け替えられるようにする</td><td><a href="#s-body">パーツの 1 章</a></td></tr>
 </table>
 </div>
 </details>
@@ -678,7 +680,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <tr><td>Change how it drives (weight, engine, suspension)</td><td><a href="#s-spec">Chapter 12</a></td></tr>
 <tr><td>Fit your own wheels</td><td><a href="#s6">Chapter 1 of the Wheel guide</a></td></tr>
 <tr><td>Fit your own tyres</td><td><a href="#s-tire-model">Chapter 1 of the Tyre guide</a></td></tr>
-<tr><td>Make wings or bumpers swappable</td><td><a href="#s-body">Chapter 2 of the Parts guide</a></td></tr>
+<tr><td>Make wings or bumpers swappable</td><td><a href="#s-body">Chapter 1 of the Parts guide</a></td></tr>
 </table>
 </div>
 </details>
@@ -1266,7 +1268,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <tr><td><code>mirror_rear</code></td><td>ルームミラー</td></tr>
 <tr><td><code>mirror_left</code> / <code>mirror_right</code></td><td>ドアミラー</td></tr>
 <tr><td><code>steering</code> で始まる</td><td>ハンドル。切れ角に合わせて回り、運転者の手が握る</td></tr>
-<tr><td><code>part_</code> で始まる</td><td>付け替える部品。その部品を付けているときだけ描かれる（<a href="#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>part_</code> で始まる</td><td>付け替える部品。その部品を付けているときだけ描かれる（<a href="#s-body">パーツの 1 章</a>）</td></tr>
 <tr><td><code>gauge_</code> で始まる</td><td>捨てられる（ゲージが混ざっても描かれない）</td></tr>
 <tr><td><code>text_</code> で始まる</td><td>描かれない（ナンバーの字の枠のための名前）。<b>車体に付けると、そこが穴になる</b></td></tr>
 <tr><td><code>susp</code> で始まる</td><td>車体として描かれるが、シェーダーパックの影に落ちない。ダンパーやバネなど足まわりに使う（大文字小文字は問わない）</td></tr>
@@ -1281,7 +1283,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <tr><td><code>mirror_rear</code></td><td>Rear-view mirror</td></tr>
 <tr><td><code>mirror_left</code> / <code>mirror_right</code></td><td>Door mirrors</td></tr>
 <tr><td>starts with <code>steering</code></td><td>Steering wheel. Turns with the steering; the driver's hands hold it</td></tr>
-<tr><td>starts with <code>part_</code></td><td>A swappable part. Drawn only while that part is fitted (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td>starts with <code>part_</code></td><td>A swappable part. Drawn only while that part is fitted (<a href="#s-body">chapter 1 of the Parts guide</a>)</td></tr>
 <tr><td>starts with <code>gauge_</code></td><td>Discarded, so a stray gauge is never drawn</td></tr>
 <tr><td>starts with <code>text_</code></td><td>Not drawn (reserved for licence plate text boxes). <b>On the body it leaves a hole</b></td></tr>
 <tr><td>starts with <code>susp</code></td><td>Drawn as body, but casts no shadow under shader packs. For dampers, springs and other suspension parts (case doesn't matter)</td></tr>
@@ -1412,14 +1414,14 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <summary>ウイングなどの部品にライトを付けたい</summary>
 <div class="more-body">
 <p>部品のオブジェクト（<code>part_…</code>）の中の面に、ライトのマテリアルを割り当てます。GT ウイングのハイマウントストップランプなら <code>light_tail</code> です。ウイングを外せばランプも消えます。</p>
-<p>部品の中のミラーは映りません（ふつうの面として描かれます）。部品の作り方は<a href="#s-body">パーツの 2 章</a>にあります。</p>
+<p>部品の中のミラーは映りません（ふつうの面として描かれます）。部品の作り方は<a href="#s-body">パーツの 1 章</a>にあります。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Put a light on a part such as a wing</summary>
 <div class="more-body">
 <p>Assign a light material to faces inside the part object (<code>part_…</code>). For a high-mounted brake light on a GT wing, use <code>light_tail</code>. Take the wing off and the lamp goes with it.</p>
-<p>Mirrors inside a part don't reflect (they are drawn as plain faces). How to make parts is in <a href="#s-body">chapter 2 of the Parts guide</a>.</p>
+<p>Mirrors inside a part don't reflect (they are drawn as plain faces). How to make parts is in <a href="#s-body">chapter 1 of the Parts guide</a>.</p>
 </div>
 </details>
 
@@ -1975,7 +1977,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li><b>前後が逆・左右が鏡像</b> … <code>Forward Axis</code> を変えた。既定（−Z / Y）へ戻して書き出し直す</li>
 <li><b>ゲージが一緒に書き出された</b> … <code>Selected Only</code> を入れ忘れた。ゲージ（<code>gauge_</code>）は描かれないので害はないが、入れて書き出し直す</li>
 <li><b>片側しかない</b> … ミラーモディファイアが適用されていない。<code>Apply Modifiers</code> を入れたままにする</li>
-<li><b>付け替える部品（<code>part_…</code>）が出ない</b> … 非表示のまま書き出した。非表示のオブジェクトは選べないので OBJ に入らない。全部表示にしてから選ぶ（<a href="#s-body">パーツの 2 章</a>）</li>
+<li><b>付け替える部品（<code>part_…</code>）が出ない</b> … 非表示のまま書き出した。非表示のオブジェクトは選べないので OBJ に入らない。全部表示にしてから選ぶ（<a href="#s-body">パーツの 1 章</a>）</li>
 <li><b>マテリアルの色やガラスの濃さが出ない</b> … <code>.mtl</code> を OBJ と同じ場所に置いていない</li>
 <li><b>面がねじれる・抜ける</b> … 平面から大きく曲がった面か、辺が交差した面がある。Blender でその面だけ割る</li>
 </ul>
@@ -1988,7 +1990,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li><b>Front and back swapped, or mirrored</b> — <code>Forward Axis</code> was changed. Put it back to −Z / Y and export again</li>
 <li><b>The gauge was exported too</b> — <code>Selected Only</code> was off. Gauge objects (<code>gauge_</code>) are never drawn, so it is harmless, but tick it and export again</li>
 <li><b>Only one half of the car</b> — the mirror modifier was not applied. Keep <code>Apply Modifiers</code> on</li>
-<li><b>A swappable part (<code>part_…</code>) never appears</b> — it was hidden when you exported. Hidden objects cannot be selected, so they are left out of the OBJ. Unhide everything before selecting (<a href="#s-body">chapter 2 of the Parts guide</a>)</li>
+<li><b>A swappable part (<code>part_…</code>) never appears</b> — it was hidden when you exported. Hidden objects cannot be selected, so they are left out of the OBJ. Unhide everything before selecting (<a href="#s-body">chapter 1 of the Parts guide</a>)</li>
 <li><b>Material colours or glass opacity missing</b> — the <code>.mtl</code> is not next to the OBJ</li>
 <li><b>Faces twist or disappear</b> — a face is badly non-planar or has crossing edges. Split just that face in Blender</li>
 </ul>
@@ -2043,8 +2045,9 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <p class="en">What you end up with:</p>
 <pre class="ja"><code>mypack.jar
 ├── META-INF/
-│   ├── mods.toml                 ← Forge 1.20.1 用
-│   └── neoforge.mods.toml        ← NeoForge 1.21.1 用
+│   ├── mods.toml                 ← Forge 用
+│   └── neoforge.mods.toml        ← NeoForge 用
+├── fabric.mod.json               ← Fabric 用
 ├── pack.mcmeta
 ├── assets/                       ← 見た目
 │   └── mypack/
@@ -2066,8 +2069,9 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
             └── ae86.json</code></pre>
 <pre class="en"><code>mypack.jar
 ├── META-INF/
-│   ├── mods.toml                 &lt;- for Forge 1.20.1
-│   └── neoforge.mods.toml        &lt;- for NeoForge 1.21.1
+│   ├── mods.toml                 &lt;- for Forge
+│   └── neoforge.mods.toml        &lt;- for NeoForge
+├── fabric.mod.json               &lt;- for Fabric
 ├── pack.mcmeta
 ├── assets/                       &lt;- looks
 │   └── mypack/
@@ -2253,7 +2257,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>影の大きさ</td></tr>
 <tr><td><code>icon</code></td><td>車のモデルから作る</td><td>アイテムのアイコンの画像。テクスチャのパスを <code>.png</code> まで書く（例 <code>mypack:textures/item/kei.png</code>）</td></tr>
 <tr><td><code>sounds</code></td><td>KurumaMod の音</td><td>音の差し替え（<a href="#s-sound">11 章</a>）</td></tr>
-<tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>parts</code></td><td>名前の決まりどおり</td><td>外装パーツの部品 id → 出すオブジェクト（<a href="#s-body">パーツの 1 章</a>）</td></tr>
 <tr><td><code>plates</code></td><td>車体の形から自動で置く</td><td>ナンバーを付ける位置の候補（前・後ろ）。<a href="#s-plate-pos">8 章</a></td></tr>
 <tr><td><code>paints</code></td><td>なし</td><td>選べる色違いのテクスチャ。先頭が新車の色（<a href="#paint">4 章</a>）</td></tr>
 </table>
@@ -2279,7 +2283,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <tr><td><code>shadowRadius</code></td><td><code>1.4</code></td><td>Size of the shadow</td></tr>
 <tr><td><code>icon</code></td><td>made from the car model</td><td>Image for the item icon. Write the texture path including <code>.png</code> (e.g. <code>mypack:textures/item/kei.png</code>)</td></tr>
 <tr><td><code>sounds</code></td><td>KurumaMod's sounds</td><td>Replace sounds (<a href="#s-sound">chapter 11</a>)</td></tr>
-<tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td><code>parts</code></td><td>follows the naming rule</td><td>Body part id → objects to show (<a href="#s-body">chapter 1 of the Parts guide</a>)</td></tr>
 <tr><td><code>plates</code></td><td>placed from the body shape</td><td>Candidate licence plate positions (front and rear). See <a href="#s-plate-pos">chapter 8</a></td></tr>
 <tr><td><code>paints</code></td><td>none</td><td>Colour versions of the body texture players can pick. The first is the factory colour (<a href="#paint-en">chapter 4</a>)</td></tr>
 </table>
@@ -2291,13 +2295,13 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <details class="more ja">
 <summary>外装パーツを付け替えられるようにしたい</summary>
 <div class="more-body">
-<p>部品のオブジェクトを車体のモデルに入れ、必要なら見た目の JSON の <code>parts</code> でオブジェクト名と部品を対応させます。書き方は<a href="#s-body">パーツの 2 章</a>にあります。出したときから付けておくなら<a href="#s-spec">12 章</a>の「最初から部品を付けておきたい」。</p>
+<p>部品のオブジェクトを車体のモデルに入れ、必要なら見た目の JSON の <code>parts</code> でオブジェクト名と部品を対応させます。書き方は<a href="#s-body">パーツの 1 章</a>にあります。出したときから付けておくなら<a href="#s-spec">12 章</a>の「最初から部品を付けておきたい」。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Make body parts swappable</summary>
 <div class="more-body">
-<p>Put the part objects inside the body model and, if needed, map object names to parts with <code>parts</code> in the looks JSON. See <a href="#s-body">chapter 2 of the Parts guide</a>. To have them fitted when the car is spawned, see "Fit parts from the start" in <a href="#s-spec">chapter 12</a>.</p>
+<p>Put the part objects inside the body model and, if needed, map object names to parts with <code>parts</code> in the looks JSON. See <a href="#s-body">chapter 1 of the Parts guide</a>. To have them fitted when the car is spawned, see "Fit parts from the start" in <a href="#s-spec">chapter 12</a>.</p>
 </div>
 </details>
 
@@ -2324,29 +2328,6 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li>No subfolders. <code>cars/toyota/ae86.json</code> becomes the id <code>mypack:toyota/ae86</code> and the key <code>car.mypack.toyota/ae86</code></li>
 <li>Without a lang entry, the display name is simply <code>ae86</code></li>
 <li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code>. Use <code>bannerFile</code> in <code>neoforge.mods.toml</code> (with <code>logoFile</code>, NeoForge 26.3 shows a warning screen at every launch; in exchange, the NeoForge 1.21.1 mod list shows no image)</li>
-</ul>
-</div>
-</details>
-
-<details class="more ja">
-<summary>Forge・NeoForge・Fabric のどれでも使いたい</summary>
-<div class="more-body">
-<p>見本をコピーしていれば、もうそうなっています。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
-<ul>
-<li><code>mods.toml</code> と <code>neoforge.mods.toml</code> の中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
-<li>Minecraft の版の範囲は、使う版を全部含める。Forge は <code>"[1.20.1,1.21),[26.3,26.4)"</code>、NeoForge は <code>"[1.21.1,1.22),[26.3,26.4)"</code>、Fabric は <code>[">=1.21.1 &lt;1.22", "~26.3"]</code>。外れた版では読み込まれない</li>
-<li><code>pack.mcmeta</code> は <code>"pack_format": 15</code>、<code>"supported_formats": [15, 121]</code>、<code>"min_format": 15</code>、<code>"max_format": 121</code> の 4 つを書く。26.3 は <code>min_format</code>・<code>max_format</code> で読み、<code>supported_formats</code> の範囲がそれと食い違っていると読まない。1.20.1・1.21.1 は <code>supported_formats</code> で読む</li>
-</ul>
-</div>
-</details>
-<details class="more en">
-<summary>Work on Forge, NeoForge and Fabric</summary>
-<div class="more-body">
-<p>If you copied the example, it already does. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
-<ul>
-<li><code>mods.toml</code> and <code>neoforge.mods.toml</code> are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
-<li>Cover every Minecraft version you target: <code>"[1.20.1,1.21),[26.3,26.4)"</code> for Forge, <code>"[1.21.1,1.22),[26.3,26.4)"</code> for NeoForge and <code>[">=1.21.1 &lt;1.22", "~26.3"]</code> for Fabric. Versions outside the range will not load the pack</li>
-<li>Write all four in <code>pack.mcmeta</code>: <code>"pack_format": 15</code>, <code>"supported_formats": [15, 121]</code>, <code>"min_format": 15</code> and <code>"max_format": 121</code>. 26.3 reads <code>min_format</code> and <code>max_format</code>, and rejects the file if <code>supported_formats</code> disagrees with them. 1.20.1 and 1.21.1 read <code>supported_formats</code></li>
 </ul>
 </div>
 </details>
@@ -3015,13 +2996,13 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <details class="more ja">
 <summary>ターボやブローオフの音を変えたい</summary>
 <div class="more-body">
-<p><code>sounds</code> に <code>"turbo"</code> / <code>"blowoff"</code> を書きます。変わるのは音だけです。鳴るかどうかは、その車にターボやブローオフバルブの部品が付いているかで決まります（<a href="#s-turbo">パーツの 1 章</a>）。</p>
+<p><code>sounds</code> に <code>"turbo"</code> / <code>"blowoff"</code> を書きます。変わるのは音だけです。鳴るかどうかは、その車にターボやブローオフバルブの部品が付いているかで決まります（<a href="#s-turbo">パーツの 3 章</a>）。</p>
 </div>
 </details>
 <details class="more en">
 <summary>Change the turbo or blow-off sound</summary>
 <div class="more-body">
-<p>Write <code>"turbo"</code> / <code>"blowoff"</code> in <code>sounds</code>. Only the sound changes. Whether it plays depends on the car having a turbo or blow-off valve part fitted (<a href="#s-turbo">chapter 1 of the Parts guide</a>).</p>
+<p>Write <code>"turbo"</code> / <code>"blowoff"</code> in <code>sounds</code>. Only the sound changes. Whether it plays depends on the car having a turbo or blow-off valve part fitted (<a href="#s-turbo">chapter 3 of the Parts guide</a>).</p>
 </div>
 </details>
 
@@ -3226,8 +3207,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <ul>
 <li>ホイール … <a href="#s-parts">ホイールの 2 章</a></li>
 <li>タイヤ … <a href="#s-tire">タイヤの 2 章</a></li>
-<li>ターボ・ブローオフバルブ … <a href="#s-turbo">パーツの 1 章</a></li>
-<li>外装パーツ・マフラー … <a href="#s-body">パーツの 2 章</a>・<a href="#s-exhaust">3 章</a></li>
+<li>ターボ・ブローオフバルブ … <a href="#s-turbo">パーツの 3 章</a></li>
+<li>外装パーツ・マフラー … <a href="#s-body">パーツの 1 章</a>・<a href="#s-exhaust">2 章</a></li>
 <li>ナンバー … <a href="#s-plate">パーツの 4 章</a></li>
 </ul>
 </div>
@@ -3248,8 +3229,8 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <ul>
 <li>Wheels — <a href="#s-parts">chapter 2 of the Wheel guide</a></li>
 <li>Tyres — <a href="#s-tire">chapter 2 of the Tyre guide</a></li>
-<li>Turbos and blow-off valves — <a href="#s-turbo">chapter 1 of the Parts guide</a></li>
-<li>Body parts and exhausts — <a href="#s-body">chapters 2</a> and <a href="#s-exhaust">3 of the Parts guide</a></li>
+<li>Turbos and blow-off valves — <a href="#s-turbo">chapter 3 of the Parts guide</a></li>
+<li>Body parts and exhausts — <a href="#s-body">chapters 1</a> and <a href="#s-exhaust">2 of the Parts guide</a></li>
 <li>Licence plates — <a href="#s-plate">chapter 4 of the Parts guide</a></li>
 </ul>
 </div>
@@ -3692,6 +3673,56 @@ python sound_tools/make_octave_up.py ae86_exhaust.ogg
 <p class="ja">カーパックは、コードを持たない MOD の jar です。フォルダの中身を zip で固めて <code>.jar</code> にし、<code>mods/</code> に入れます。</p>
 <p class="en">A car pack is a mod jar with no code in it. You zip the folder's contents, name it <code>.jar</code> and put it in <code>mods/</code>.</p>
 
+<h3 class="ja">できあがりの形</h3>
+<h3 class="en">What you end up with</h3>
+<p class="ja">自分のパックのフォルダは次の形です。<code>mypack/</code> の中身を固めて、jar のいちばん上に <code>META-INF/</code> や <code>assets/</code> が来るようにしてください。</p>
+<p class="en">Your pack folder looks like this. Zip what is inside <code>mypack/</code>, so that <code>META-INF/</code> and <code>assets/</code> sit at the very top of the jar.</p>
+<pre class="ja"><code><span class="hl">mypack</span>/
+├── META-INF/
+│   ├── mods.toml                  ← Forge 用。modId を <span class="hl">mypack</span> に
+│   └── neoforge.mods.toml         ← NeoForge 用。modId を <span class="hl">mypack</span> に
+├── fabric.mod.json                ← Fabric 用。id を <span class="hl">mypack</span> に
+├── pack.mcmeta
+├── <span class="hl">mypack</span>.png                     ← ロゴ画像
+├── assets/<span class="hl">mypack</span>/                 ← 見た目
+│   ├── car_parts/                 ← パーツ
+│   │   └── xxx.json
+│   ├── lang/                      ← 言語
+│   │   ├── en_us.json
+│   │   └── ja_jp.json
+│   ├── models/entity/             ← モデル
+│   │   └── zzz.obj, zzz.mtl
+│   ├── textures/entity/           ← テクスチャ
+│   │   └── zzz.png
+│   └── vehicles/zzz.json
+└── data/<span class="hl">mypack</span>/                   ← 走り（諸元）
+    ├── car_parts/                 ← パーツ
+    │   └── xxx.json
+    └── cars/
+        └── zzz.json</code></pre>
+<pre class="en"><code><span class="hl">mypack</span>/
+├── META-INF/
+│   ├── mods.toml                  &lt;- for Forge; modId is <span class="hl">mypack</span>
+│   └── neoforge.mods.toml         &lt;- for NeoForge; modId is <span class="hl">mypack</span>
+├── fabric.mod.json                &lt;- for Fabric; id is <span class="hl">mypack</span>
+├── pack.mcmeta
+├── <span class="hl">mypack</span>.png                     &lt;- logo image
+├── assets/<span class="hl">mypack</span>/                 &lt;- looks
+│   ├── car_parts/                 &lt;- parts
+│   │   └── xxx.json
+│   ├── lang/                      &lt;- languages
+│   │   ├── en_us.json
+│   │   └── ja_jp.json
+│   ├── models/entity/             &lt;- models
+│   │   └── zzz.obj, zzz.mtl
+│   ├── textures/entity/           &lt;- textures
+│   │   └── zzz.png
+│   └── vehicles/zzz.json
+└── data/<span class="hl">mypack</span>/                   &lt;- handling (spec)
+    ├── car_parts/                 &lt;- parts
+    │   └── xxx.json
+    └── cars/
+        └── zzz.json</code></pre>
 <h3 class="ja">最小のパックを作る</h3>
 <h3 class="en">Make a minimal pack</h3>
 <ol class="steps ja">
@@ -3755,7 +3786,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <ul>
 <li><b>マルチプレイでは、サーバーと全員のゲームの両方に入れる。</b>どの車があるかはサーバーが決め、姿は各プレイヤーのゲームが描く</li>
 <li>jar 1 つのまま配る。リソースパックとデータパックに分けると、片方だけ入れた人には「見えるのに走らない」車になる</li>
-<li>見本の <code>mods.toml</code> と <code>neoforge.mods.toml</code> を両方残しておけば、同じ jar が Forge 1.20.1 と NeoForge 1.21.1 の両方で読まれる</li>
+<li>見本の <code>mods.toml</code>・<code>neoforge.mods.toml</code>・<code>fabric.mod.json</code> を全部残しておけば、同じ jar が Forge・NeoForge・Fabric のどれでも読まれる</li>
 <li><code>CURSEFORGE.md</code> と <code>MODRINTH.md</code> は、配布ページの説明文のひな形に使える</li>
 <li>カーパックを外しても、ワールドは壊れない。知らない車は既定の車として走り、入れ直せば元に戻る</li>
 </ul>
@@ -3767,7 +3798,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <ul>
 <li><b>In multiplayer, install it on the server and on every player's game.</b> The server decides which cars exist; each player's game draws them</li>
 <li>Ship it as one jar. Split into a resource pack and a data pack, anyone who installs only one gets a car that shows up but will not drive</li>
-<li>Keep both <code>mods.toml</code> and <code>neoforge.mods.toml</code> from the example, and the same jar loads on Forge 1.20.1 and NeoForge 1.21.1</li>
+<li>Keep <code>mods.toml</code>, <code>neoforge.mods.toml</code> and <code>fabric.mod.json</code> from the example, and the same jar loads on Forge, NeoForge and Fabric</li>
 <li><code>CURSEFORGE.md</code> and <code>MODRINTH.md</code> work as templates for your download page</li>
 <li>Removing a car pack does not break a world. Unknown cars drive as the default car, and putting the pack back restores them</li>
 </ul>
@@ -3794,6 +3825,29 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </ul>
 </div>
 </details>
+<details class="more ja">
+<summary>Forge・NeoForge・Fabric のどれでも使いたい</summary>
+<div class="more-body">
+<p>見本をコピーしていれば、もうそうなっています。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
+<ul>
+<li><code>mods.toml</code> と <code>neoforge.mods.toml</code> の中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
+<li>Minecraft の版の範囲は、使う版を全部含める。Forge は <code>"[1.20.1,1.21),[26.3,26.4)"</code>、NeoForge は <code>"[1.21.1,1.22),[26.3,26.4)"</code>、Fabric は <code>[">=1.21.1 &lt;1.22", "~26.3"]</code>。外れた版では読み込まれない</li>
+<li><code>pack.mcmeta</code> は <code>"pack_format": 15</code>、<code>"supported_formats": [15, 121]</code>、<code>"min_format": 15</code>、<code>"max_format": 121</code> の 4 つを書く。26.3 は <code>min_format</code>・<code>max_format</code> で読み、<code>supported_formats</code> の範囲がそれと食い違っていると読まない。1.20.1・1.21.1 は <code>supported_formats</code> で読む</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Work on Forge, NeoForge and Fabric</summary>
+<div class="more-body">
+<p>If you copied the example, it already does. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
+<ul>
+<li><code>mods.toml</code> and <code>neoforge.mods.toml</code> are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
+<li>Cover every Minecraft version you target: <code>"[1.20.1,1.21),[26.3,26.4)"</code> for Forge, <code>"[1.21.1,1.22),[26.3,26.4)"</code> for NeoForge and <code>[">=1.21.1 &lt;1.22", "~26.3"]</code> for Fabric. Versions outside the range will not load the pack</li>
+<li>Write all four in <code>pack.mcmeta</code>: <code>"pack_format": 15</code>, <code>"supported_formats": [15, 121]</code>, <code>"min_format": 15</code> and <code>"max_format": 121</code>. 26.3 reads <code>min_format</code> and <code>max_format</code>, and rejects the file if <code>supported_formats</code> disagrees with them. 1.20.1 and 1.21.1 read <code>supported_formats</code></li>
+</ul>
+</div>
+</details>
+
 </section>
 
 <section id="s-chk-ship" data-guide="ship">
@@ -3859,6 +3913,10 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 
 <h3 class="ja">形と大きさ</h3>
 <h3 class="en">Shape and size</h3>
+<p class="ja">大きさや車高のずれは、乗ったまま <b>Ctrl+G</b> の調整画面で動かしながら合わせるのが早いです。車体は「車の JSON」の「ボディ」（スケール・車高）、タイヤとホイールは「ホイールの JSON」（スケール・太さなど）を動かし、決まったら「JSON をコピー」で貼ります（<a href="#s-car-fit">車の 7 章</a>）。
+動かした値はこのクライアントだけに、ゲームを閉じるまで効きます。</p>
+<p class="en">For size and ride height, the quickest way is to sit in the car, press <b>Ctrl+G</b> and adjust while you watch. Use "Body" under "Car JSON" (scale, ride height) for the body, and "Wheel JSON" (scale, width and so on) for wheels and tyres, then paste the result with "Copy JSON" (<a href="#s-car-fit">Car guide, chapter 7</a>). 
+Changes apply to your client only, until you close the game.</p>
 <table class="ja">
 <tr><th>症状</th><th>直しかた</th></tr>
 <tr><td>車体だけ大きい／小さい</td><td><code>designWheelBase</code> をメッシュの実寸にする。微調整は <code>body.scale</code></td></tr>
@@ -3921,7 +3979,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <h3 class="en">Parts</h3>
 <table class="ja">
 <tr><th>症状</th><th>直しかた</th></tr>
-<tr><td>換装画面に外装パーツ・マフラーのタブが出ない</td><td>OBJ に <code>part_</code> のオブジェクトが入っていない。非表示のまま書き出していないか、名前が <code>part_&lt;場所&gt;-&lt;部品名&gt;</code> か見る（<a href="#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td>換装画面に外装パーツ・マフラーのタブが出ない</td><td>OBJ に <code>part_</code> のオブジェクトが入っていない。非表示のまま書き出していないか、名前が <code>part_&lt;場所&gt;-&lt;部品名&gt;</code> か見る（<a href="#s-body">パーツの 1 章</a>）</td></tr>
 <tr><td>タブはあるのに部品が並ばない</td><td><code>data/&lt;パック&gt;/car_parts/</code> に部品の JSON を置き、<code>slot</code> を書く。オブジェクト名の部品名をファイル名に揃える。<code>cars</code> にその車を入れる</td></tr>
 <tr><td>付け替えても純正の部分が残る</td><td>純正の部分が <code>body</code> と一体になっている。別のオブジェクトにして部品にする</td></tr>
 <tr><td>初期装備を書いたら、その車ごと増えなくなった</td><td><code>default_parts</code> を <code>values</code> の中に書いている。<code>values</code> と同じ、いちばん外側に書く</td></tr>
@@ -3935,7 +3993,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Fix</th></tr>
-<tr><td>No tab for body parts or exhausts in the parts screen</td><td>The OBJ has no <code>part_</code> object. Check it was not hidden when you exported, and that it is named <code>part_&lt;slot&gt;-&lt;part&gt;</code> (<a href="#s-body">Parts guide, chapter 2</a>)</td></tr>
+<tr><td>No tab for body parts or exhausts in the parts screen</td><td>The OBJ has no <code>part_</code> object. Check it was not hidden when you exported, and that it is named <code>part_&lt;slot&gt;-&lt;part&gt;</code> (<a href="#s-body">Parts guide, chapter 1</a>)</td></tr>
 <tr><td>The tab is there but the part is not listed</td><td>Put the part JSON in <code>data/&lt;pack&gt;/car_parts/</code> with a <code>slot</code>. Match the part name in the object name to the file name. Include the car in <code>cars</code></td></tr>
 <tr><td>The stock piece stays whatever is fitted</td><td>It is merged into <code>body</code>. Make it a separate object and a part</td></tr>
 <tr><td>After adding default parts, the whole car disappeared</td><td><code>default_parts</code> is inside <code>values</code>. Move it to the top level, next to <code>values</code></td></tr>
@@ -3950,6 +4008,10 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 
 <h3 class="ja">音</h3>
 <h3 class="en">Sound</h3>
+<p class="ja">音の調整は、乗ったまま <b>Ctrl+H</b> のデバッグ画面で聞きながら合わせるのが早いです。乗っている車の音の設定をその場で動かせるので、決まったら「JSON をコピー」で貼ります（<a href="#s-sound">車の 11 章</a>）。
+動かした値はこのクライアントだけに、ゲームを閉じるまで効きます。</p>
+<p class="en">To tune sounds, the quickest way is to sit in the car, press <b>Ctrl+H</b> and listen while you adjust. The debug screen changes the sound settings of the car you are in; when you are happy, paste them with "Copy JSON" (<a href="#s-sound">Car guide, chapter 11</a>). 
+Changes apply to your client only, until you close the game.</p>
 <table class="ja">
 <tr><th>症状</th><th>直しかた</th></tr>
 <tr><td>差し替えた音が鳴らず、いつもの音のまま</td><td><code>sounds</code> の値を <code>sounds.json</code> の名前に揃える。ログに <code>指定されたサウンドイベントが sounds.json にありません</code> と出る</td></tr>
@@ -4365,167 +4427,9 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </ul>
 </section>
 
-<section id="s-turbo" data-guide="parts">
-<h2 class="ja"><span class="num">1</span>ターボとブローオフバルブ</h2>
-<h2 class="en"><span class="num">1</span>Turbos and blow-off valves</h2>
-<p class="ja">ターボは加速が変わる部品、ブローオフバルブは、ブーストが掛かった状態でアクセルを抜いたときやシフトアップのときに「プシュッ」と鳴るだけの部品です。どちらもモデルは要りません。</p>
-<p class="en">A turbo changes how the car accelerates; a blow-off valve only adds the "pssh" when you lift off or shift up under boost. Neither needs a model.</p>
-
-<h3 class="ja">最小のターボを作る</h3>
-<h3 class="en">Make a minimal turbo</h3>
-<ol class="steps ja">
-<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_turbo.json</code>:
-<pre><code>{
-  "slot": "turbo",
-  "turbo": { "boost": 0.5 }
-}</code></pre></li>
-<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_turbo": "マイタービン"</code></li>
-</ol>
-<p class="ja">これで、ゲームの <kbd>G</kbd> →「パーツ」→「ターボ」のタブに並びます。<code>boost</code> は全開のときにトルクを何割増やすか（0.5 で 1.5 倍）です。</p>
-<ol class="steps en">
-<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_turbo.json</code>:
-<pre><code>{
-  "slot": "turbo",
-  "turbo": { "boost": 0.5 }
-}</code></pre></li>
-<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_turbo": "My Turbo"</code></li>
-</ol>
-<p class="en">It now appears under <kbd>G</kbd> → "Parts" → the "Turbo" tab. <code>boost</code> is how much extra torque at full boost (0.5 means 1.5×).</p>
-
-<h3 class="ja">最小のブローオフバルブを作る</h3>
-<h3 class="en">Make a minimal blow-off valve</h3>
-<ol class="steps ja">
-<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_bov.json</code>:
-<pre><code>{ "slot": "blowoff" }</code></pre></li>
-<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_bov": "マイブローオフ"</code></li>
-</ol>
-<p class="ja">ターボを付けている車にだけ、「ブローオフ」のタブが出ます。</p>
-<ol class="steps en">
-<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_bov.json</code>:
-<pre><code>{ "slot": "blowoff" }</code></pre></li>
-<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_bov": "My Blow-off"</code></li>
-</ol>
-<p class="en">The "Blow-off" tab only appears on a car with a turbo fitted.</p>
-
-<h3 class="ja">必要なときだけ</h3>
-<h3 class="en">Only when you need it</h3>
-
-<details class="more ja">
-<summary>ターボの効き方を変えたい（立ち上がり・ターボラグ）</summary>
-<div class="more-body">
-<pre><code>{
-  "slot": "turbo",
-  "turbo": {
-    "boost": 0.50,
-    "spool_from": 0.30,
-    "spool_full": 0.65,
-    "spool_rate": 2.0
-  }
-}</code></pre>
-<ul>
-<li><code>boost</code> … 全開のときにトルクを何割増やすか（0〜1.5）</li>
-<li><code>spool_from</code> / <code>spool_full</code> … 効き始める回転と、いっぱいに効く回転。アイドルを 0、レブリミットを 1 とした割合で書く。大きいタービンほど高い回転へ寄せる</li>
-<li><code>spool_rate</code> … 効きが上がる速さ（0.1〜20）。小さいほどターボラグが長い</li>
-<li>書かなかった項目は、純正タービンくらいの値になる</li>
-</ul>
-<p>同梱の 2 つ（比べる目安）:</p>
-<table class="ja">
-<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>既定の車の 0-160km/h</th></tr>
-<tr><td>なし</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 秒</td></tr>
-<tr><td>純正タービン</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 秒</td></tr>
-<tr><td>ビッグタービン</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 秒</td></tr>
-</table>
-</div>
-</details>
-<details class="more en">
-<summary>Change how the turbo behaves (spool, lag)</summary>
-<div class="more-body">
-<pre><code>{
-  "slot": "turbo",
-  "turbo": {
-    "boost": 0.50,
-    "spool_from": 0.30,
-    "spool_full": 0.65,
-    "spool_rate": 2.0
-  }
-}</code></pre>
-<ul>
-<li><code>boost</code> — extra torque at full boost (0 to 1.5)</li>
-<li><code>spool_from</code> / <code>spool_full</code> — where boost starts and where it is full, as a fraction from idle (0) to the rev limit (1). Bigger turbos sit higher</li>
-<li><code>spool_rate</code> — how fast boost builds (0.1 to 20). Smaller means more lag</li>
-<li>Anything you leave out takes roughly stock-turbo values</li>
-</ul>
-<p>The two bundled turbos, for reference:</p>
-<table class="en">
-<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>Default car 0-160 km/h</th></tr>
-<tr><td>None</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 s</td></tr>
-<tr><td>Stock turbo</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 s</td></tr>
-<tr><td>Big turbo</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 s</td></tr>
-</table>
-</div>
-</details>
-
-<details class="more ja">
-<summary>決まった車種にだけ付けたい</summary>
-<div class="more-body">
-<p><code>cars</code> に車種の id を並べます（ディーゼル車専用のタービン、など）。書かなければ、どの車種にも付けられます。</p>
-<pre><code>{
-  "slot": "turbo",
-  "cars": ["mypack:prado"],
-  "turbo": { "boost": 0.4 }
-}</code></pre>
-</div>
-</details>
-<details class="more en">
-<summary>Only fit certain cars</summary>
-<div class="more-body">
-<p>List car ids in <code>cars</code> (a turbo only for a diesel, say). Leave it out and every car can fit it.</p>
-<pre><code>{
-  "slot": "turbo",
-  "cars": ["mypack:prado"],
-  "turbo": { "boost": 0.4 }
-}</code></pre>
-</div>
-</details>
-
-<details class="more ja">
-<summary>ブローオフの音を変えたい</summary>
-<div class="more-body">
-<p>音は部品ではなく車の側で変えます。車の <code>vehicles/&lt;車&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="#s-sound">車の 11 章</a>）。</p>
-</div>
-</details>
-<details class="more en">
-<summary>Change the blow-off sound</summary>
-<div class="more-body">
-<p>The sound belongs to the car, not the part: set <code>"blowoff"</code> in <code>sounds</code> in the car's <code>vehicles/&lt;car&gt;.json</code> (<a href="#s-sound">chapter 11 of the Car guide</a>).</p>
-</div>
-</details>
-
-<details class="more ja">
-<summary>うまくいかないとき</summary>
-<div class="more-body">
-<ul>
-<li><b>「ブローオフ」のタブが出ない</b> … ターボが付いていない。先にターボを付ける</li>
-<li><b>ログに「ターボの部品に turbo が書かれていません」と出る</b> … <code>"turbo": { ... }</code> を書く（書かないと純正タービンくらいの値になる）</li>
-<li><b>見た目が変わらない</b> … ターボとブローオフは、いまは見た目を持たない（換装画面の絵とメーターの TURBO ランプだけ）</li>
-</ul>
-</div>
-</details>
-<details class="more en">
-<summary>When it doesn't work</summary>
-<div class="more-body">
-<ul>
-<li><b>No "Blow-off" tab</b> — no turbo is fitted. Fit a turbo first</li>
-<li><b>The log says the turbo part has no turbo</b> — add <code>"turbo": { ... }</code> (without it you get roughly stock-turbo values)</li>
-<li><b>Nothing changes on the car's body</b> — turbos and blow-off valves have no looks yet (only the parts-screen icon and the TURBO lamp on the gauges)</li>
-</ul>
-</div>
-</details>
-</section>
-
 <section id="s-body" data-guide="parts">
-<h2 class="ja"><span class="num">2</span>外装パーツ</h2>
-<h2 class="en"><span class="num">2</span>Body parts</h2>
+<h2 class="ja"><span class="num">1</span>外装パーツ</h2>
+<h2 class="en"><span class="num">1</span>Body parts</h2>
 <p class="ja">ウイング・バンパー・フェンダーなど、車体に固定される部品です。</p>
 <p class="en">Wings, bumpers, fenders — parts fixed to the body.</p>
 
@@ -4563,7 +4467,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td><code>fender</code></td><td>オーバーフェンダー</td></tr>
 <tr><td><code>rear_wing</code></td><td>スポイラー、ウイング、ダックテール</td></tr>
 <tr><td><code>rear_diffuser</code></td><td>リアバンパー、ディフューザー</td></tr>
-<tr><td><code>exhaust</code></td><td>マフラー（<a href="#s-exhaust">3 章</a>）</td></tr>
+<tr><td><code>exhaust</code></td><td>マフラー（<a href="#s-exhaust">2 章</a>）</td></tr>
 </table>
 <table class="en">
 <tr><th><code>slot</code></th><th>What goes there</th></tr>
@@ -4572,7 +4476,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td><code>fender</code></td><td>Over-fenders</td></tr>
 <tr><td><code>rear_wing</code></td><td>Spoiler, wing, duck tail</td></tr>
 <tr><td><code>rear_diffuser</code></td><td>Rear bumper, diffuser</td></tr>
-<tr><td><code>exhaust</code></td><td>Exhaust (<a href="#s-exhaust">chapter 3</a>)</td></tr>
+<tr><td><code>exhaust</code></td><td>Exhaust (<a href="#s-exhaust">chapter 2</a>)</td></tr>
 </table>
 <p class="ja">その車にオブジェクトのある部品も初期装備も無い場所は、タブが出ません。</p>
 <p class="en">A slot's tab only appears if the car has an object for one of its parts, or a default part.</p>
@@ -4745,8 +4649,8 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </section>
 
 <section id="s-exhaust" data-guide="parts">
-<h2 class="ja"><span class="num">3</span>マフラー</h2>
-<h2 class="en"><span class="num">3</span>Exhausts</h2>
+<h2 class="ja"><span class="num">2</span>マフラー</h2>
+<h2 class="en"><span class="num">2</span>Exhausts</h2>
 <p class="ja">見た目と排気音を変える部品です。走りは変わりません。</p>
 <p class="en">A part that changes the look and the exhaust note. Driving does not change.</p>
 
@@ -4862,7 +4766,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
     "exhaust": { "part": "mypack:stock", "removable": false }
   }
 }</code></pre>
-<p>初期装備の詳しいことは<a href="#s-body">2 章</a>の「最初から付いている部品にしたい」にあります。</p>
+<p>初期装備の詳しいことは<a href="#s-body">1 章</a>の「最初から付いている部品にしたい」にあります。</p>
 </div>
 </details>
 <details class="more en">
@@ -4875,7 +4779,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
     "exhaust": { "part": "mypack:stock", "removable": false }
   }
 }</code></pre>
-<p>More on default parts in <a href="#s-body">chapter 2</a>, "Have it fitted from the start".</p>
+<p>More on default parts in <a href="#s-body">chapter 1</a>, "Have it fitted from the start".</p>
 </div>
 </details>
 
@@ -4896,6 +4800,164 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <li><b>No "Exhaust" tab</b> — the object is not in the OBJ. Check it was not hidden when you exported</li>
 <li><b>Your sound does not play; it is the usual one</b> — the <code>sound</code> name is missing from <code>sounds.json</code>. A warning is in the log</li>
 <li><b><code>pitch</code> above 1 does not raise it</b> — Minecraft's pitch ceiling. Replace the source with a higher one via <code>sound</code></li>
+</ul>
+</div>
+</details>
+</section>
+
+<section id="s-turbo" data-guide="parts">
+<h2 class="ja"><span class="num">3</span>ターボとブローオフバルブ</h2>
+<h2 class="en"><span class="num">3</span>Turbos and blow-off valves</h2>
+<p class="ja">ターボは加速が変わる部品、ブローオフバルブは、ブーストが掛かった状態でアクセルを抜いたときやシフトアップのときに「プシュッ」と鳴るだけの部品です。どちらもモデルは要りません。</p>
+<p class="en">A turbo changes how the car accelerates; a blow-off valve only adds the "pssh" when you lift off or shift up under boost. Neither needs a model.</p>
+
+<h3 class="ja">最小のターボを作る</h3>
+<h3 class="en">Make a minimal turbo</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_turbo.json</code>:
+<pre><code>{
+  "slot": "turbo",
+  "turbo": { "boost": 0.5 }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_turbo": "マイタービン"</code></li>
+</ol>
+<p class="ja">これで、ゲームの <kbd>G</kbd> →「パーツ」→「ターボ」のタブに並びます。<code>boost</code> は全開のときにトルクを何割増やすか（0.5 で 1.5 倍）です。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_turbo.json</code>:
+<pre><code>{
+  "slot": "turbo",
+  "turbo": { "boost": 0.5 }
+}</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_turbo": "My Turbo"</code></li>
+</ol>
+<p class="en">It now appears under <kbd>G</kbd> → "Parts" → the "Turbo" tab. <code>boost</code> is how much extra torque at full boost (0.5 means 1.5×).</p>
+
+<h3 class="ja">最小のブローオフバルブを作る</h3>
+<h3 class="en">Make a minimal blow-off valve</h3>
+<ol class="steps ja">
+<li><span class="where where-file">ファイル</span><b>部品のファイルを置く。</b><code>data/mypack/car_parts/my_bov.json</code>:
+<pre><code>{ "slot": "blowoff" }</code></pre></li>
+<li><span class="where where-lang">lang</span><b>表示名を lang に書く。</b><code>"part.mypack.my_bov": "マイブローオフ"</code></li>
+</ol>
+<p class="ja">ターボを付けている車にだけ、「ブローオフ」のタブが出ます。</p>
+<ol class="steps en">
+<li><span class="where where-file">File</span><b>Add the part file</b> <code>data/mypack/car_parts/my_bov.json</code>:
+<pre><code>{ "slot": "blowoff" }</code></pre></li>
+<li><span class="where where-lang">lang</span><b>Add the display name to lang.</b> <code>"part.mypack.my_bov": "My Blow-off"</code></li>
+</ol>
+<p class="en">The "Blow-off" tab only appears on a car with a turbo fitted.</p>
+
+<h3 class="ja">必要なときだけ</h3>
+<h3 class="en">Only when you need it</h3>
+
+<details class="more ja">
+<summary>ターボの効き方を変えたい（立ち上がり・ターボラグ）</summary>
+<div class="more-body">
+<pre><code>{
+  "slot": "turbo",
+  "turbo": {
+    "boost": 0.50,
+    "spool_from": 0.30,
+    "spool_full": 0.65,
+    "spool_rate": 2.0
+  }
+}</code></pre>
+<ul>
+<li><code>boost</code> … 全開のときにトルクを何割増やすか（0〜1.5）</li>
+<li><code>spool_from</code> / <code>spool_full</code> … 効き始める回転と、いっぱいに効く回転。アイドルを 0、レブリミットを 1 とした割合で書く。大きいタービンほど高い回転へ寄せる</li>
+<li><code>spool_rate</code> … 効きが上がる速さ（0.1〜20）。小さいほどターボラグが長い</li>
+<li>書かなかった項目は、純正タービンくらいの値になる</li>
+</ul>
+<p>同梱の 2 つ（比べる目安）:</p>
+<table class="ja">
+<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>既定の車の 0-160km/h</th></tr>
+<tr><td>なし</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 秒</td></tr>
+<tr><td>純正タービン</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 秒</td></tr>
+<tr><td>ビッグタービン</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 秒</td></tr>
+</table>
+</div>
+</details>
+<details class="more en">
+<summary>Change how the turbo behaves (spool, lag)</summary>
+<div class="more-body">
+<pre><code>{
+  "slot": "turbo",
+  "turbo": {
+    "boost": 0.50,
+    "spool_from": 0.30,
+    "spool_full": 0.65,
+    "spool_rate": 2.0
+  }
+}</code></pre>
+<ul>
+<li><code>boost</code> — extra torque at full boost (0 to 1.5)</li>
+<li><code>spool_from</code> / <code>spool_full</code> — where boost starts and where it is full, as a fraction from idle (0) to the rev limit (1). Bigger turbos sit higher</li>
+<li><code>spool_rate</code> — how fast boost builds (0.1 to 20). Smaller means more lag</li>
+<li>Anything you leave out takes roughly stock-turbo values</li>
+</ul>
+<p>The two bundled turbos, for reference:</p>
+<table class="en">
+<tr><th></th><th><code>boost</code></th><th><code>spool_from</code></th><th><code>spool_full</code></th><th><code>spool_rate</code></th><th>Default car 0-160 km/h</th></tr>
+<tr><td>None</td><td>—</td><td>—</td><td>—</td><td>—</td><td>11.3 s</td></tr>
+<tr><td>Stock turbo</td><td>0.35</td><td>0.22</td><td>0.55</td><td>3.0</td><td>8.9 s</td></tr>
+<tr><td>Big turbo</td><td>0.70</td><td>0.40</td><td>0.78</td><td>1.4</td><td>8.0 s</td></tr>
+</table>
+</div>
+</details>
+
+<details class="more ja">
+<summary>決まった車種にだけ付けたい</summary>
+<div class="more-body">
+<p><code>cars</code> に車種の id を並べます（ディーゼル車専用のタービン、など）。書かなければ、どの車種にも付けられます。</p>
+<pre><code>{
+  "slot": "turbo",
+  "cars": ["mypack:prado"],
+  "turbo": { "boost": 0.4 }
+}</code></pre>
+</div>
+</details>
+<details class="more en">
+<summary>Only fit certain cars</summary>
+<div class="more-body">
+<p>List car ids in <code>cars</code> (a turbo only for a diesel, say). Leave it out and every car can fit it.</p>
+<pre><code>{
+  "slot": "turbo",
+  "cars": ["mypack:prado"],
+  "turbo": { "boost": 0.4 }
+}</code></pre>
+</div>
+</details>
+
+<details class="more ja">
+<summary>ブローオフの音を変えたい</summary>
+<div class="more-body">
+<p>音は部品ではなく車の側で変えます。車の <code>vehicles/&lt;車&gt;.json</code> の <code>sounds</code> に <code>"blowoff"</code> を書きます（<a href="#s-sound">車の 11 章</a>）。</p>
+</div>
+</details>
+<details class="more en">
+<summary>Change the blow-off sound</summary>
+<div class="more-body">
+<p>The sound belongs to the car, not the part: set <code>"blowoff"</code> in <code>sounds</code> in the car's <code>vehicles/&lt;car&gt;.json</code> (<a href="#s-sound">chapter 11 of the Car guide</a>).</p>
+</div>
+</details>
+
+<details class="more ja">
+<summary>うまくいかないとき</summary>
+<div class="more-body">
+<ul>
+<li><b>「ブローオフ」のタブが出ない</b> … ターボが付いていない。先にターボを付ける</li>
+<li><b>ログに「ターボの部品に turbo が書かれていません」と出る</b> … <code>"turbo": { ... }</code> を書く（書かないと純正タービンくらいの値になる）</li>
+<li><b>見た目が変わらない</b> … ターボとブローオフは、いまは見た目を持たない（換装画面の絵とメーターの TURBO ランプだけ）</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>When it doesn't work</summary>
+<div class="more-body">
+<ul>
+<li><b>No "Blow-off" tab</b> — no turbo is fitted. Fit a turbo first</li>
+<li><b>The log says the turbo part has no turbo</b> — add <code>"turbo": { ... }</code> (without it you get roughly stock-turbo values)</li>
+<li><b>Nothing changes on the car's body</b> — turbos and blow-off valves have no looks yet (only the parts-screen icon and the TURBO lamp on the gauges)</li>
 </ul>
 </div>
 </details>
@@ -5595,7 +5657,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td><code>turbo.spool_from</code></td><td>数字</td><td><code>0.25</code></td><td>ターボだけ。過給が立ち上がり始める回転の割合（アイドル 0〜レブ 1。0〜0.95）</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>数字</td><td><code>0.60</code></td><td>ターボだけ。過給がいっぱいになる回転の割合（<code>spool_from</code> より少し上〜1）</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>数字</td><td><code>3.0</code></td><td>ターボだけ。ブーストが上がる速さ [1/秒]（0.1〜20）</td></tr>
-<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>数字 or <code>[最小, 最大]</code></td><td><code>0</code></td><td>外装パーツだけ。その軸のダウンフォースの面積 [m²]（0〜3）。範囲なら角度で調整できる（<a href="#s-body">パーツの 1 章</a>）</td></tr>
 <tr><td><code>aero.angle</code></td><td>数字</td><td><code>0.5</code></td><td>外装パーツだけ。調整していないときの角度（0〜1）</td></tr>
 <tr><td><code>plate.fields.&lt;欄&gt;.max</code></td><td>整数</td><td><code>16</code></td><td>ナンバーだけ。字の数の上限（1〜16）。欄は 8 つまで、並べた順が入力欄の順。欄の名前は小文字・数字・<code>_ -</code> の 32 字まで</td></tr>
 <tr><td><code>plate.fields.&lt;欄&gt;.chars</code></td><td>文字列の配列</td><td>（どの字でも）</td><td>ナンバーだけ。使える字。範囲 <code>"0-9"</code>・1 字・名前（<code>hiragana</code>・<code>katakana</code>・<code>kanji</code>・<code>latin</code>・<code>digits</code>）</td></tr>
@@ -5611,7 +5673,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <tr><td><code>turbo.spool_from</code></td><td>number</td><td><code>0.25</code></td><td>Turbos only. Where boost starts to build, as a fraction from idle (0) to the rev limit (1); 0 to 0.95</td></tr>
 <tr><td><code>turbo.spool_full</code></td><td>number</td><td><code>0.60</code></td><td>Turbos only. Where boost is full (just above <code>spool_from</code> to 1)</td></tr>
 <tr><td><code>turbo.spool_rate</code></td><td>number</td><td><code>3.0</code></td><td>Turbos only. How fast boost builds [1/s] (0.1 to 20)</td></tr>
-<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="#s-body">chapter 2 of the Parts guide</a>)</td></tr>
+<tr><td><code>aero.front</code> / <code>aero.rear</code></td><td>number or <code>[min, max]</code></td><td><code>0</code></td><td>Body parts only. Downforce area on that axle [m²] (0 to 3). A range is adjustable by angle (<a href="#s-body">chapter 1 of the Parts guide</a>)</td></tr>
 <tr><td><code>aero.angle</code></td><td>number</td><td><code>0.5</code></td><td>Body parts only. Default angle (0 to 1)</td></tr>
 <tr><td><code>plate.fields.&lt;field&gt;.max</code></td><td>integer</td><td><code>16</code></td><td>Plates only. Maximum length (1 to 16). Up to 8 fields; the order is the order of the text boxes. Field names: lower case, digits and <code>_ -</code>, up to 32 characters</td></tr>
 <tr><td><code>plate.fields.&lt;field&gt;.chars</code></td><td>array of strings</td><td>(anything)</td><td>Plates only. Allowed characters: ranges like <code>"0-9"</code>, single characters, or names (<code>hiragana</code>, <code>katakana</code>, <code>kanji</code>, <code>latin</code>, <code>digits</code>)</td></tr>

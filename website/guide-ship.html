@@ -80,7 +80,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <p><span data-l="en">Pack your car pack folder into a jar and share it, and fix what does not work.</span><span data-l="ja">カーパックフォルダを jar に固めて配る。うまく動かないときの直しかた。</span></p>
   </div>
 </section>
-<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-ship.html" aria-current="page"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
+<div class="gtabs-bar"><div class="wrap"><nav class="gtabs" aria-label="Guide pages"><a href="guide.html"><span data-l="en">Home</span><span data-l="ja">入口</span></a><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a><a href="guide-ship.html" aria-current="page"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></nav></div></div>
 
 <div class="wrap glayout">
   <nav class="gtoc" aria-label="Contents"><div class="tt"><span data-l="en">Contents</span><span data-l="ja">目次</span></div><a href="#s-jar"><span data-l="en">1. Pack it into a jar and ship it</span><span data-l="ja">1. jar に固めて配る</span></a><a href="#s-chk-ship"><span data-l="en">2. Checklist</span><span data-l="ja">2. チェックリスト</span></a><a href="#s11"><span data-l="en">3. Troubleshooting</span><span data-l="ja">3. 症状別の直しかた</span></a></nav>
@@ -90,6 +90,56 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <p class="ja">カーパックは、コードを持たない MOD の jar です。フォルダの中身を zip で固めて <code>.jar</code> にし、<code>mods/</code> に入れます。</p>
 <p class="en">A car pack is a mod jar with no code in it. You zip the folder's contents, name it <code>.jar</code> and put it in <code>mods/</code>.</p>
 
+<h3 class="ja">できあがりの形</h3>
+<h3 class="en">What you end up with</h3>
+<p class="ja">自分のパックのフォルダは次の形です。<code>mypack/</code> の中身を固めて、jar のいちばん上に <code>META-INF/</code> や <code>assets/</code> が来るようにしてください。</p>
+<p class="en">Your pack folder looks like this. Zip what is inside <code>mypack/</code>, so that <code>META-INF/</code> and <code>assets/</code> sit at the very top of the jar.</p>
+<pre class="ja"><code><span class="hl">mypack</span>/
+├── META-INF/
+│   ├── mods.toml                  ← Forge 用。modId を <span class="hl">mypack</span> に
+│   └── neoforge.mods.toml         ← NeoForge 用。modId を <span class="hl">mypack</span> に
+├── fabric.mod.json                ← Fabric 用。id を <span class="hl">mypack</span> に
+├── pack.mcmeta
+├── <span class="hl">mypack</span>.png                     ← ロゴ画像
+├── assets/<span class="hl">mypack</span>/                 ← 見た目
+│   ├── car_parts/                 ← パーツ
+│   │   └── xxx.json
+│   ├── lang/                      ← 言語
+│   │   ├── en_us.json
+│   │   └── ja_jp.json
+│   ├── models/entity/             ← モデル
+│   │   └── zzz.obj, zzz.mtl
+│   ├── textures/entity/           ← テクスチャ
+│   │   └── zzz.png
+│   └── vehicles/zzz.json
+└── data/<span class="hl">mypack</span>/                   ← 走り（諸元）
+    ├── car_parts/                 ← パーツ
+    │   └── xxx.json
+    └── cars/
+        └── zzz.json</code></pre>
+<pre class="en"><code><span class="hl">mypack</span>/
+├── META-INF/
+│   ├── mods.toml                  &lt;- for Forge; modId is <span class="hl">mypack</span>
+│   └── neoforge.mods.toml         &lt;- for NeoForge; modId is <span class="hl">mypack</span>
+├── fabric.mod.json                &lt;- for Fabric; id is <span class="hl">mypack</span>
+├── pack.mcmeta
+├── <span class="hl">mypack</span>.png                     &lt;- logo image
+├── assets/<span class="hl">mypack</span>/                 &lt;- looks
+│   ├── car_parts/                 &lt;- parts
+│   │   └── xxx.json
+│   ├── lang/                      &lt;- languages
+│   │   ├── en_us.json
+│   │   └── ja_jp.json
+│   ├── models/entity/             &lt;- models
+│   │   └── zzz.obj, zzz.mtl
+│   ├── textures/entity/           &lt;- textures
+│   │   └── zzz.png
+│   └── vehicles/zzz.json
+└── data/<span class="hl">mypack</span>/                   &lt;- handling (spec)
+    ├── car_parts/                 &lt;- parts
+    │   └── xxx.json
+    └── cars/
+        └── zzz.json</code></pre>
 <h3 class="ja">最小のパックを作る</h3>
 <h3 class="en">Make a minimal pack</h3>
 <ol class="steps ja">
@@ -153,7 +203,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <ul>
 <li><b>マルチプレイでは、サーバーと全員のゲームの両方に入れる。</b>どの車があるかはサーバーが決め、姿は各プレイヤーのゲームが描く</li>
 <li>jar 1 つのまま配る。リソースパックとデータパックに分けると、片方だけ入れた人には「見えるのに走らない」車になる</li>
-<li>見本の <code>mods.toml</code> と <code>neoforge.mods.toml</code> を両方残しておけば、同じ jar が Forge 1.20.1 と NeoForge 1.21.1 の両方で読まれる</li>
+<li>見本の <code>mods.toml</code>・<code>neoforge.mods.toml</code>・<code>fabric.mod.json</code> を全部残しておけば、同じ jar が Forge・NeoForge・Fabric のどれでも読まれる</li>
 <li><code>CURSEFORGE.md</code> と <code>MODRINTH.md</code> は、配布ページの説明文のひな形に使える</li>
 <li>カーパックを外しても、ワールドは壊れない。知らない車は既定の車として走り、入れ直せば元に戻る</li>
 </ul>
@@ -165,7 +215,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <ul>
 <li><b>In multiplayer, install it on the server and on every player's game.</b> The server decides which cars exist; each player's game draws them</li>
 <li>Ship it as one jar. Split into a resource pack and a data pack, anyone who installs only one gets a car that shows up but will not drive</li>
-<li>Keep both <code>mods.toml</code> and <code>neoforge.mods.toml</code> from the example, and the same jar loads on Forge 1.20.1 and NeoForge 1.21.1</li>
+<li>Keep <code>mods.toml</code>, <code>neoforge.mods.toml</code> and <code>fabric.mod.json</code> from the example, and the same jar loads on Forge, NeoForge and Fabric</li>
 <li><code>CURSEFORGE.md</code> and <code>MODRINTH.md</code> work as templates for your download page</li>
 <li>Removing a car pack does not break a world. Unknown cars drive as the default car, and putting the pack back restores them</li>
 </ul>
@@ -192,6 +242,29 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </ul>
 </div>
 </details>
+<details class="more ja">
+<summary>Forge・NeoForge・Fabric のどれでも使いたい</summary>
+<div class="more-body">
+<p>見本をコピーしていれば、もうそうなっています。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
+<ul>
+<li><code>mods.toml</code> と <code>neoforge.mods.toml</code> の中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
+<li>Minecraft の版の範囲は、使う版を全部含める。Forge は <code>"[1.20.1,1.21),[26.3,26.4)"</code>、NeoForge は <code>"[1.21.1,1.22),[26.3,26.4)"</code>、Fabric は <code>[">=1.21.1 &lt;1.22", "~26.3"]</code>。外れた版では読み込まれない</li>
+<li><code>pack.mcmeta</code> は <code>"pack_format": 15</code>、<code>"supported_formats": [15, 121]</code>、<code>"min_format": 15</code>、<code>"max_format": 121</code> の 4 つを書く。26.3 は <code>min_format</code>・<code>max_format</code> で読み、<code>supported_formats</code> の範囲がそれと食い違っていると読まない。1.20.1・1.21.1 は <code>supported_formats</code> で読む</li>
+</ul>
+</div>
+</details>
+<details class="more en">
+<summary>Work on Forge, NeoForge and Fabric</summary>
+<div class="more-body">
+<p>If you copied the example, it already does. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
+<ul>
+<li><code>mods.toml</code> and <code>neoforge.mods.toml</code> are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
+<li>Cover every Minecraft version you target: <code>"[1.20.1,1.21),[26.3,26.4)"</code> for Forge, <code>"[1.21.1,1.22),[26.3,26.4)"</code> for NeoForge and <code>[">=1.21.1 &lt;1.22", "~26.3"]</code> for Fabric. Versions outside the range will not load the pack</li>
+<li>Write all four in <code>pack.mcmeta</code>: <code>"pack_format": 15</code>, <code>"supported_formats": [15, 121]</code>, <code>"min_format": 15</code> and <code>"max_format": 121</code>. 26.3 reads <code>min_format</code> and <code>max_format</code>, and rejects the file if <code>supported_formats</code> disagrees with them. 1.20.1 and 1.21.1 read <code>supported_formats</code></li>
+</ul>
+</div>
+</details>
+
 </section><section class="gsec" id="s-chk-ship">
 <h2 class="ja"><span class="num">2</span>チェックリスト</h2>
 <h2 class="en"><span class="num">2</span>Checklist</h2>
@@ -253,6 +326,10 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 
 <h3 class="ja">形と大きさ</h3>
 <h3 class="en">Shape and size</h3>
+<p class="ja">大きさや車高のずれは、乗ったまま <b>Ctrl+G</b> の調整画面で動かしながら合わせるのが早いです。車体は「車の JSON」の「ボディ」（スケール・車高）、タイヤとホイールは「ホイールの JSON」（スケール・太さなど）を動かし、決まったら「JSON をコピー」で貼ります（<a href="guide-car.html#s-car-fit">車の 7 章</a>）。
+動かした値はこのクライアントだけに、ゲームを閉じるまで効きます。</p>
+<p class="en">For size and ride height, the quickest way is to sit in the car, press <b>Ctrl+G</b> and adjust while you watch. Use "Body" under "Car JSON" (scale, ride height) for the body, and "Wheel JSON" (scale, width and so on) for wheels and tyres, then paste the result with "Copy JSON" (<a href="guide-car.html#s-car-fit">Car guide, chapter 7</a>). 
+Changes apply to your client only, until you close the game.</p>
 <table class="ja">
 <tr><th>症状</th><th>直しかた</th></tr>
 <tr><td>車体だけ大きい／小さい</td><td><code>designWheelBase</code> をメッシュの実寸にする。微調整は <code>body.scale</code></td></tr>
@@ -315,7 +392,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <h3 class="en">Parts</h3>
 <table class="ja">
 <tr><th>症状</th><th>直しかた</th></tr>
-<tr><td>換装画面に外装パーツ・マフラーのタブが出ない</td><td>OBJ に <code>part_</code> のオブジェクトが入っていない。非表示のまま書き出していないか、名前が <code>part_&lt;場所&gt;-&lt;部品名&gt;</code> か見る（<a href="guide-parts.html#s-body">パーツの 2 章</a>）</td></tr>
+<tr><td>換装画面に外装パーツ・マフラーのタブが出ない</td><td>OBJ に <code>part_</code> のオブジェクトが入っていない。非表示のまま書き出していないか、名前が <code>part_&lt;場所&gt;-&lt;部品名&gt;</code> か見る（<a href="guide-parts.html#s-body">パーツの 1 章</a>）</td></tr>
 <tr><td>タブはあるのに部品が並ばない</td><td><code>data/&lt;パック&gt;/car_parts/</code> に部品の JSON を置き、<code>slot</code> を書く。オブジェクト名の部品名をファイル名に揃える。<code>cars</code> にその車を入れる</td></tr>
 <tr><td>付け替えても純正の部分が残る</td><td>純正の部分が <code>body</code> と一体になっている。別のオブジェクトにして部品にする</td></tr>
 <tr><td>初期装備を書いたら、その車ごと増えなくなった</td><td><code>default_parts</code> を <code>values</code> の中に書いている。<code>values</code> と同じ、いちばん外側に書く</td></tr>
@@ -329,7 +406,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 </table>
 <table class="en">
 <tr><th>Symptom</th><th>Fix</th></tr>
-<tr><td>No tab for body parts or exhausts in the parts screen</td><td>The OBJ has no <code>part_</code> object. Check it was not hidden when you exported, and that it is named <code>part_&lt;slot&gt;-&lt;part&gt;</code> (<a href="guide-parts.html#s-body">Parts guide, chapter 2</a>)</td></tr>
+<tr><td>No tab for body parts or exhausts in the parts screen</td><td>The OBJ has no <code>part_</code> object. Check it was not hidden when you exported, and that it is named <code>part_&lt;slot&gt;-&lt;part&gt;</code> (<a href="guide-parts.html#s-body">Parts guide, chapter 1</a>)</td></tr>
 <tr><td>The tab is there but the part is not listed</td><td>Put the part JSON in <code>data/&lt;pack&gt;/car_parts/</code> with a <code>slot</code>. Match the part name in the object name to the file name. Include the car in <code>cars</code></td></tr>
 <tr><td>The stock piece stays whatever is fitted</td><td>It is merged into <code>body</code>. Make it a separate object and a part</td></tr>
 <tr><td>After adding default parts, the whole car disappeared</td><td><code>default_parts</code> is inside <code>values</code>. Move it to the top level, next to <code>values</code></td></tr>
@@ -344,6 +421,10 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 
 <h3 class="ja">音</h3>
 <h3 class="en">Sound</h3>
+<p class="ja">音の調整は、乗ったまま <b>Ctrl+H</b> のデバッグ画面で聞きながら合わせるのが早いです。乗っている車の音の設定をその場で動かせるので、決まったら「JSON をコピー」で貼ります（<a href="guide-car.html#s-sound">車の 11 章</a>）。
+動かした値はこのクライアントだけに、ゲームを閉じるまで効きます。</p>
+<p class="en">To tune sounds, the quickest way is to sit in the car, press <b>Ctrl+H</b> and listen while you adjust. The debug screen changes the sound settings of the car you are in; when you are happy, paste them with "Copy JSON" (<a href="guide-car.html#s-sound">Car guide, chapter 11</a>). 
+Changes apply to your client only, until you close the game.</p>
 <table class="ja">
 <tr><th>症状</th><th>直しかた</th></tr>
 <tr><td>差し替えた音が鳴らず、いつもの音のまま</td><td><code>sounds</code> の値を <code>sounds.json</code> の名前に揃える。ログに <code>指定されたサウンドイベントが sounds.json にありません</code> と出る</td></tr>
