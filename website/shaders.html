@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shader packs | KurumaMod</title>
+<!-- Google tag (gtag.js)。本番（kuruma.jdm-mc.com）でだけ読み込む -->
+<script>
+if (location.hostname === 'kuruma.jdm-mc.com') {
+  var ga = document.createElement('script');
+  ga.async = true;
+  ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-4NCQ47HCMC';
+  document.head.appendChild(ga);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4NCQ47HCMC');
+}
+</script>
+<meta name="description" content="KurumaMod is built for shader packs: cars stay smooth, and light, shadows and smoke blend into the pack.">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="img/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="canonical" href="https://kuruma.jdm-mc.com/shaders.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="KurumaMod">
+<meta property="og:title" content="Shader packs | KurumaMod">
+<meta property="og:description" content="KurumaMod is built for shader packs: cars stay smooth, and light, shadows and smoke blend into the pack.">
+<meta property="og:url" content="https://kuruma.jdm-mc.com/shaders.html">
+<meta property="og:image" content="https://kuruma.jdm-mc.com/img/ogp.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@kurumamod">
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="Shader packs | KurumaMod" data-title-ja="シェーダーパック | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
+      <div class="menu-links" id="menu-links">
+        <a href="index.html"><span data-l="en">Home</span><span data-l="ja">トップ</span></a>
+        <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+        <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+        <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
+        <a href="shaders.html"><span data-l="en">Shaders</span><span data-l="ja">シェーダー</span></a>
+        <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      </div>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9s1.3-6.4 3.9-9z"/></svg>
+        <span class="lang-t" data-l="en">日本語</span><span class="lang-t" data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download" aria-label="Download / ダウンロード"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="dl-t"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></span></a>
+    </div>
+  </div>
+</header>
+
+<section class="hero page" style="padding:0">
+  <img src="img/eyecatch.jpg" alt="A car on a night track with its headlights on" data-alt-ja="夜のコースをヘッドライトで照らす車">
+  <div class="copy">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Shaders</span><span data-l="ja">シェーダー</span></div>
+      <h1>Shaders</h1>
+      <p><span data-l="en">Built to look great and stay smooth with shader packs.</span><span data-l="ja">シェーダーパックで走るために作りました。</span></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Made for shader packs</span><span data-l="ja">シェーダーのために</span></div>
+    <h2 class="title"><span data-l="en">Beautiful, and still smooth.</span><span data-l="ja">きれいなまま、軽く走れる。</span></h2>
+    <p class="lead"><span data-l="en">KurumaMod is built so you can keep your shader pack on, even on a full grid.</span><span data-l="ja">KurumaMod は、車がたくさん並ぶレースでもシェーダーを切らずに走れるように作っています。</span></p>
+    <div class="packs">
+      <div class="pack static"><small><span data-l="en">Performance</span><span data-l="ja">軽さ</span></small><h3><span data-l="en">Up to 7x lighter</span><span data-l="ja">最大 約 7 倍軽く</span></h3><p><span data-l="en">Optimised rendering keeps things comfortable even with a lot of cars on screen. Go racing with friends and keep your pack on.</span><span data-l="ja">最適化処理により、車がたくさん並んでも快適に走れるようになりました。友達とのレースでも、シェーダーを入れたまま楽しめます。</span></p></div>
+      <div class="pack static"><small><span data-l="en">Shadows</span><span data-l="ja">影</span></small><h3><span data-l="en">Shadows that look right</span><span data-l="ja">自然な影</span></h3><p><span data-l="en">The body and tyres cast clean shadows on the road, following the sun and moon.</span><span data-l="ja">車体とタイヤの影が、太陽や月の向きに合わせて路面にきれいに落ちます。</span></p></div>
+      <div class="pack static"><small><span data-l="en">Light and smoke</span><span data-l="ja">光と煙</span></small><h3><span data-l="en">Part of the scene</span><span data-l="ja">景色に溶け込む</span></h3><p><span data-l="en">Headlights, tyre smoke and skid marks sit naturally in the pack's light and colour.</span><span data-l="ja">ヘッドライト、タイヤの煙、タイヤ痕が、パックの光や色合いに自然に馴染みます。</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="mist">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Tested combinations</span><span data-l="ja">確かめた組み合わせ</span></div>
+    <h2 class="title"><span data-l="en">What we have run.</span><span data-l="ja">実際に動かした組み合わせ。</span></h2>
+    <p class="lead"><span data-l="en">Only what we ran ourselves is listed. Other versions and packs may work, but we have not checked them.</span><span data-l="ja">手元で動かしたものだけを載せています。ほかの版やパックでも動くかもしれませんが、確かめていません。</span></p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead><tr><th scope="col"><span data-l="en">Minecraft / loader</span><span data-l="ja">Minecraft / ローダー</span></th><th scope="col"><span data-l="en">Shader mod</span><span data-l="ja">シェーダー MOD</span></th><th scope="col"><span data-l="en">With</span><span data-l="ja">一緒に入れた MOD</span></th><th scope="col"><span data-l="en">Packs tried</span><span data-l="ja">試したパック</span></th></tr></thead>
+        <tbody>
+          <tr><th scope="row">1.20.1 Forge</th><td>Oculus 1.8.0</td><td>Embeddium 0.3.31</td><td>Complementary Unbound r5.9.2</td></tr>
+          <tr><th scope="row">1.21.1 NeoForge</th><td>Iris 1.8.12</td><td>Sodium 0.6.13</td><td>Complementary Unbound r5.9.3</td></tr>
+          <tr><th scope="row">1.21.1 Fabric</th><td>Iris 1.8.8</td><td>Sodium 0.6.13</td><td>Complementary Unbound r5.9.3</td></tr>
+          <tr><th scope="row">26.3 Fabric</th><td>Iris 1.11.7</td><td>Sodium 0.9.2</td><td>Complementary Unbound r5.9.3</td></tr>
+          <tr><th scope="row">26.3 NeoForge</th><td colspan="3"><span data-l="en">Shaders cannot be used yet because Iris and Sodium do not support this version.</span><span data-l="ja">今は Iris / Sodium が対応していないため、シェーダーを使用できません。</span></td></tr>
+          <tr><th scope="row">26.3 Forge</th><td colspan="3"><span data-l="en">Shaders cannot be used yet because Iris and Sodium do not support this version.</span><span data-l="ja">今は Iris / Sodium が対応していないため、シェーダーを使用できません。</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead"><span data-l="en">OptiFine has not been tested.</span><span data-l="ja">OptiFine は確かめていません。</span></p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Feature by feature</span><span data-l="ja">機能ごとの違い</span></div>
+    <h2 class="title"><span data-l="en">What changes with a pack.</span><span data-l="ja">シェーダーで変わるところ。</span></h2>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead><tr><th scope="col"><span data-l="en">Feature</span><span data-l="ja">機能</span></th><th scope="col"><span data-l="en">Without a pack</span><span data-l="ja">シェーダーなし</span></th><th scope="col"><span data-l="en">With a pack</span><span data-l="ja">シェーダーあり</span></th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><span data-l="en">Car shadow</span><span data-l="ja">車の影</span></th><td><span data-l="en">Soft shadow under the car</span><span data-l="ja">車の下の丸い影</span></td><td><span data-l="en">Real shadows from the sun and moon</span><span data-l="ja">太陽と月の光で落ちる影</span></td></tr>
+          <tr><th scope="row"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></th><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td></tr>
+          <tr><th scope="row"><span data-l="en">Tyre smoke</span><span data-l="ja">タイヤの煙</span></th><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td></tr>
+          <tr><th scope="row"><span data-l="en">Skid marks</span><span data-l="ja">タイヤ痕</span></th><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td></tr>
+          <tr><th scope="row"><span data-l="en">Mirrors</span><span data-l="ja">ミラー</span></th><td><span data-l="en">Live reflection</span><span data-l="ja">景色が映る</span></td><td><span data-l="en">Not supported</span><span data-l="ja">非対応</span></td></tr>
+          <tr><th scope="row"><span data-l="en">Lighter car rendering</span><span data-l="ja">車の軽量描画</span></th><td><span data-l="en">Yes</span><span data-l="ja">対応</span></td><td><span data-l="en">Yes (Oculus and Iris compatible)</span><span data-l="ja">対応（Oculus互換・Iris互換）</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead"><span data-l="en">If a pack blends the headlights badly, adjust them with Ctrl+L. On Minecraft 26.3, <strong>use the OpenGL graphics backend</strong> with shader packs.</span><span data-l="ja">パックによってヘッドライトの合成が崩れるときは、Ctrl＋L で調整してください。Minecraft 26.3 でシェーダーパックを使うときは、<strong>描画を OpenGL にしてください。</strong></span></p>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
+      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

@@ -23,7 +23,7 @@ DISCORD = "https://discord.gg/q3YNqaveRd"
 X = "https://x.com/kurumamod"
 # 公開先。OGP の画像とページの URL は絶対 URL でないと X や Discord が読めない
 SITE = "https://kuruma.jdm-mc.com/"
-DEFAULT_DESC = "A driving mod for Minecraft with real car physics: suspension, weight transfer, tyre grip, engine and gearbox. Forge 1.20.1 and NeoForge 1.21.1."
+DEFAULT_DESC = "A driving mod for Minecraft with real car physics: suspension, weight transfer, tyre grip, engine and gearbox. Minecraft 1.20.1, 1.21.1 and 26.3 on Forge, NeoForge and Fabric."
 
 
 def T(en, ja=None):
@@ -74,6 +74,7 @@ HEADER = f"""<header class="bar">
         <a href="start.html">{T("Get started", "はじめかた")}</a>
         <a href="features.html">{T("Features", "特徴")}</a>
         <a href="compare.html">{T("Compare", "比較")}</a>
+        <a href="shaders.html">{T("Shaders", "シェーダー")}</a>
         <a href="guide.html">{T("Car Pack Guide", "作成ガイド")}</a>
       </div>
     </nav>
@@ -520,7 +521,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
   <img src="img/eyecatch.jpg" {ALT("Silvia S15 on track by day and night", "昼と夜のサーキットを走るシルビア S15")}>
   <div class="copy">
     <div class="wrap">
-      <div class="kicker">{T("A driving mod for Minecraft · Forge 1.20.1 / NeoForge 1.21.1", "Minecraft のドライブ MOD · Forge 1.20.1 / NeoForge 1.21.1")}</div>
+      <div class="kicker">{T("A driving mod for Minecraft · 1.20.1 / 1.21.1 / 26.3", "Minecraft のドライブ MOD · 1.20.1 / 1.21.1 / 26.3")}</div>
       <h1 class="brand" aria-label="KurumaMod">KURUMA</h1>
       <p>{T("Gran Turismo, in Minecraft. The front dips when you brake, the rear squats when you accelerate, and if you get greedy with the throttle it steps sideways.",
             "Minecraft で、グランツーリスモ。ブレーキでフロントが沈み、アクセルでリアが沈み、踏みすぎればタイヤを鳴らして横を向く。")}</p>
@@ -591,7 +592,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div class="eyebrow">{T("Get started", "はじめかた")}</div>
     <h2 class="title">{T("Three steps to the driver's seat.", "3 ステップで、運転席へ。")}</h2>
     <ol class="steps three">
-      <li><h3>{T("Download", "ダウンロードする")}</h3><p>{T("From CurseForge or Modrinth. Forge 1.20.1 and NeoForge 1.21.1. No other mods required.", "CurseForge か Modrinth から。Forge 1.20.1 と NeoForge 1.21.1。前提 MOD はいりません。")}</p></li>
+      <li><h3>{T("Download", "ダウンロードする")}</h3><p>{T("From CurseForge or Modrinth. Minecraft 1.20.1, 1.21.1 and 26.3. Fabric needs Fabric API.", "CurseForge か Modrinth から。Minecraft 1.20.1・1.21.1・26.3 に対応。Fabric は Fabric API が必要です。")}</p></li>
       <li><h3>{T("Put it in mods/", "mods に入れる")}</h3><p>{T("Add the Basic Car Pack too if you want the 911 and the Prado.", "911 とプラドに乗るなら、Basic Car Pack も一緒に。")}</p></li>
       <li><h3>{T("Place a car and get in", "車を置いて、乗る")}</h3><p>{T("Take a car from the KurumaMod creative tab, right-click the ground to place it, then right-click the car.", "クリエイティブの KurumaMod タブから車を取り、地面を右クリックで置いて、車を右クリックで乗ります。")}</p></li>
     </ol>
@@ -880,6 +881,75 @@ page("compare.html", "Compare cars | KurumaMod", "車種を比較 | KurumaMod", 
 guide_en = f'Follow the <a href="{GUIDE}">car pack guide</a> and start from the <a href="{CF_EXAMPLE}">Example Car Pack</a>. No coding, and no credit required.'
 guide_ja = f'<a href="{GUIDE}">カーパック作成ガイド</a>を見ながら、<a href="{CF_EXAMPLE}">Example Car Pack</a> をひな型に。コードは不要、クレジット表記も不要です。'
 
+page("shaders.html", "Shader packs | KurumaMod", "シェーダーパック | KurumaMod", f"""
+<section class="hero page" style="padding:0">
+  <img src="img/eyecatch.jpg" {ALT("A car on a night track with its headlights on", "夜のコースをヘッドライトで照らす車")}>
+  <div class="copy">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">KurumaMod</a> / {T("Shaders", "シェーダー")}</div>
+      <h1>Shaders</h1>
+      <p>{T("Built to look great and stay smooth with shader packs.", "シェーダーパックで走るために作りました。")}</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">{T("Made for shader packs", "シェーダーのために")}</div>
+    <h2 class="title">{T("Beautiful, and still smooth.", "きれいなまま、軽く走れる。")}</h2>
+    <p class="lead">{T("KurumaMod is built so you can keep your shader pack on, even on a full grid.", "KurumaMod は、車がたくさん並ぶレースでもシェーダーを切らずに走れるように作っています。")}</p>
+    <div class="packs">
+      <div class="pack static"><small>{T("Performance", "軽さ")}</small><h3>{T("Up to 7x lighter", "最大 約 7 倍軽く")}</h3><p>{T("Optimised rendering keeps things comfortable even with a lot of cars on screen. Go racing with friends and keep your pack on.", "最適化処理により、車がたくさん並んでも快適に走れるようになりました。友達とのレースでも、シェーダーを入れたまま楽しめます。")}</p></div>
+      <div class="pack static"><small>{T("Shadows", "影")}</small><h3>{T("Shadows that look right", "自然な影")}</h3><p>{T("The body and tyres cast clean shadows on the road, following the sun and moon.", "車体とタイヤの影が、太陽や月の向きに合わせて路面にきれいに落ちます。")}</p></div>
+      <div class="pack static"><small>{T("Light and smoke", "光と煙")}</small><h3>{T("Part of the scene", "景色に溶け込む")}</h3><p>{T("Headlights, tyre smoke and skid marks sit naturally in the pack's light and colour.", "ヘッドライト、タイヤの煙、タイヤ痕が、パックの光や色合いに自然に馴染みます。")}</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="mist">
+  <div class="wrap">
+    <div class="eyebrow">{T("Tested combinations", "確かめた組み合わせ")}</div>
+    <h2 class="title">{T("What we have run.", "実際に動かした組み合わせ。")}</h2>
+    <p class="lead">{T("Only what we ran ourselves is listed. Other versions and packs may work, but we have not checked them.", "手元で動かしたものだけを載せています。ほかの版やパックでも動くかもしれませんが、確かめていません。")}</p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead><tr><th scope="col">{T("Minecraft / loader", "Minecraft / ローダー")}</th><th scope="col">{T("Shader mod", "シェーダー MOD")}</th><th scope="col">{T("With", "一緒に入れた MOD")}</th><th scope="col">{T("Packs tried", "試したパック")}</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">1.20.1 Forge</th><td>Oculus 1.8.0</td><td>Embeddium 0.3.31</td><td>Complementary Unbound r5.9.2</td></tr>
+          <tr><th scope="row">1.21.1 NeoForge</th><td>Iris 1.8.12</td><td>Sodium 0.6.13</td><td>Complementary Unbound r5.9.3</td></tr>
+          <tr><th scope="row">1.21.1 Fabric</th><td>Iris 1.8.8</td><td>Sodium 0.6.13</td><td>Complementary Unbound r5.9.3</td></tr>
+          <tr><th scope="row">26.3 Fabric</th><td>Iris 1.11.7</td><td>Sodium 0.9.2</td><td>Complementary Unbound r5.9.3</td></tr>
+          <tr><th scope="row">26.3 NeoForge</th><td colspan="3">{T("Shaders cannot be used yet because Iris and Sodium do not support this version.", "今は Iris / Sodium が対応していないため、シェーダーを使用できません。")}</td></tr>
+          <tr><th scope="row">26.3 Forge</th><td colspan="3">{T("Shaders cannot be used yet because Iris and Sodium do not support this version.", "今は Iris / Sodium が対応していないため、シェーダーを使用できません。")}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead">{T("OptiFine has not been tested.", "OptiFine は確かめていません。")}</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">{T("Feature by feature", "機能ごとの違い")}</div>
+    <h2 class="title">{T("What changes with a pack.", "シェーダーで変わるところ。")}</h2>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead><tr><th scope="col">{T("Feature", "機能")}</th><th scope="col">{T("Without a pack", "シェーダーなし")}</th><th scope="col">{T("With a pack", "シェーダーあり")}</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">{T("Car shadow", "車の影")}</th><td>{T("Soft shadow under the car", "車の下の丸い影")}</td><td>{T("Real shadows from the sun and moon", "太陽と月の光で落ちる影")}</td></tr>
+          <tr><th scope="row">{T("Headlights", "ヘッドライト")}</th><td>{T("Yes", "対応")}</td><td>{T("Yes", "対応")}</td></tr>
+          <tr><th scope="row">{T("Tyre smoke", "タイヤの煙")}</th><td>{T("Yes", "対応")}</td><td>{T("Yes", "対応")}</td></tr>
+          <tr><th scope="row">{T("Skid marks", "タイヤ痕")}</th><td>{T("Yes", "対応")}</td><td>{T("Yes", "対応")}</td></tr>
+          <tr><th scope="row">{T("Mirrors", "ミラー")}</th><td>{T("Live reflection", "景色が映る")}</td><td>{T("Not supported", "非対応")}</td></tr>
+          <tr><th scope="row">{T("Lighter car rendering", "車の軽量描画")}</th><td>{T("Yes", "対応")}</td><td>{T("Yes (Oculus and Iris compatible)", "対応（Oculus互換・Iris互換）")}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead">{T("If a pack blends the headlights badly, adjust them with Ctrl+L. On Minecraft 26.3, <strong>use the OpenGL graphics backend</strong> with shader packs.", "パックによってヘッドライトの合成が崩れるときは、Ctrl＋L で調整してください。Minecraft 26.3 でシェーダーパックを使うときは、<strong>描画を OpenGL にしてください。</strong>")}</p>
+  </div>
+</section>
+""", desc="KurumaMod is built for shader packs: cars stay smooth, and light, shadows and smoke blend into the pack.")
+
 page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f"""
 <section class="hero page" style="padding:0">
   <img src="img/hud.jpg" {ALT("Silvia S15 on the start line", "スタートラインに止まる S15")}>
@@ -897,12 +967,13 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
   <div class="wrap">
     <div class="eyebrow">{T("Download", "ダウンロード")}</div>
     <h2 class="title">{T("Pick your loader.", "ローダーを選ぶ。")}</h2>
-    <p class="lead">{T("Both versions are on the same page. No other mods required.", "どちらも同じページから。前提 MOD はいりません。")}</p>
+    <p class="lead">{T("Every version is on the same page. Forge and NeoForge need no other mods; Fabric needs Fabric API.", "どの版も同じページから。Forge と NeoForge は前提 MOD がいりません。Fabric は Fabric API が必要です。")}</p>
     <div class="packs">
       <div class="pack static"><small>Forge</small><h3>Minecraft 1.20.1</h3><p>{T("Forge 47.4.22 or later.", "Forge 47.4.22 以上。")}</p></div>
-      <div class="pack static"><small>NeoForge</small><h3>Minecraft 1.21.1</h3><p>{T("NeoForge 21.1 or later.", "NeoForge 21.1 以上。")}</p></div>
-      <div class="pack static"><small>{T("Car packs", "カーパック")}</small><h3>{T("One jar for both", "1 つの jar で両対応")}</h3><p>{T("Car packs work on Forge and NeoForge alike.", "カーパックは Forge でも NeoForge でも動きます。")}</p></div>
+      <div class="pack static"><small>NeoForge / Fabric</small><h3>Minecraft 1.21.1</h3><p>{T("NeoForge 21.1 or later. Fabric Loader 0.16.14 or later with Fabric API.", "NeoForge 21.1 以上。Fabric は Loader 0.16.14 以上と Fabric API。")}</p></div>
+      <div class="pack static"><small>NeoForge / Fabric / Forge</small><h3>Minecraft 26.3</h3><p>{T("NeoForge 26.3.0.101 or later. Fabric Loader 0.20.1 or later with Fabric API. Forge 66.1.5 or later.", "NeoForge 26.3.0.101 以上。Fabric は Loader 0.20.1 以上と Fabric API。Forge 66.1.5 以上。")}</p></div>
     </div>
+    <p class="lead">{T("One car pack jar works on every version and loader. Using shader packs? See the", "カーパックは 1 つの jar で、どの版・どのローダーでも動きます。シェーダーパックを使う方は")} <a href="shaders.html">{T("shader pack page", "シェーダーのページ")}</a>{T(".", "へ。")}</p>
     <div class="cta-row">
       <a class="btn arrow" href="{CF}">{T("KurumaMod on CurseForge", "KurumaMod（CurseForge）")}</a>
       <a class="btn outline" href="{MR}">{T("KurumaMod on Modrinth", "KurumaMod（Modrinth）")}</a>
