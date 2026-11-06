@@ -7,6 +7,7 @@ import com.jdmmc.kurumamod.physics.CarPhysics;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Wheel;
 import com.jdmmc.kurumamod.surface.RoadSurface;
+import com.jdmmc.kurumamod.surface.SurfaceLookup;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -466,7 +467,12 @@ public final class CarSkidMarks {
         return out.toArray(new double[0][]);
     }
 
-    /** その点の下のブロックの天面の高さ。{@code near} の上下 {@link #SURFACE_SEARCH} で探す。無ければ NaN。 */
+    /**
+     * その点の下のブロックの天面の高さ。{@code near} の上下 {@link #SURFACE_SEARCH} で探す。無ければ NaN。
+     *
+     * <p><b>舗装でないブロックも NaN（貼らない）。</b>跡を残すかは輪の中心の路面で決めるので、舗装と土の境を
+     * 踏むと、帯の幅のぶんや進んだ先のブロックが土のことがある。ここで捨てないと跡が土の上に付く。</p>
+     */
     private static double surfaceTop(Level level, Entity car, double x, double z, double near) {
         BlockHitResult hit = level.clip(new ClipContext(
                 new Vec3(x, near + SURFACE_SEARCH, z),
@@ -474,7 +480,8 @@ public final class CarSkidMarks {
                 ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.NONE,
                 car));
-        if (hit.getType() == HitResult.Type.MISS || hit.isInside()) {
+        if (hit.getType() == HitResult.Type.MISS || hit.isInside()
+                || SurfaceLookup.of(level.getBlockState(hit.getBlockPos())) != RoadSurface.PAVED) {
             return Double.NaN;
         }
         return hit.getLocation().y;
