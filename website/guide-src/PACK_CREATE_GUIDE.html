@@ -278,6 +278,8 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <h2 class="en">What are you making?</h2>
 <p class="ja">作るものを選んでください。はじめての人は先に「制作の準備」を、出来上がったら「配布」を読みます。</p>
 <p class="en">Pick what you want to make. New here? Read "Get set up" first, and "Ship it" once you are done.</p>
+<p class="ja">このガイドは Example Car Pack 1.6.0 以降を前提にしています。</p>
+<p class="en">This guide assumes Example Car Pack 1.6.0 or later.</p>
 <p class="step-k ja">作る前に</p><p class="step-k en">Before you start</p>
   <a class="card card-step" href="#prep">
     <span class="card-t ja">制作の準備</span><span class="card-t en">Get set up</span>
@@ -331,7 +333,6 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>車の色違いを選べるようにしたい</td><td><a href="#paint">車の 4 章</a></td></tr>
 <tr><td>車体の大きさ・位置を直したい</td><td><a href="#s9">車の 6 章</a></td></tr>
 <tr><td>jar を作らずに見た目だけ確かめたい（リソースパック）</td><td><a href="#s9">車の 6 章</a></td></tr>
-<tr><td>Forge と NeoForge の両方で使いたい</td><td><a href="#s9">車の 6 章</a></td></tr>
 <tr><td>タイヤの大きさ・幅を車体に合わせたい</td><td><a href="#s-car-fit">車の 7 章</a></td></tr>
 <tr><td>ナンバーを付ける位置を決めたい</td><td><a href="#s-plate-pos">車の 8 章</a></td></tr>
 <tr><td>座席の位置を直したい</td><td><a href="#s-seat">車の 9 章</a></td></tr>
@@ -339,14 +340,15 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>エンジン音を変えたい</td><td><a href="#s-sound">車の 11 章</a></td></tr>
 <tr><td>走り（加速・曲がりかた）を決めたい</td><td><a href="#s-spec">車の 12 章</a></td></tr>
 <tr><td>諸元に書ける項目を全部見たい</td><td><a href="#sc">車の付録 A</a></td></tr>
+<tr><td>ウイング・バンパーなどの外装パーツを作りたい</td><td><a href="#s-body">パーツの 1 章</a></td></tr>
+<tr><td>マフラーを作りたい</td><td><a href="#s-exhaust">パーツの 2 章</a></td></tr>
+<tr><td>ターボ・ブローオフバルブを作りたい</td><td><a href="#s-turbo">パーツの 3 章</a></td></tr>
+<tr><td>自分のデザインのナンバーを作りたい</td><td><a href="#s-plate">パーツの 4 章</a></td></tr>
 <tr><td>ホイールを作って換装画面で選べるようにしたい</td><td><a href="#s6">ホイールの 1 章</a>・<a href="#s-parts">2 章</a></td></tr>
 <tr><td>タイヤの見た目（トレッド）を作りたい</td><td><a href="#s-tire-model">タイヤの 1 章</a></td></tr>
 <tr><td>性能の違うタイヤを作りたい</td><td><a href="#s-tire">タイヤの 2 章</a></td></tr>
-<tr><td>ターボ・ブローオフバルブを作りたい</td><td><a href="#s-turbo">パーツの 3 章</a></td></tr>
-<tr><td>ウイング・バンパーなどの外装パーツを作りたい</td><td><a href="#s-body">パーツの 1 章</a></td></tr>
-<tr><td>マフラーを作りたい</td><td><a href="#s-exhaust">パーツの 2 章</a></td></tr>
-<tr><td>自分のデザインのナンバーを作りたい</td><td><a href="#s-plate">パーツの 4 章</a></td></tr>
 <tr><td>jar にして配りたい</td><td><a href="#s-jar">配布の 1 章</a></td></tr>
+<tr><td>Forge・NeoForge・Fabric のどれでも使いたい</td><td><a href="#s-jar">配布の 1 章</a></td></tr>
 <tr><td>うまく動かない</td><td><a href="#s11">配布の 3 章</a></td></tr>
 </table>
 <table class="en">
@@ -364,7 +366,6 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>Let players pick the car's colour</td><td><a href="#paint-en">Car guide, chapter 4</a></td></tr>
 <tr><td>Fix the body's size or position</td><td><a href="#s9">Car guide, chapter 6</a></td></tr>
 <tr><td>Check the looks without building a jar (resource pack)</td><td><a href="#s9">Car guide, chapter 6</a></td></tr>
-<tr><td>Make it work on both Forge and NeoForge</td><td><a href="#s9">Car guide, chapter 6</a></td></tr>
 <tr><td>Fit the tyre size and track to the body</td><td><a href="#s-car-fit">Car guide, chapter 7</a></td></tr>
 <tr><td>Choose where the licence plates go</td><td><a href="#s-plate-pos">Car guide, chapter 8</a></td></tr>
 <tr><td>Fix the seat position</td><td><a href="#s-seat">Car guide, chapter 9</a></td></tr>
@@ -372,14 +373,15 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <tr><td>Change the engine sound</td><td><a href="#s-sound">Car guide, chapter 11</a></td></tr>
 <tr><td>Set how it drives (acceleration, handling)</td><td><a href="#s-spec">Car guide, chapter 12</a></td></tr>
 <tr><td>See every spec key</td><td><a href="#sc">Car guide, appendix A</a></td></tr>
+<tr><td>Make body parts such as wings and bumpers</td><td><a href="#s-body">Parts guide, chapter 1</a></td></tr>
+<tr><td>Make an exhaust</td><td><a href="#s-exhaust">Parts guide, chapter 2</a></td></tr>
+<tr><td>Make a turbo or blow-off valve</td><td><a href="#s-turbo">Parts guide, chapter 3</a></td></tr>
+<tr><td>Make a licence plate of my own design</td><td><a href="#s-plate">Parts guide, chapter 4</a></td></tr>
 <tr><td>Make a wheel players can pick in the parts screen</td><td><a href="#s6">Wheel guide, chapters 1</a> and <a href="#s-parts">2</a></td></tr>
 <tr><td>Model a tyre (its tread)</td><td><a href="#s-tire-model">Tyre guide, chapter 1</a></td></tr>
 <tr><td>Make tyres with different grip</td><td><a href="#s-tire">Tyre guide, chapter 2</a></td></tr>
-<tr><td>Make a turbo or blow-off valve</td><td><a href="#s-turbo">Parts guide, chapter 3</a></td></tr>
-<tr><td>Make body parts such as wings and bumpers</td><td><a href="#s-body">Parts guide, chapter 1</a></td></tr>
-<tr><td>Make an exhaust</td><td><a href="#s-exhaust">Parts guide, chapter 2</a></td></tr>
-<tr><td>Make a licence plate of my own design</td><td><a href="#s-plate">Parts guide, chapter 4</a></td></tr>
 <tr><td>Pack it into a jar and share it</td><td><a href="#s-jar">Shipping, chapter 1</a></td></tr>
+<tr><td>Work on Forge, NeoForge and Fabric</td><td><a href="#s-jar">Shipping guide, chapter 1</a></td></tr>
 <tr><td>Fix something that doesn't work</td><td><a href="#s11">Shipping, chapter 3</a></td></tr>
 </table>
 </section>
@@ -392,6 +394,8 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <p class="en">Your own car pack starts from the ExampleCarPack. Copy its contents and swap its name for your pack's. Cars, wheels and parts all go into this folder.</p>
 <p class="ja">ここでは、パックの名前を <code>mypack</code> とします。</p>
 <p class="en">Here the pack is called <code>mypack</code>.</p>
+<p class="ja">このガイドは <b>Example Car Pack 1.6.0 以降</b>を前提にしています。Forge・NeoForge・Fabric と Minecraft 1.20.1・1.21.1・26.3 に対応しているのは、この版からです。</p>
+<p class="en">This guide assumes <b>Example Car Pack 1.6.0 or later</b>. That is the first version that works on Forge, NeoForge and Fabric, and on Minecraft 1.20.1, 1.21.1 and 26.3.</p>
 
 <ol class="steps ja">
 <li><span class="where where-file">ファイル</span><b>ExampleCarPack の jar をダウンロードする。</b><a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">CurseForge ↗</a> か <a href="https://modrinth.com/mod/kurumaexamplecarpack" target="_blank" rel="noopener">Modrinth ↗</a> から</li>
@@ -3828,7 +3832,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <details class="more ja">
 <summary>Forge・NeoForge・Fabric のどれでも使いたい</summary>
 <div class="more-body">
-<p>見本をコピーしていれば、もうそうなっています。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
+<p>Example Car Pack 1.6.0 以降をコピーしていれば、もうそうなっています。それより前の見本から作ったパックは、下の版の範囲と <code>pack.mcmeta</code> を書き足し、<code>fabric.mod.json</code> は 1.6.0 の見本からコピーしてください。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
 <ul>
 <li><code>mods.toml</code> と <code>neoforge.mods.toml</code> の中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
 <li>Minecraft の版の範囲は、使う版を全部含める。Forge は <code>"[1.20.1,1.21),[26.3,26.4)"</code>、NeoForge は <code>"[1.21.1,1.22),[26.3,26.4)"</code>、Fabric は <code>[">=1.21.1 &lt;1.22", "~26.3"]</code>。外れた版では読み込まれない</li>
@@ -3839,7 +3843,7 @@ Rename-Item ..\mypack.zip mypack.jar</code></pre></li>
 <details class="more en">
 <summary>Work on Forge, NeoForge and Fabric</summary>
 <div class="more-body">
-<p>If you copied the example, it already does. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
+<p>If you copied Example Car Pack 1.6.0 or later, it already does. For a pack made from an older example, add the version ranges and <code>pack.mcmeta</code> fields below, and copy <code>fabric.mod.json</code> from the 1.6.0 example. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
 <ul>
 <li><code>mods.toml</code> and <code>neoforge.mods.toml</code> are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
 <li>Cover every Minecraft version you target: <code>"[1.20.1,1.21),[26.3,26.4)"</code> for Forge, <code>"[1.21.1,1.22),[26.3,26.4)"</code> for NeoForge and <code>[">=1.21.1 &lt;1.22", "~26.3"]</code> for Fabric. Versions outside the range will not load the pack</li>
