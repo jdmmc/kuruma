@@ -10,6 +10,7 @@ import com.jdmmc.kurumamod.client.CarGhosts;
 import com.jdmmc.kurumamod.client.CarHelp;
 import com.jdmmc.kurumamod.client.CarHud;
 import com.jdmmc.kurumamod.client.CarIcons;
+import com.jdmmc.kurumamod.client.CarMeshes;
 import com.jdmmc.kurumamod.client.CarImpact;
 import com.jdmmc.kurumamod.client.CarItemRenderer;
 import com.jdmmc.kurumamod.client.CarModel;
@@ -125,6 +126,7 @@ public final class ClientHooks {
      */
     public static void registerShaders(ShaderRegistrar registrar) {
         EffectRenderTypes.Registration.onRegisterShaders(registrar);
+        CarMeshes.Registration.onRegisterShaders(registrar);
         TireSmokeVolume.Registration.onRegisterShaders(registrar);
     }
 

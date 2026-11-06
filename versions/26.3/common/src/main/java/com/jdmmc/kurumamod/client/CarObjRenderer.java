@@ -232,6 +232,14 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         return ghostPass == null ? KurumaRenderTypes.glass(texture) : solid(texture);
     }
 
+    /**
+     * GPU に置いたメッシュで描くか。ゴーストは頂点を積んで描く（α を掛けられるのはそちらだけ）。
+     * アイコンも頂点を積む（画像に焼くので、ワールドの描画の段が来ない）。
+     */
+    private boolean meshes() {
+        return ghostPass == null && !icon && CarMeshes.enabled();
+    }
+
     /** アイテムのアイコンとして描いている最中か（{@link #renderIcon}）。 */
     private boolean icon;
 
@@ -361,6 +369,9 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
             // シェーダーパックが太陽・月の影を描いている最中は、サスペンション（susp*）を落とさない
             ObjModel.submit(buffer, pose, RenderTypes.entityCutout(texture), (p, consumer) ->
                     bodyMesh.renderShadowCaster(p, consumer, packedLight, OverlayTexture.NO_OVERLAY));
+        } else if (meshes()) {
+            // GPU に置いたまま描けるならそうする（CarMeshes。シェーダーパック中などは頂点を積む）
+            CarMeshes.draw(bodyMesh, false, false, texture, pose.last(), packedLight);
         } else {
             ObjModel.submit(buffer, pose, solid(texture), (p, consumer) ->
                     bodyMesh.render(p, consumer, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F,
@@ -688,8 +699,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
     /** ホイールを、付属のタイヤを除いて描く。 */
     private void drawRim(ObjModel obj, Identifier texture, PoseStack pose,
                          SubmitNodeCollector buffer, int packedLight, boolean mirrorX) {
-        ObjModel.submit(buffer, pose, solid(texture), (p, consumer) ->
-                obj.renderWithoutTire(p, consumer, packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.OPAQUE));
+        if (meshes()) {
+            CarMeshes.draw(obj, true, mirrorX, texture, pose.last(), packedLight);
+        } else {
+            ObjModel.submit(buffer, pose, solid(texture), (p, consumer) ->
+                    obj.renderWithoutTire(p, consumer, packedLight, OverlayTexture.NO_OVERLAY, mirrorX, ObjModel.Pass.OPAQUE));
+        }
         if (obj.hasTranslucentRim()) {
             ObjModel.submit(buffer, pose, clear(texture), (p, consumer) ->
                     obj.renderWithoutTire(p, consumer, packedLight, OverlayTexture.NO_OVERLAY, mirrorX,
@@ -712,9 +727,13 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
      */
     private void drawMesh(ObjModel obj, Identifier texture, PoseStack pose,
                           SubmitNodeCollector buffer, int packedLight, boolean mirrorX) {
-        ObjModel.submit(buffer, pose, solid(texture), (p, consumer) ->
-                obj.render(p, consumer, packedLight, OverlayTexture.NO_OVERLAY,
-                        1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE));
+        if (meshes()) {
+            CarMeshes.draw(obj, false, mirrorX, texture, pose.last(), packedLight);
+        } else {
+            ObjModel.submit(buffer, pose, solid(texture), (p, consumer) ->
+                    obj.render(p, consumer, packedLight, OverlayTexture.NO_OVERLAY,
+                            1.0F, 1.0F, 1.0F, 1.0F, null, mirrorX, ObjModel.Pass.OPAQUE));
+        }
         if (!obj.hasTranslucent()) {
             return;
         }

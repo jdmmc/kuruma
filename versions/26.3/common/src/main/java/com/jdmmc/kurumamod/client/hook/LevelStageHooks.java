@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client.hook;
 
+import com.jdmmc.kurumamod.client.CarMeshes;
 import com.jdmmc.kurumamod.client.CarSkidMarks;
 import com.jdmmc.kurumamod.client.CourseRenderer;
 import com.jdmmc.kurumamod.client.DeferredGlows;
@@ -67,6 +68,7 @@ public final class LevelStageHooks {
                 DeferredGlows.beginFrame();
                 HeadlightVolume.levelStart();
             }
+            CarMeshes.beginLevel(camera);
             PartAnchors.onRenderLevel(event);
             RiderPoseRenderer.onRenderLevelStage(event);
         } catch (RuntimeException e) {
@@ -123,6 +125,7 @@ public final class LevelStageHooks {
     }
 
     public static void levelEnd(CameraRenderState camera) {
+        CarMeshes.endLevel();
         LevelRenderStage event = stage(LevelRenderStage.Stage.AFTER_LEVEL, camera);
         try {
             boolean deferred = DeferredGlows.active();

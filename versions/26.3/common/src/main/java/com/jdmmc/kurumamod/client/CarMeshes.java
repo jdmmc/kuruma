@@ -1,37 +1,186 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.Kurumamod;
+import com.jdmmc.kurumamod.client.hook.ShaderRegistrar;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.logging.LogUtils;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.resources.Identifier;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * 車体・ホイール・タイヤの不透明な面を<b>GPU に置いたまま</b>描く仕組み（1.21.1 にあったもの）。
+ * 車体・ホイール・タイヤの不透明な面を<b>GPU に置いたまま</b>描く。
  *
- * <p><b>26.3 版ではまだ作っていない。</b>1.21.1 では {@code VertexBuffer} に頂点を 1 度だけ送り、
- * 自前のシェーダー（{@code kurumamod:car_mesh}）に変換の行列と明るさを渡して描いていた。26.3 の描画
- * （{@code com.mojang.renderpearl}）には {@code VertexBuffer} も {@code ShaderInstance} も無く、
- * 描画は「集めてから段ごとに流す」形（{@code SubmitNodeCollector}）になったので、作り直すには
- * 頂点のバッファ・バインドグループ・パイプラインを自分で持つ必要がある。</p>
+ * <h2>なぜ</h2>
  *
- * <p>それまでは<b>いつも頂点を積む描き方</b>（{@link ObjModel#render} を {@code submitCustomGeometry} の中で）
- * で描く。見た目は同じで、台数が多いと CPU が重くなるだけ。</p>
+ * <p>頂点を積む描き方（{@link ObjModel#render} を {@code submitCustomGeometry} の中で）は、毎フレームすべての頂点を
+ * Java で変換して書き込む。車 1 台で約 7,700 面・3 万頂点あり、台数が増えると CPU がこれに食われる。そこで
+ * <b>頂点は最初に 1 度だけ GPU のバッファへ送り</b>、毎フレームは変換の行列と明るさだけを渡す。</p>
+ *
+ * <h2>26.3 での作り</h2>
+ *
+ * <p>26.3 の描画は「集めてから段ごとに流す」形なので、その場では描けない。車のレンダラーは
+ * {@link #draw} で<b>預けるだけ</b>にし、不透明の段の終わり（{@code mixin/CarMeshFeatureMixin}。
+ * {@code FeatureRenderDispatcher.PreparedFrame#executeSolid}）で {@link #flush} がまとめて描く。
+ * 同じ {@code RenderPass} の中なので、描き先・深度・霧・光の向きはバニラのエンティティと同じになる。</p>
+ *
+ * <p>行列と明るさは {@code DynamicTransforms} の空いている枠（{@code TextureMat}・{@code ModelOffset}）で渡す
+ * （{@code shaders/core/car_mesh.vsh}）。預ける時点で書くのは、バニラの {@code RenderType#prepare} と同じ順番にするため
+ * （パスの中でリングバッファへ書かない）。</p>
+ *
+ * <h2>使わない場面</h2>
+ *
+ * <ul>
+ *   <li><b>シェーダーパック（Iris）を使っている間。</b>パックは車体のシェーダーを自分のものに差し替えて陰影や影を
+ *       付けるので、自前のシェーダーで描くとそこから外れる。頂点を積む描き方に戻す</li>
+ *   <li>設定 {@code gpuCarMeshes} を切ったとき（見比べるため・何かあったときに戻すため）</li>
+ *   <li>ワールドの描画の外（アイテムのアイコン）と、ゴースト（α を掛けられるのは頂点を積むほうだけ）</li>
+ *   <li>パイプラインを作れなかったとき、描くのに失敗したとき（再起動まで頂点を積む描き方）</li>
+ * </ul>
+ *
+ * <p>ガラス・灯火のレンズ・ミラーの面・部品の形・ハンドルは数が少なく、描き方も別なので頂点を積むまま。</p>
  */
 public final class CarMeshes {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    private static final RenderPipeline PIPELINE = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(Kurumamod.MODID, "pipeline/car_mesh"))
+            .withVertexShader(Identifier.fromNamespaceAndPath(Kurumamod.MODID, "core/car_mesh"))
+            .withShaderDefine("ALPHA_CUTOUT", 0.1F)
+            .withShaderDefine("PER_FACE_LIGHTING")
+            .withShaderDefine("NO_OVERLAY")
+            .withCull(false)
+            .withColorTargetState(ColorTargetState.DEFAULT)
+            .build();
+
+    private static final Vector4f WHITE = new Vector4f(1.0F, 1.0F, 1.0F, 1.0F);
+
+    private record Draw(GpuBufferSlice transforms, ObjModel.GpuMesh mesh, GpuTextureView texture, GpuSampler sampler) {
+    }
+
+    /** この回のワールドの描画で預かった面。鏡の 1 回も本編の 1 回も、それぞれの {@link #flush} で空になる。 */
+    private static final List<Draw> QUEUE = new ArrayList<>();
+
+    private static CompiledRenderPipeline pipeline;
+    private static boolean failed;
+    /** ワールドの描画の最中か。外（アイテムのアイコンなど）では預かっても流す段が来ない。 */
+    private static boolean inLevel;
+    private static Matrix4f view;
 
     private CarMeshes() {
     }
 
-    /** GPU に置いた描き方を使えるか。26.3 版ではいつも false（頂点を積んで描く）。 */
+    /** ワールドを描き始める（{@code LevelStageHooks#levelStart}）。 */
+    public static void beginLevel(CameraRenderState camera) {
+        QUEUE.clear();
+        inLevel = true;
+        view = new Matrix4f(camera.viewRotationMatrix);
+    }
+
+    /** ワールドを描き終えた（{@code LevelStageHooks#levelEnd}）。 */
+    public static void endLevel() {
+        QUEUE.clear();
+        inLevel = false;
+    }
+
+    /** GPU に置いた描き方を使えるか。使えなければ呼ぶ側が頂点を積んで描く。 */
     static boolean enabled() {
-        return false;
+        if (!ClientConfig.gpuCarMeshes || !inLevel || failed || HeadlightVolume.ShaderPacks.inUse()) {
+            return false;
+        }
+        if (pipeline == null) {
+            pipeline = RenderSystem.getCompiledPipelineNullable(PIPELINE);
+            if (pipeline == null) {
+                failed = true;
+                LOGGER.error("車のメッシュのパイプラインを作れなかった（直前のシェーダーのログを参照）。頂点を積む描き方で描く");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 不透明な面を 1 つ預ける。
+     *
+     * @param withoutTire ホイールの付属のタイヤを除くか（タイヤを別に描くとき）
+     * @param mirrorX     左右を反転するか（右側のタイヤ）。反転した頂点を別に置いてある
+     */
+    static void draw(ObjModel model, boolean withoutTire, boolean mirrorX, Identifier texture,
+                     PoseStack.Pose pose, int packedLight) {
+        ObjModel.GpuMesh mesh = model.gpuMesh(withoutTire, mirrorX);
+        if (mesh == null) {
+            return;
+        }
+        AbstractTexture loaded = Minecraft.getInstance().getTextureManager().getTexture(texture);
+        // ライトマップの座標（ブロックの明るさ, 空の明るさ）
+        Vector3f light = new Vector3f(packedLight & 0xFFFF, packedLight >>> 16 & 0xFFFF, 0.0F);
+        GpuBufferSlice transforms = RenderSystem.getDynamicUniforms()
+                .writeTransform(new Matrix4f(view), WHITE, light, new Matrix4f(pose.pose()));
+        QUEUE.add(new Draw(transforms, mesh, loaded.getTextureView(), loaded.getSampler()));
+    }
+
+    /** 預かった面をまとめて描く。<b>例外は外へ出さない</b>（バニラの描画の最中）。 */
+    public static void flush(RenderPass pass) {
+        if (QUEUE.isEmpty()) {
+            return;
+        }
+        try {
+            int indexCount = 0;
+            for (Draw draw : QUEUE) {
+                indexCount = Math.max(indexCount, draw.mesh().indexCount());
+            }
+            RenderSystem.AutoStorageIndexBuffer indices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+            GpuBuffer indexBuffer = indices.getBuffer(indexCount);
+            GpuSampler lightmapSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
+
+            pass.pushDebugGroup(() -> "kurumamod car meshes");
+            pass.setPipeline(pipeline);
+            RenderSystem.bindDefaultUniforms(pass);
+            pass.setUniform("Sampler2", Minecraft.getInstance().gameRenderer.lightmap(), lightmapSampler);
+            pass.setIndexBuffer(indexBuffer, indices.type());
+            for (Draw draw : QUEUE) {
+                pass.setUniform("DynamicTransforms", draw.transforms());
+                pass.setUniform("Sampler0", draw.texture(), draw.sampler());
+                pass.setVertexBuffer(0, draw.mesh().vertices().slice());
+                pass.drawIndexed(draw.mesh().indexCount(), 1, 0, 0, 0);
+            }
+            pass.popDebugGroup();
+        } catch (RuntimeException e) {
+            failed = true;
+            LOGGER.error("車のメッシュを描けなかった。以後は頂点を積む描き方で描く", e);
+        } finally {
+            QUEUE.clear();
+        }
     }
 
     public static final class Registration {
         private Registration() {
         }
 
-        /**
-         * 1.21.1 ではここでシェーダーを読んでいた。26.3 版では何もしない。
-         * 呼ぶ側（{@code ClientHooks}）の型に縛られないよう、引数は {@code Object} で受ける。
-         */
-        public static void onRegisterShaders(Object event) {
-            // 自前のシェーダーは使っていない
+        public static void onRegisterShaders(ShaderRegistrar registrar) {
+            registrar.registerPipeline(PIPELINE);
         }
     }
 }

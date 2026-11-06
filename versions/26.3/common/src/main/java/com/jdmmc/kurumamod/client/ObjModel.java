@@ -1,9 +1,17 @@
 package com.jdmmc.kurumamod.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.logging.LogUtils;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -217,6 +225,8 @@ public final class ObjModel {
      * 照合していた（灯火 1 つ描くのにも車体を丸ごと 1 周）。答えは走行中に変わらないので、
      * 毎フレーム計算し直す理由がない。</p>
      */
+    private final GpuMesh[] gpuMeshes = new GpuMesh[4];
+    private final boolean[] gpuEmpty = new boolean[4];
     private final int[] opaqueFaces;
     private final int[] translucentFaces;
     /** タイヤ（{@link #TIRE_PREFIX}）を除いた面。タイヤを別に描くときのホイール。 */
@@ -1257,8 +1267,77 @@ public final class ObjModel {
 
     /** リソースの再読み込みで呼ぶ。次に描くときに読み直される（F3+T で Blender の書き出しを反映できる）。 */
     public static void clearCache() {
+        FITTED.values().forEach(ObjModel::releaseGpu);
+        CACHE.values().forEach(ObjModel::releaseGpu);
         FITTED.clear();
         CACHE.clear();
+    }
+
+    /** GPU に置いた頂点（{@link CarMeshes}）。 */
+    record GpuMesh(GpuBuffer vertices, int indexCount) {
+    }
+
+    /**
+     * GPU に置いた不透明な面。<b>初めて呼ばれたときに作る</b>（描画スレッドから呼ぶこと）。
+     *
+     * <p>頂点の中身は {@link #render} が毎フレーム積むものと同じで、変換だけを掛けていない（メッシュの座標のまま）。
+     * 明るさは使わないので 0 を入れておく（{@code car_mesh.vsh} は外から渡された値を読む）。</p>
+     *
+     * @param withoutTire 付属のタイヤを除くか（タイヤを別に描くときのホイール）
+     * @param mirrorX     左右を反転するか（右側のタイヤ）。反転は頂点の段で済ませる（{@link #render} の理由と同じ）
+     * @return 面が 1 つも無ければ null
+     */
+    GpuMesh gpuMesh(boolean withoutTire, boolean mirrorX) {
+        int index = (withoutTire ? 2 : 0) | (mirrorX ? 1 : 0);
+        if (gpuMeshes[index] != null || gpuEmpty[index]) {
+            return gpuMeshes[index];
+        }
+        int[] faces = withoutTire ? opaqueRimFaces : opaqueFaces;
+        if (faces.length == 0) {
+            gpuEmpty[index] = true;
+            return null;
+        }
+        float flip = mirrorX ? -1.0F : 1.0F;
+        int[] corners = cornerOrder(flip);
+        int size = faces.length * 4 * DefaultVertexFormat.ENTITY.getVertexSize();
+        try (ByteBufferBuilder bytes = new ByteBufferBuilder(size)) {
+            BufferBuilder builder = new BufferBuilder(bytes, PrimitiveTopology.QUADS, DefaultVertexFormat.ENTITY);
+            for (int face : faces) {
+                int base = face * FACE_FLOATS;
+                for (int k = 0; k < 4; k++) {
+                    int offset = base + corners[k] * STRIDE;
+                    builder.addVertex(flip * vertices[offset], vertices[offset + 1], vertices[offset + 2])
+                            .setColor(vertices[offset + 8], vertices[offset + 9], vertices[offset + 10],
+                                    vertices[offset + ALPHA_OFFSET])
+                            .setUv(vertices[offset + 6], vertices[offset + 7])
+                            .setOverlay(OverlayTexture.NO_OVERLAY)
+                            .setLight(0)
+                            .setNormal(flip * vertices[offset + 3], vertices[offset + 4], vertices[offset + 5]);
+                }
+            }
+            try (MeshData mesh = builder.buildOrThrow()) {
+                GpuBuffer buffer = RenderSystem.getDevice().createBuffer(() -> "kurumamod car mesh",
+                        GpuBuffer.USAGE_VERTEX, mesh.vertexBuffer());
+                gpuMeshes[index] = new GpuMesh(buffer, mesh.drawState().indexCount());
+                return gpuMeshes[index];
+            }
+        }
+    }
+
+    /** GPU に置いた頂点を返す。 */
+    private void releaseGpu() {
+        for (ObjModel lod : lods) {
+            if (lod != null) {
+                lod.releaseGpu();
+            }
+        }
+        for (int i = 0; i < gpuMeshes.length; i++) {
+            if (gpuMeshes[i] != null) {
+                gpuMeshes[i].vertices().close();
+                gpuMeshes[i] = null;
+            }
+            gpuEmpty[i] = false;
+        }
     }
 
     /**
