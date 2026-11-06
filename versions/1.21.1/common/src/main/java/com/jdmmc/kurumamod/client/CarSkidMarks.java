@@ -281,7 +281,9 @@ public final class CarSkidMarks {
         double reference = spec.mass() * CarPhysics.GRAVITY;
         // 描画と同じ補間済みのヨー角（ティックの終わり）。バニラの値は 1.4 度刻みに量子化されて
         // いて、輪の位置が数 cm ずつ跳ねるので跡がギザギザになる
-        float yaw = car.getRenderYaw(1.0F) * Mth.DEG_TO_RAD;
+        // ティックの始まりの姿勢で打つ。画面の車は前のティックとの間を補間して描かれるので、ティックの終わりの
+        // 位置で打つと跡がタイヤより前に出る（30m/s なら最大 1.5m）
+        float yaw = car.getRenderYaw(0.0F) * Mth.DEG_TO_RAD;
         double forwardX = -Math.sin(yaw);
         double forwardZ = Math.cos(yaw);
         double rightX = -forwardZ;
@@ -305,10 +307,10 @@ public final class CarSkidMarks {
 
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
-            double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
-            double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+            double x = car.xo + forwardX * forwardOffset + rightX * rightOffset;
+            double z = car.zo + forwardZ * forwardOffset + rightZ * rightOffset;
             // 接地面。サス長とタイヤ半径だけ下
-            double y = car.getY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius() + LIFT;
+            double y = car.yo - car.getRenderSuspensionLength(wheel, 0.0F) - spec.wheelRadius() + LIFT;
 
             Point previous = trail[index];
             // 帯の幅の向きは、この点へ来た向きに垂直。横へ滑っていれば跡も斜めに太く付く
