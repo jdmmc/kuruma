@@ -2228,7 +2228,7 @@ public final class CarPhysics {
             this.left = left;
             this.right = right;
             this.dt = dt;
-            this.halfTrack = spec.trackWidth() / 2.0;
+            this.halfTrack = spec.trackWidth(left) / 2.0;
             this.springOffset = halfTrack * CarSpec.SOLID_AXLE_SPRING_SPAN;
             this.forward = spec.wheelForwardOffset(left);
         }
@@ -2291,7 +2291,7 @@ public final class CarPhysics {
             double forceRight = springForce(springLength(wL, wR, 1), 1);
             // スタビ: 軸が車体より左上がりなら、軸を右上がりへ戻すねじり（車体は左上がりへ引かれる）
             double axleRoll = (wL - wR) / (2.0 * halfTrack);
-            double torque = spec.antiRollStiffness(left) * spec.trackWidth() * spec.trackWidth()
+            double torque = spec.antiRollStiffness(left) * 4.0 * halfTrack * halfTrack
                     * (axleRoll - Math.sin(state.roll));
             double stopLeft = stopForce(wL, left);
             double stopRight = stopForce(wR, right);
@@ -2324,7 +2324,7 @@ public final class CarPhysics {
             // 浮く輪の荷重は、その輪を上げるほど増える。下端は地面か、十分下
             double lo = freeFloor > Double.NEGATIVE_INFINITY
                     ? freeFloor
-                    : pivotHeight - 4.0 * spec.suspensionMaxLength() - spec.trackWidth();
+                    : pivotHeight - 4.0 * spec.suspensionMaxLength() - 2.0 * halfTrack;
             if (freeLoad(pivotLeft, pivotHeight, lo, free) >= 0.0) {
                 // 下端でもう荷重が正なら、地面に着いたまま（呼ぶ側の判断と食い違うときの保険）
                 return together(pivotLeft, pivotHeight, lo, pivotLeft ? 0 : 1);
@@ -2612,7 +2612,7 @@ public final class CarPhysics {
             int l = left.ordinal();
             int r = right.ordinal();
             // 右向きの横力（右旋回）は外側＝左へ荷重を寄せる
-            double transfer = axleForce * spec.rollCenterHeight(left) / spec.trackWidth();
+            double transfer = axleForce * spec.rollCenterHeight(left) / spec.trackWidth(left);
             transfer = Math.max(-state.wheelLoad[l], Math.min(state.wheelLoad[r], transfer));
             state.wheelLoad[l] += transfer;
             state.wheelLoad[r] -= transfer;

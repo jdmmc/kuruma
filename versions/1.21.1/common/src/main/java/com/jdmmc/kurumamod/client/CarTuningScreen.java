@@ -17,7 +17,9 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 車のセッティング画面。
@@ -44,6 +46,9 @@ public class CarTuningScreen extends Screen {
     private static final int RESET_WIDTH = 18;
     private static final int GAP = 4;
     private static final int ROW_HEIGHT = 21;
+    private static final int LOCK_WIDTH = 13;
+    /** 鍵のボタンの高さ。上の行のスライダーの中ほどから、下の行の中ほどまで。 */
+    private static final int LOCK_HEIGHT = ROW_HEIGHT + 10;
     /** 解説の折り返し幅。画面の端まで広がると読みにくい */
     private static final int TOOLTIP_WIDTH = 220;
 
@@ -68,7 +73,11 @@ public class CarTuningScreen extends Screen {
     /** 開き直したときに同じタブへ戻れるよう覚えておく。 */
     private static int selectedGroup;
 
+    /** 鍵を開けた組（上の行の項目名）。既定は閉じている（前後が一緒に動く）。 */
+    private static final Set<String> unlinked = new HashSet<>();
+
     private final List<Row> rows = new ArrayList<>();
+    private final List<Lock> locks = new ArrayList<>();
     private final List<GroupTab> tabs = new ArrayList<>();
 
     private int scroll;
@@ -111,6 +120,7 @@ public class CarTuningScreen extends Screen {
     @Override
     protected void init() {
         rows.clear();
+        locks.clear();
         tabs.clear();
         headerButtons.clear();
         panelLeft = (width - PANEL_WIDTH) / 2;
@@ -128,6 +138,7 @@ public class CarTuningScreen extends Screen {
         for (TunableParameter parameter : parameters) {
             rows.add(createRow(parameter));
         }
+        addLocks();
 
         scroll = Math.max(0, Math.min(scroll, rows.size() - visibleRows));
         layout();
@@ -210,6 +221,7 @@ public class CarTuningScreen extends Screen {
                         Component.literal("R"),
                         button -> {
                             CarTuning.resetParameter(parameter);
+                            slider.resetPartner();
                             slider.syncFromTuning();
                             syncToServer();
                         })
@@ -219,6 +231,23 @@ public class CarTuningScreen extends Screen {
         return new Row(parameter, slider, reset);
     }
 
+    /** 連動する 2 行の間に鍵を置く。 */
+    private void addLocks() {
+        for (int i = 0; i + 1 < rows.size(); i++) {
+            Row upper = rows.get(i);
+            Row lower = rows.get(i + 1);
+            if (Tunables.linkedWith(upper.parameter) != lower.parameter) {
+                continue;
+            }
+            String key = upper.parameter.name();
+            upper.slider.link(lower.slider, key);
+            lower.slider.link(upper.slider, key);
+            upper.nameWidth = lower.nameWidth = LABEL_WIDTH - GAP - LOCK_WIDTH;
+            int x = panelLeft + LABEL_WIDTH - LOCK_WIDTH - 1;
+            locks.add(new Lock(upper, lower, addRenderableWidget(new LinkLock(x, key))));
+        }
+    }
+
     /** 表示範囲に入る行だけを並べ、外れた行は隠す。 */
     private void layout() {
         for (int i = 0; i < rows.size(); i++) {
@@ -226,6 +255,10 @@ public class CarTuningScreen extends Screen {
             int index = i - scroll;
             row.y = listTop + index * ROW_HEIGHT;
             row.setVisible(index >= 0 && index < visibleRows);
+        }
+        for (Lock lock : locks) {
+            lock.widget.visible = lock.upper.visible && lock.lower.visible;
+            lock.widget.setY(lock.upper.y + 4);
         }
     }
 
@@ -317,6 +350,10 @@ public class CarTuningScreen extends Screen {
             row.refresh(editable);
         }
 
+        for (Lock lock : locks) {
+            lock.widget.active = editable;
+        }
+
         // 下敷きは行ごとに敷く。パネルで一枚に覆うと、そのぶん車が隠れる
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
@@ -342,7 +379,7 @@ public class CarTuningScreen extends Screen {
             }
             String name = Component.translatable(row.parameter.translationKey()).getString();
             boolean changed = !row.parameter.isDefault(CarTuning.spec(), CarTuning.base());
-            graphics.drawString(font, font.plainSubstrByWidth(name, LABEL_WIDTH - GAP),
+            graphics.drawString(font, font.plainSubstrByWidth(name, row.nameWidth),
                     panelLeft, row.y + 5, changed ? ScreenStyle.ACCENT : COLOR_NAME, false);
         }
 
@@ -482,6 +519,65 @@ public class CarTuningScreen extends Screen {
         }
     }
 
+    /** 鍵と、それがつなぐ 2 行。 */
+    private record Lock(Row upper, Row lower, LinkLock widget) {
+    }
+
+    /**
+     * 隣り合う 2 行を連動させる鍵。閉じていれば差を保って一緒に動き、開いていれば別々に動く。
+     *
+     * <p>状態は画面を閉じても残る（ゲームを閉じると閉じた状態に戻る）。絵は持たず、四角で描く。</p>
+     */
+    private final class LinkLock extends AbstractWidget {
+
+        private final String key;
+
+        private LinkLock(int x, String key) {
+            super(x, 0, LOCK_WIDTH, LOCK_HEIGHT, Component.translatable("screen.kurumamod.tuning.link"));
+            this.key = key;
+            updateTooltip();
+        }
+
+        private void updateTooltip() {
+            setTooltip(Tooltip.create(Component.translatable(unlinked.contains(key)
+                    ? "screen.kurumamod.tuning.link.open" : "screen.kurumamod.tuning.link.closed")));
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if (!unlinked.remove(key)) {
+                unlinked.add(key);
+            }
+            updateTooltip();
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            boolean closed = !unlinked.contains(key);
+            int color = !active ? ScreenStyle.SUB
+                    : isHovered() ? ScreenStyle.LABEL
+                    : closed ? ScreenStyle.HINT : ScreenStyle.ACCENT;
+            int x = getX() + getWidth() / 2;
+            int y = getY() + getHeight() / 2;
+            // 2 行をつなぐ線
+            graphics.fill(x, getY(), x + 1, y - 9, color);
+            graphics.fill(x, y + 7, x + 1, getY() + getHeight(), color);
+            // 本体と鍵穴
+            graphics.fill(x - 4, y, x + 5, y + 6, color);
+            graphics.fill(x, y + 2, x + 1, y + 4, ScreenStyle.LABEL_ON_ACCENT);
+            // つる。開いているときは上へ抜けて、左の足が本体から離れる
+            int top = closed ? y - 6 : y - 8;
+            graphics.fill(x - 3, top, x + 4, top + 2, color);
+            graphics.fill(x + 2, top, x + 4, y, color);
+            graphics.fill(x - 3, top, x - 1, closed ? y : y - 4, color);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
     /** 項目 1 つぶんの行。 */
     private static final class Row {
 
@@ -491,6 +587,7 @@ public class CarTuningScreen extends Screen {
 
         private int y;
         private boolean visible;
+        private int nameWidth = LABEL_WIDTH - GAP;
 
         private Row(TunableParameter parameter, ParameterSlider slider, Button reset) {
             this.parameter = parameter;
@@ -528,11 +625,31 @@ public class CarTuningScreen extends Screen {
     private static class ParameterSlider extends AbstractSliderButton {
 
         private final TunableParameter parameter;
+        /** 鍵でつながった相手。無ければ null。 */
+        private ParameterSlider partner;
+        private String linkKey;
 
         ParameterSlider(int x, int y, int width, int height, TunableParameter parameter) {
             super(x, y, width, height, Component.empty(), parameter.sliderPosition(CarTuning.spec()));
             this.parameter = parameter;
             updateMessage();
+        }
+
+        void link(ParameterSlider partner, String linkKey) {
+            this.partner = partner;
+            this.linkKey = linkKey;
+        }
+
+        private boolean linked() {
+            return partner != null && !unlinked.contains(linkKey);
+        }
+
+        /** 鍵が閉じていれば、相手も既定値へ戻す。 */
+        void resetPartner() {
+            if (linked()) {
+                CarTuning.resetParameter(partner.parameter);
+                partner.syncFromTuning();
+            }
         }
 
         void refreshLabel() {
@@ -580,6 +697,16 @@ public class CarTuningScreen extends Screen {
 
         @Override
         protected void applyValue() {
+            if (linked()) {
+                // 同じだけ動かして差を保つ。相手が端に着いたら、ここで止める（差が崩れないように）
+                com.jdmmc.kurumamod.physics.CarSpec spec = CarTuning.spec();
+                double own = parameter.sliderPosition(spec);
+                double other = partner.parameter.sliderPosition(spec);
+                double delta = Math.max(-other, Math.min(1.0 - other, value - own));
+                value = own + delta;
+                CarTuning.set(partner.parameter, partner.parameter.displayFromSlider(other + delta));
+                partner.syncFromTuning();
+            }
             CarTuning.set(parameter, parameter.displayFromSlider(value));
         }
 

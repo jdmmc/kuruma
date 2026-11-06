@@ -639,7 +639,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
             if (spec.isSolidAxle(wheel)) {
                 Wheel leftWheel = wheel.isFront() ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
                 Wheel rightWheel = wheel.isFront() ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
-                double tilt = spec.solidAxleTilt(car.getRenderSuspensionLength(leftWheel, partialTick),
+                double tilt = spec.solidAxleTilt(leftWheel, car.getRenderSuspensionLength(leftWheel, partialTick),
                         car.getRenderSuspensionLength(rightWheel, partialTick));
                 pose.rotate(Axis.ZP.rotation((float) -tilt));
             }
@@ -906,7 +906,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         applyBodyTransform(model, spec, pose);
         LineBatch batch = new LineBatch();
         CarSpec gauge = CarSpec.DEFAULT;
-        float x = (float) (gauge.trackWidth() / 2.0);
+        float x = (float) (gauge.frontTrackWidth() / 2.0);
         float z = (float) (gauge.wheelBase() / 2.0);
         float r = (float) CarModel.GAUGE_WHEEL_RADIUS;
         float half = GAUGE_WHEEL_WIDTH / 2.0F;

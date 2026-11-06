@@ -27,7 +27,8 @@ package com.jdmmc.kurumamod.physics;
  * タイヤを 2 倍にしたのにファイナルがそのまま、など）。</p>
  *
  * @param wheelBase            ホイールベース（前後輪の距離） [m]
- * @param trackWidth           トレッド（左右輪の距離） [m]
+ * @param frontTrackWidth      前のトレッド（前の左右輪の距離） [m]
+ * @param rearTrackWidth       後ろのトレッド [m]
  * @param mass                 車両重量 [kg]
  * @param weightBias           前軸が受け持つ静的荷重の割合。0.5 で前後中央、大きいほど前が重い
  * @param wheelRadius          タイヤ半径 [m]
@@ -103,7 +104,8 @@ package com.jdmmc.kurumamod.physics;
  */
 public record CarSpec(
         double wheelBase,
-        double trackWidth,
+        double frontTrackWidth,
+        double rearTrackWidth,
         double mass,
         double weightBias,
         double wheelRadius,
@@ -319,9 +321,22 @@ public record CarSpec(
         return wheel.isFront() ? weightBias : 1.0 - weightBias;
     }
 
+    /** その輪が付いている軸のトレッド [m]。 */
+    public double trackWidth(Wheel wheel) {
+        return wheel.isFront() ? frontTrackWidth : rearTrackWidth;
+    }
+
+    /**
+     * 前後のトレッドの平均 [m]。車全体の幅を 1 つの数で見るところ（ロール慣性・車体の箱）で使う。
+     * 軸ごとの計算（輪の位置・ロール剛性・荷重移動）には {@link #trackWidth(Wheel)} を使うこと。
+     */
+    public double trackWidth() {
+        return (frontTrackWidth + rearTrackWidth) / 2.0;
+    }
+
     /** 車体基準での車輪の左右位置 [m]。右が正。 */
     public double wheelRightOffset(Wheel wheel) {
-        return (wheel.isLeft() ? -0.5 : 0.5) * trackWidth;
+        return (wheel.isLeft() ? -0.5 : 0.5) * trackWidth(wheel);
     }
 
     /** 前進ギアの段数（整数）。 */
@@ -515,8 +530,8 @@ public record CarSpec(
      * 正で「左が高い」（左のサス長が短い）＝軸は右下がりで、タイヤの上は右へ倒れる。
      * 描画（{@code CarObjRenderer}）とタイヤの当たり判定（{@link CarBody#tireRims}）が同じ式で傾ける。
      */
-    public double solidAxleTilt(double leftLength, double rightLength) {
-        return Math.atan2(rightLength - leftLength, trackWidth);
+    public double solidAxleTilt(Wheel wheel, double leftLength, double rightLength) {
+        return Math.atan2(rightLength - leftLength, trackWidth(wheel));
     }
 
     /**
@@ -559,7 +574,8 @@ public record CarSpec(
      * （左右で逆向きに効くぶん腕が 2 倍）。
      */
     public double rollStiffness(Wheel wheel) {
-        double track2 = trackWidth * trackWidth;
+        double track = trackWidth(wheel);
+        double track2 = track * track;
         return suspensionStiffness(wheel) * track2 / 2.0 + antiRollStiffness(wheel) * track2;
     }
 
@@ -570,8 +586,12 @@ public record CarSpec(
      * ロール剛性の前後配分そのものになる。</p>
      *
      * <pre>
-     *   前 = (前軸の横力の割合 × 前の RC 高 + ロール剛性の前配分 × (重心高 − ロール軸)) / 重心高
+     *   前のモーメントの割合 M = (前軸の横力の割合 × 前の RC 高 + ロール剛性の前配分 × (重心高 − ロール軸)) / 重心高
+     *   前 = (M / 前トレッド) / (M / 前トレッド + (1 − M) / 後トレッド)
      * </pre>
+     *
+     * <p>軸が受け持つのはモーメントで、<b>荷重に直すときにその軸のトレッドで割る</b>。同じモーメントでも
+     * トレッドの狭い軸ほど多くの荷重が動く。前後のトレッドが同じなら {@code M} そのもの。</p>
      */
     public double frontLoadTransferShare() {
         double h = cgHeight();
@@ -579,12 +599,15 @@ public record CarSpec(
         double total = front + rollStiffness(Wheel.REAR_LEFT);
         double elasticShare = total > 0.0 ? front / total : 0.5;
         if (h <= 0.0) {
-            return elasticShare;
+            double frontLoad = elasticShare / frontTrackWidth;
+            return frontLoad / (frontLoad + (1.0 - elasticShare) / rearTrackWidth);
         }
         // 定常では前軸の横力は重心の前後位置で割り付く（静的な荷重配分と同じ比）
         double geometric = weightBias * rollCenterHeight(Wheel.FRONT_LEFT);
         double elastic = elasticShare * (h - rollAxisHeight());
-        return (geometric + elastic) / h;
+        double moment = (geometric + elastic) / h;
+        double frontLoad = moment / frontTrackWidth;
+        return frontLoad / (frontLoad + (1.0 - moment) / rearTrackWidth);
     }
 
     /**
@@ -809,7 +832,7 @@ public record CarSpec(
 
     /** ロール方向の慣性モーメント [kg*m^2]。腕はホイールベースではなくトレッド。 */
     public double rollInertia() {
-        return mass * square(ROLL_GYRATION * trackWidth);
+        return mass * square(ROLL_GYRATION * trackWidth());
     }
 
     /**
@@ -1178,7 +1201,8 @@ public record CarSpec(
         // （ホイールベース 2.6m）だと車が小さく見える。tools/blender_gauge.py の
         // SCALE と揃えること
         private double wheelBase = 3.12;
-        private double trackWidth = 2.00;
+        private double frontTrackWidth = 2.00;
+        private double rearTrackWidth = 2.00;
         private double mass = 1200.0;
         // 前 56：後 44。エンジンが前にある車の実測に近く、これがあってはじめて
         // 「前を厚くするとアンダー」というセッティングが意味を持つ（前後中央だと対称で効かない）
@@ -1318,7 +1342,8 @@ public record CarSpec(
             partAero = spec.partAero;
             tire = spec.tire;
             wheelBase = spec.wheelBase;
-            trackWidth = spec.trackWidth;
+            frontTrackWidth = spec.frontTrackWidth;
+            rearTrackWidth = spec.rearTrackWidth;
             mass = spec.mass;
             weightBias = spec.weightBias;
             wheelRadius = spec.wheelRadius;
@@ -1389,8 +1414,13 @@ public record CarSpec(
             return this;
         }
 
-        public Builder trackWidth(double value) {
-            trackWidth = value;
+        public Builder frontTrackWidth(double value) {
+            frontTrackWidth = value;
+            return this;
+        }
+
+        public Builder rearTrackWidth(double value) {
+            rearTrackWidth = value;
             return this;
         }
 
@@ -1754,7 +1784,7 @@ public record CarSpec(
 
         public CarSpec build() {
             return new CarSpec(
-                    wheelBase, trackWidth, mass, weightBias, wheelRadius, suspensionMaxLength, staticSag, bodyClearance,
+                    wheelBase, frontTrackWidth, rearTrackWidth, mass, weightBias, wheelRadius, suspensionMaxLength, staticSag, bodyClearance,
                     frontAntiRollStiffness, rearAntiRollStiffness,
                     frontSolidAxle, rearSolidAxle,
                     frontRollCenter, rearRollCenter,

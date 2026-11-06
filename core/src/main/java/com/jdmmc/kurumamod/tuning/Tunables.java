@@ -40,7 +40,7 @@ import java.util.function.Function;
  * 車重の行に「33600/26400 N/m・沈み 9.8cm」と出る）。数字が見えないと、効いているのか
  * 分からないため。</p>
  *
- * <p><b>寸法（{@code wheelBase}・{@code trackWidth}・{@code wheelRadius}）を動かすと
+ * <p><b>寸法（{@code wheelBase}・{@code frontTrackWidth}・{@code rearTrackWidth}・{@code wheelRadius}）を動かすと
  * タイヤの位置と大きさだけが変わり、車体は変わらない。</b>タイヤは物理が置く位置に描かれる
  * のに対し、車体はメッシュの形が正で（伸ばすとキャビンごと伸びてしまう）追従させていないため。
  * 大きく動かすとタイヤがフェンダーからはみ出すが、これは<b>そういう車を作ったことの正直な表示</b>
@@ -216,9 +216,13 @@ public final class Tunables {
                     TunableParameter.linear("wheel_base", 2.0, 7.0, "%.2f",
                                     CarSpec::wheelBase, CarSpec.Builder::wheelBase)
                             .detail(Tunables::inertias),
-                    TunableParameter.linear("track_width", 1.2, 4.0, "%.2f",
-                                    CarSpec::trackWidth, CarSpec.Builder::trackWidth)
-                            .detail(Tunables::inertias))),
+                    // 前後を別に持つ。補足は荷重移動の前の割合。前後の差でどちらへ振れたかが見える
+                    TunableParameter.linear("front_track_width", 1.2, 4.0, "%.2f",
+                                    CarSpec::frontTrackWidth, CarSpec.Builder::frontTrackWidth)
+                            .detail(Tunables::frontRollShare),
+                    TunableParameter.linear("rear_track_width", 1.2, 4.0, "%.2f",
+                                    CarSpec::rearTrackWidth, CarSpec.Builder::rearTrackWidth)
+                            .detail(Tunables::frontRollShare))),
 
             new Group("engine", List.of(
                     TunableParameter.linear("peak_torque", 60, 700, "%.0f",
@@ -364,6 +368,19 @@ public final class Tunables {
         return null;
     }
 
+    /**
+     * 調整画面で鍵を付けて連動させる項目の相手。無ければ null。
+     * 表の並びで隣り合う 2 行だけを組にできる（鍵はその 2 行の間に置く）。
+     */
+    @Nullable
+    public static TunableParameter linkedWith(TunableParameter parameter) {
+        return switch (parameter.name()) {
+            case "front_track_width" -> byName("rear_track_width");
+            case "rear_track_width" -> byName("front_track_width");
+            default -> null;
+        };
+    }
+
     private Tunables() {
     }
 
@@ -393,6 +410,10 @@ public final class Tunables {
      * <p>駆動方式と 4WD の前後トルク配分は、かつて {@code drive_bias}（後輪配分）1 本で持っていた。
      * {@code drive_layout} が書かれていなければそこから読む。</p>
      *
+     * <p>トレッドは、かつて {@code track_width} 1 本で前後同じ値だった。前後それぞれの項目が
+     * 書かれていなければ、そこから読む。カーパックとプリセットは、前後が同じ車の書き方として
+     * いまも {@code track_width} を使ってよい。</p>
+     *
      * @param stored 項目名から保存されていた値を引く。無ければ null
      */
     static CarSpec migrateLegacy(CarSpec spec, Function<String, Double> stored) {
@@ -419,6 +440,16 @@ public final class Tunables {
         if (drag != null && stored.apply("drag_area") == null && Double.isFinite(drag)) {
             double area = 2.0 * spec.mass() * drag / CarSpec.AIR_DENSITY;
             builder.dragArea(Math.max(0.2, Math.min(5.0, area)));
+        }
+        // トレッドは、かつて track_width 1 本だった（前後で片方だけ書いてあれば、書いていない側だけ読む）
+        Double track = stored.apply("track_width");
+        if (track != null && Double.isFinite(track)) {
+            if (stored.apply("front_track_width") == null) {
+                builder.frontTrackWidth(byName("front_track_width").clampInternal(track));
+            }
+            if (stored.apply("rear_track_width") == null) {
+                builder.rearTrackWidth(byName("rear_track_width").clampInternal(track));
+            }
         }
         return builder.build();
     }

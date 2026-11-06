@@ -818,7 +818,7 @@ public final class CarBody {
             if (spec.isSolidAxle(wheel)) {
                 Wheel leftWheel = wheel.isFront() ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT;
                 Wheel rightWheel = wheel.isFront() ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT;
-                tilt = spec.solidAxleTilt(state.suspensionLength[leftWheel.ordinal()], state.suspensionLength[rightWheel.ordinal()]);
+                tilt = spec.solidAxleTilt(leftWheel, state.suspensionLength[leftWheel.ordinal()], state.suspensionLength[rightWheel.ordinal()]);
             }
             double cos = Math.cos(tilt);
             double sin = Math.sin(tilt);

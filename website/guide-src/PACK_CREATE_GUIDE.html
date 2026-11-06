@@ -2221,7 +2221,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <div class="more-body">
 <p><b>見た目の JSON にはホイールの項目がありません。</b>タイヤの位置は諸元の寸法が決めます。物理はその位置にタイヤがあるものとして走りを解いているので、見た目だけでタイヤを動かすことはできません。</p>
 <ul>
-<li><b>幅</b> … 諸元のトレッド（<code>data/mypack/cars/&lt;車&gt;.json</code> の <code>track_width</code>）。幅の広い車は、物理的にもトレッドが広い</li>
+<li><b>幅</b> … 諸元のトレッド（<code>data/mypack/cars/&lt;車&gt;.json</code> の <code>track_width</code>。前後で変えるなら <code>front_track_width</code>・<code>rear_track_width</code>）。幅の広い車は、物理的にもトレッドが広い</li>
 <li><b>前後</b> … 諸元のホイールベース（<code>wheel_base</code>）。車体のほうを合わせるなら <code>designWheelBase</code>（上の「車体の大きさ・位置を合わせたい」）</li>
 <li><b>大きさ</b> … 諸元のタイヤ半径（<code>wheel_radius</code>）。ゲージのタイヤは実車の比率より大きめなので、<b>実車の比率で車体を作ると、タイヤがタイヤハウスに収まらない</b>ことがある。そのときは <code>wheel_radius</code> と <code>track_width</code> を車体に合わせて書く（<a href="#s-car-fit">7 章</a>）</li>
 <li>どれもゲームの調整画面（<kbd>G</kbd>）で、見ながら動かせる。決まったら諸元に書く（<a href="#s-spec">12 章</a>）</li>
@@ -2234,7 +2234,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <div class="more-body">
 <p><b>The looks JSON has no wheel entries.</b> Where the wheels sit is set by the spec's dimensions. The physics solves the driving with the wheels at that position, so they cannot be moved for looks alone.</p>
 <ul>
-<li><b>Width</b> — the spec's track (<code>track_width</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>). A wide car has a wide track in physics too</li>
+<li><b>Width</b> — the spec's track (<code>track_width</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>, or <code>front_track_width</code> and <code>rear_track_width</code> to set each end). A wide car has a wide track in physics too</li>
 <li><b>Front to back</b> — the spec's wheelbase (<code>wheel_base</code>). To fit the body instead, use <code>designWheelBase</code> ("Make the body the right size and position" above)</li>
 <li><b>Size</b> — the spec's tyre radius (<code>wheel_radius</code>). The gauge tyres are larger than real-car proportions, so <b>a body built to real proportions may not fit them in its wheel arches</b>. Then write <code>wheel_radius</code> and <code>track_width</code> to suit the body (<a href="#s-car-fit">chapter 7</a>)</li>
 <li>All of them can be moved while watching in the game's tuning screen (<kbd>G</kbd>). Write them into the spec once they look right (<a href="#s-spec">chapter 12</a>)</li>
@@ -2426,24 +2426,42 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 
 <ol class="steps ja">
 <li><span class="where where-game">ゲーム</span><b>車を出して乗り、<kbd>Ctrl</kbd>+<kbd>G</kbd> を押す。</b>車に水色の線でゲージが重なる。タイヤハウスがこの輪から上や外へ十分に離れていれば、ここで終わり</li>
-<li><span class="where where-game">ゲーム</span><b><kbd>G</kbd> の調整画面で、「タイヤ」の「タイヤ半径」と「車体」の「トレッド」を動かす。</b>タイヤがタイヤハウスに収まり、フェンダーから出なくなるところを探す。三人称（<kbd>F5</kbd>）で横と前から見る</li>
+<li><span class="where where-game">ゲーム</span><b><kbd>G</kbd> の調整画面で、「タイヤ」の「タイヤ半径」と「車体」の「フロント トレッド」「リア トレッド」を動かす。</b>2 本の間の鍵が閉じていれば、前後の差を保ったまま一緒に動きます。前後で幅を変えるときは鍵を開けます。タイヤがタイヤハウスに収まり、フェンダーから出なくなるところを探す。三人称（<kbd>F5</kbd>）で横と前から見る</li>
 <li><span class="where where-file">ファイル</span><b>決まった値を <code>data/mypack/cars/&lt;車&gt;.json</code> の <code>values</code> に書く。</b>
 <pre><code>"values": {
   "wheel_base": 3.15,
   "track_width": 1.9,
   "wheel_radius": 0.4
-}</code></pre></li>
+}</code></pre>
+<table>
+<tr><th>調整画面の項目</th><th><code>values</code> のキー</th><th>単位</th><th>上の例</th></tr>
+<tr><td>ホイールベース</td><td><code>wheel_base</code></td><td>m</td><td>3.15</td></tr>
+<tr><td>タイヤ半径</td><td><code>wheel_radius</code></td><td>m</td><td>0.4</td></tr>
+<tr><td>フロント トレッド・リア トレッド（前後が同じとき）</td><td><code>track_width</code></td><td>m</td><td>1.9</td></tr>
+<tr><td>フロント トレッド（前後で違うとき）</td><td><code>front_track_width</code></td><td>m</td><td>—</td></tr>
+<tr><td>リア トレッド（前後で違うとき）</td><td><code>rear_track_width</code></td><td>m</td><td>—</td></tr>
+</table>
+<p>前後で違う車は、<code>track_width</code> の代わりに <code>front_track_width</code> と <code>rear_track_width</code> を書きます。両方書いたときは前後別のキーが優先されます。</p></li>
 <li><span class="where where-game">ゲーム</span><b><code>/reload</code> を打ち、クリエイティブタブから出し直して確かめる。</b></li>
 </ol>
 <ol class="steps en">
 <li><span class="where where-game">Game</span><b>Spawn the car, get in and press <kbd>Ctrl</kbd>+<kbd>G</kbd>.</b> The gauge is drawn over the car in cyan lines. If the arches clear these rings comfortably above and outside, you are done</li>
-<li><span class="where where-game">Game</span><b>In the <kbd>G</kbd> tuning screen, move "Tyre radius" under "Tires" and "Track width" under "Chassis".</b> Find where the tyres sit inside the arches and stop poking out of the fenders. Check from the side and the front in third person (<kbd>F5</kbd>)</li>
+<li><span class="where where-game">Game</span><b>In the <kbd>G</kbd> tuning screen, move "Tyre radius" under "Tires" and "Front track width" and "Rear track width" under "Chassis".</b> While the lock between the two is closed they move together and keep their difference. Open it to give the front and rear different widths. Find where the tyres sit inside the arches and stop poking out of the fenders. Check from the side and the front in third person (<kbd>F5</kbd>)</li>
 <li><span class="where where-file">File</span><b>Write the values into <code>values</code> in <code>data/mypack/cars/&lt;car&gt;.json</code>.</b>
 <pre><code>"values": {
   "wheel_base": 3.15,
   "track_width": 1.9,
   "wheel_radius": 0.4
-}</code></pre></li>
+}</code></pre>
+<table>
+<tr><th>Tuning screen item</th><th>Key in <code>values</code></th><th>Unit</th><th>Example above</th></tr>
+<tr><td>Wheelbase</td><td><code>wheel_base</code></td><td>m</td><td>3.15</td></tr>
+<tr><td>Tyre radius</td><td><code>wheel_radius</code></td><td>m</td><td>0.4</td></tr>
+<tr><td>Front and rear track width (when both are the same)</td><td><code>track_width</code></td><td>m</td><td>1.9</td></tr>
+<tr><td>Front track width (when they differ)</td><td><code>front_track_width</code></td><td>m</td><td>—</td></tr>
+<tr><td>Rear track width (when they differ)</td><td><code>rear_track_width</code></td><td>m</td><td>—</td></tr>
+</table>
+<p>For a car with different widths, write <code>front_track_width</code> and <code>rear_track_width</code> instead of <code>track_width</code>. If you write both, the separate keys win.</p></li>
 <li><span class="where where-game">Game</span><b>Run <code>/reload</code>, take a fresh car from the creative tab and check.</b></li>
 </ol>
 
@@ -5298,9 +5316,9 @@ Changes apply to your client only, until you close the game.</p>
 <section id="sc" data-guide="car">
 <h2 class="ja">付録 A. 諸元の全項目（<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>）</h2>
 <h2 class="en">Appendix A. Every spec key (<code>data/&lt;pack&gt;/cars/&lt;car&gt;.json</code>)</h2>
-<p class="ja">これで全部（65 項目）。書き方は <a href="#s-spec">12 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
+<p class="ja">これで全部（66 項目と、前後のトレッドをまとめて書く <code>track_width</code>）。書き方は <a href="#s-spec">12 章</a>。<b>範囲は調整画面のスライダーの範囲と同じです。</b>外れた値は、上に外れれば上限、下に外れれば下限へ丸めて読み込み、ログに <code>範囲（… 〜 …）の外なので … に丸めました</code> と残します。</p>
 <p class="ja"><b>既定は、何も書かなかったときの値です。</b>寸法（<code>wheel_base</code>・<code>track_width</code>・<code>wheel_radius</code>）の既定はゲージの寸法と同じです。KurumaMod の既定の車（S15）は、車体を実車の比率で作ってあり、ゲージのタイヤでは大きすぎるので <code>wheel_base</code> 3.15・<code>track_width</code> 1.9・<code>wheel_radius</code> 0.4 だけ書いています。そのほかは既定のままです。</p>
-<p class="en">That is all of them (65 keys). How to write them is in <a href="#s-spec">chapter 12</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
+<p class="en">That is all of them (66 keys, plus <code>track_width</code>, which sets both track widths at once). How to write them is in <a href="#s-spec">chapter 12</a>. <b>The ranges are the same as the tuning screen's sliders.</b> A value above the range is loaded as the maximum and one below as the minimum, and the log records <code>範囲（… 〜 …）の外なので … に丸めました</code> ("outside the range, clamped to …").</p>
 <p class="en"><b>A default is the value used when you leave the key out.</b> The size defaults (<code>wheel_base</code>, <code>track_width</code>, <code>wheel_radius</code>) match the gauge. KurumaMod's default car (the S15) is built to real-car proportions, where the gauge tyres are too big, so it writes only <code>wheel_base</code> 3.15, <code>track_width</code> 1.9 and <code>wheel_radius</code> 0.4; everything else is at the default.</p>
 <h4 class="ja">サスペンション</h4>
 <table class="ja">
@@ -5353,7 +5371,9 @@ Changes apply to your client only, until you close the game.</p>
 <tr><td><code>mass</code></td><td>車重</td><td>kg</td><td>1200</td><td>500 – 2500</td></tr>
 <tr><td><code>weight_distribution</code></td><td>前後の荷重配分</td><td>前軸の割合</td><td>0.56</td><td>0.35 – 0.7</td></tr>
 <tr><td><code>wheel_base</code></td><td>ホイールベース</td><td>m</td><td>3.12</td><td>2 – 7</td></tr>
-<tr><td><code>track_width</code></td><td>トレッド</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+<tr><td><code>track_width</code></td><td>トレッド（前後を同じ値に）</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+<tr><td><code>front_track_width</code></td><td>前のトレッド（<code>track_width</code> より優先）</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+<tr><td><code>rear_track_width</code></td><td>後ろのトレッド（<code>track_width</code> より優先）</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
 </table>
 <h4 class="ja">エンジン</h4>
 <table class="ja">
@@ -5470,7 +5490,9 @@ Changes apply to your client only, until you close the game.</p>
 <tr><td><code>mass</code></td><td>Mass</td><td>kg</td><td>1200</td><td>500 – 2500</td></tr>
 <tr><td><code>weight_distribution</code></td><td>Weight distribution</td><td>fraction on the front axle</td><td>0.56</td><td>0.35 – 0.7</td></tr>
 <tr><td><code>wheel_base</code></td><td>Wheelbase</td><td>m</td><td>3.12</td><td>2 – 7</td></tr>
-<tr><td><code>track_width</code></td><td>Track width</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+<tr><td><code>track_width</code></td><td>Track width (same front and rear)</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+<tr><td><code>front_track_width</code></td><td>Front track width (overrides <code>track_width</code>)</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
+<tr><td><code>rear_track_width</code></td><td>Rear track width (overrides <code>track_width</code>)</td><td>m</td><td>2</td><td>1.2 – 4</td></tr>
 </table>
 <h4 class="en">Engine</h4>
 <table class="en">
