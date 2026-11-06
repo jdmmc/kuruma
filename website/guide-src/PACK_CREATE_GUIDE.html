@@ -413,7 +413,7 @@ nav.toc a.toc-home{border-left-color:transparent; padding-left:0; margin-bottom:
 <ul class="ja">
 <li>フォルダ名 2 つ（<code>assets/</code> の下と <code>data/</code> の下）</li>
 <li>いちばん上のロゴ画像 <code>kurumamod_example_carpack.png</code> のファイル名</li>
-<li><code>META-INF/mods.toml</code> と <code>META-INF/neoforge.mods.toml</code> の中身。<code>modId</code>・<code>logoFile</code>・<code>[[dependencies.…]]</code>（2 か所）を置き換え、<code>version</code>・<code>displayName</code>・<code>description</code> も自分のものにする。2 つのファイルとも同じように直す
+<li><code>META-INF/mods.toml</code> と <code>META-INF/neoforge.mods.toml</code> の中身。<code>modId</code>・<code>logoFile</code>（<code>neoforge.mods.toml</code> では <code>bannerFile</code>）・<code>[[dependencies.…]]</code>（2 か所）を置き換え、<code>version</code>・<code>displayName</code>・<code>description</code> も自分のものにする。2 つのファイルとも同じように直す
 <pre><code>[[mods]]
 modId = "<span class="hl">mypack</span>"                     # 置き換える
 version = "1.0.0"                    # 自分のパックの版
@@ -431,7 +431,7 @@ KurumaMod への依存の <code>versionRange</code> は、使う機能が入っ�
 <ul class="en">
 <li>Two folder names (under <code>assets/</code> and under <code>data/</code>)</li>
 <li>The file name of the logo image <code>kurumamod_example_carpack.png</code> at the top</li>
-<li>The contents of <code>META-INF/mods.toml</code> and <code>META-INF/neoforge.mods.toml</code>. Replace it in <code>modId</code>, <code>logoFile</code> and both <code>[[dependencies.…]]</code>, and make <code>version</code>, <code>displayName</code> and <code>description</code> your own. Edit both files the same way
+<li>The contents of <code>META-INF/mods.toml</code> and <code>META-INF/neoforge.mods.toml</code>. Replace it in <code>modId</code>, <code>logoFile</code> (<code>bannerFile</code> in <code>neoforge.mods.toml</code>) and both <code>[[dependencies.…]]</code>, and make <code>version</code>, <code>displayName</code> and <code>description</code> your own. Edit both files the same way
 <pre><code>[[mods]]
 modId = "<span class="hl">mypack</span>"                     # replace
 version = "1.0.0"                    # your pack's version
@@ -457,7 +457,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li><code>META-INF/mods.toml</code> と <code>META-INF/neoforge.mods.toml</code> の <code>modId</code> を変える。<code>displayName</code>・<code>description</code>・<code>version</code> も自分のものにする</li>
 <li><code>assets/kurumamod_example_carpack/</code> と <code>data/kurumamod_example_carpack/</code> のフォルダ名を <code>modId</code> と同じにする</li>
 <li>JSON の中の <code>kurumamod_example_carpack:</code>（モデルのパス）と、lang のキー（<code>car.kurumamod_example_carpack.sample</code> など）も置き換える</li>
-<li>MOD 一覧の画像を変えるなら、png を差し替えて <code>logoFile</code> の名前を合わせる</li>
+<li>MOD 一覧の画像を変えるなら、png を差し替えて <code>logoFile</code> と <code>bannerFile</code> の名前を合わせる</li>
 </ol>
 <ul>
 <li><b><code>modId</code> に使えるのは <code>a-z 0-9 _</code> だけ</b>（先頭は英字）。<code>-</code> や <code>.</code> を入れると、ゲームが起動時に <code>Invalid modId</code> で落ちる</li>
@@ -474,7 +474,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li>Change <code>modId</code> in <code>META-INF/mods.toml</code> and <code>META-INF/neoforge.mods.toml</code>. Make <code>displayName</code>, <code>description</code> and <code>version</code> your own too</li>
 <li>Rename the folders <code>assets/kurumamod_example_carpack/</code> and <code>data/kurumamod_example_carpack/</code> to match <code>modId</code></li>
 <li>Replace <code>kurumamod_example_carpack:</code> inside the JSON (model paths) and in the lang keys (<code>car.kurumamod_example_carpack.sample</code> and so on)</li>
-<li>For your own mod-list image, swap the png and update <code>logoFile</code> to its name</li>
+<li>For your own mod-list image, swap the png and update <code>logoFile</code> and <code>bannerFile</code> to its name</li>
 </ol>
 <ul>
 <li><b><code>modId</code> may only use <code>a-z 0-9 _</code></b> (starting with a letter). A <code>-</code> or <code>.</code> crashes the game at start-up with <code>Invalid modId</code></li>
@@ -2310,7 +2310,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li>名前空間は <code>modId</code> と同じにする。違っても動くが、ほかのパックとぶつかったときにどちらが読まれるか分からなくなる</li>
 <li>サブフォルダは使わない。<code>cars/toyota/ae86.json</code> は id が <code>mypack:toyota/ae86</code>、翻訳キーが <code>car.mypack.toyota/ae86</code> になる</li>
 <li>lang を書かなければ、表示名は <code>ae86</code> とそのまま出る</li>
-<li>MOD 一覧に出る画像は <code>mods.toml</code> の <code>logoFile</code> で指す</li>
+<li>MOD 一覧に出る画像は <code>mods.toml</code> の <code>logoFile</code> で指す。<code>neoforge.mods.toml</code> は <code>bannerFile</code> にする（<code>logoFile</code> だと NeoForge 26.3 が起動のたびに警告の画面を出す。代わりに NeoForge 1.21.1 の MOD 一覧には画像が出ない）</li>
 </ul>
 </div>
 </details>
@@ -2323,7 +2323,7 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 <li>Make the namespace the same as <code>modId</code>. It works either way, but if two packs collide you cannot tell which one won</li>
 <li>No subfolders. <code>cars/toyota/ae86.json</code> becomes the id <code>mypack:toyota/ae86</code> and the key <code>car.mypack.toyota/ae86</code></li>
 <li>Without a lang entry, the display name is simply <code>ae86</code></li>
-<li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code></li>
+<li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code>. Use <code>bannerFile</code> in <code>neoforge.mods.toml</code> (with <code>logoFile</code>, NeoForge 26.3 shows a warning screen at every launch; in exchange, the NeoForge 1.21.1 mod list shows no image)</li>
 </ul>
 </div>
 </details>

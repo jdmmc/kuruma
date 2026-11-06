@@ -1566,7 +1566,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li>名前空間は <code>modId</code> と同じにする。違っても動くが、ほかのパックとぶつかったときにどちらが読まれるか分からなくなる</li>
 <li>サブフォルダは使わない。<code>cars/toyota/ae86.json</code> は id が <code>mypack:toyota/ae86</code>、翻訳キーが <code>car.mypack.toyota/ae86</code> になる</li>
 <li>lang を書かなければ、表示名は <code>ae86</code> とそのまま出る</li>
-<li>MOD 一覧に出る画像は <code>mods.toml</code> の <code>logoFile</code> で指す</li>
+<li>MOD 一覧に出る画像は <code>mods.toml</code> の <code>logoFile</code> で指す。<code>neoforge.mods.toml</code> は <code>bannerFile</code> にする（<code>logoFile</code> だと NeoForge 26.3 が起動のたびに警告の画面を出す。代わりに NeoForge 1.21.1 の MOD 一覧には画像が出ない）</li>
 </ul>
 </div>
 </details>
@@ -1579,7 +1579,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 <li>Make the namespace the same as <code>modId</code>. It works either way, but if two packs collide you cannot tell which one won</li>
 <li>No subfolders. <code>cars/toyota/ae86.json</code> becomes the id <code>mypack:toyota/ae86</code> and the key <code>car.mypack.toyota/ae86</code></li>
 <li>Without a lang entry, the display name is simply <code>ae86</code></li>
-<li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code></li>
+<li>The image in the mod list is <code>logoFile</code> in <code>mods.toml</code>. Use <code>bannerFile</code> in <code>neoforge.mods.toml</code> (with <code>logoFile</code>, NeoForge 26.3 shows a warning screen at every launch; in exchange, the NeoForge 1.21.1 mod list shows no image)</li>
 </ul>
 </div>
 </details>
