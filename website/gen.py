@@ -574,7 +574,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
 
 <div class="badges">
   <div class="wrap">
-    <div><b>{T("No dependencies", "前提 MOD なし")}</b><span>{T("Just drop it in mods/", "mods に入れるだけ")}</span></div>
+    <div><b>{T("Shader ready", "シェーダー対応")}</b><span>{T("Works with Iris and Oculus", "Iris・Oculus で走れる")}</span></div>
     <div><b>{T("Multiplayer", "マルチプレイ")}</b><span>{T("Race your friends", "友だちとレース")}</span></div>
     <div><b>{T("Wheel and gamepad", "ハンコン・パッド")}</b><span>{T("Fully analog input", "フルアナログ入力")}</span></div>
     <div><b>{T("Free and open source", "無料・オープンソース")}</b><span>GPL-3.0</span></div>
@@ -601,7 +601,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
       </div>
       <div class="media"><img src="img/drift.jpg" {ALT("Silvia S15 drifting", "ドリフトするシルビア S15")}></div>
     </div>
-    {figs([("80", "Hz", ("Physics updates per second", "物理の計算回数（毎秒）")), ("40+", "", ("Setup options", "セッティング項目")), ("6", "", ("Road surfaces", "路面の種類")), ("0", "", ("Required mods", "必要な前提 MOD"))])}
+    {figs([("80", "Hz", ("Physics updates per second", "物理の計算回数（毎秒）")), ("40+", "", ("Setup options", "セッティング項目")), ("6", "", ("Road surfaces", "路面の種類")), ("3", "", ("Minecraft versions", "対応する Minecraft の版"))])}
   </div>
 </section>
 
@@ -918,7 +918,7 @@ guide_en = f'Follow the <a href="{GUIDE}">car pack guide</a> and start from the 
 guide_ja = f'<a href="{GUIDE}">カーパック作成ガイド</a>を見ながら、<a href="{CF_EXAMPLE}">Example Car Pack</a> をひな型に。コードは不要、クレジット表記も不要です。'
 
 page("shaders.html", "Shader packs | KurumaMod", "シェーダーパック | KurumaMod", f"""
-<section class="hero page" style="padding:0">
+<section class="hero page shade" style="padding:0">
   <img src="img/eyecatch.jpg" {ALT("A car on a night track with its headlights on", "夜のコースをヘッドライトで照らす車")}>
   <div class="copy">
     <div class="wrap">
@@ -1031,8 +1031,8 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
       <table class="compare icons">
         <thead><tr><th scope="col">{T("Car pack", "カーパック")}</th><th scope="col">Forge</th><th scope="col">NeoForge</th><th scope="col">Fabric</th></tr></thead>
         <tbody>
-          <tr><th scope="row"><a class="pack-link" href="{CF_BASIC}" target="_blank" rel="noopener">Basic Car Pack</a></th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.20.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td></tr>
-          <tr><th scope="row"><a class="pack-link" href="{CF_EXAMPLE}" target="_blank" rel="noopener">Example Car Pack</a></th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.20.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td></tr>
+          <tr><th scope="row">Basic Car Pack</th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.20.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td></tr>
+          <tr><th scope="row">Example Car Pack</th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.20.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td></tr>
         </tbody>
       </table>
     </div>
