@@ -207,6 +207,21 @@ public final class HeadlightVolume {
 
         private static Boolean last;
 
+        /** Oculus / Iris のパックを使っているか。OptiFine と、聞けなかったときは false。 */
+        static boolean irisInUse() {
+            if (!resolved) {
+                resolve();
+            }
+            if (irisInUse == null) {
+                return false;
+            }
+            try {
+                return (Boolean) irisInUse.invoke(irisApi);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                return false;
+            }
+        }
+
         /**
          * Oculus / Iris が<b>影を描いている最中</b>か。パックは影のために光源の視点からもエンティティを
          * 描くので、その間に光芒を記録すると、光源の視点の座標が混ざって変な場所に描かれる。

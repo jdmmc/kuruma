@@ -324,9 +324,13 @@ public class CarObjRenderer extends EntityRenderer<CarEntity> {
         ObjModel bodyMesh = ObjModel.get(model.bodyModel()).lod(lod);
         if (HeadlightVolume.ShaderPacks.renderingShadowPass()) {
             // シェーダーパックが太陽・月の影を描いている最中は、サスペンション（susp*）を落とさない
-            bodyMesh.renderShadowCaster(pose.last(),
-                    buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
-                    packedLight, OverlayTexture.NO_OVERLAY);
+            if (meshes()) {
+                CarMeshes.drawShadowCaster(bodyMesh, texture, pose.last());
+            } else {
+                bodyMesh.renderShadowCaster(pose.last(),
+                        buffer.getBuffer(RenderType.entityCutoutNoCull(texture)),
+                        packedLight, OverlayTexture.NO_OVERLAY);
+            }
         } else if (meshes()) {
             CarMeshes.draw(bodyMesh, false, false, texture, pose.last(), packedLight);
         } else {

@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
+import org.joml.Matrix4f;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -37,8 +38,8 @@ import java.io.IOException;
  * <h2>使わない場面</h2>
  *
  * <ul>
- *   <li><b>シェーダーパック（Oculus / Iris）を使っている間。</b>パックは車体のシェーダーを自分のものに
- *       差し替えて陰影や影を付けるので、自前のシェーダーで描くとそこから外れる。以前の描き方に戻す</li>
+ *   <li>OptiFine のパック、シェーダーパック使用中の鏡（Oculus / Iris のパック使用中は {@code drawForPack} で
+ *       パックのプログラムのまま描く。影の段も同じ）</li>
  *   <li>設定 {@code gpuCarMeshes} を切ったとき（見比べるため・何かあったときに戻すため）</li>
  *   <li>シェーダーを読めなかったとき</li>
  * </ul>
@@ -50,6 +51,8 @@ public final class CarMeshes {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final ResourceLocation SHADER = ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "car_mesh");
+
+    private static final int SHADOW_LIGHT = 0xF000F0;
 
     private static ShaderInstance shader;
     private static boolean loadAttempted;
@@ -63,8 +66,12 @@ public final class CarMeshes {
 
     /** GPU に置いた描き方を使えるか。使えなければ呼ぶ側が以前の描き方で描く。 */
     static boolean enabled() {
-        if (!ClientConfig.gpuCarMeshes || HeadlightVolume.ShaderPacks.inUse()) {
+        if (!ClientConfig.gpuCarMeshes) {
             return false;
+        }
+        if (HeadlightVolume.ShaderPacks.inUse()) {
+            // 鏡はパックの gbuffer の外へ描くので頂点を積む
+            return HeadlightVolume.ShaderPacks.irisInUse() && !MirrorRenderer.isRendering();
         }
         ensureShader();
         return shader != null;
@@ -78,6 +85,10 @@ public final class CarMeshes {
      */
     static void draw(ObjModel model, boolean withoutTire, boolean mirrorX, ResourceLocation texture,
                      PoseStack.Pose pose, int packedLight) {
+        if (HeadlightVolume.ShaderPacks.inUse()) {
+            drawForPack(model, withoutTire, false, mirrorX, texture, pose, packedLight);
+            return;
+        }
         VertexBuffer mesh = model.gpuMesh(withoutTire, mirrorX);
         if (mesh == null) {
             return;
@@ -92,6 +103,37 @@ public final class CarMeshes {
         mesh.drawWithShader(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), shader);
         VertexBuffer.unbind();
         type.clearRenderState();
+    }
+
+    /**
+     * シェーダーパック使用中。自前のシェーダーを使わず、バニラの {@code entityCutoutNoCull} の状態で描くので、
+     * パックのプログラムがそのまま使われる（Iris がシェーダーを置き換えている）。パックの頂点シェーダーへは
+     * 自前の行列を渡せないので、<b>姿勢はモデルビューに畳み込む</b>。法線の行列は Iris のシェーダーが
+     * {@code apply} のたびにモデルビューから作るので、描くたびに正しくなる。
+     */
+    private static void drawForPack(ObjModel model, boolean withoutTire, boolean shadowCaster, boolean mirrorX,
+                                    ResourceLocation texture, PoseStack.Pose pose, int packedLight) {
+        // 影の面に明るさは関係ない。1 通りにしておけば明るさごとの複製が増えない
+        boolean shadow = HeadlightVolume.ShaderPacks.renderingShadowPass();
+        VertexBuffer mesh = model.packMesh(withoutTire, shadowCaster, mirrorX, shadow ? SHADOW_LIGHT : packedLight);
+        if (mesh == null) {
+            return;
+        }
+        RenderType type = RenderType.entityCutoutNoCull(texture);
+        type.setupRenderState();
+        ShaderInstance packShader = RenderSystem.getShader();
+        if (packShader != null) {
+            Matrix4f modelView = new Matrix4f(RenderSystem.getModelViewMatrix()).mul(pose.pose());
+            mesh.bind();
+            mesh.drawWithShader(modelView, RenderSystem.getProjectionMatrix(), packShader);
+            VertexBuffer.unbind();
+        }
+        type.clearRenderState();
+    }
+
+    /** シェーダーパックの影の段で、サスペンションを除いた車体を描く。 */
+    static void drawShadowCaster(ObjModel model, ResourceLocation texture, PoseStack.Pose pose) {
+        drawForPack(model, false, true, false, texture, pose, SHADOW_LIGHT);
     }
 
     /**

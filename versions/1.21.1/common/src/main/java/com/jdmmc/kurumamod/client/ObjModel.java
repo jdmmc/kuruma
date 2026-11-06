@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -264,6 +265,7 @@ public final class ObjModel {
      * 初めて描くときに作り、モデルを読み直すとき（{@link #clearCache}）に捨てる。
      */
     private final VertexBuffer[] gpuMeshes = new VertexBuffer[4];
+    private final Map<Integer, VertexBuffer> packMeshes = new HashMap<>();
     /** 作ってみたら面が無かった組み合わせ。毎フレーム作り直そうとしないため。 */
     private final boolean[] gpuEmpty = new boolean[4];
 
@@ -1410,8 +1412,40 @@ public final class ObjModel {
         return x | (y << 21) | (z << 42);
     }
 
+    /**
+     * シェーダーパック用に GPU に置いた不透明な面。<b>ワールドの描画の最中に呼ぶこと</b>（その間だけ、
+     * {@code BufferBuilder} がパックの長い形式で積むので、接線などがそのまま焼き込まれる）。
+     *
+     * <p>頂点を積む描き方と同じ道（{@link #renderFaces}）を通す。パックの頂点シェーダーは明るさを頂点から読むので、
+     * <b>明るさごとに別に焼く</b>（普通は数通りで済み、値は 16 段×16 段なので増えても上限がある）。</p>
+     *
+     * @param shadowCaster 影の段で使う面（サスペンションを除く）か
+     */
+    VertexBuffer packMesh(boolean withoutTire, boolean shadowCaster, boolean mirrorX, int packedLight) {
+        int key = packedLight << 3 | (shadowCaster ? 4 : 0) | (withoutTire ? 2 : 0) | (mirrorX ? 1 : 0);
+        VertexBuffer mesh = packMeshes.get(key);
+        if (mesh != null) {
+            return mesh;
+        }
+        int[] faces = shadowCaster ? opaqueShadowFaces : withoutTire ? opaqueRimFaces : opaqueFaces;
+        if (faces.length == 0) {
+            return null;
+        }
+        BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+        renderFaces(faces, new Matrix4f(), new Matrix3f(), mirrorX ? -1.0F : 1.0F, builder, packedLight,
+                OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        VertexBuffer buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
+        buffer.bind();
+        buffer.upload(builder.buildOrThrow());
+        VertexBuffer.unbind();
+        packMeshes.put(key, buffer);
+        return buffer;
+    }
+
     /** GPU に置いた頂点を返す。 */
     private void releaseGpu() {
+        packMeshes.values().forEach(VertexBuffer::close);
+        packMeshes.clear();
         for (ObjModel lod : lods) {
             if (lod != null) {
                 lod.releaseGpu();
