@@ -399,6 +399,12 @@ public class CarTuningScreen extends Screen {
         if (mouseX < panelLeft || mouseX >= panelLeft + LABEL_WIDTH) {
             return;
         }
+        // 鍵は項目名の列にある。鍵の上では鍵の説明だけを出す（重なって読めなくなる）
+        for (Lock lock : locks) {
+            if (lock.widget.visible && lock.widget.isMouseOver(mouseX, mouseY)) {
+                return;
+            }
+        }
         for (Row row : rows) {
             if (!row.visible || mouseY < row.y || mouseY >= row.y + ROW_HEIGHT - 2) {
                 continue;
