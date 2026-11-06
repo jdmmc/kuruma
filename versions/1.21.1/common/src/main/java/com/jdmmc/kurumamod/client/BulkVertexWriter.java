@@ -126,13 +126,15 @@ final class BulkVertexWriter {
         int written = 0;
         int faceIndex = 0;
         int corner = 0;
+        // 鏡像のときは 4 隅を逆に回して面を表に戻す（ObjModel#cornerOrder）
+        int[] corners = ObjModel.cornerOrder(flip);
         while (written < total) {
             int count = Math.min(BATCH, total - written);
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 long start = stack.nmalloc(count * STRIDE);
                 long ptr = start;
                 for (int i = 0; i < count; i++) {
-                    int offset = faces[faceIndex] * faceFloats + corner * stride;
+                    int offset = faces[faceIndex] * faceFloats + corners[corner] * stride;
                     float x = flip * vertices[offset];
                     float y = vertices[offset + 1];
                     float z = vertices[offset + 2];

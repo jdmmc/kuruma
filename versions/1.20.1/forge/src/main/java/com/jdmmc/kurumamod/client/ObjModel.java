@@ -1301,12 +1301,13 @@ public final class ObjModel {
             return null;
         }
         float flip = mirrorX ? -1.0F : 1.0F;
+        int[] corners = cornerOrder(flip);
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
         for (int face : faces) {
             int base = face * FACE_FLOATS;
-            for (int corner = 0; corner < 4; corner++) {
-                int offset = base + corner * STRIDE;
+            for (int k = 0; k < 4; k++) {
+                int offset = base + corners[k] * STRIDE;
                 builder.vertex(flip * vertices[offset], vertices[offset + 1], vertices[offset + 2])
                         .color(vertices[offset + 8], vertices[offset + 9], vertices[offset + 10],
                                 vertices[offset + ALPHA_OFFSET])
@@ -1577,6 +1578,23 @@ public final class ObjModel {
      */
     static float alphaScale = 1.0F;
 
+    private static final int[] CORNERS = {0, 1, 2, 3};
+    private static final int[] MIRRORED_CORNERS = {2, 1, 0, 3};
+
+    /**
+     * 面の 4 隅を積む順。鏡像は 4 隅を逆に回して、面の表裏を元に戻す。
+     *
+     * <p>X を反転すると巻き方向が裏返る。カリングを切ってあるので描画は変わらないが、
+     * <b>シェーダーパックには裏向きの面として届く。</b>Complementary は
+     * {@code gl_FrontFacing} が偽の面の法線を反転するので、右のタイヤだけ下を向いて真っ暗になった。</p>
+     *
+     * <p>0-3-2-1 ではなく 2-1-0-3 にするのは、縮退した四角形（a, b, c, c）の最初の 3 頂点を
+     * 潰さないため。四角形を割る対角線（0-2）も元のまま。</p>
+     */
+    static int[] cornerOrder(float flip) {
+        return flip < 0.0F ? MIRRORED_CORNERS : CORNERS;
+    }
+
     private void renderFaces(int[] faces, Matrix4f matrix, Matrix3f normal, float flip, VertexConsumer consumer,
                              int packedLight, int packedOverlay,
                              float tintRed, float tintGreen, float tintBlue, float alpha) {
@@ -1587,10 +1605,11 @@ public final class ObjModel {
             return;
         }
 
+        int[] corners = cornerOrder(flip);
         for (int face : faces) {
             int base = face * FACE_FLOATS;
-            for (int corner = 0; corner < 4; corner++) {
-                int offset = base + corner * STRIDE;
+            for (int k = 0; k < 4; k++) {
+                int offset = base + corners[k] * STRIDE;
                 consumer.vertex(matrix, flip * vertices[offset], vertices[offset + 1], vertices[offset + 2])
                         .color(vertices[offset + 8] * tintRed,
                                 vertices[offset + 9] * tintGreen,
