@@ -180,7 +180,8 @@ public final class CarChaseCamera {
      * 動かした」と誤解して車への追従を止めてしまう（衝突の揺れと同じ理由）。</p>
      */
     public static void orbit(double dragX, double dragY) {
-        orbitYaw += (float) dragX * ORBIT_PER_PIXEL;
+        // ±180 度に丸める。開閉のアニメーションはこの角度に割合を掛けるので、何周もためると開閉のたびに回る
+        orbitYaw = Mth.wrapDegrees(orbitYaw + (float) dragX * ORBIT_PER_PIXEL);
         orbitPitch = Mth.clamp(orbitPitch + (float) dragY * ORBIT_PER_PIXEL,
                 ORBIT_PITCH_MIN, ORBIT_PITCH_MAX);
     }
