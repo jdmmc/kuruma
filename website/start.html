@@ -90,21 +90,46 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <div class="eyebrow"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></div>
     <h2 class="title"><span data-l="en">Pick your loader.</span><span data-l="ja">ローダーを選ぶ。</span></h2>
     <p class="lead"><span data-l="en">Every version is on the same page. Forge and NeoForge need no other mods; Fabric needs Fabric API.</span><span data-l="ja">どの版も同じページから。Forge と NeoForge は前提 MOD がいりません。Fabric は Fabric API が必要です。</span></p>
-    <div class="packs">
-      <div class="pack static"><small>Forge</small><h3>Minecraft 1.20.1</h3><p><span data-l="en">Forge 47.4.22 or later.</span><span data-l="ja">Forge 47.4.22 以上。</span></p></div>
-      <div class="pack static"><small>NeoForge / Fabric</small><h3>Minecraft 1.21.1</h3><p><span data-l="en">NeoForge 21.1 or later. Fabric Loader 0.16.14 or later with Fabric API.</span><span data-l="ja">NeoForge 21.1 以上。Fabric は Loader 0.16.14 以上と Fabric API。</span></p></div>
-      <div class="pack static"><small>NeoForge / Fabric / Forge</small><h3>Minecraft 26.3</h3><p><span data-l="en">NeoForge 26.3.0.101 or later. Fabric Loader 0.20.1 or later with Fabric API. Forge 66.1.5 or later.</span><span data-l="ja">NeoForge 26.3.0.101 以上。Fabric は Loader 0.20.1 以上と Fabric API。Forge 66.1.5 以上。</span></p></div>
+    <div class="compare-wrap">
+      <table class="compare icons">
+        <thead><tr><th scope="col">Minecraft</th><th scope="col">Forge</th><th scope="col">NeoForge</th><th scope="col">Fabric</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">1.20.1</th><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver"><span data-l="en">47.4.22 or later</span><span data-l="ja">47.4.22 以上</span></small></td><td>—</td><td>—</td></tr>
+          <tr><th scope="row">1.21.1</th><td>—</td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver"><span data-l="en">21.1 or later</span><span data-l="ja">21.1 以上</span></small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver"><span data-l="en">Loader 0.16.14 or later + Fabric API</span><span data-l="ja">Loader 0.16.14 以上 + Fabric API</span></small></td></tr>
+          <tr><th scope="row">26.3</th><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver"><span data-l="en">66.1.5 or later</span><span data-l="ja">66.1.5 以上</span></small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver"><span data-l="en">26.3.0.101 or later</span><span data-l="ja">26.3.0.101 以上</span></small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver"><span data-l="en">Loader 0.20.1 or later + Fabric API</span><span data-l="ja">Loader 0.20.1 以上 + Fabric API</span></small></td></tr>
+        </tbody>
+      </table>
     </div>
-    <p class="lead"><span data-l="en">One car pack jar works on every version and loader. Using shader packs? See the</span><span data-l="ja">カーパックは 1 つの jar で、どの版・どのローダーでも動きます。シェーダーパックを使う方は</span> <a href="shaders.html"><span data-l="en">shader pack page</span><span data-l="ja">シェーダーのページ</span></a><span data-l="en">.</span><span data-l="ja">へ。</span></p>
+    <p class="lead"><span data-l="en">Using shader packs? See the</span><span data-l="ja">シェーダーパックを使う方は</span> <a href="shaders.html"><span data-l="en">shader pack page</span><span data-l="ja">シェーダーのページ</span></a><span data-l="en">.</span><span data-l="ja">へ。</span></p>
     <div class="cta-row">
-      <a class="btn arrow" href="https://www.curseforge.com/minecraft/mc-mods/kuruma"><span data-l="en">KurumaMod on CurseForge</span><span data-l="ja">KurumaMod（CurseForge）</span></a>
-      <a class="btn outline" href="https://modrinth.com/mod/kuruma"><span data-l="en">KurumaMod on Modrinth</span><span data-l="ja">KurumaMod（Modrinth）</span></a>
-      <a class="btn outline" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a>
+      <a class="btn arrow" href="https://www.curseforge.com/minecraft/mc-mods/kuruma" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg><span data-l="en">KurumaMod on CurseForge</span><span data-l="ja">KurumaMod（CurseForge）</span></a>
+      <a class="btn outline" href="https://modrinth.com/mod/kuruma" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.252.004a11.78 11.768 0 0 0-8.92 3.73 11 10.999 0 0 0-2.17 3.11 11.37 11.359 0 0 0-1.16 5.169c0 1.42.17 2.5.6 3.77.24.759.77 1.899 1.17 2.529a12.3 12.298 0 0 0 8.85 5.639c.44.05 2.54.07 2.76.02.2-.04.22.1-.26-1.7l-.36-1.37-1.01-.06a8.5 8.489 0 0 1-5.18-1.8 5.34 5.34 0 0 1-1.3-1.26c0-.05.34-.28.74-.5a37.572 37.545 0 0 1 2.88-1.629c.03 0 .5.45 1.06.98l1 .97 2.07-.43 2.06-.43 1.47-1.47c.8-.8 1.48-1.5 1.48-1.52 0-.09-.42-1.63-.46-1.7-.04-.06-.2-.03-1.02.18-.53.13-1.2.3-1.45.4l-.48.15-.53.53-.53.53-.93.1-.93.07-.52-.5a2.7 2.7 0 0 1-.96-1.7l-.13-.6.43-.57c.68-.9.68-.9 1.46-1.1.4-.1.65-.2.83-.33.13-.099.65-.579 1.14-1.069l.9-.9-.7-.7-.7-.7-1.95.54c-1.07.3-1.96.53-1.97.53-.03 0-2.23 2.48-2.63 2.97l-.29.35.28 1.03c.16.56.3 1.16.31 1.34l.03.3-.34.23c-.37.23-2.22 1.3-2.84 1.63-.36.2-.37.2-.44.1-.08-.1-.23-.6-.32-1.03-.18-.86-.17-2.75.02-3.73a8.84 8.839 0 0 1 7.9-6.93c.43-.03.77-.08.78-.1.06-.17.5-2.999.47-3.039-.01-.02-.1-.02-.2-.03Zm3.68.67c-.2 0-.3.1-.37.38-.06.23-.46 2.42-.46 2.52 0 .04.1.11.22.16a8.51 8.499 0 0 1 2.99 2 8.38 8.379 0 0 1 2.16 3.449 6.9 6.9 0 0 1 .4 2.8c0 1.07 0 1.27-.1 1.73a9.37 9.369 0 0 1-1.76 3.769c-.32.4-.98 1.06-1.37 1.38-.38.32-1.54 1.1-1.7 1.14-.1.03-.1.06-.07.26.03.18.64 2.56.7 2.78l.06.06a12.07 12.058 0 0 0 7.27-9.4c.13-.77.13-2.58 0-3.4a11.96 11.948 0 0 0-5.73-8.578c-.7-.42-2.05-1.06-2.25-1.06Z"/></svg><span data-l="en">KurumaMod on Modrinth</span><span data-l="ja">KurumaMod（Modrinth）</span></a>
     </div>
   </div>
 </section>
 
-<section id="install">
+<section>
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Car packs</span><span data-l="ja">カーパック</span></div>
+    <h2 class="title"><span data-l="en">Add car packs.</span><span data-l="ja">カーパックを追加する。</span></h2>
+    <p class="lead"><span data-l="en">One car pack jar works on every version and loader.</span><span data-l="ja">カーパックは 1 つの jar で、どの版・どのローダーでも動きます。</span></p>
+    <div class="compare-wrap">
+      <table class="compare icons">
+        <thead><tr><th scope="col"><span data-l="en">Car pack</span><span data-l="ja">カーパック</span></th><th scope="col">Forge</th><th scope="col">NeoForge</th><th scope="col">Fabric</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><a class="pack-link" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener">Basic Car Pack</a></th><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver">1.20.1 / 26.3</small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver">1.21.1 / 26.3</small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver">1.21.1 / 26.3</small></td></tr>
+          <tr><th scope="row"><a class="pack-link" href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">Example Car Pack</a></th><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver">1.20.1 / 26.3</small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver">1.21.1 / 26.3</small></td><td><svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-l="en">Supported</span><span data-l="ja">対応</span><small class="ver">1.21.1 / 26.3</small></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cta-row">
+      <a class="btn outline" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg>Basic Car Pack</a>
+      <a class="btn outline" href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg>Example Car Pack</a>
+    </div>
+  </div>
+</section>
+
+<section class="mist" id="install">
   <div class="wrap">
     <div class="eyebrow"><span data-l="en">Install</span><span data-l="ja">インストール</span></div>
     <h2 class="title"><span data-l="en">Four steps to the driver's seat.</span><span data-l="ja">4 ステップで、運転席へ。</span></h2>
@@ -151,7 +176,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
       <div><dt><span data-l="en">Videos and streams</span><span data-l="ja">動画・配信</span></dt><dd><span data-l="en">Feel free. Just put a link to the mod page in the description. No need to ask.</span><span data-l="ja">ご自由にどうぞ。概要欄に MOD のページへのリンクを貼ってもらえれば、許可は不要です。</span></dd></div>
       <div><dt><span data-l="en">Modpacks</span><span data-l="ja">モッドパック</span></dt><dd><span data-l="en">Welcome. Please add it as a CurseForge / Modrinth dependency instead of bundling the jar, so players always get the latest version.</span><span data-l="ja">歓迎です。jar を同梱するより CurseForge／Modrinth の依存として追加してもらえると、いつも最新版が届きます。</span></dd></div>
       <div><dt><span data-l="en">License</span><span data-l="ja">ライセンス</span></dt><dd><span data-l="en">Free software under the GNU General Public License v3.0 only (GPL-3.0-only).</span><span data-l="ja">GNU General Public License v3.0 only（GPL-3.0-only）のフリーソフトウェアです。</span></dd></div>
-      <div><dt><span data-l="en">Make your own cars</span><span data-l="ja">自分の車を作る</span></dt><dd><span data-l="en">Follow the <a href="guide.html">car pack guide</a> and start from the <a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack">Example Car Pack</a>. No coding, and no credit required.</span><span data-l="ja"><a href="guide.html">カーパック作成ガイド</a>を見ながら、<a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack">Example Car Pack</a> をひな型に。コードは不要、クレジット表記も不要です。</span></dd></div>
+      <div><dt><span data-l="en">Make your own cars</span><span data-l="ja">自分の車を作る</span></dt><dd><span data-l="en">Follow the <a href="guide.html">car pack guide</a> and start from the <a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">Example Car Pack</a>. No coding, and no credit required.</span><span data-l="ja"><a href="guide.html">カーパック作成ガイド</a>を見ながら、<a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">Example Car Pack</a> をひな型に。コードは不要、クレジット表記も不要です。</span></dd></div>
     </dl>
   </div>
 </section>
@@ -162,7 +187,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
       <h2 class="title"><span data-l="en">Questions? Ask on Discord.</span><span data-l="ja">困ったら Discord へ。</span></h2>
       <p class="lead"><span data-l="en">Bug reports, setups and new car packs all land there first.</span><span data-l="ja">不具合の報告も、セッティングの共有も、新しいカーパックの話題も、まずはここで。</span></p>
     </div>
-    <div class="acts"><a class="btn light arrow" href="https://discord.gg/q3YNqaveRd">Discord</a><a class="btn outline on-dark" href="https://x.com/kurumamod">X @kurumamod</a></div>
+    <div class="acts"><a class="btn light arrow" href="https://discord.gg/q3YNqaveRd" target="_blank" rel="noopener">Discord</a></div>
   </div>
 </section>
 <footer>
@@ -171,8 +196,8 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <div class="cols">
       <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
       <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="features.html#racing"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
-      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
-      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd">Discord</a></li><li><a href="https://x.com/kurumamod">X @kurumamod</a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma" target="_blank" rel="noopener">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma" target="_blank" rel="noopener">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/kurumamod" target="_blank" rel="noopener">X @kurumamod</a></li></ul></div>
     </div>
     <div class="legal">
       <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>

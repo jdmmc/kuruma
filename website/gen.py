@@ -15,6 +15,11 @@ OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE
 
 CF = "https://www.curseforge.com/minecraft/mc-mods/kuruma"
 MR = "https://modrinth.com/mod/kuruma"
+
+# ボタンの中のロゴ（Simple Icons）。色は文字色に合わせる
+ICON_CHECK = '<svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+ICON_CF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg>'
+ICON_MR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.252.004a11.78 11.768 0 0 0-8.92 3.73 11 10.999 0 0 0-2.17 3.11 11.37 11.359 0 0 0-1.16 5.169c0 1.42.17 2.5.6 3.77.24.759.77 1.899 1.17 2.529a12.3 12.298 0 0 0 8.85 5.639c.44.05 2.54.07 2.76.02.2-.04.22.1-.26-1.7l-.36-1.37-1.01-.06a8.5 8.489 0 0 1-5.18-1.8 5.34 5.34 0 0 1-1.3-1.26c0-.05.34-.28.74-.5a37.572 37.545 0 0 1 2.88-1.629c.03 0 .5.45 1.06.98l1 .97 2.07-.43 2.06-.43 1.47-1.47c.8-.8 1.48-1.5 1.48-1.52 0-.09-.42-1.63-.46-1.7-.04-.06-.2-.03-1.02.18-.53.13-1.2.3-1.45.4l-.48.15-.53.53-.53.53-.93.1-.93.07-.52-.5a2.7 2.7 0 0 1-.96-1.7l-.13-.6.43-.57c.68-.9.68-.9 1.46-1.1.4-.1.65-.2.83-.33.13-.099.65-.579 1.14-1.069l.9-.9-.7-.7-.7-.7-1.95.54c-1.07.3-1.96.53-1.97.53-.03 0-2.23 2.48-2.63 2.97l-.29.35.28 1.03c.16.56.3 1.16.31 1.34l.03.3-.34.23c-.37.23-2.22 1.3-2.84 1.63-.36.2-.37.2-.44.1-.08-.1-.23-.6-.32-1.03-.18-.86-.17-2.75.02-3.73a8.84 8.839 0 0 1 7.9-6.93c.43-.03.77-.08.78-.1.06-.17.5-2.999.47-3.039-.01-.02-.1-.02-.2-.03Zm3.68.67c-.2 0-.3.1-.37.38-.06.23-.46 2.42-.46 2.52 0 .04.1.11.22.16a8.51 8.499 0 0 1 2.99 2 8.38 8.379 0 0 1 2.16 3.449 6.9 6.9 0 0 1 .4 2.8c0 1.07 0 1.27-.1 1.73a9.37 9.369 0 0 1-1.76 3.769c-.32.4-.98 1.06-1.37 1.38-.38.32-1.54 1.1-1.7 1.14-.1.03-.1.06-.07.26.03.18.64 2.56.7 2.78l.06.06a12.07 12.058 0 0 0 7.27-9.4c.13-.77.13-2.58 0-3.4a11.96 11.948 0 0 0-5.73-8.578c-.7-.42-2.05-1.06-2.25-1.06Z"/></svg>'
 CF_BASIC = "https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack"
 MR_BASIC = "https://modrinth.com/mod/kurumabasiccarpack"
 CF_EXAMPLE = "https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack"
@@ -148,7 +153,42 @@ def youtube(video_id):
 PAGES = []
 
 
+def external_links(html_text):
+    """外部サイトへのリンクを新しいタブで開く（サイトの中のリンクはそのまま）。"""
+    def link(m):
+        tag = m.group(0)
+        if 'target=' in tag or m.group(1).startswith(SITE):
+            return tag
+        return tag[:-1] + ' target="_blank" rel="noopener">'
+    return re.sub(r'<a\s[^>]*href="(https?://[^"]*)"[^>]*>', link, html_text)
+
+
+def fit_labels(html):
+    """スマホで縦に積む表（table.compare.fit）の各セルへ、列の見出しを data-en / data-ja で持たせる。"""
+    def table(m):
+        body = m.group(0)
+        heads = []
+        for th in re.findall(r'<th scope="col">(.*?)</th>', body):
+            pair = re.findall(r'<span data-l="(?:en|ja)">(.*?)</span>', th)
+            heads.append((pair[0], pair[1]) if len(pair) == 2 else (th, th))
+
+        def row(r):
+            index = 0
+
+            def cell(c):
+                nonlocal index
+                index += 1
+                if 'colspan' in c.group(1) or index >= len(heads):
+                    return c.group(0)
+                en, ja = heads[index]
+                return f'<td data-en="{en}" data-ja="{ja}"{c.group(1)}>'
+            return re.sub(r'<td([^>]*)>', cell, r.group(0))
+        return re.sub(r'<tr>.*?</tr>', row, body, flags=re.S)
+    return re.sub(r'<table class="compare fit">.*?</table>', table, html, flags=re.S)
+
+
 def page(name, title, title_ja, body, desc=DEFAULT_DESC, image="img/ogp.jpg"):
+    body = fit_labels(body)
     url = SITE + ("" if name == "index.html" else name)
     PAGES.append(url)
     meta = "\n".join([
@@ -167,7 +207,7 @@ def page(name, title, title_ja, body, desc=DEFAULT_DESC, image="img/ogp.jpg"):
         '<meta name="twitter:card" content="summary_large_image">',
         '<meta name="twitter:site" content="@kurumamod">',
     ])
-    (OUT / name).write_text(HEAD.format(title=title, title_ja=title_ja, meta=meta) + HEADER + body + FOOTER, encoding="utf-8")
+    (OUT / name).write_text(HEAD.format(title=title, title_ja=title_ja, meta=meta) + external_links(HEADER + body + FOOTER), encoding="utf-8")
 
 
 def visual(m):
@@ -189,10 +229,10 @@ def dl_buttons(m, light=False):
     first = "btn light arrow" if light else "btn arrow"
     second = "btn outline on-dark" if light else "btn outline"
     if m["pack"] == "core":
-        return (f'<a class="{first}" href="{CF}">{T("Download on CurseForge", "CurseForge でダウンロード")}</a>'
-                f'<a class="{second}" href="{MR}">Modrinth</a>')
-    return (f'<a class="{first}" href="{CF_BASIC}">{T("Get the Basic Car Pack", "Basic Car Pack を入手")}</a>'
-            f'<a class="{second}" href="{MR_BASIC}">Modrinth</a>')
+        return (f'<a class="{first}" href="{CF}">{ICON_CF}{T("Download on CurseForge", "CurseForge でダウンロード")}</a>'
+                f'<a class="{second}" href="{MR}">{ICON_MR}Modrinth</a>')
+    return (f'<a class="{first}" href="{CF_BASIC}">{ICON_CF}{T("Get the Basic Car Pack", "Basic Car Pack を入手")}</a>'
+            f'<a class="{second}" href="{MR_BASIC}">{ICON_MR}Modrinth</a>')
 
 
 # 性能は KurumaMod の物理コアで測った値（平坦な舗装路・初期セッティング・パーツ無し・全開）
@@ -523,11 +563,10 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div class="wrap">
       <div class="kicker">{T("A driving mod for Minecraft · 1.20.1 / 1.21.1 / 26.3", "Minecraft のドライブ MOD · 1.20.1 / 1.21.1 / 26.3")}</div>
       <h1 class="brand" aria-label="KurumaMod">KURUMA</h1>
-      <p>{T("Gran Turismo, in Minecraft. The front dips when you brake, the rear squats when you accelerate, and if you get greedy with the throttle it steps sideways.",
-            "Minecraft で、グランツーリスモ。ブレーキでフロントが沈み、アクセルでリアが沈み、踏みすぎればタイヤを鳴らして横を向く。")}</p>
+      <p>{T("Real car physics, in Minecraft.", "Minecraft で、本格物理のドライブを。")}</p>
       <div class="cta">
-        <a class="btn light arrow" href="{CF}">{T("Download on CurseForge", "CurseForge でダウンロード")}</a>
-        <a class="btn outline on-dark" href="{MR}">Modrinth</a>
+        <a class="btn light arrow" href="{CF}" target="_blank" rel="noopener">{ICON_CF}{T("Download on CurseForge", "CurseForge でダウンロード")}</a>
+        <a class="btn light arrow" href="{MR}" target="_blank" rel="noopener">{ICON_MR}{T("Download on Modrinth", "Modrinth でダウンロード")}</a>
       </div>
     </div>
   </div>
@@ -619,7 +658,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
         <div class="eyebrow">{T("What's new", "新着")}</div>
         <h2 class="title">KurumaMod 1.10.0</h2>
         <p>{T("New engine sounds, real launches and downshifts, and volume for every sound.", "新しいエンジン音、本物らしい発進とシフトダウン、そして音ごとの音量。")}</p>
-        <div class="cta-row"><a class="btn arrow" href="{CF}">{T("Download 1.10.0", "1.10.0 をダウンロード")}</a></div>
+        <div class="cta-row"><a class="btn arrow" href="{CF}" target="_blank" rel="noopener">{ICON_CF}{T("Download on CurseForge", "CurseForge でダウンロード")}</a><a class="btn arrow" href="{MR}" target="_blank" rel="noopener">{ICON_MR}{T("Download on Modrinth", "Modrinth でダウンロード")}</a></div>
       </div>
       <dl class="news-list">{news}</dl>
     </div>
@@ -632,10 +671,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
       <h2 class="title">{T("Join the community", "コミュニティに参加")}</h2>
       <p class="lead">{T("Share setups, show off your builds, and hear about new cars first.", "セッティングを共有したり、作った車を見せ合ったり。新しい車の情報もいち早く。")}</p>
     </div>
-    <div class="acts">
-      <a class="btn light arrow" href="{DISCORD}">Discord</a>
-      <a class="btn outline on-dark" href="{X}">X @kurumamod</a>
-    </div>
+    <a href="{DISCORD}" target="_blank" rel="noopener" style="display:block;flex:0 1 560px">{T('<img src="img/cta-discord-en.png" alt="Join the KurumaMod Discord" style="display:block;width:100%;height:auto;border-radius:12px">', '<img src="img/cta-discord-ja.png" alt="KurumaMod の Discord に参加" style="display:block;width:100%;height:auto;border-radius:12px">')}</a>
   </div>
 </section>
 """)
@@ -912,7 +948,7 @@ page("shaders.html", "Shader packs | KurumaMod", "シェーダーパック | Kur
     <h2 class="title">{T("What we have run.", "実際に動かした組み合わせ。")}</h2>
     <p class="lead">{T("Only what we ran ourselves is listed. Other versions and packs may work, but we have not checked them.", "手元で動かしたものだけを載せています。ほかの版やパックでも動くかもしれませんが、確かめていません。")}</p>
     <div class="compare-wrap">
-      <table class="compare">
+      <table class="compare fit">
         <thead><tr><th scope="col">{T("Minecraft / loader", "Minecraft / ローダー")}</th><th scope="col">{T("Shader mod", "シェーダー MOD")}</th><th scope="col">{T("With", "一緒に入れた MOD")}</th><th scope="col">{T("Packs tried", "試したパック")}</th></tr></thead>
         <tbody>
           <tr><th scope="row">1.20.1 Forge</th><td>Oculus 1.8.0</td><td>Embeddium 0.3.31</td><td>Complementary Unbound r5.9.2</td></tr>
@@ -933,7 +969,7 @@ page("shaders.html", "Shader packs | KurumaMod", "シェーダーパック | Kur
     <div class="eyebrow">{T("Feature by feature", "機能ごとの違い")}</div>
     <h2 class="title">{T("What changes with a pack.", "シェーダーで変わるところ。")}</h2>
     <div class="compare-wrap">
-      <table class="compare">
+      <table class="compare fit">
         <thead><tr><th scope="col">{T("Feature", "機能")}</th><th scope="col">{T("Without a pack", "シェーダーなし")}</th><th scope="col">{T("With a pack", "シェーダーあり")}</th></tr></thead>
         <tbody>
           <tr><th scope="row">{T("Car shadow", "車の影")}</th><td>{T("Soft shadow under the car", "車の下の丸い影")}</td><td>{T("Real shadows from the sun and moon", "太陽と月の光で落ちる影")}</td></tr>
@@ -968,21 +1004,46 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
     <div class="eyebrow">{T("Download", "ダウンロード")}</div>
     <h2 class="title">{T("Pick your loader.", "ローダーを選ぶ。")}</h2>
     <p class="lead">{T("Every version is on the same page. Forge and NeoForge need no other mods; Fabric needs Fabric API.", "どの版も同じページから。Forge と NeoForge は前提 MOD がいりません。Fabric は Fabric API が必要です。")}</p>
-    <div class="packs">
-      <div class="pack static"><small>Forge</small><h3>Minecraft 1.20.1</h3><p>{T("Forge 47.4.22 or later.", "Forge 47.4.22 以上。")}</p></div>
-      <div class="pack static"><small>NeoForge / Fabric</small><h3>Minecraft 1.21.1</h3><p>{T("NeoForge 21.1 or later. Fabric Loader 0.16.14 or later with Fabric API.", "NeoForge 21.1 以上。Fabric は Loader 0.16.14 以上と Fabric API。")}</p></div>
-      <div class="pack static"><small>NeoForge / Fabric / Forge</small><h3>Minecraft 26.3</h3><p>{T("NeoForge 26.3.0.101 or later. Fabric Loader 0.20.1 or later with Fabric API. Forge 66.1.5 or later.", "NeoForge 26.3.0.101 以上。Fabric は Loader 0.20.1 以上と Fabric API。Forge 66.1.5 以上。")}</p></div>
+    <div class="compare-wrap">
+      <table class="compare icons">
+        <thead><tr><th scope="col">Minecraft</th><th scope="col">Forge</th><th scope="col">NeoForge</th><th scope="col">Fabric</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">1.20.1</th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">{T("47.4.22 or later", "47.4.22 以上")}</small></td><td>—</td><td>—</td></tr>
+          <tr><th scope="row">1.21.1</th><td>—</td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">{T("21.1 or later", "21.1 以上")}</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">{T("Loader 0.16.14 or later + Fabric API", "Loader 0.16.14 以上 + Fabric API")}</small></td></tr>
+          <tr><th scope="row">26.3</th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">{T("66.1.5 or later", "66.1.5 以上")}</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">{T("26.3.0.101 or later", "26.3.0.101 以上")}</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">{T("Loader 0.20.1 or later + Fabric API", "Loader 0.20.1 以上 + Fabric API")}</small></td></tr>
+        </tbody>
+      </table>
     </div>
-    <p class="lead">{T("One car pack jar works on every version and loader. Using shader packs? See the", "カーパックは 1 つの jar で、どの版・どのローダーでも動きます。シェーダーパックを使う方は")} <a href="shaders.html">{T("shader pack page", "シェーダーのページ")}</a>{T(".", "へ。")}</p>
+    <p class="lead">{T("Using shader packs? See the", "シェーダーパックを使う方は")} <a href="shaders.html">{T("shader pack page", "シェーダーのページ")}</a>{T(".", "へ。")}</p>
     <div class="cta-row">
-      <a class="btn arrow" href="{CF}">{T("KurumaMod on CurseForge", "KurumaMod（CurseForge）")}</a>
-      <a class="btn outline" href="{MR}">{T("KurumaMod on Modrinth", "KurumaMod（Modrinth）")}</a>
-      <a class="btn outline" href="{CF_BASIC}">Basic Car Pack</a>
+      <a class="btn arrow" href="{CF}">{ICON_CF}{T("KurumaMod on CurseForge", "KurumaMod（CurseForge）")}</a>
+      <a class="btn outline" href="{MR}">{ICON_MR}{T("KurumaMod on Modrinth", "KurumaMod（Modrinth）")}</a>
     </div>
   </div>
 </section>
 
-<section id="install">
+<section>
+  <div class="wrap">
+    <div class="eyebrow">{T("Car packs", "カーパック")}</div>
+    <h2 class="title">{T("Add car packs.", "カーパックを追加する。")}</h2>
+    <p class="lead">{T("One car pack jar works on every version and loader.", "カーパックは 1 つの jar で、どの版・どのローダーでも動きます。")}</p>
+    <div class="compare-wrap">
+      <table class="compare icons">
+        <thead><tr><th scope="col">{T("Car pack", "カーパック")}</th><th scope="col">Forge</th><th scope="col">NeoForge</th><th scope="col">Fabric</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><a class="pack-link" href="{CF_BASIC}" target="_blank" rel="noopener">Basic Car Pack</a></th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.20.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td></tr>
+          <tr><th scope="row"><a class="pack-link" href="{CF_EXAMPLE}" target="_blank" rel="noopener">Example Car Pack</a></th><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.20.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td><td>{ICON_CHECK}{T("Supported", "対応")}<small class="ver">1.21.1 / 26.3</small></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cta-row">
+      <a class="btn outline" href="{CF_BASIC}" target="_blank" rel="noopener">{ICON_CF}Basic Car Pack</a>
+      <a class="btn outline" href="{CF_EXAMPLE}" target="_blank" rel="noopener">{ICON_CF}Example Car Pack</a>
+    </div>
+  </div>
+</section>
+
+<section class="mist" id="install">
   <div class="wrap">
     <div class="eyebrow">{T("Install", "インストール")}</div>
     <h2 class="title">{T("Four steps to the driver's seat.", "4 ステップで、運転席へ。")}</h2>
@@ -1042,7 +1103,7 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
       <h2 class="title">{T("Questions? Ask on Discord.", "困ったら Discord へ。")}</h2>
       <p class="lead">{T("Bug reports, setups and new car packs all land there first.", "不具合の報告も、セッティングの共有も、新しいカーパックの話題も、まずはここで。")}</p>
     </div>
-    <div class="acts"><a class="btn light arrow" href="{DISCORD}">Discord</a><a class="btn outline on-dark" href="{X}">X @kurumamod</a></div>
+    <div class="acts"><a class="btn light arrow" href="{DISCORD}">Discord</a></div>
   </div>
 </section>
 """)
@@ -1167,7 +1228,7 @@ def build_guide():
   <div class="wrap">
     <h2 class="title">{T("Start from the example", "見本から始める")}</h2>
     <p class="lead">{T("The Example Car Pack has a sample car and two wheels. Copy it, rename it, and make it yours. No credit required.", "Example Car Pack には、サンプルの車とホイールが 2 つ入っています。コピーして名前を変えれば、あなたのパックの土台になります。クレジット表記は不要です。")}</p>
-    <div class="cta-row"><a class="btn arrow" href="{CF_EXAMPLE}">{T("Example Car Pack on CurseForge", "Example Car Pack（CurseForge）")}</a><a class="btn outline" href="{DISCORD}">{T("Ask on Discord", "Discord で質問する")}</a></div>
+    <div class="cta-row"><a class="btn arrow" href="{CF_EXAMPLE}">{ICON_CF}{T("Example Car Pack on CurseForge", "Example Car Pack（CurseForge）")}</a><a class="btn outline" href="{DISCORD}">{T("Ask on Discord", "Discord で質問する")}</a></div>
   </div>
 </section>"""
         body = f"""

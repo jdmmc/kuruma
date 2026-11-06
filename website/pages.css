@@ -192,3 +192,30 @@ tr.same { display: none; }
 /* トップのヒーローの KURUMA はヘッダーのロゴと同じ書体 */
 .hero h1.brand { font-family: var(--f-latin); font-weight: 600; font-stretch: 125%; letter-spacing: .42em; font-size: clamp(44px, 9vw, 132px); line-height: 1; margin: 14px 0 22px; }
 @media (max-width: 480px) { .bar .wordmark { font-size: 13px; letter-spacing: .26em; padding-left: .26em; } .bar .tools { gap: 8px; } }
+svg.check { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+small.ver { display: block; margin: 4px 0 0 24px; font-size: 12px; color: var(--grey); }
+a.pack-link { color: var(--black); text-decoration: underline; text-underline-offset: 4px; }
+.lead strong { font-weight: 700; color: var(--black); }
+/* スマホでは表をやめて、行ごとに縦に積む。列名は gen.py の fit_labels が data-en / data-ja に入れる */
+@media (max-width: 700px) {
+  .compare-wrap:has(table.fit) { overflow: visible; }
+  table.compare.fit { min-width: 0; font-size: 14px; }
+  table.compare.fit, table.compare.fit tbody, table.compare.fit tr, table.compare.fit tbody th, table.compare.fit td { display: block; width: auto; }
+  table.compare.fit thead { display: none; }
+  table.compare.fit tr { padding: 16px 0; border-bottom: 1px solid var(--line); }
+  table.compare.fit tbody th { padding: 0 0 8px; border: 0; font-size: 16px; font-weight: 500; color: var(--black); }
+  table.compare.fit td { position: relative; padding: 6px 0 6px 38%; border: 0; }
+  table.compare.fit td[colspan] { padding-left: 0; }
+  table.compare.fit td[data-en]::before { content: attr(data-en); position: absolute; left: 0; top: 7px; width: 36%; font-size: 13px; color: var(--grey); font-family: var(--f-ja); }
+  [data-lang="ja"] table.compare.fit td[data-ja]::before { content: attr(data-ja); }
+}
+/* 対応表はスマホでも表のまま。「対応」の文字を消してチェックだけにする */
+@media (max-width: 700px) {
+  .compare-wrap:has(table.icons) { overflow: visible; }
+  table.compare.icons { min-width: 0; table-layout: fixed; font-size: 13px; }
+  table.compare.icons thead th { font-size: 13px; padding-right: 4px; padding-left: 0; }
+  table.compare.icons tbody th, table.compare.icons td { padding: 12px 6px 12px 0; font-size: 13px; width: auto; }
+  table.compare.icons td > span { display: none !important; }
+  table.compare.icons svg.check { display: block; width: 18px; height: 18px; margin: 0; }
+  table.compare.icons small.ver { margin: 4px 0 0; font-size: 11px; line-height: 1.35; }
+}
