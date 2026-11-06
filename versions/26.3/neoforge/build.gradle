@@ -2,6 +2,8 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'net.neoforged.moddev' version '2.0.148'
+    // CurseForge / Modrinth へのアップロード（中身はリポジトリの gradle/publish.gradle）
+    id 'me.modmuss50.mod-publish-plugin' version '0.8.4'
 }
 
 apply from: rootProject.file('common.gradle')
@@ -69,3 +71,9 @@ tasks.named('build').configure {
         }
     }
 }
+
+// CurseForge / Modrinth へのアップロード（./gradlew publishMods）。Modrinth の版の名前は 1.21.1 版と
+// ぶつからないよう「<版>-neoforge-26.3」にする
+ext.publish_loader = 'neoforge'
+ext.publish_version_suffix = '-26.3'
+apply from: new File(repoRoot, 'gradle/publish.gradle')

@@ -423,7 +423,8 @@ description = '''...'''              # MOD 一覧に出る説明文
 
 [[dependencies.<span class="hl">mypack</span>]]              # 置き換える（2 か所とも）</code></pre>
 KurumaMod への依存の <code>versionRange</code> は、使う機能が入った版を下限にする（エンジン音の <code>type</code>・<code>load</code> は 1.10.0、ナンバーは 1.11.0 から）。古い本体に入れると、新しい書き方は黙って無視される</li>
-<li><code>pack.mcmeta</code> の <code>"description"</code> を自分のものにする。<code>"supported_formats"</code> は消さない（Forge と NeoForge の両方で読まれるのに要る）</li>
+<li><code>fabric.mod.json</code>（いちばん上）の <code>"id"</code>・<code>"icon"</code> を置き換え、<code>"version"</code>・<code>"name"</code>・<code>"description"</code> も自分のものにする</li>
+<li><code>pack.mcmeta</code> の <code>"description"</code> を自分のものにする。<code>"supported_formats"</code>・<code>"min_format"</code>・<code>"max_format"</code> は消さない（どの版の Minecraft でも読まれるのに要る）</li>
 <li>JSON の中のパス</li>
 </ul>
 <p class="en"><b>Replace every <code>kurumamod_example_carpack</code> with <code>mypack</code>.</b> Use only <code>a-z</code>, <code>0-9</code> and <code>_</code></p>
@@ -440,7 +441,8 @@ description = '''...'''              # description in the mod list
 
 [[dependencies.<span class="hl">mypack</span>]]              # replace (both of them)</code></pre>
 Set the <code>versionRange</code> of the KurumaMod dependency to the version that introduced the features you use (engine sound <code>type</code> and <code>load</code> from 1.10.0, licence plates from 1.11.0). On an older KurumaMod, newer keys are silently ignored</li>
-<li>Make <code>"description"</code> in <code>pack.mcmeta</code> your own. Keep <code>"supported_formats"</code> (needed for both Forge and NeoForge to read it)</li>
+<li>In <code>fabric.mod.json</code> (at the top), replace <code>"id"</code> and <code>"icon"</code>, and make <code>"version"</code>, <code>"name"</code> and <code>"description"</code> your own</li>
+<li>Make <code>"description"</code> in <code>pack.mcmeta</code> your own. Keep <code>"supported_formats"</code>, <code>"min_format"</code> and <code>"max_format"</code> (needed for every Minecraft version to read it)</li>
 <li>The paths inside the JSON</li>
 </ul>
 
@@ -2327,22 +2329,24 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 </details>
 
 <details class="more ja">
-<summary>Forge と NeoForge の両方で使いたい</summary>
+<summary>Forge・NeoForge・Fabric のどれでも使いたい</summary>
 <div class="more-body">
-<p>見本をコピーしていれば、もうそうなっています。Forge 1.20.1 は <code>META-INF/mods.toml</code> だけを、NeoForge 1.21.1 は <code>META-INF/neoforge.mods.toml</code> だけを読むので、両方入れておけば同じ jar がどちらでも動きます。</p>
+<p>見本をコピーしていれば、もうそうなっています。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
 <ul>
-<li>2 つの中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
-<li><code>pack.mcmeta</code> に <code>"supported_formats": [15, 48]</code> を書く。無いと 1.21.1 で互換と見なされない</li>
+<li><code>mods.toml</code> と <code>neoforge.mods.toml</code> の中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
+<li>Minecraft の版の範囲は、使う版を全部含める。Forge は <code>"[1.20.1,1.21),[26.3,26.4)"</code>、NeoForge は <code>"[1.21.1,1.22),[26.3,26.4)"</code>、Fabric は <code>[">=1.21.1 &lt;1.22", "~26.3"]</code>。外れた版では読み込まれない</li>
+<li><code>pack.mcmeta</code> は <code>"pack_format": 15</code>、<code>"supported_formats": [15, 121]</code>、<code>"min_format": 15</code>、<code>"max_format": 121</code> の 4 つを書く。26.3 は <code>min_format</code>・<code>max_format</code> で読み、<code>supported_formats</code> の範囲がそれと食い違っていると読まない。1.20.1・1.21.1 は <code>supported_formats</code> で読む</li>
 </ul>
 </div>
 </details>
 <details class="more en">
-<summary>Work on both Forge and NeoForge</summary>
+<summary>Work on Forge, NeoForge and Fabric</summary>
 <div class="more-body">
-<p>If you copied the example, it already does. Forge 1.20.1 reads only <code>META-INF/mods.toml</code> and NeoForge 1.21.1 reads only <code>META-INF/neoforge.mods.toml</code>, so with both inside, the same jar loads on either.</p>
+<p>If you copied the example, it already does. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
 <ul>
-<li>The two files are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
-<li>Put <code>"supported_formats": [15, 48]</code> in <code>pack.mcmeta</code>, or 1.21.1 will not treat the pack as compatible</li>
+<li><code>mods.toml</code> and <code>neoforge.mods.toml</code> are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
+<li>Cover every Minecraft version you target: <code>"[1.20.1,1.21),[26.3,26.4)"</code> for Forge, <code>"[1.21.1,1.22),[26.3,26.4)"</code> for NeoForge and <code>[">=1.21.1 &lt;1.22", "~26.3"]</code> for Fabric. Versions outside the range will not load the pack</li>
+<li>Write all four in <code>pack.mcmeta</code>: <code>"pack_format": 15</code>, <code>"supported_formats": [15, 121]</code>, <code>"min_format": 15</code> and <code>"max_format": 121</code>. 26.3 reads <code>min_format</code> and <code>max_format</code>, and rejects the file if <code>supported_formats</code> disagrees with them. 1.20.1 and 1.21.1 read <code>supported_formats</code></li>
 </ul>
 </div>
 </details>

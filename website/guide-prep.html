@@ -119,7 +119,8 @@ description = '''...'''              # MOD 一覧に出る説明文
 
 [[dependencies.<span class="hl">mypack</span>]]              # 置き換える（2 か所とも）</code></pre>
 KurumaMod への依存の <code>versionRange</code> は、使う機能が入った版を下限にする（エンジン音の <code>type</code>・<code>load</code> は 1.10.0、ナンバーは 1.11.0 から）。古い本体に入れると、新しい書き方は黙って無視される</li>
-<li><code>pack.mcmeta</code> の <code>"description"</code> を自分のものにする。<code>"supported_formats"</code> は消さない（Forge と NeoForge の両方で読まれるのに要る）</li>
+<li><code>fabric.mod.json</code>（いちばん上）の <code>"id"</code>・<code>"icon"</code> を置き換え、<code>"version"</code>・<code>"name"</code>・<code>"description"</code> も自分のものにする</li>
+<li><code>pack.mcmeta</code> の <code>"description"</code> を自分のものにする。<code>"supported_formats"</code>・<code>"min_format"</code>・<code>"max_format"</code> は消さない（どの版の Minecraft でも読まれるのに要る）</li>
 <li>JSON の中のパス</li>
 </ul>
 <p class="en"><b>Replace every <code>kurumamod_example_carpack</code> with <code>mypack</code>.</b> Use only <code>a-z</code>, <code>0-9</code> and <code>_</code></p>
@@ -136,7 +137,8 @@ description = '''...'''              # description in the mod list
 
 [[dependencies.<span class="hl">mypack</span>]]              # replace (both of them)</code></pre>
 Set the <code>versionRange</code> of the KurumaMod dependency to the version that introduced the features you use (engine sound <code>type</code> and <code>load</code> from 1.10.0, licence plates from 1.11.0). On an older KurumaMod, newer keys are silently ignored</li>
-<li>Make <code>"description"</code> in <code>pack.mcmeta</code> your own. Keep <code>"supported_formats"</code> (needed for both Forge and NeoForge to read it)</li>
+<li>In <code>fabric.mod.json</code> (at the top), replace <code>"id"</code> and <code>"icon"</code>, and make <code>"version"</code>, <code>"name"</code> and <code>"description"</code> your own</li>
+<li>Make <code>"description"</code> in <code>pack.mcmeta</code> your own. Keep <code>"supported_formats"</code>, <code>"min_format"</code> and <code>"max_format"</code> (needed for every Minecraft version to read it)</li>
 <li>The paths inside the JSON</li>
 </ul>
 

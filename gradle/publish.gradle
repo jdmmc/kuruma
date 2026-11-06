@@ -1,5 +1,10 @@
-// CurseForge と Modrinth へのアップロード（Mod Publish Plugin）。versions/1.20.1/forge/ と versions/1.21.1/neoforge/ の
-// 両方が apply from で読む。読む側は先に publish_loader（forge / neoforge）を決めておくこと。
+// CurseForge と Modrinth へのアップロード（Mod Publish Plugin）。各版のローダーのプロジェクトが apply from で読む
+// （versions/1.20.1/forge/・versions/1.21.1/neoforge/・fabric/、別のビルドの versions/26.3/ の 3 つ）。
+// 読む側は先に publish_loader（forge / neoforge / fabric）を決めておくこと。
+//
+// Modrinth の版の名前は「<mod_version>-<ローダー>」。同じ MOD の版を Minecraft の版違いで 2 つ上げるときは、
+// 後から足した版の側で publish_version_suffix を決めて名前を分ける（26.3 は「-26.3」）。分けないと
+// 「もう上がっている」で止まる。1.20.1・1.21.1 は付けない（1.10.0 までに上げた名前と揃えるため）
 //
 //   ./gradlew publishMods            両方の jar を、両方のサイトへ上げる
 //   ./gradlew publishMods -Pdry_run  上げずに中身だけ確かめる（build/publishMods/ に書き出す）
@@ -19,9 +24,11 @@ def secret = { String prop, String env ->
 
 // 更新履歴は版ごとのファイル（docs/release-notes/<mod_version>.md）。無いか空なら上げさせない
 // （空の更新履歴で公開してしまうのを防ぐ）。設定の段階では読まず、上げるときに読む
+// リポジトリのいちばん上。26.3 は別のビルドなので rootProject がそこを指さず、ext.repoRoot を使う
+def publishRoot = findProperty('repoRoot') ?: rootProject.projectDir
 def changelogText = providers.provider {
     def path = "docs/release-notes/${mod_version}.md"
-    def file = rootProject.file(path)
+    def file = new File(publishRoot, path)
     if (!file.exists()) {
         throw new GradleException("${path} がありません（この版の更新履歴を書くこと）")
     }
@@ -46,7 +53,7 @@ publishMods {
     // 名前の付け方は 1.10.0 までに手で上げてきたものに揃える。
     // CurseForge は jar のファイル名、Modrinth は「Kuruma <版>」（Modrinth のプロジェクト名）
     displayName = publishJar.flatMap { it.archiveFileName }
-    version = "${mod_version}-${publish_loader}"
+    version = "${mod_version}-${publish_loader}${findProperty('publish_version_suffix') ?: ''}"
     modLoaders.add(publish_loader)
     dryRun = findProperty('dry_run') != null
 
@@ -107,7 +114,7 @@ def guard = { Task task, String site, Closure<String> findExisting ->
                 "\n確かめずに上げるなら -Pskip_published_check を付ける"
     }
     if (problem == null) {
-        task.logger.lifecycle("[${site}] ${mod_version}（${publish_loader}）はまだ上がっていない")
+        task.logger.lifecycle("[${site}] ${mod_version}（${publish_loader}${findProperty('publish_version_suffix') ?: ''}）はまだ上がっていない")
     } else if (findProperty('dry_run') != null) {
         task.logger.warn("[${site}] ドライランなので続ける: ${problem}")
     } else {
@@ -134,7 +141,7 @@ def checkCurseforge = tasks.register('checkCurseforgeNotPublished') {
 def checkModrinth = tasks.register('checkModrinthNotPublished') {
     group = 'publishing'
     description = 'Modrinth に同じ版がもう上がっていないか確かめる'
-    def versionNumber = "${mod_version}-${publish_loader}".toString()
+    def versionNumber = "${mod_version}-${publish_loader}${findProperty('publish_version_suffix') ?: ''}".toString()
     doLast {
         guard(it, 'Modrinth') {
             def versions = fetchJson("https://api.modrinth.com/v2/project/${modrinth_project_id}/version")

@@ -2,6 +2,8 @@ plugins {
     // 26.x の Minecraft は難読化されていないので、Loom は名前の対応表（mappings）を使わない系統（fabric-loom）になる。
     // 配布 jar の名前の付け直し（remapJar）も無い
     id 'net.fabricmc.fabric-loom' version '1.19-SNAPSHOT'
+    // CurseForge / Modrinth へのアップロード（中身はリポジトリの gradle/publish.gradle）
+    id 'me.modmuss50.mod-publish-plugin' version '0.8.4'
 }
 
 apply from: rootProject.file('common.gradle')
@@ -65,3 +67,9 @@ tasks.named('build').configure {
 }
 
 tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach { enabled = false }
+
+// CurseForge / Modrinth へのアップロード（./gradlew publishMods）。Modrinth の版の名前は 1.21.1 版と
+// ぶつからないよう「<版>-fabric-26.3」にする
+ext.publish_loader = 'fabric'
+ext.publish_version_suffix = '-26.3'
+apply from: new File(repoRoot, 'gradle/publish.gradle')

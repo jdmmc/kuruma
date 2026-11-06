@@ -1585,22 +1585,24 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
 </details>
 
 <details class="more ja">
-<summary>Forge と NeoForge の両方で使いたい</summary>
+<summary>Forge・NeoForge・Fabric のどれでも使いたい</summary>
 <div class="more-body">
-<p>見本をコピーしていれば、もうそうなっています。Forge 1.20.1 は <code>META-INF/mods.toml</code> だけを、NeoForge 1.21.1 は <code>META-INF/neoforge.mods.toml</code> だけを読むので、両方入れておけば同じ jar がどちらでも動きます。</p>
+<p>見本をコピーしていれば、もうそうなっています。Forge は <code>META-INF/mods.toml</code> だけを、NeoForge は <code>META-INF/neoforge.mods.toml</code> だけを、Fabric は <code>fabric.mod.json</code> だけを読むので、3 つとも入れておけば同じ jar がどれでも動きます（Minecraft 1.20.1・1.21.1・26.3）。</p>
 <ul>
-<li>2 つの中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
-<li><code>pack.mcmeta</code> に <code>"supported_formats": [15, 48]</code> を書く。無いと 1.21.1 で互換と見なされない</li>
+<li><code>mods.toml</code> と <code>neoforge.mods.toml</code> の中身はほぼ同じ。違うのはローダーの版（<code>loaderVersion</code>）、Minecraft の版、依存の書き方（<code>mandatory = true</code> が <code>type = "required"</code>）だけ</li>
+<li>Minecraft の版の範囲は、使う版を全部含める。Forge は <code>"[1.20.1,1.21),[26.3,26.4)"</code>、NeoForge は <code>"[1.21.1,1.22),[26.3,26.4)"</code>、Fabric は <code>[">=1.21.1 &lt;1.22", "~26.3"]</code>。外れた版では読み込まれない</li>
+<li><code>pack.mcmeta</code> は <code>"pack_format": 15</code>、<code>"supported_formats": [15, 121]</code>、<code>"min_format": 15</code>、<code>"max_format": 121</code> の 4 つを書く。26.3 は <code>min_format</code>・<code>max_format</code> で読み、<code>supported_formats</code> の範囲がそれと食い違っていると読まない。1.20.1・1.21.1 は <code>supported_formats</code> で読む</li>
 </ul>
 </div>
 </details>
 <details class="more en">
-<summary>Work on both Forge and NeoForge</summary>
+<summary>Work on Forge, NeoForge and Fabric</summary>
 <div class="more-body">
-<p>If you copied the example, it already does. Forge 1.20.1 reads only <code>META-INF/mods.toml</code> and NeoForge 1.21.1 reads only <code>META-INF/neoforge.mods.toml</code>, so with both inside, the same jar loads on either.</p>
+<p>If you copied the example, it already does. Forge reads only <code>META-INF/mods.toml</code>, NeoForge reads only <code>META-INF/neoforge.mods.toml</code> and Fabric reads only <code>fabric.mod.json</code>, so with all three inside, the same jar loads on any of them (Minecraft 1.20.1, 1.21.1 and 26.3).</p>
 <ul>
-<li>The two files are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
-<li>Put <code>"supported_formats": [15, 48]</code> in <code>pack.mcmeta</code>, or 1.21.1 will not treat the pack as compatible</li>
+<li><code>mods.toml</code> and <code>neoforge.mods.toml</code> are nearly identical. Only the loader version (<code>loaderVersion</code>), the Minecraft version, and how dependencies are written (<code>mandatory = true</code> becomes <code>type = "required"</code>) differ</li>
+<li>Cover every Minecraft version you target: <code>"[1.20.1,1.21),[26.3,26.4)"</code> for Forge, <code>"[1.21.1,1.22),[26.3,26.4)"</code> for NeoForge and <code>[">=1.21.1 &lt;1.22", "~26.3"]</code> for Fabric. Versions outside the range will not load the pack</li>
+<li>Write all four in <code>pack.mcmeta</code>: <code>"pack_format": 15</code>, <code>"supported_formats": [15, 121]</code>, <code>"min_format": 15</code> and <code>"max_format": 121</code>. 26.3 reads <code>min_format</code> and <code>max_format</code>, and rejects the file if <code>supported_formats</code> disagrees with them. 1.20.1 and 1.21.1 read <code>supported_formats</code></li>
 </ul>
 </div>
 </details>
