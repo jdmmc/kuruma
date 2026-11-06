@@ -226,6 +226,7 @@ public final class ObjModel {
      * 毎フレーム計算し直す理由がない。</p>
      */
     private final GpuMesh[] gpuMeshes = new GpuMesh[4];
+    private final Map<Integer, GpuMesh> packMeshes = new HashMap<>();
     private final boolean[] gpuEmpty = new boolean[4];
     private final int[] opaqueFaces;
     private final int[] translucentFaces;
@@ -1324,8 +1325,45 @@ public final class ObjModel {
         }
     }
 
+    /**
+     * シェーダーパック（Iris）用に GPU に置いた不透明な面。<b>ワールドの描画の最中に呼ぶこと。</b>
+     * その間は {@code BufferBuilder} が Iris の長い形式で積むので、接線などがそのまま焼き込まれる。
+     *
+     * <p>パックの頂点シェーダーは明るさを頂点から読むので外から渡せない。そこで<b>明るさごとに別に焼く</b>
+     * （普通は数通りで済み、値は 16 段×16 段なので増えても上限がある）。</p>
+     */
+    GpuMesh packMesh(boolean withoutTire, boolean shadowCaster, boolean mirrorX, int packedLight) {
+        int key = packedLight << 3 | (shadowCaster ? 4 : 0) | (withoutTire ? 2 : 0) | (mirrorX ? 1 : 0);
+        GpuMesh mesh = packMeshes.get(key);
+        if (mesh != null) {
+            return mesh;
+        }
+        int[] faces = shadowCaster ? opaqueShadowFaces : withoutTire ? opaqueRimFaces : opaqueFaces;
+        if (faces.length == 0) {
+            return null;
+        }
+        float flip = mirrorX ? -1.0F : 1.0F;
+        int size = faces.length * 4 * DefaultVertexFormat.ENTITY.getVertexSize() * 2;
+        try (ByteBufferBuilder bytes = new ByteBufferBuilder(size)) {
+            BufferBuilder builder = new BufferBuilder(bytes, PrimitiveTopology.QUADS, DefaultVertexFormat.ENTITY);
+            // 頂点を積む描き方と同じ道を通す。Iris の BufferBuilder は 1 頂点ずつ積むと法線を面から計算し直すが、
+            // Sodium へ塊で渡す道（BulkVertexWriter）はそこを通らないので、別の道で焼くと陰影が変わる
+            renderFaces(faces, new Matrix4f(), new Matrix3f(), flip, builder, packedLight, OverlayTexture.NO_OVERLAY,
+                    1.0F, 1.0F, 1.0F, 1.0F);
+            try (MeshData data = builder.buildOrThrow()) {
+                GpuBuffer buffer = RenderSystem.getDevice().createBuffer(() -> "kurumamod car mesh (pack)",
+                        GpuBuffer.USAGE_VERTEX, data.vertexBuffer());
+                mesh = new GpuMesh(buffer, data.drawState().indexCount());
+                packMeshes.put(key, mesh);
+                return mesh;
+            }
+        }
+    }
+
     /** GPU に置いた頂点を返す。 */
     private void releaseGpu() {
+        packMeshes.values().forEach(mesh -> mesh.vertices().close());
+        packMeshes.clear();
         for (ObjModel lod : lods) {
             if (lod != null) {
                 lod.releaseGpu();
