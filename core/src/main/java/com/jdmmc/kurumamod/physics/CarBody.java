@@ -441,7 +441,7 @@ public final class CarBody {
         double[][] ax = axes(state.yaw, state.pitch, state.roll);
         double stepBase = Math.cos(state.pitch) * Math.cos(state.roll) >= STEP_UPRIGHT_MIN
                 ? stepBase(ground) : Double.NEGATIVE_INFINITY;
-        VirtualWalls virtual = virtualWallsEnabled ? virtualWalls(field, x, z) : VirtualWalls.NONE;
+        VirtualWalls virtual = virtualWallsEnabled ? virtualWalls(field, x, z, carFloor(ground)) : VirtualWalls.NONE;
         List<Contact> contacts = findContacts(x, y, z, ax, field, stepBase, virtual);
         addBottomOutContacts(contacts, spec, state, ground, x, z);
         double[] span = Double.isNaN(tireInner) ? defaultTireSpan(spec) : new double[]{tireInner, tireOuter};
@@ -877,6 +877,17 @@ public final class CarBody {
         return base;
     }
 
+    /** 車のいる高さ。地面が見えている輪のうち、いちばん低い輪の地面。どの輪も見えなければ負の無限大。 */
+    private static double carFloor(GroundContact ground) {
+        double floor = Double.POSITIVE_INFINITY;
+        for (double h : ground.groundHeight) {
+            if (h > Double.NEGATIVE_INFINITY) {
+                floor = Math.min(floor, h);
+            }
+        }
+        return floor == Double.POSITIVE_INFINITY ? Double.NEGATIVE_INFINITY : floor;
+    }
+
     private List<Contact> findContacts(double x, double y, double z, double[][] ax, BlockField field,
                                        double stepBase, VirtualWalls virtual) {
         List<Contact> out = new ArrayList<>();
@@ -1155,7 +1166,7 @@ public final class CarBody {
      * （{@link #VIRTUAL_WALL_REACH}）で打ち切られたあと、角に近いブロックからのたどりがそこで止まって
      * 角を見つけられず、階段状の壁でまた止まった。</p>
      */
-    private static VirtualWalls virtualWalls(BlockField field, double carX, double carZ) {
+    private static VirtualWalls virtualWalls(BlockField field, double carX, double carZ, double carFloor) {
         if (field.derived() instanceof VirtualWalls cached) {
             return cached;
         }
@@ -1168,7 +1179,7 @@ public final class CarBody {
                 if (!facesCar(box, n, carX, carZ) || !faceIsOpen(box, n, field)) {
                     continue;
                 }
-                addStep(walls, stepFaces, tried, box, f, field, carX, carZ);
+                addStep(walls, stepFaces, tried, box, f, field, carX, carZ, carFloor);
                 // この面に沿って壁をたどり、先の段の角を探す。物理が集めるのは車の周りだけなので、
                 // 線の端の角は範囲の外にあることが多い（範囲の外は solidAt がワールドに聞く）
                 double cx = (box[0] + box[3]) / 2.0;
@@ -1188,7 +1199,7 @@ public final class CarBody {
                                 corner = probeBox(field, wx + n[0], cy, wz + n[2]);
                             }
                             if (facesCar(corner, HORIZONTAL_FACES[back], carX, carZ)) {
-                                addStep(walls, stepFaces, tried, corner, back, field, carX, carZ);
+                                addStep(walls, stepFaces, tried, corner, back, field, carX, carZ, carFloor);
                             }
                             break;
                         }
@@ -1276,7 +1287,7 @@ public final class CarBody {
      * 同じマスの同じ面は 1 度しか調べない。
      */
     private static void addStep(List<VirtualWall> walls, Map<double[], List<double[]>> stepFaces, Set<Long> tried,
-                                double[] box, int f, BlockField field, double carX, double carZ) {
+                                double[] box, int f, BlockField field, double carX, double carZ, double carFloor) {
         if (!tried.add(cellKey(box[0], box[1], box[2], f))) {
             return;
         }
@@ -1289,7 +1300,7 @@ public final class CarBody {
             return;
         }
         // 形だと分かってから高さを見る（面の前の地面を細かく探すので重い）
-        double[] range = wallFace(box, n, field);
+        double[] range = wallFace(box, n, field, carFloor);
         if (range == null) {
             return;
         }
@@ -1369,10 +1380,12 @@ public final class CarBody {
      * F3+B 用。{@code field} の見えない壁の線分 {@code {x1, z1, x2, z2, 下端, 上端}}。張り出しの角から、
      * 手前の段の張り出しの角（壁から飛び出した柱なら、手前の柱の先端）まで。
      * 当たりと同じもの（{@link #virtualWalls}）を描くので、描いた線がそのまま当たる場所。
+     *
+     * @param ground 各輪の地面。車のいる高さより上へ立ち上がっていない壁は作らない
      */
-    public static List<double[]> staircaseLines(BlockField field, double carX, double carZ) {
+    public static List<double[]> staircaseLines(BlockField field, GroundContact ground, double carX, double carZ) {
         List<double[]> out = new ArrayList<>();
-        for (VirtualWall w : virtualWalls(field, carX, carZ).walls()) {
+        for (VirtualWall w : virtualWalls(field, carX, carZ, carFloor(ground)).walls()) {
             out.add(new double[]{w.cx(), w.cz(), w.ex(), w.ez(), w.minY(), w.maxY()});
         }
         return out;
@@ -1401,11 +1414,15 @@ public final class CarBody {
      * アスファルト 16 層＋薄い層を載せた 1.06〜1.25 ブロックで、1 ブロックを境目にしていた頃は壁になった。
      * 坂の路面の段・低い塀・道の縁は、どれも 2 ブロックに届かない。</p>
      *
+     * <p><b>車より上へ立ち上がっていなければ壁ではない。</b>面の前の地面だけで測ると、車が地表にいても
+     * 足元の深さ 2 の穴の側面が「2 ブロックの壁」になり、地中に見えない壁ができた。{@code carFloor} が
+     * 面の前の地面より高いときは、そこから測る（車が穴の底にいれば今までどおり壁）。</p>
+     *
      * <p><b>列ごとに 1 枚。</b>見えない壁は、列のいちばん下の段（面の前の地面の高さを含むブロック）だけが
      * 作り、範囲は列の下から上まで。ブロック 1 個ずつ作っていた頃は、本物の壁の上に載った薄い層
      * （1/16）が、その厚さだけの細い見えない壁になった（角の位置が下と違うので、つながりもしない）。</p>
      */
-    private static double[] wallFace(double[] box, double[] n, BlockField field) {
+    private static double[] wallFace(double[] box, double[] n, BlockField field, double carFloor) {
         double cx = (box[0] + box[3]) / 2.0;
         double cz = (box[2] + box[5]) / 2.0;
         double hn = Math.abs(n[0]) * (box[3] - box[0]) / 2.0 + Math.abs(n[2]) * (box[5] - box[2]) / 2.0;
@@ -1432,7 +1449,7 @@ public final class CarBody {
         for (int i = 0; i < 8 && top < floor + WALL_TOP_REACH && field.solidAt(cx, top + 0.01, cz); i++) {
             top = solidTop(field, cx, top + 0.01, cz);
         }
-        if (top - floor < WALL_MIN_HEIGHT) {
+        if (top - Math.max(floor, carFloor) < WALL_MIN_HEIGHT) {
             return null;
         }
         return new double[]{floor, Math.min(top, floor + WALL_TOP_REACH)};

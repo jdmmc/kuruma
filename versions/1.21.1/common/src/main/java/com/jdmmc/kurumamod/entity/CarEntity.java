@@ -1389,7 +1389,7 @@ public class CarEntity extends CarEntityBase {
         }
         // 見えない壁は車の周りの壁から先へたどって作るので、描くのは車の近くの線だけ
         List<double[]> near = new ArrayList<>();
-        for (double[] line : CarBody.staircaseLines(blockField, getX(), getZ())) {
+        for (double[] line : CarBody.staircaseLines(blockField, groundContact, getX(), getZ())) {
             double dx = line[2] - line[0];
             double dz = line[3] - line[1];
             double lengthSq = dx * dx + dz * dz;
