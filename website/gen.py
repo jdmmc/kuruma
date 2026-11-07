@@ -546,11 +546,12 @@ def tile(cls, anchor, img, alt, small, h, p):
 
 
 NEWS = [
-    (("New engine sounds", "新しいエンジン音"), ("Built for each kind of engine: turbo inline-4 (SR20DET-style), inline-4, inline-6, flat-6, V8 and diesel. Rough on the throttle, settled off it.", "エンジンの種類ごとに作った音。直 4 ターボ（SR20DET 風）・直 4・直 6・水平対向 6・V8・ディーゼル。踏むと荒く、抜くと落ち着きます。")),
-    (("Launch, engine braking, downshifts", "発進・エンジンブレーキ・シフトダウン"), ("Launches slip like a torque converter, lifting off brakes on the engine, and a manual downshift goes in the moment you press it.", "発進はトルコンのように滑って出足が強く、アクセルを離すとエンジンブレーキ。MT のシフトダウンは押した瞬間に入ります。")),
-    (("Volume by sound", "音の種類ごとの音量"), ("The H menu is split into tabs, with volume sliders for the engine, turbo, tyres, road, wind and more.", "H の画面をタブに分け、エンジン・ターボ・タイヤ・ロードノイズ・風などの音量を別々に変えられます。")),
-    (("Part tags on the car", "車の上に部品の札"), ("The parts screen points to each part on the car itself.", "パーツの画面で、部品の場所が車の上に札と線で出ます。")),
-    (("Sounds by numbers for car packs", "カーパックは数字で音を変えられる"), ("Pick an engine type and pitch in the car's JSON, no audio needed. Ctrl+H tunes it live.", "車の JSON でエンジンの種類と高さを選ぶだけ。音源は要りません。Ctrl+H で走りながら調整できます。")),
+    (("Fabric and Minecraft 26.3", "Fabric と Minecraft 26.3"), ("Fabric joins on 1.21.1, and 26.3 runs on Forge, NeoForge and Fabric with OpenGL or Vulkan.", "1.21.1 に Fabric 版が加わり、26.3 は Forge・NeoForge・Fabric で動きます。OpenGL でも Vulkan でも。")),
+    (("Volumetric tyre smoke", "体積で描くタイヤの煙"), ("Smoke and dust are drawn as volumes, shaded by the sun and lit by your headlights.", "煙と土煙を体積として描きます。太陽で陰影が付き、ヘッドライトに照らされます。")),
+    (("Licence plates", "ナンバープレート"), ("Japanese, EU, UK and US plates with your own text. Choose where they mount.", "日本・EU・UK・US のプレートに好きな文字を。付ける位置も選べます。")),
+    (("Much lighter with shader packs", "シェーダーパック使用中が大幅に軽く"), ("Cars stay on the GPU. 30 cars with Complementary Unbound: about 60 ms per frame down to 10-17 ms.", "車を GPU に置いたまま描きます。Complementary Unbound、30 台の実測で 1 フレーム約 60ms が 10〜17ms に。")),
+    (("Front and rear track width", "トレッドを前後別々に"), ("Set each end on its own in the tuning screen, or lock them to move together.", "調整画面で前後を別々に。鍵を閉じれば一緒に動きます。")),
+    (("One jar for every loader", "カーパックは 1 つの jar ですべてのローダーへ"), ("A car pack can load on Forge, NeoForge and Fabric, including 26.3.", "カーパックは Forge・NeoForge・Fabric、26.3 にも 1 つの jar で対応できます。")),
 ]
 news = "".join(f"<div><dt>{T(*h)}</dt><dd>{T(*d)}</dd></div>" for h, d in NEWS)
 cards = "".join(model_card(m) for m in MODELS.values())
@@ -656,8 +657,8 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div class="split" style="align-items:start">
       <div>
         <div class="eyebrow">{T("What's new", "新着")}</div>
-        <h2 class="title">KurumaMod 1.10.0</h2>
-        <p>{T("New engine sounds, real launches and downshifts, and volume for every sound.", "新しいエンジン音、本物らしい発進とシフトダウン、そして音ごとの音量。")}</p>
+        <h2 class="title">KurumaMod 2.0.0</h2>
+        <p>{T("Now on Fabric and Minecraft 26.3, with volumetric tyre smoke, licence plates and far better performance with shader packs.", "Fabric と Minecraft 26.3 に対応。体積で描くタイヤの煙、ナンバープレート、シェーダーパック使用中の大幅な軽量化も。")}</p>
         <div class="cta-row"><a class="btn arrow" href="{CF}" target="_blank" rel="noopener">{ICON_CF}{T("Download on CurseForge", "CurseForge でダウンロード")}</a><a class="btn arrow" href="{MR}" target="_blank" rel="noopener">{ICON_MR}{T("Download on Modrinth", "Modrinth でダウンロード")}</a></div>
       </div>
       <dl class="news-list">{news}</dl>

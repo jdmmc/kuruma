@@ -426,7 +426,7 @@ logoFile = "<span class="hl">mypack</span>.png"              # 置き換える
 description = '''...'''              # MOD 一覧に出る説明文
 
 [[dependencies.<span class="hl">mypack</span>]]              # 置き換える（2 か所とも）</code></pre>
-KurumaMod への依存の <code>versionRange</code> は、使う機能が入った版を下限にする（エンジン音の <code>type</code>・<code>load</code> は 1.10.0、ナンバーは 1.11.0 から）。古い本体に入れると、新しい書き方は黙って無視される</li>
+KurumaMod への依存の <code>versionRange</code> は、使う機能が入った版を下限にする（エンジン音の <code>type</code>・<code>load</code> は 1.10.0、ナンバーは 2.0.0 から）。古い本体に入れると、新しい書き方は黙って無視される</li>
 <li><code>fabric.mod.json</code>（いちばん上）の <code>"id"</code>・<code>"icon"</code> を置き換え、<code>"version"</code>・<code>"name"</code>・<code>"description"</code> も自分のものにする</li>
 <li><code>pack.mcmeta</code> の <code>"description"</code> を自分のものにする。<code>"supported_formats"</code>・<code>"min_format"</code>・<code>"max_format"</code> は消さない（どの版の Minecraft でも読まれるのに要る）</li>
 <li>JSON の中のパス</li>
@@ -444,7 +444,7 @@ logoFile = "<span class="hl">mypack</span>.png"              # replace
 description = '''...'''              # description in the mod list
 
 [[dependencies.<span class="hl">mypack</span>]]              # replace (both of them)</code></pre>
-Set the <code>versionRange</code> of the KurumaMod dependency to the version that introduced the features you use (engine sound <code>type</code> and <code>load</code> from 1.10.0, licence plates from 1.11.0). On an older KurumaMod, newer keys are silently ignored</li>
+Set the <code>versionRange</code> of the KurumaMod dependency to the version that introduced the features you use (engine sound <code>type</code> and <code>load</code> from 1.10.0, licence plates from 2.0.0). On an older KurumaMod, newer keys are silently ignored</li>
 <li>In <code>fabric.mod.json</code> (at the top), replace <code>"id"</code> and <code>"icon"</code>, and make <code>"version"</code>, <code>"name"</code> and <code>"description"</code> your own</li>
 <li>Make <code>"description"</code> in <code>pack.mcmeta</code> your own. Keep <code>"supported_formats"</code>, <code>"min_format"</code> and <code>"max_format"</code> (needed for every Minecraft version to read it)</li>
 <li>The paths inside the JSON</li>
@@ -2486,8 +2486,8 @@ Set the <code>versionRange</code> of the KurumaMod dependency to the version tha
 </section>
 
 <section id="s-plate-pos" data-guide="car">
-<h2 class="ja"><span class="num">8</span>ナンバープレートの位置を調整する<span class="ver">1.11.0〜</span></h2>
-<h2 class="en"><span class="num">8</span>Adjust the licence plate positions<span class="ver">1.11.0+</span></h2>
+<h2 class="ja"><span class="num">8</span>ナンバープレートの位置を調整する<span class="ver">2.0.0〜</span></h2>
+<h2 class="en"><span class="num">8</span>Adjust the licence plate positions<span class="ver">2.0.0+</span></h2>
 <p class="ja">何も書かなくても、ナンバーは車体の形から自動で置かれます（前は中央・左・右、後ろは中央）。ずれているときだけ、乗ったまま <kbd>Ctrl</kbd>+<kbd>G</kbd> で動かして、コピーした JSON を貼ります。数字を手で探す必要はありません。</p>
 <p class="en">Even if you write nothing, plates are placed from the body shape (centre, left and right at the front; centre at the rear). Only when they are off, move them with <kbd>Ctrl</kbd>+<kbd>G</kbd> while sitting in the car and paste the JSON it copies. No need to hunt for numbers by hand.</p>
 
@@ -4986,8 +4986,8 @@ Changes apply to your client only, until you close the game.</p>
 </section>
 
 <section id="s-plate" data-guide="parts">
-<h2 class="ja"><span class="num">4</span>ナンバープレート<span class="ver">1.11.0〜</span></h2>
-<h2 class="en"><span class="num">4</span>Licence plates<span class="ver">1.11.0+</span></h2>
+<h2 class="ja"><span class="num">4</span>ナンバープレート<span class="ver">2.0.0〜</span></h2>
+<h2 class="en"><span class="num">4</span>Licence plates<span class="ver">2.0.0+</span></h2>
 <p class="ja">前後のナンバーです。見た目だけで、走りは変わりません。<b>字はプレイヤーが換装画面で打ち</b>、MOD がプレートの絵に焼き込みます。KurumaMod には日本（自家用・軽・事業用）・EU・UK・US の 6 種類が入っていて、どの車にも付けられます。パックで作るのは、それ以外のデザインのナンバーです。</p>
 <p class="ja"><b>どこに付けるかはプレートではなく車が決めます</b>（<a href="#s-plate-pos">車の 8 章</a>）。プレートの側は形と絵と字の決まりだけを持ちます。</p>
 <p class="en">Front and rear plates. Looks only; driving does not change. <b>Players type the text in the parts screen</b> and the mod bakes it into the plate's texture. KurumaMod comes with six styles (Japanese private, kei and commercial, EU, UK and US) that fit any car. What a pack adds is a plate of another design.</p>
