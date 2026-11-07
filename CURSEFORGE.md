@@ -6,7 +6,7 @@ This isn't just something shaped like a car. **The front dips when you brake, th
 
 ![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
-**Forge 1.20.1 (47.4.22+) / NeoForge 1.21.1 (21.1+) · No dependencies · Multiplayer · Wheel & gamepad**
+**1.20.1: Forge (47.4.22+) · 1.21.1: NeoForge (21.1+) / Fabric · 26.3: Forge / NeoForge / Fabric · Fabric needs Fabric API · Multiplayer · Wheel & gamepad**
 
 [![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
@@ -160,7 +160,7 @@ Server settings are in `config/kurumamod-common.toml` (removing abandoned cars, 
 
 ![kuruma mod main image](https://media.forgecdn.net/attachments/1980/924/hud-jpg.jpg)
 
-**Forge 1.20.1（47.4.22+）／NeoForge 1.21.1（21.1+） · 前提 MOD なし · マルチプレイ対応 · ハンコン・パッド対応**
+**1.20.1: Forge（47.4.22+）／1.21.1: NeoForge（21.1+）・Fabric／26.3: Forge・NeoForge・Fabric · Fabric 版は Fabric API が必要 · マルチプレイ対応 · ハンコン・パッド対応**
 
 [![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
 
