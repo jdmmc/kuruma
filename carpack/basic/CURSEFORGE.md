@@ -9,8 +9,6 @@ A heavy, tall 4x4 and a rear-engined sports car to put next to the light sports 
 starts you with. Everything in them can be tuned in-game, so the numbers below are a starting
 point, not something fixed.
 
-[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
-
 ## 🚗 Cars in this pack
 
 | Car | What it's like |
@@ -20,23 +18,23 @@ point, not something fixed.
 
 ## 📦 How to install
 
-1. Minecraft **1.20.1** with **Forge 47.4.22+**, or Minecraft **1.21.1** with **NeoForge 21.1+** — the same jar works on both
+1. Minecraft **1.20.1** (Forge), **1.21.1** (NeoForge / Fabric) or **26.3** (Forge / NeoForge / Fabric) — the same jar works on all of them
 2. **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** — install the latest version first
 3. This pack's `.jar` into your `mods/` folder (the same place as Kuruma)
 
-That's it. No extra libraries, no config files to edit.
+That's it. No config files to edit. On Fabric, Kuruma also needs Fabric API.
 
 **Playing on a server?** Put this pack on **both the server and every player's client.**
 The server decides which cars exist; each client renders them.
 
 ## 🎮 How to drive it
 
-The Prado and the 911 sit in the creative inventory alongside the **standard car item**. Right-click the
+The Prado and the 911 are in the **KurumaMod** creative tab, next to the standard car. Right-click the
 ground to place one, right-click the car to get in.
 
 **Press G to change the setup.** Each car comes tuned the way it's meant to drive — the Prado
 with soft-ish springs and mild understeer for stability at height, the 911 with a stiffer front
-bar to calm the heavy tail — but nothing is locked. Springs, gears, diff and tyres can all be
+bar to calm the heavy tail — but nothing is locked. Springs, gears, diff and tires can all be
 moved. If you'd rather have it turn in sharper, change it.
 
 ## ❓ If something isn't working
@@ -70,8 +68,6 @@ under the GNU General Public License v3.0 (nothing in this pack changes it).
 Kuruma に最初から入っている軽いスポーツカーの隣に置きたい、重くて背の高い 4WD と、エンジンを後ろに積んだスポーツカー。
 すべてゲーム内でいじれるので、以下の数字は「決められたもの」ではなく「初期値」です。
 
-[![Website](https://img.shields.io/badge/Website-kuruma.jdm--mc.com-ff8a1f?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kuruma.jdm-mc.com/) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/q3YNqaveRd)
-
 ## 🚗 入っている車
 
 | 車 | どんな車か |
@@ -81,18 +77,18 @@ Kuruma に最初から入っている軽いスポーツカーの隣に置きた�
 
 ## 📦 導入方法
 
-1. Minecraft **1.20.1** ＋ **Forge 47.4.22 以降**、または Minecraft **1.21.1** ＋ **NeoForge 21.1 以降**（同じ jar でどちらにも入ります）
+1. Minecraft **1.20.1**（Forge）、**1.21.1**（NeoForge・Fabric）、**26.3**（Forge・NeoForge・Fabric）のいずれか（同じ jar でどれにも入ります）
 2. **[Kuruma](https://www.curseforge.com/minecraft/mc-mods/kuruma)** の最新版を先に入れる
 3. このパックの `.jar` を `mods/` フォルダへ（Kuruma と同じ場所）
 
-以上です。追加のライブラリも、設定ファイルの編集も要りません。
+以上です。設定ファイルの編集は要りません。Fabric では Kuruma 用に Fabric API も必要です。
 
 **サーバーで遊ぶときは、サーバーと参加者全員のクライアントの両方に入れてください。**
 どの車が存在するかはサーバーが決め、その姿をレンダリングするのは各クライアントだからです。
 
 ## 🎮 乗りかた
 
-クリエイティブの**車アイテム**の中に、プラドと 911 も並んでいます。地面を右クリックで車を出し、
+クリエイティブの **KurumaMod** タブに、プラドと 911 も並んでいます。地面を右クリックで車を出し、
 車を右クリックで乗車。
 
 **G キーでセッティングを変えられます。** どの車もそのままで走るように詰めてあります（プラドは
