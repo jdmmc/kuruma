@@ -29,6 +29,7 @@ import com.jdmmc.kurumamod.client.CourseRenderer;
 import com.jdmmc.kurumamod.client.EffectRenderTypes;
 import com.jdmmc.kurumamod.client.MirrorRenderer;
 import com.jdmmc.kurumamod.client.RaceHud;
+import com.jdmmc.kurumamod.client.RaceLobby;
 import com.jdmmc.kurumamod.client.SteeringHands;
 import com.jdmmc.kurumamod.client.TireSmokeVolume;
 import net.minecraft.world.entity.Entity;
@@ -79,6 +80,7 @@ public final class ClientHooks {
         CarSounds.onClientTick();
         CarTurbo.onClientTick();
         RaceHud.onClientTick();
+        RaceLobby.onClientTick();
         TireSmokeVolume.onClientTick();
     }
 
@@ -106,6 +108,7 @@ public final class ClientHooks {
         CarSkidMarks.onLoggingIn();
         CourseRenderer.onLoggingIn();
         RaceHud.onLoggingIn();
+        RaceLobby.onLoggingIn();
         TireSmokeVolume.onLoggingIn();
     }
 
@@ -115,6 +118,7 @@ public final class ClientHooks {
         CarSkidMarks.onLoggingOut();
         CourseRenderer.onLoggingOut();
         RaceHud.onLoggingOut();
+        RaceLobby.onLoggingOut();
         TireSmokeVolume.onLoggingOut();
     }
 
@@ -160,6 +164,7 @@ public final class ClientHooks {
     /** ホットバーの層を描き終えた直後（チャットなどより下）。 */
     public static void renderHotbarPost(GuiRender event) {
         RaceHud.onRenderOverlay(event);
+        RaceLobby.onRenderOverlay(event);
     }
 
     /** 一人称の手を 1 本描く前。 */

@@ -50,7 +50,7 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
     }
 
     public RaceStandingsPacket(FriendlyByteBuf buf) {
-        this(PHASES[buf.readByte()], buf.readUtf(64), buf.readVarInt(), readRows(buf));
+        this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), readRows(buf));
     }
 
     private static List<Row> readRows(FriendlyByteBuf buf) {
@@ -65,7 +65,7 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeByte(phase.ordinal());
-        buf.writeUtf(course, 64);
+        buf.writeUtf(course, 256);
         buf.writeVarInt(laps);
         buf.writeVarInt(rows.size());
         for (Row row : rows) {

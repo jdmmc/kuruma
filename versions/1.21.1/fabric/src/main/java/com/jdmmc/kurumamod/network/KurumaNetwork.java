@@ -52,6 +52,8 @@ public final class KurumaNetwork {
         toServer(CarPartRequestPacket.TYPE, CarPartRequestPacket.STREAM_CODEC, p -> p::handle);
         toServer(CarPaintRequestPacket.TYPE, CarPaintRequestPacket.STREAM_CODEC, p -> p::handle);
         toServer(CarPlateRequestPacket.TYPE, CarPlateRequestPacket.STREAM_CODEC, p -> p::handle);
+        toClient(RaceLobbyPacket.TYPE, RaceLobbyPacket.STREAM_CODEC);
+        toServer(RaceActionPacket.TYPE, RaceActionPacket.STREAM_CODEC, p -> p::handle);
         both(GhostRidePacket.TYPE, GhostRidePacket.STREAM_CODEC, p -> p::handle);
         // Fabric 版だけ。車が現れるときに一緒に運ぶデータ（NeoForge では IEntityWithComplexSpawn が運ぶ）
         toClient(CarSpawnDataPacket.TYPE, CarSpawnDataPacket.STREAM_CODEC);

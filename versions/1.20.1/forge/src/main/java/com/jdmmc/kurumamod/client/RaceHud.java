@@ -1,10 +1,12 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.network.RaceEventPacket;
+import com.jdmmc.kurumamod.network.RaceLobbyPacket;
 import com.jdmmc.kurumamod.network.RaceStandingsPacket;
 import com.jdmmc.kurumamod.race.RaceManager;
+import com.jdmmc.kurumamod.tuning.Regulation;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
@@ -15,8 +17,13 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+
 /**
- * ラップタイムとスタート信号の表示。
+ * レース中の表示。<b>見た目は中継グラフィック（斜めの帯）</b>——左上に順位の塔、右上にラップ時間と
+ * CP の差、画面の中ほど上に知らせ（CP 通過・ベストラップ・周回無効・最終周・ゴール）。
  *
  * <p>走行中のタイムはサーバーから毎ティック貰わず、<b>「ラップが始まった」を受け取ってから
  * 自分で数える</b>。確定値はラップ完了時にサーバーの値で上書きされるので、ずれは残らない。</p>
@@ -24,24 +31,35 @@ import net.minecraftforge.fml.common.Mod;
  * <p><b>数えるのはティックであって実時間ではない。</b>サーバーはティック数（{@code getTickCount()}）で
  * ラップタイムを確定させているので、こちらが壁時計で数えると<b>TPS が落ちたぶんだけ表示が先に進み</b>、
  * ゴールした瞬間に数字が戻る。シングルプレイでポーズしている間も進んでしまう。</p>
+ *
+ * <p>メーター（速度・ギア・回転）は {@code CarGaugeHud} のまま。ここでは描かない。</p>
  */
-@Mod.EventBusSubscriber(modid = Kurumamod.MODID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = com.jdmmc.kurumamod.Kurumamod.MODID, value = Dist.CLIENT)
 public final class RaceHud {
 
-    private static final int COLOR_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_LABEL = 0xFFA0A0A0;
-    private static final int COLOR_BEST = 0xFFB388FF;
-    /** 順位表で自分の行を目立たせる色。 */
-    private static final int COLOR_SELF = 0xFFFFD26A;
-    /** リザルトの見出し。 */
-    private static final int COLOR_RESULT = 0xFFFFD700;
-    private static final int COLOR_BACKGROUND = 0x90000000;
+    private static final int MARGIN = 12;
+    private static final int TOWER_WIDTH = 125;
 
-    private static final int LIGHT_SIZE = 18;
-    private static final int LIGHT_GAP = 6;
-    private static final int LIGHT_OFF = 0xFF3A1010;
-    private static final int LIGHT_ON = 0xFFFF2020;
-    private static final int LIGHT_FRAME = 0xFF101010;
+    private static final int WHITE = 0xFFFFFFFF;
+    private static final int INK = 0xFF111111;
+    private static final int PANEL = 0xD8111111;
+    private static final int ROW = 0xC7111111;
+    private static final int POS = 0xFF2A2A2A;
+    private static final int GREY = 0xFFC8CCD2;
+    /** ベストより速い。 */
+    private static final int FASTER = 0xFF15803D;
+    /** ベストより遅い。 */
+    private static final int SLOWER = 0xFFB91C1C;
+    /** 自己ベスト。 */
+    private static final int BEST = 0xFF6D28D9;
+    private static final int GOLD = 0xFFFFD24A;
+    private static final int VOID = 0xFFFF8A00;
+    /** 帯の色（順位の塔の自分の番号・ゴールの帯）。 */
+    private static final int ACCENT = RaceLobby.ACCENT;
+
+    private static final int LIGHT_OFF = 0xFF2A1110;
+    private static final int LIGHT_ON = 0xFFFF3B30;
+    private static final int LIGHT_GO = 0xFF22C55E;
 
     /** 区間タイムを出しておく長さ [ティック]。 */
     private static final int SPLIT_TICKS = 60;
@@ -49,10 +67,8 @@ public final class RaceHud {
     private static final int VOID_TICKS = 100;
     /** ゴールの大きな表示を出しておく長さ [ティック]。 */
     private static final int FINISH_TICKS = 120;
-    /** ベストより速い。 */
-    private static final int COLOR_FASTER = 0xFF4CFF4C;
-    /** ベストより遅い。 */
-    private static final int COLOR_SLOWER = 0xFFFF6B6B;
+    /** 最終周の帯を出しておく長さ [ティック]。 */
+    private static final int FINAL_TICKS = 60;
 
     /** 点灯しているライトの数。0 かつ {@link #frozen} が false ならスタート済み。 */
     private static int lights;
@@ -73,25 +89,48 @@ public final class RaceHud {
     private static long finishMillis;
     /** 画面中央に大きく「ゴール」を出しておく残りティック。 */
     private static int finishTicks;
+    /** 最終周の帯の残りティック。 */
+    private static int finalTicks;
+    private static String courseName = "";
 
     /** 区間・ラップの通過表示。残りティックが 0 なら出さない。 */
     private static int splitTicks;
-    private static Component splitLabel = Component.empty();
+    /** 何の通過か。0 ならラップ（ゴールライン）、1 以上なら CP の番号。 */
+    private static int splitIndex;
     private static String splitTime = "";
     private static long splitDelta;
     private static boolean splitHasDelta;
+    /** ラップ（ゴールライン）でベストを更新したか。紫の帯で出す。 */
+    private static boolean splitBest;
     /** 警告（周回が無効）として出しているか。 */
     private static boolean splitAlert;
+
+    /** 右上に出したままにする、この周で最後に通った CP の差。 */
+    private static int lastCheckpoint;
+    private static long lastCheckpointDelta;
+    private static boolean lastCheckpointHasDelta;
 
     /** 通ったチェックポイントの数と本数。0 本のコースでは出さない。 */
     private static int checkpointsPassed;
     private static int checkpointCount;
 
-    /** レースの一覧（受付中・走行中・リザルト）。空なら何も出さない。 */
-    private static java.util.List<RaceStandingsPacket.Row> standings = java.util.List.of();
+    /** 区間（タイムアタックの塔）。CP の数 + 1 本。 */
+    private static long[] sectorTimes = new long[0];
+    private static long[] sectorDiffs = new long[0];
+    private static boolean[] sectorHasDiff = new boolean[0];
+    private static long previousSplit;
+    private static long previousDelta;
+    private static boolean previousHasDelta;
+    /** 区間を出しきった（周を終えた）。次の CP で新しい周の区間へ切り替える。 */
+    private static boolean sectorsComplete;
+
+    /** レースの一覧（走行中・リザルト）。空なら何も出さない。 */
+    private static List<RaceStandingsPacket.Row> standings = List.of();
     private static RaceStandingsPacket.Phase phase = RaceStandingsPacket.Phase.ENTRY;
     private static String course = "";
     private static int courseLaps;
+    /** リザルトを Esc で閉じた。次のリザルトが届くまで出さない。 */
+    private static boolean resultsDismissed;
 
     private RaceHud() {
     }
@@ -101,8 +140,21 @@ public final class RaceHud {
         return frozen;
     }
 
-    /** 参加者一覧・順位表・リザルトを受け取る。 */
+    /** このレースをゴールしたか。ゴールした人は G セッティングを縛らない。 */
+    public static boolean hasFinished() {
+        return place > 0;
+    }
+
+    /** 順位表・リザルトを受け取る。 */
     public static void acceptStandings(RaceStandingsPacket packet) {
+        if (packet.phase() == RaceStandingsPacket.Phase.RESULT && phase != RaceStandingsPacket.Phase.RESULT) {
+            resultsDismissed = false;
+            // レースは終わった（全員ゴール・主催者が中止）。走っている途中の人の時計もここで止める。
+            // 止めないと、リザルトを閉じたあとに回り続ける時計が出てくる
+            timing = false;
+            splitTicks = 0;
+            finalTicks = 0;
+        }
         standings = packet.rows();
         phase = packet.phase();
         course = packet.course();
@@ -128,6 +180,7 @@ public final class RaceHud {
                 timing = true;
                 lap = packet.lap();
                 totalLaps = packet.totalLaps();
+                courseName = packet.course();
                 lapTicks = 0;
                 place = 0;
                 finishMillis = 0L;
@@ -135,16 +188,23 @@ public final class RaceHud {
                 splitTicks = 0;
                 checkpointsPassed = 0;
                 checkpointCount = Math.max(0, packet.sectorCount() - 1);
+                resetSectors();
+                lastCheckpoint = 0;
+                if (totalLaps > 1 && lap == totalLaps) {
+                    finalTicks = FINAL_TICKS;
+                }
             }
             case SPLIT -> {
                 checkpointsPassed = packet.sector();
                 checkpointCount = Math.max(0, packet.sectorCount() - 1);
-                // 右上の通過数と<b>同じ数え方・同じ分母</b>で出す。区間で数えると
-                // 分母が 1 つ多くなるうえ、最後の区間はゴールとして別に出るので
-                // 「S2/2」は永久に現れない——到達しない分母を見せることになる
-                showSplit(Component.translatable("race.kurumamod.hud_checkpoints",
-                        checkpointsPassed, checkpointCount),
-                        packet.millis(), packet.delta(), packet.hasDelta());
+                if (sectorsComplete) {
+                    resetSectors();
+                }
+                recordSector(packet.sector() - 1, packet.millis(), packet.delta(), packet.hasDelta());
+                lastCheckpoint = packet.sector();
+                lastCheckpointDelta = packet.delta();
+                lastCheckpointHasDelta = packet.hasDelta();
+                showSplit(packet.sector(), packet.millis(), packet.delta(), packet.hasDelta(), false);
                 RaceSounds.split(packet.delta(), packet.hasDelta());
             }
             case LAP_VOID -> {
@@ -152,24 +212,27 @@ public final class RaceHud {
                 checkpointsPassed = packet.sector();
                 checkpointCount = Math.max(0, packet.sectorCount() - 1);
                 splitTicks = VOID_TICKS;
-                splitLabel = checkpointsPassed < checkpointCount
-                        ? Component.translatable("race.kurumamod.lap_void_checkpoint",
-                                checkpointsPassed, checkpointCount)
-                        : Component.translatable("race.kurumamod.lap_void_short");
                 splitTime = "";
                 splitHasDelta = false;
+                splitBest = false;
                 splitAlert = true;
             }
             case LAP_COMPLETED -> {
+                recordSector(checkpointCount, packet.millis(), packet.delta(), packet.hasDelta());
+                sectorsComplete = true;
                 lap = packet.lap();
                 totalLaps = packet.totalLaps();
+                courseName = packet.course();
                 lastLapMillis = packet.millis();
                 bestMillis = packet.bestMillis();
                 lastWasBest = packet.best();
                 lapTicks = 0;
                 checkpointsPassed = 0;
-                showSplit(Component.translatable("race.kurumamod.hud_lap_label"),
-                        packet.millis(), packet.delta(), packet.hasDelta());
+                lastCheckpoint = 0;
+                showSplit(0, packet.millis(), packet.delta(), packet.hasDelta(), packet.best());
+                if (totalLaps > 1 && lap == totalLaps) {
+                    finalTicks = FINAL_TICKS;
+                }
                 // ゴールラインもチェックポイントと同じ音。速い／遅いでピッチが振れる
                 RaceSounds.split(packet.delta(), packet.hasDelta());
             }
@@ -181,12 +244,38 @@ public final class RaceHud {
                 finishMillis = packet.total();
                 finishTicks = FINISH_TICKS;
                 splitTicks = 0;     // 区間の表示と重ねない
+                finalTicks = 0;
                 RaceSounds.finish();
-                showSplit(Component.translatable("race.kurumamod.hud_lap_label"),
-                        packet.millis(), packet.delta(), packet.hasDelta());
             }
             case CLEARED -> clear();
+            default -> {
+            }
         }
+    }
+
+    private static void resetSectors() {
+        int count = checkpointCount + 1;
+        sectorTimes = new long[count];
+        sectorDiffs = new long[count];
+        sectorHasDiff = new boolean[count];
+        Arrays.fill(sectorTimes, -1L);
+        previousSplit = 0L;
+        previousDelta = 0L;
+        previousHasDelta = true;
+        sectorsComplete = false;
+    }
+
+    /** 区間 {@code index} のタイムと、自己ベストの同じ区間との差を覚える。 */
+    private static void recordSector(int index, long elapsed, long delta, boolean hasDelta) {
+        if (index < 0 || index >= sectorTimes.length) {
+            return;
+        }
+        sectorTimes[index] = elapsed - previousSplit;
+        sectorHasDiff[index] = hasDelta && previousHasDelta;
+        sectorDiffs[index] = delta - previousDelta;
+        previousSplit = elapsed;
+        previousDelta = delta;
+        previousHasDelta = hasDelta;
     }
 
     /** 走行中の表示を消す。サーバーが周回状態を捨てたときの合図。 */
@@ -197,24 +286,23 @@ public final class RaceHud {
         place = 0;
         finishMillis = 0L;
         finishTicks = 0;
+        finalTicks = 0;
         splitTicks = 0;
         checkpointsPassed = 0;
         checkpointCount = 0;
-        // <b>順位表もここで消すこと。</b>抜けた人へは以後 toEntrants で何も届かないので、
-        // 消さないと最後に受け取った一覧が画面に残り続ける（レースを抜けたのに
-        // 順位が出たままになる）。受付中はワールド全体へ配っているので、
-        // 見ているだけの人には次の配信でまた出る
-        standings = java.util.List.of();
+        lastCheckpoint = 0;
+        sectorTimes = new long[0];
+        // <b>順位表もここで消すこと。</b>抜けた人へは以後何も届かないので、
+        // 消さないと最後に受け取った一覧が画面に残り続ける
+        standings = List.of();
     }
 
     /**
      * 接続が変わったら全部捨てる。
      *
      * <p><b>この画面の状態はすべて {@code static} なので、放っておくとプロセスが生きている限り
-     * 残る。</b>計測中にサーバーを抜けると、次に入ったところでも時計が回ったままになり、
-     * サーバーには周回状態が無いので {@code /kuruma timeattack reset} が
-     * 「計測していません」を返す——<b>画面とサーバーが食い違う</b>。カウントダウン中に抜けた
-     * ときはさらに悪く、{@link #isFrozen()} が true のまま残って<b>運転操作を受け付けなくなる</b>。</p>
+     * 残る。</b>計測中にサーバーを抜けると、次に入ったところでも時計が回ったままになる。
+     * カウントダウン中に抜けたときは {@link #isFrozen()} が true のまま残って<b>運転操作を受け付けなくなる</b>。</p>
      *
      * <p>入るときと出るときの両方で捨てる。落ちかたによっては {@code LoggingOut} が
      * 来ないことがあるので、<b>入る側だけが最後の砦</b>になる。</p>
@@ -238,22 +326,24 @@ public final class RaceHud {
         bestMillis = 0L;
         lastWasBest = false;
         goTicks = 0;
-        splitLabel = Component.empty();
         splitTime = "";
         splitDelta = 0L;
         splitHasDelta = false;
         splitAlert = false;
+        splitBest = false;
         phase = RaceStandingsPacket.Phase.ENTRY;
         course = "";
+        courseName = "";
         courseLaps = 0;
     }
 
-    private static void showSplit(Component label, long millis, long delta, boolean hasDelta) {
+    private static void showSplit(int index, long millis, long delta, boolean hasDelta, boolean best) {
         splitTicks = SPLIT_TICKS;
-        splitLabel = label;
+        splitIndex = index;
         splitTime = RaceManager.format(millis);
         splitDelta = delta;
         splitHasDelta = hasDelta;
+        splitBest = best;
         splitAlert = false;
     }
 
@@ -263,8 +353,30 @@ public final class RaceHud {
      * <p>描画側で数えると<b>フレームレートで速さが変わる</b>。以前は GO の表示と
      * 区間タイムの表示がこれで、120fps なら 2 秒のはずが 0.7 秒しか出なかった。</p>
      */
+    /** リザルト（ゴールの帯と結果の表）を出しているか。 */
+    private static boolean showingResults() {
+        return phase == RaceStandingsPacket.Phase.RESULT && !standings.isEmpty() && !resultsDismissed;
+    }
+
+    /**
+     * リザルトを出している間の Esc は、ポーズ画面ではなく<b>リザルトを閉じる</b>。
+     * 15 秒待たずに走りへ戻れるように。開いたポーズ画面をすぐ閉じる形で受ける
+     * （Esc のキーそのものはバニラが先に取るので、ここで横取りできない）。
+     */
+    private static void dismissResultsOnEscape() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if ((showingResults() || finishTicks > 0) && minecraft.screen instanceof net.minecraft.client.gui.screens.PauseScreen) {
+            resultsDismissed = true;
+            finishTicks = 0;
+            minecraft.setScreen(null);
+        }
+    }
+
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            dismissResultsOnEscape();
+        }
         if (event.phase != TickEvent.Phase.END || Minecraft.getInstance().isPaused()) {
             return;
         }
@@ -280,8 +392,19 @@ public final class RaceHud {
         if (finishTicks > 0) {
             finishTicks--;
         }
+        if (finalTicks > 0) {
+            finalTicks--;
+        }
     }
 
+    // ------------------------------------------------------------------
+    // 描画
+    // ------------------------------------------------------------------
+
+    /**
+     * ホットバーの層を描き終えた直後に描く。チャットなど後ろの層より下に描くため、
+     * HUD 全体の後ではなくここで描く。
+     */
     @SubscribeEvent
     public static void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
         if (event.getOverlay() != VanillaGuiOverlay.HOTBAR.type()) {
@@ -292,226 +415,461 @@ public final class RaceHud {
             return;
         }
         GuiGraphics graphics = event.getGuiGraphics();
+        Font font = minecraft.font;
         int width = minecraft.getWindow().getGuiScaledWidth();
+        int height = minecraft.getWindow().getGuiScaledHeight();
+        float partialTick = event.getPartialTick();
+        RaceLobbyPacket lobby = RaceLobby.lobby();
 
-        if (frozen || goTicks > 0) {
-            renderLights(graphics, minecraft, width);
+        boolean results = showingResults();
+        if (results) {
+            graphics.fill(0, 0, width, height, 0x59000000);
         }
-        if (finishTicks > 0) {
-            renderFinish(graphics, minecraft, width, minecraft.getWindow().getGuiScaledHeight());
-        } else if (splitTicks > 0) {
-            renderSplit(graphics, minecraft, width);
-        }
-        int bottom = 8;
-        if (timing || place > 0) {
-            bottom = renderLapTimes(graphics, minecraft, width, event.getPartialTick());
-        }
-        if (!standings.isEmpty()) {
-            renderStandings(graphics, minecraft, width, bottom + 6);
-        }
-    }
 
-/**
-     * 参加者一覧・順位表・リザルト。同じ枠を場面で使い分ける。
-     *
-     * <p>走行中とリザルトは<b>先頭が時間、以降は先頭との差</b>。差は「同じ地点を通過した
-     * 時刻の差」なので、走っている場所が違っても意味を持つ。</p>
-     */
-    private static void renderStandings(GuiGraphics graphics, Minecraft minecraft, int width, int top) {
-        int left = width - 132;
-        int rows = standings.size();
-        graphics.fill(left - 6, top - 4, width - 4, top + (rows + 2) * 10 + 2, COLOR_BACKGROUND);
-
-        // どのコースのレースかは、参加する前でも分かる方がよい
-        graphics.drawString(minecraft.font,
-                Component.translatable("race.kurumamod.hud_course", course, courseLaps),
-                left, top, COLOR_TEXT, false);
-
-        Component title = switch (phase) {
-            case ENTRY -> Component.translatable("race.kurumamod.hud_entry", rows);
-            case RUNNING -> Component.translatable("race.kurumamod.hud_running");
-            case RESULT -> Component.translatable("race.kurumamod.hud_result");
-        };
-        graphics.drawString(minecraft.font, title, left, top + 10,
-                phase == RaceStandingsPacket.Phase.RESULT ? COLOR_RESULT : COLOR_LABEL, false);
-
-        String self = minecraft.player != null ? minecraft.player.getGameProfile().getName() : "";
-        int y = top + 20;
-        for (int i = 0; i < rows; i++) {
-            RaceStandingsPacket.Row row = standings.get(i);
-            int color = row.name().equals(self) ? COLOR_SELF : COLOR_TEXT;
-            graphics.drawString(minecraft.font, (i + 1) + ".", left, y, COLOR_LABEL, false);
-            graphics.drawString(minecraft.font,
-                    minecraft.font.plainSubstrByWidth(row.name(), 58), left + 14, y, color, false);
-
-            if (phase != RaceStandingsPacket.Phase.ENTRY) {
-                String value;
-                int valueColor;
-                if (phase == RaceStandingsPacket.Phase.RUNNING && row.finished()) {
-                    // ゴール済み。総時間で止まっているので、色を変えて走行中の行と区別する
-                    value = RaceManager.format(row.millis());
-                    valueColor = COLOR_RESULT;
-                } else if (!row.started()) {
-                    // まだスタートラインを跨いでいない人。順位も差も無いが、
-                    // <b>誰が出走しているのかはスタート直後こそ知りたい</b>
-                    value = Component.translatable("race.kurumamod.hud_not_started").getString();
-                    valueColor = COLOR_LABEL;
-                } else if (phase == RaceStandingsPacket.Phase.RESULT && !row.finished()) {
-                    // 完走していない人は周回数だけ
-                    value = Component.translatable("race.kurumamod.hud_dnf", row.laps()).getString();
-                    valueColor = COLOR_LABEL;
-                } else if (row.leader()) {
-                    value = RaceManager.format(row.millis());
-                    valueColor = COLOR_TEXT;
-                } else {
-                    value = "+" + RaceManager.format(row.millis());
-                    valueColor = COLOR_LABEL;
-                }
-                graphics.drawString(minecraft.font, value,
-                        width - 8 - minecraft.font.width(value), y, valueColor, false);
+        // 左上: 順位の塔（グリッドではエントリー、タイムアタックでは区間）
+        if (!results) {
+            if (frozen && lobby != null && lobby.joined()) {
+                renderGridTower(graphics, font, lobby);
+            } else if (timing && totalLaps == 0) {
+                renderSectorTower(graphics, font);
+            } else if (phase == RaceStandingsPacket.Phase.RUNNING && !standings.isEmpty()) {
+                renderTower(graphics, font, minecraft);
             }
-            y += 10;
+        }
+
+        // 右上: 時計・CP の差・CP の進み・前回とベスト
+        if ((timing || place > 0) && !results && !(resultsDismissed && phase == RaceStandingsPacket.Phase.RESULT)) {
+            renderClock(graphics, font, width, partialTick);
+        }
+
+        // スタートの灯とレギュレーションの帯
+        if (frozen || goTicks > 0) {
+            renderLights(graphics, font, width);
+            if (frozen && lobby != null && lobby.joined()) {
+                renderRegulationBand(graphics, font, width, height);
+            }
+        }
+
+        // 知らせ
+        if (finishTicks > 0) {
+            renderFinishBand(graphics, font, width);
+        } else if (splitTicks > 0) {
+            if (splitAlert) {
+                renderVoid(graphics, font, width);
+            } else if (splitBest) {
+                renderBestLap(graphics, font, width);
+            } else {
+                renderSplit(graphics, font, width);
+            }
+        }
+        if (finalTicks > 0 && finishTicks == 0 && !splitAlert) {
+            renderFinalLap(graphics, font, width);
+        }
+
+        // リザルト
+        if (results) {
+            if (finishTicks == 0) {
+                renderFinishBand(graphics, font, width);
+            }
+            renderResults(graphics, font, width, minecraft);
         }
     }
 
-    /**
-     * ゴールしたことを画面の中央に大きく出す。
-     *
-     * <p>右上の数字が止まるだけでは<b>ゴールしたのか計測が外れたのか区別がつかない</b>。
-     * 順位と総時間まで一緒に出せば、そのまま結果として読める。</p>
-     *
-     * <p>やや上に置くのは、走り抜けた先の路面を完全には隠さないため。ゴールしても
-     * 車は止まらないので、まだ前を見る必要がある。</p>
-     */
-    private static void renderFinish(GuiGraphics graphics, Minecraft minecraft,
-                                     int width, int height) {
-        Component title = Component.translatable("race.kurumamod.finish_banner");
-        Component detail = place > 0
-                ? Component.translatable("race.kurumamod.finish_detail",
-                        place, RaceManager.format(finishMillis))
-                : Component.translatable("race.kurumamod.finish_time",
-                        RaceManager.format(finishMillis));
+    // ----- 順位の塔 -----
 
-        int centerX = width / 2;
-        int top = height / 3;
-        int half = Math.max(minecraft.font.width(title) * 2, minecraft.font.width(detail)) / 2 + 12;
-        graphics.fill(centerX - half, top - 6, centerX + half, top + 32, COLOR_BACKGROUND);
-
-        // 見出しだけ 2 倍。拡大したぶん座標も半分にして描く
-        graphics.pose().pushPose();
-        graphics.pose().translate(centerX, top, 0.0F);
-        graphics.pose().scale(2.0F, 2.0F, 1.0F);
-        graphics.drawCenteredString(minecraft.font, title, 0, 0, COLOR_RESULT);
-        graphics.pose().popPose();
-
-        graphics.drawCenteredString(minecraft.font, detail, centerX, top + 20, COLOR_TEXT);
+    private static void towerHeader(GuiGraphics graphics, Font font, String left, String right) {
+        Slant.fill(graphics, MARGIN, MARGIN, TOWER_WIDTH, 15, INK);
+        Slant.text(graphics, font, left, MARGIN + 6, MARGIN + 4, WHITE);
+        int room = TOWER_WIDTH - 12 - font.width(left) - 8;
+        int shown = Math.min(font.width(right), room);
+        Slant.fit(graphics, font, right, MARGIN + TOWER_WIDTH - 6 - shown, MARGIN + 4, room, ACCENT);
     }
 
-    /**
-     * 区間タイムと自己ベストとの差。
-     *
-     * <p>画面の中央上に短く出す。<b>差の符号と色がここの本体</b>——タイムそのものは
-     * ゴールしてからでも読めるが、「今どちらに転んでいるか」は走っている最中にしか意味がない。</p>
-     *
-     * <p>比べる相手が無い（そのコースの初走行）ときは差を出さない。0.000 と出すと
-     * 「ベストとぴったり同じ」と読めてしまう。</p>
-     */
-    private static void renderSplit(GuiGraphics graphics, Minecraft minecraft, int width) {
-        String head = splitTime.isEmpty()
-                ? splitLabel.getString()
-                : splitLabel.getString() + "  " + splitTime;
-        String delta = splitHasDelta
-                ? String.format(java.util.Locale.ROOT, "%+.3f", splitDelta / 1000.0)
-                : "";
-        int headWidth = minecraft.font.width(head);
-        int deltaWidth = delta.isEmpty() ? 0 : minecraft.font.width(delta) + 8;
-        int left = (width - headWidth - deltaWidth) / 2;
-        // スタート信号（top 24・高さ 18）の下。カウントダウン直後に重ならない位置
-        int top = 58;
+    /** 塔の 1 行。{@code me} なら白い行に帯の色の番号。 */
+    private static void towerRow(GuiGraphics graphics, Font font, int y, String pos, String name, String value,
+                                 boolean me, int valueColor) {
+        Slant.fill(graphics, MARGIN, y, TOWER_WIDTH, 13, me ? WHITE : ROW);
+        Slant.fill(graphics, MARGIN, y, 14, 13, me ? ACCENT : POS);
+        Slant.text(graphics, font, pos, MARGIN + 7 - font.width(pos) / 2, y + 3, WHITE);
+        int valueWidth = font.width(value);
+        Slant.fit(graphics, font, name, MARGIN + 19, y + 3, TOWER_WIDTH - 24 - valueWidth - 6, me ? INK : WHITE);
+        Slant.text(graphics, font, value, MARGIN + TOWER_WIDTH - 5 - valueWidth, y + 3,
+                me && valueColor == WHITE ? INK : valueColor);
+    }
 
-        graphics.fill(left - 6, top - 4, left + headWidth + deltaWidth + 6, top + 12, COLOR_BACKGROUND);
-        graphics.drawString(minecraft.font, head, left, top,
-                splitAlert ? COLOR_SLOWER : COLOR_TEXT, false);
-        if (!delta.isEmpty()) {
-            graphics.drawString(minecraft.font, delta, left + headWidth + 8, top,
-                    splitDelta < 0L ? COLOR_FASTER : COLOR_SLOWER, false);
+    private static String selfName(Minecraft minecraft) {
+        return minecraft.player != null ? minecraft.player.getGameProfile().getName() : "";
+    }
+
+    private static void renderTower(GuiGraphics graphics, Font font, Minecraft minecraft) {
+        int shownLap = Math.max(1, Math.min(lap, Math.max(1, courseLaps)));
+        towerHeader(graphics, font, "LAP " + shownLap + " / " + courseLaps, course);
+        String self = selfName(minecraft);
+        int y = MARGIN + 16;
+        for (int i = 0; i < standings.size() && i < 12; i++) {
+            RaceStandingsPacket.Row row = standings.get(i);
+            String value;
+            int color = WHITE;
+            if (!row.started()) {
+                value = Component.translatable("race.kurumamod.hud_not_started").getString();
+                color = GREY;
+            } else if (row.finished()) {
+                value = RaceManager.format(row.millis());
+                color = GOLD;
+            } else if (row.leader()) {
+                value = "LEADER";
+            } else {
+                value = gap(row.millis());
+            }
+            towerRow(graphics, font, y, row.started() ? String.valueOf(i + 1) : "-", row.name(), value,
+                    row.name().equals(self), color);
+            y += 14;
         }
     }
 
-    /** F1 式のスタート信号。全部点いてから<b>消えた瞬間</b>がスタート。 */
-    private static void renderLights(GuiGraphics graphics, Minecraft minecraft, int width) {
-        int total = RaceManager.LIGHT_COUNT;
-        int stripWidth = total * LIGHT_SIZE + (total - 1) * LIGHT_GAP;
-        int left = (width - stripWidth) / 2;
-        int top = 24;
-
-        graphics.fill(left - 8, top - 8, left + stripWidth + 8, top + LIGHT_SIZE + 8, COLOR_BACKGROUND);
-        for (int i = 0; i < total; i++) {
-            int x = left + i * (LIGHT_SIZE + LIGHT_GAP);
-            graphics.fill(x - 1, top - 1, x + LIGHT_SIZE + 1, top + LIGHT_SIZE + 1, LIGHT_FRAME);
-            graphics.fill(x, top, x + LIGHT_SIZE, top + LIGHT_SIZE, i < lights ? LIGHT_ON : LIGHT_OFF);
-        }
-        if (!frozen && goTicks > 0) {
-            Component go = Component.translatable("race.kurumamod.go");
-            graphics.drawCenteredString(minecraft.font, go, width / 2,
-                    top + LIGHT_SIZE + 12, 0xFF4CFF4C);
+    /** グリッド（信号が点いている間）。エントリーの名前と車種。 */
+    private static void renderGridTower(GuiGraphics graphics, Font font, RaceLobbyPacket lobby) {
+        towerHeader(graphics, font, "GRID · " + lobby.laps() + " LAPS", lobby.course());
+        int y = MARGIN + 16;
+        int index = 1;
+        for (RaceLobbyPacket.Entrant entrant : lobby.entrants()) {
+            if (index > 12) {
+                break;
+            }
+            towerRow(graphics, font, y, String.valueOf(index), entrant.name(),
+                    RaceLobby.carName(entrant.carId()).getString(), entrant.you(), GREY);
+            y += 14;
+            index++;
         }
     }
 
-    /** @return 使い終わった下端の Y */
-    private static int renderLapTimes(GuiGraphics graphics, Minecraft minecraft, int width,
-                                      float partialTick) {
-        int left = width - 108;
-        int top = 8;
-        int lines = (totalLaps > 0 ? 1 : 0) + 3 + (place > 0 ? 1 : 0)
-                + (checkpointCount > 0 && timing ? 1 : 0);
-        graphics.fill(left - 6, top - 4, width - 4, top + lines * 10 + 2, COLOR_BACKGROUND);
-
-        int y = top;
-        if (totalLaps > 0) {
-            graphics.drawString(minecraft.font,
-                    Component.translatable("race.kurumamod.lap_of", lap, totalLaps),
-                    left, y, COLOR_TEXT, false);
-            y += 10;
+    /** タイムアタック: 区間ごとのタイムと自己ベストとの差。 */
+    private static void renderSectorTower(GuiGraphics graphics, Font font) {
+        towerHeader(graphics, font, "TIME ATTACK", courseName);
+        int y = MARGIN + 16;
+        int current = sectorsComplete ? -1 : checkpointsPassed;
+        for (int i = 0; i < sectorTimes.length && i < 12; i++) {
+            boolean now = i == current;
+            boolean done = sectorTimes[i] >= 0L;
+            String label = "S" + (i + 1);
+            Slant.fill(graphics, MARGIN, y, TOWER_WIDTH, 12, now ? WHITE : ROW);
+            Slant.fill(graphics, MARGIN, y, 17, 12, now ? ACCENT : POS);
+            Slant.text(graphics, font, label, MARGIN + 9 - font.width(label) / 2, y + 2, WHITE);
+            String time = done ? RaceManager.format(sectorTimes[i]) : now ? "…" : "—";
+            Slant.text(graphics, font, time, MARGIN + 22, y + 2, now ? INK : done ? WHITE : 0xFF9A9A9A);
+            if (done && sectorHasDiff[i]) {
+                String diff = signed(sectorDiffs[i]);
+                int w = font.width(diff) + 6;
+                int x = MARGIN + TOWER_WIDTH - 3 - w;
+                graphics.fill(x, y + 1, x + w, y + 11, sectorDiffs[i] < 0 ? FASTER : SLOWER);
+                Slant.text(graphics, font, diff, x + 3, y + 2, WHITE);
+            }
+            y += 13;
         }
-        // ティック + フレーム内の端数。ティックだけだと 50ms 刻みで数字が跳ねる
+    }
+
+    private static void append(StringBuilder text, String part) {
+        if (text.length() > 0) {
+            text.append(" · ");
+        }
+        text.append(part);
+    }
+
+    // ----- 右上の時計 -----
+
+    private static void renderClock(GuiGraphics graphics, Font font, int width, float partialTick) {
+        int right = width - MARGIN;
+        int y = MARGIN;
+        String time;
+        int timeColor = WHITE;
         if (finishMillis > 0L) {
             // ゴールしたら経過時間ではなく総時間を出したまま止める
-            graphics.drawString(minecraft.font,
-                    Component.translatable("race.kurumamod.finish_time",
-                            RaceManager.format(finishMillis)),
-                    left, y, COLOR_RESULT, false);
+            time = RaceManager.format(finishMillis);
+            timeColor = GOLD;
         } else {
             // ティック + フレーム内の端数。ティックだけだと 50ms 刻みで数字が跳ねる
             long current = timing ? (long) ((lapTicks + partialTick) * 50.0F) : 0L;
-            graphics.drawString(minecraft.font,
-                    Component.translatable("race.kurumamod.current", RaceManager.format(current)),
-                    left, y, COLOR_TEXT, false);
+            time = RaceManager.format(current);
         }
-        y += 10;
+        float scale = 1.6F;
+        int timeWidth = Slant.width(font, time, scale);
+        Slant.fill(graphics, right - timeWidth - 16, y, timeWidth + 16, 19, INK);
+        Slant.scaled(graphics, font, time, right - timeWidth - 8, y + 3, scale, timeColor);
+        y += 20;
+
+        // この周で最後に通った CP の差。比べる相手が無ければ出さない（0.000 はベストと同じと読める）
+        if (lastCheckpoint > 0 && lastCheckpointHasDelta && timing) {
+            String text = "CP " + lastCheckpoint + "  " + signed(lastCheckpointDelta);
+            int w = font.width(text) + 14;
+            Slant.fill(graphics, right - w, y, w, 12, lastCheckpointDelta < 0 ? FASTER : SLOWER);
+            Slant.text(graphics, font, text, right - w + 7, y + 2, WHITE);
+            y += 13;
+        }
+
+        // CP の進み。<b>走っている最中に取りこぼしに気づける唯一の手がかり。</b>
         if (checkpointCount > 0 && timing) {
-            // <b>走っている最中に取りこぼしに気づける唯一の手がかり。</b>ラインまで
-            // 分からないと、そこではもう 1 周ぶん取り返せない
-            graphics.drawString(minecraft.font,
-                    Component.translatable("race.kurumamod.hud_checkpoints",
-                            checkpointsPassed, checkpointCount),
-                    left, y, checkpointsPassed < checkpointCount ? COLOR_LABEL : COLOR_TEXT, false);
-            y += 10;
+            int segment = 16;
+            int gap = 2;
+            int total = checkpointCount * segment + (checkpointCount - 1) * gap;
+            int x = right - total;
+            for (int i = 0; i < checkpointCount; i++) {
+                Slant.fill(graphics, x + i * (segment + gap), y + 2, segment, 4,
+                        i < checkpointsPassed ? WHITE : 0x99111111, Slant.STEEP);
+            }
+            y += 8;
         }
-        graphics.drawString(minecraft.font,
-                Component.translatable("race.kurumamod.last", RaceManager.format(lastLapMillis)),
-                left, y, lastWasBest ? COLOR_BEST : COLOR_LABEL, false);
-        y += 10;
-        graphics.drawString(minecraft.font,
-                Component.translatable("race.kurumamod.best", RaceManager.format(bestMillis)),
-                left, y, COLOR_BEST, false);
-        y += 10;
+
+        // 前回とベスト
+        String best = "BEST " + (bestMillis > 0 ? RaceManager.format(bestMillis) : "--:--.---");
+        int bestWidth = font.width(best) + 10;
+        Slant.fill(graphics, right - bestWidth, y + 1, bestWidth, 11, BEST);
+        Slant.text(graphics, font, best, right - bestWidth + 5, y + 3, WHITE);
+        if (lastLapMillis > 0) {
+            String last = "LAST " + RaceManager.format(lastLapMillis);
+            int lastWidth = font.width(last) + 10;
+            Slant.fill(graphics, right - bestWidth - 1 - lastWidth, y + 1, lastWidth, 11, lastWasBest ? BEST : 0xBF111111);
+            Slant.text(graphics, font, last, right - bestWidth - 1 - lastWidth + 5, y + 3, lastWasBest ? WHITE : GREY);
+        }
         if (place > 0) {
-            graphics.drawString(minecraft.font,
-                    Component.translatable("race.kurumamod.place", place), left, y,
-                    COLOR_RESULT, false);
-            y += 10;
+            String text = Component.translatable("race.kurumamod.place", place).getString();
+            int w = font.width(text) + 10;
+            Slant.fill(graphics, right - w, y + 13, w, 11, WHITE);
+            Slant.text(graphics, font, text, right - w + 5, y + 15, INK);
         }
-        return y;
+    }
+
+    // ----- スタート -----
+
+    /** F1 式のスタート信号。全部点いてから<b>消えた瞬間</b>がスタート。 */
+    private static void renderLights(GuiGraphics graphics, Font font, int width) {
+        int total = RaceManager.LIGHT_COUNT;
+        int bandWidth = 210;
+        int left = (width - bandWidth) / 2;
+        int top = 17;
+        Slant.fill(graphics, left, top, bandWidth, 38, INK);
+        int spacing = 34;
+        int startX = width / 2 - spacing * (total - 1) / 2;
+        boolean go = !frozen && goTicks > 0;
+        for (int i = 0; i < total; i++) {
+            int color = go ? LIGHT_GO : i < lights ? LIGHT_ON : LIGHT_OFF;
+            Slant.circle(graphics, startX + i * spacing, top + 19, 11, color);
+        }
+        if (go) {
+            String text = Component.translatable("race.kurumamod.go").getString();
+            float scale = 4.0F;
+            int w = Slant.width(font, text, scale);
+            Slant.scaled(graphics, font, text, (width - w) / 2.0F, top + 50, scale, WHITE);
+        }
+    }
+
+    /** 信号が点いている間、画面の中ほどに決まりと自分の判定。 */
+    private static void renderRegulationBand(GuiGraphics graphics, Font font, int width, int height) {
+        Regulation regulation = RaceLobby.regulation();
+        List<RaceLobby.Rule> rules = RaceLobby.rules(regulation);
+        if (rules.isEmpty()) {
+            return;
+        }
+        StringBuilder text = new StringBuilder();
+        for (RaceLobby.Rule rule : rules) {
+            append(text, rule.label().getString() + " " + rule.rule().getString());
+        }
+        String line = text.toString();
+        int lineRoom = Math.min(520, width - 120);
+        int lineWidth = Math.min(font.width(line), lineRoom);
+        String tag = "REGULATION";
+        int tagWidth = font.width(tag) + 12;
+        int bandWidth = tagWidth + lineWidth + 16;
+        int left = (width - bandWidth) / 2;
+        int top = height / 2 + 20;
+        Slant.fill(graphics, left, top, tagWidth, 16, ACCENT);
+        Slant.text(graphics, font, tag, left + 6, top + 4, WHITE);
+        Slant.fill(graphics, left + tagWidth, top, bandWidth - tagWidth, 16, PANEL);
+        Slant.fit(graphics, font, line, left + tagWidth + 8, top + 4, lineRoom, WHITE);
+
+        RaceLobbyPacket.Entrant self = RaceLobby.self();
+        if (self != null) {
+            boolean ok = self.verdict() != RaceLobbyPacket.Verdict.VIOLATION;
+            Component verdict = Component.translatable(ok ? "race.kurumamod.verdict.ok" : "race.kurumamod.verdict.violation");
+            Component mine = Component.translatable("race.kurumamod.hud_your_car");
+            int w = font.width(mine) + font.width(verdict) + 24;
+            int x = left + bandWidth - w;
+            Slant.fill(graphics, x, top + 17, w, 14, WHITE);
+            Slant.text(graphics, font, mine, x + 6, top + 20, INK);
+            int bx = x + 12 + font.width(mine);
+            graphics.fill(bx - 2, top + 19, bx + font.width(verdict) + 3, top + 29, ok ? RaceLobby.OK : RaceLobby.NG);
+            Slant.text(graphics, font, verdict, bx, top + 20, WHITE);
+        }
+    }
+
+    // ----- 知らせ -----
+
+    /** CP・ラップの通過。<b>差の符号と色がここの本体</b>——今どちらに転んでいるかは走っている最中にしか意味がない。 */
+    private static void renderSplit(GuiGraphics graphics, Font font, int width) {
+        int center = width / 2;
+        int y = 70;
+        String head = splitIndex > 0
+                ? "CHECKPOINT " + splitIndex + " / " + checkpointCount
+                : Component.translatable("race.kurumamod.hud_lap_label").getString().toUpperCase(Locale.ROOT)
+                + " " + splitTime;
+        int headWidth = font.width(head) + 18;
+        Slant.fill(graphics, center - headWidth / 2, y, headWidth, 12, INK);
+        Slant.text(graphics, font, head, center - font.width(head) / 2, y + 2, WHITE);
+        y += 13;
+
+        // 比べる相手が無いときは差の代わりにタイム。0.000 と出すとベストと同じと読める
+        String big = splitHasDelta ? signed(splitDelta) : splitTime;
+        int color = !splitHasDelta ? INK : splitDelta < 0 ? FASTER : SLOWER;
+        float scale = 2.6F;
+        int bigWidth = Slant.width(font, big, scale) + 26;
+        Slant.fill(graphics, center - bigWidth / 2, y, bigWidth, 28, color);
+        Slant.scaled(graphics, font, big, center - Slant.width(font, big, scale) / 2.0F, y + 4, scale, WHITE);
+        y += 29;
+
+        if (splitHasDelta) {
+            Component sub = Component.translatable(splitDelta < 0
+                    ? "race.kurumamod.hud_faster" : "race.kurumamod.hud_slower");
+            int subWidth = font.width(sub) + 16;
+            Slant.fill(graphics, center - subWidth / 2, y, subWidth, 12, 0xCC111111);
+            Slant.text(graphics, font, sub, center - font.width(sub) / 2, y + 2, WHITE);
+        }
+    }
+
+    /** ベストラップ。紫の帯が右から入る。 */
+    private static void renderBestLap(GuiGraphics graphics, Font font, int width) {
+        int y = 62;
+        String time = splitTime;
+        String delta = splitHasDelta ? signed(splitDelta) : "";
+        float scale = 2.0F;
+        int timeWidth = Slant.width(font, time, scale);
+        int bandWidth = timeWidth + font.width(delta) + 34;
+        int tagWidth = font.width("PERSONAL") + 16;
+        int left = width - bandWidth - tagWidth + 8;
+        Slant.fill(graphics, left, y, tagWidth, 32, WHITE);
+        Slant.text(graphics, font, "PERSONAL", left + 8, y + 6, BEST);
+        Slant.text(graphics, font, "BEST LAP", left + 8, y + 17, BEST);
+        Slant.fill(graphics, left + tagWidth, y, bandWidth + 20, 32, BEST);
+        Slant.scaled(graphics, font, time, left + tagWidth + 10, y + 8, scale, WHITE);
+        Slant.text(graphics, font, delta, left + tagWidth + 18 + timeWidth, y + 12, WHITE);
+    }
+
+    /** 周回無効。<b>理由と、次に何をすればいいか</b>まで出す。 */
+    private static void renderVoid(GuiGraphics graphics, Font font, int width) {
+        int center = width / 2;
+        int y = 75;
+        Component title = Component.translatable("race.kurumamod.hud_void_title");
+        float scale = 1.6F;
+        int tagWidth = font.width("LAP VOID") + 18;
+        int titleWidth = Slant.width(font, title, scale) + 26;
+        int left = center - (tagWidth + titleWidth) / 2;
+        Slant.fill(graphics, left, y, tagWidth, 28, INK);
+        Slant.text(graphics, font, "LAP VOID", left + 9, y + 10, WHITE);
+        Slant.fill(graphics, left + tagWidth, y, titleWidth, 28, VOID);
+        Slant.scaled(graphics, font, title, left + tagWidth + 13, y + 7, scale, INK);
+        y += 29;
+
+        boolean missed = checkpointsPassed < checkpointCount;
+        Component reason = missed
+                ? Component.translatable("race.kurumamod.hud_void_missed", checkpointsPassed + 1,
+                checkpointsPassed, checkpointCount)
+                : Component.translatable("race.kurumamod.lap_void_short");
+        int reasonWidth = font.width(reason) + 18;
+        Slant.fill(graphics, center - reasonWidth / 2, y, reasonWidth, 15, 0xD9111111);
+        Slant.text(graphics, font, reason, center - font.width(reason) / 2, y + 4, WHITE);
+        y += 16;
+        if (missed) {
+            Component hint = Component.translatable("race.kurumamod.hud_void_hint", checkpointsPassed + 1);
+            int hintWidth = font.width(hint) + 18;
+            Slant.fill(graphics, center - hintWidth / 2, y, hintWidth, 12, 0xB3111111);
+            Slant.text(graphics, font, hint, center - font.width(hint) / 2, y + 2, 0xFFE8E8E8);
+        }
+    }
+
+    /** 最終周。画面を横切る白い帯。 */
+    private static void renderFinalLap(GuiGraphics graphics, Font font, int width) {
+        int y = 118;
+        graphics.fill(0, y, width, y + 34, WHITE);
+        String text = "FINAL LAP";
+        float scale = 2.6F;
+        int w = Slant.width(font, text, scale);
+        Component sub = Component.translatable("race.kurumamod.hud_final_lap");
+        int total = w + 14 + font.width(sub);
+        int x = (width - total) / 2;
+        graphics.fill(x - 18, y, x - 10, y + 34, ACCENT);
+        graphics.fill(x + total + 10, y, x + total + 18, y + 34, ACCENT);
+        Slant.scaled(graphics, font, text, x, y + 6, scale, INK);
+        Slant.text(graphics, font, sub, x + w + 14, y + 13, INK);
+    }
+
+    /** ゴール。帯の色の帯に FINISH と順位。 */
+    private static void renderFinishBand(GuiGraphics graphics, Font font, int width) {
+        int y = 30;
+        graphics.fill(0, y, width, y + 46, ACCENT);
+        String text = "FINISH";
+        float scale = 3.0F;
+        int w = Slant.width(font, text, scale);
+        String placeText = place > 0 ? String.valueOf(place) : "";
+        Component unit = Component.translatable("race.kurumamod.hud_place_unit");
+        int placeWidth = place > 0 ? Slant.width(font, placeText, scale) + font.width(unit) + 18 : 0;
+        int x = (width - w - (placeWidth > 0 ? placeWidth + 16 : 0)) / 2;
+        Slant.scaled(graphics, font, text, x, y + 11, scale, WHITE);
+        if (place > 0) {
+            int px = x + w + 16;
+            graphics.fill(px, y + 6, px + placeWidth, y + 40, WHITE);
+            Slant.scaled(graphics, font, placeText, px + 8, y + 11, scale, INK);
+            Slant.text(graphics, font, unit, px + 10 + Slant.width(font, placeText, scale), y + 24, INK);
+        }
+    }
+
+    /** リザルト。順位の塔と同じ斜めの列。 */
+    private static void renderResults(GuiGraphics graphics, Font font, int width, Minecraft minecraft) {
+        int tableWidth = Math.min(390, width - 40);
+        int left = (width - tableWidth) / 2;
+        int y = 86;
+        Slant.fill(graphics, left, y, tableWidth, 15, INK);
+        Slant.text(graphics, font, "POS", left + 6, y + 4, WHITE);
+        Slant.fit(graphics, font, "DRIVER · " + course + " " + courseLaps + " LAPS", left + 30, y + 4,
+                tableWidth - 30 - font.width("TOTAL") - 16, WHITE);
+        Slant.text(graphics, font, "TOTAL", left + tableWidth - 8 - font.width("TOTAL"), y + 4, WHITE);
+        y += 16;
+        String self = selfName(minecraft);
+        for (int i = 0; i < standings.size() && i < 12; i++) {
+            RaceStandingsPacket.Row row = standings.get(i);
+            boolean me = row.name().equals(self);
+            Slant.fill(graphics, left, y, tableWidth, 17, me ? WHITE : 0xD1111111);
+            String pos = row.finished() ? String.valueOf(i + 1) : "-";
+            Slant.fill(graphics, left, y, 22, 17, me ? ACCENT : POS);
+            Slant.text(graphics, font, pos, left + 11 - font.width(pos) / 2, y + 5, WHITE);
+            Slant.text(graphics, font, row.name(), left + 30, y + 5, me ? INK : WHITE);
+            String value;
+            if (!row.finished()) {
+                value = Component.translatable("race.kurumamod.hud_dnf", row.laps()).getString();
+            } else if (row.leader()) {
+                value = RaceManager.format(row.millis());
+            } else {
+                value = "+" + RaceManager.format(row.millis());
+            }
+            Slant.text(graphics, font, value, left + tableWidth - 8 - font.width(value), y + 5, me ? INK : WHITE);
+            y += 18;
+        }
+        Component foot = Component.translatable("race.kurumamod.hud_result_foot",
+                KurumaKeys.OPEN_RACE.getTranslatedKeyMessage());
+        int footWidth = Math.min(tableWidth, font.width(foot) + 16);
+        Slant.fill(graphics, left, y + 2, footWidth, 13, 0xBF111111);
+        Slant.text(graphics, font, foot, left + 8, y + 5, 0xFFE8E8E8);
+    }
+
+    // ----- 書式 -----
+
+    /** 符号つきの差（秒）。「−0.412」「+1.020」。 */
+    private static String signed(long millis) {
+        return String.format(Locale.ROOT, "%+.3f", millis / 1000.0);
+    }
+
+    /** 先頭との差。1 分未満は秒、それ以上は分:秒。 */
+    private static String gap(long millis) {
+        if (millis < 60_000L) {
+            return String.format(Locale.ROOT, "+%.2f", millis / 1000.0);
+        }
+        return "+" + RaceManager.format(millis);
     }
 }

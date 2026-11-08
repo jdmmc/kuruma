@@ -43,6 +43,11 @@ public final class CarClientPackets {
         CourseRenderer.accept(packet);
     }
 
+    /** レースの様子（受付中か・決まり・参加者と判定）を受け取る。 */
+    public static void applyRaceLobby(com.jdmmc.kurumamod.network.RaceLobbyPacket packet) {
+        RaceLobby.accept(packet);
+    }
+
     /** ラップ計測とスタート信号の合図を受け取る。 */
     public static void applyRaceEvent(RaceEventPacket packet) {
         RaceHud.accept(packet);

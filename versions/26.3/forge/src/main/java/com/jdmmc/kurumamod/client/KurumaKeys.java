@@ -168,6 +168,20 @@ public final class KurumaKeys {
             CATEGORY,
             0);
 
+    /**
+     * レース（参加・主催の入口）。既定は K。
+     *
+     * <p>誘いが出ていれば参加、参加していればそのレースの画面、主催していれば主催者画面、
+     * レースが無ければ主催者画面（＝開く入口）。</p>
+     */
+    public static final KeyMapping OPEN_RACE = new KeyMapping(
+            "key.kurumamod.race",
+            KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYBOARD,
+            InputConstants.KEY_K,
+            CATEGORY,
+            0);
+
     private KurumaKeys() {
     }
 
@@ -189,5 +203,6 @@ public final class KurumaKeys {
         event.register(CAMERA_FARTHER);
         event.register(OPEN_CONTROLLER);
         event.register(OPEN_SOUND_DEBUG);
+        event.register(OPEN_RACE);
     }
 }

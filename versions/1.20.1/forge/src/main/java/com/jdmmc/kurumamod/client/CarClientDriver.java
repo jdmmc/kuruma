@@ -75,6 +75,10 @@ public final class CarClientDriver {
         while (KurumaKeys.OPEN_MENU.consumeClick()) {
             minecraft.setScreen(new KurumaMenuScreen(null));
         }
+        // レース。車に乗っていなくても開ける（歩いて集まってから参加・主催することもある）
+        while (KurumaKeys.OPEN_RACE.consumeClick()) {
+            RaceLobby.onKey(minecraft);
+        }
         while (KurumaKeys.OPEN_HEADLIGHT_SETTINGS.consumeClick()) {
             if (minecraft.screen == null) {
                 minecraft.setScreen(new HeadlightScreen());
@@ -169,7 +173,7 @@ public final class CarClientDriver {
 
         // カウントダウン中は動かせない。スタート信号を意味のあるものにするため
         if (RaceHud.isFrozen()) {
-            car.setDriverInput(CarInput.NONE);
+            car.setDriverInput(frozenInput(minecraft, car));
             return;
         }
 
@@ -201,6 +205,21 @@ public final class CarClientDriver {
         // 衝突するので、ジャンプの押下状態をそのまま借りる
         car.setDriverInput(new CarInput(in.up, in.down, in.left, in.right,
                 shiftUp, shiftDown, in.jumping));
+    }
+
+    /**
+     * スタートの信号の間の入力。<b>惰性で進まないよう止め、ハンドルだけは渡す</b>（グリッドで向きを
+     * 合わせられるように）。サイドを引き、前へ動いていればブレーキも掛ける——止まってからブレーキを
+     * 踏み続けると、オートマはバックに入ってしまうので、前へ動いている間だけ。
+     */
+    private static CarInput frozenInput(Minecraft minecraft, CarEntity car) {
+        boolean forward = car.getRenderSpeed() > 0.3F;
+        CarInput pad = ControllerInput.toCarInput();
+        if (pad != null && !ControllerInput.isIdle()) {
+            return CarInput.analog(0.0, forward ? 1.0 : 0.0, pad.steerAxis(), false, false, 1.0);
+        }
+        Input in = minecraft.player.input;
+        return new CarInput(false, forward, in.left, in.right, false, false, true);
     }
 
     /**

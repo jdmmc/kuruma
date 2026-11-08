@@ -140,6 +140,19 @@ public final class KurumaKeys {
             "key.categories.kurumamod");
 
     /** コントローラの割り当て画面を開く。既定は J。 */
+    /**
+     * レース（参加・主催の入口）。既定は K。
+     *
+     * <p>誘いが出ていれば参加、参加していればそのレースの画面、主催していれば主催者画面、
+     * レースが無ければ主催者画面（＝開く入口）。</p>
+     */
+    public static final KeyMapping OPEN_RACE = new KeyMapping(
+            "key.kurumamod.race",
+            KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_K,
+            "key.categories.kurumamod");
+
     public static final KeyMapping OPEN_CONTROLLER = new KeyMapping(
             "key.kurumamod.controller",
             KeyConflictContext.IN_GAME,
@@ -164,5 +177,6 @@ public final class KurumaKeys {
         event.register(CAMERA_FARTHER);
         event.register(OPEN_CONTROLLER);
         event.register(OPEN_SOUND_DEBUG);
+        event.register(OPEN_RACE);
     }
 }

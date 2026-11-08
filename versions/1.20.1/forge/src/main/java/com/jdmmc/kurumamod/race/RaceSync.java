@@ -43,6 +43,8 @@ public final class RaceSync {
     public static void sendTo(ServerPlayer player) {
         KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 build((ServerLevel) player.level()));
+        // レースの様子も一緒に。入ったワールドで受付中なら、誘いと参加の口がすぐ出る
+        RaceManager.sendLobby(player);
     }
 
     public static void sendToAll(MinecraftServer server) {

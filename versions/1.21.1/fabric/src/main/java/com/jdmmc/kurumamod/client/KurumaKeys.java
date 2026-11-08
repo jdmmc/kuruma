@@ -34,6 +34,8 @@ public final class KurumaKeys {
     public static final KeyMapping OPEN_SEAT_DEBUG = new Ctrl("key.kurumamod.seat_debug", GLFW.GLFW_KEY_G);
     public static final KeyMapping OPEN_SOUND_DEBUG = new Ctrl("key.kurumamod.sound_debug", GLFW.GLFW_KEY_H);
     public static final KeyMapping OPEN_CONTROLLER = plain("key.kurumamod.controller", GLFW.GLFW_KEY_J);
+    /** レース（参加・主催の入口）。NeoForge 版と同じ。 */
+    public static final KeyMapping OPEN_RACE = plain("key.kurumamod.race", GLFW.GLFW_KEY_K);
 
     private KurumaKeys() {
     }
@@ -52,6 +54,7 @@ public final class KurumaKeys {
         KeyBindingHelper.registerKeyBinding(CAMERA_FARTHER);
         KeyBindingHelper.registerKeyBinding(OPEN_CONTROLLER);
         KeyBindingHelper.registerKeyBinding(OPEN_SOUND_DEBUG);
+        KeyBindingHelper.registerKeyBinding(OPEN_RACE);
     }
 
     private static KeyMapping plain(String name, int key) {

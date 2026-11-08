@@ -59,6 +59,16 @@ public final class RaceSounds {
         play(KurumaSounds.RACE_SPLIT.get(), pitch, SPLIT_VOLUME);
     }
 
+    /** エントリーした（主催者には、誰かが入った）。区間の音を高く鳴らす。 */
+    public static void entered() {
+        play(KurumaSounds.RACE_SPLIT.get(), 1.5F, SPLIT_VOLUME);
+    }
+
+    /** エントリーから抜けた・外された（主催者には、誰かが抜けた）。区間の音を低く鳴らす。 */
+    public static void left() {
+        play(KurumaSounds.RACE_SPLIT.get(), 0.75F, SPLIT_VOLUME);
+    }
+
     private static void play(SoundEvent sound, float pitch, float volume) {
         Minecraft.getInstance().getSoundManager()
                 .play(SimpleSoundInstance.forUI(sound, pitch, volume));

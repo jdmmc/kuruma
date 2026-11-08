@@ -33,7 +33,7 @@ import java.util.function.Function;
 public final class KurumaNetwork {
 
     /** パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれる。 */
-    private static final int PROTOCOL_VERSION = 5;
+    private static final int PROTOCOL_VERSION = 6;
 
     private static Channel<CustomPacketPayload> channel;
 
@@ -52,6 +52,8 @@ public final class KurumaNetwork {
                 .addMain(CarPartRequestPacket.TYPE, codec(CarPartRequestPacket.STREAM_CODEC), handler(p -> p::handle))
                 .addMain(CarPaintRequestPacket.TYPE, codec(CarPaintRequestPacket.STREAM_CODEC), handler(p -> p::handle))
                 .addMain(CarPlateRequestPacket.TYPE, codec(CarPlateRequestPacket.STREAM_CODEC), handler(p -> p::handle))
+                // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
+                .addMain(RaceActionPacket.TYPE, codec(RaceActionPacket.STREAM_CODEC), handler(p -> p::handle))
                 .clientbound()
                 .addMain(CarSpecPacket.TYPE, codec(CarSpecPacket.STREAM_CODEC), handler(p -> p::handle))
                 .addMain(RaceEventPacket.TYPE, codec(RaceEventPacket.STREAM_CODEC), handler(p -> p::handle))
@@ -63,6 +65,8 @@ public final class KurumaNetwork {
                 .addMain(CarPartTypesPacket.TYPE, codec(CarPartTypesPacket.STREAM_CODEC), handler(p -> p::handle))
                 // 車 1 台の装着状態。走行中に換装したときだけ飛ぶ（現れるときはスポーンデータが運ぶ）
                 .addMain(CarPartsPacket.TYPE, codec(CarPartsPacket.STREAM_CODEC), handler(p -> p::handle))
+                // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
+                .addMain(RaceLobbyPacket.TYPE, codec(RaceLobbyPacket.STREAM_CODEC), handler(p -> p::handle))
                 // 行きも帰りもあるもの（運転者 → サーバー → 周りのクライアント）
                 .bidirectional()
                 .addMain(CarImpactPacket.TYPE, codec(CarImpactPacket.STREAM_CODEC), handler(p -> p::handle))

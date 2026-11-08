@@ -25,6 +25,8 @@ public final class RaceSync {
     /** ログインしたとき・次元を移ったときにも呼ぶ（{@code CommonHooks}）。 */
     public static void sendTo(ServerPlayer player) {
         KurumaNetwork.sendToPlayer(player, build((ServerLevel) player.level()));
+        // レースの様子も一緒に。入ったワールドで受付中なら、誘いと参加の口がすぐ出る
+        RaceManager.sendLobby(player);
     }
 
     public static void sendToAll(MinecraftServer server) {

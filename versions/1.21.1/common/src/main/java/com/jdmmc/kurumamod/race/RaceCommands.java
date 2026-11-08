@@ -226,6 +226,12 @@ public final class RaceCommands {
             return 0;
         }
         String name = StringArgumentType.getString(ctx, "name");
+        // 名前は画面のあちこちとパケットに載る。長すぎる名前は作らせない
+        if (name.length() > Course.MAX_NAME_LENGTH) {
+            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.course_name_too_long",
+                    Course.MAX_NAME_LENGTH));
+            return 0;
+        }
         RaceData data = RaceData.get((ServerLevel) player.level());
         Course course = data.course(name).orElseGet(() -> data.createCourse(name));
         course.setStart(line);

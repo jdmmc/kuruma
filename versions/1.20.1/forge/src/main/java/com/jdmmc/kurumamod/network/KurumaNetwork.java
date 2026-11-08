@@ -18,7 +18,7 @@ public final class KurumaNetwork {
      * パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれるので、
      * 読み違えたまま遊べてしまうことがない。
      */
-    private static final String PROTOCOL_VERSION = "5";
+    private static final String PROTOCOL_VERSION = "6";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Kurumamod.MODID, "main"),
@@ -128,6 +128,18 @@ public final class KurumaNetwork {
                 .encoder(CarPlateRequestPacket::encode)
                 .decoder(CarPlateRequestPacket::new)
                 .consumerMainThread(CarPlateRequestPacket::handle)
+                .add();
+        // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
+        CHANNEL.messageBuilder(RaceLobbyPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(RaceLobbyPacket::encode)
+                .decoder(RaceLobbyPacket::new)
+                .consumerMainThread(RaceLobbyPacket::handle)
+                .add();
+        // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
+        CHANNEL.messageBuilder(RaceActionPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(RaceActionPacket::encode)
+                .decoder(RaceActionPacket::new)
+                .consumerMainThread(RaceActionPacket::handle)
                 .add();
     }
 }

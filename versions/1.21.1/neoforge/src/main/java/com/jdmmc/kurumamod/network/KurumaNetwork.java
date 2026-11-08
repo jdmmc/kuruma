@@ -30,7 +30,7 @@ public final class KurumaNetwork {
      * パケットの中身の形を変えたら上げる。揃っていない同士は接続の時点で弾かれるので、
      * 読み違えたまま遊べてしまうことがない。
      */
-    private static final String PROTOCOL_VERSION = "5";
+    private static final String PROTOCOL_VERSION = "6";
 
     private KurumaNetwork() {
     }
@@ -67,6 +67,10 @@ public final class KurumaNetwork {
         // ナンバーの中身（打った字と付ける位置）の要求。様式の決まりと看板と同じフィルタを通してから配る
         registrar.playToServer(CarPlateRequestPacket.TYPE, CarPlateRequestPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // 運転者の画面で走っているゴーストを、同じ車の助手席の人へ。運転者 → サーバー → ほかの乗員
+        // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
+        registrar.playToClient(RaceLobbyPacket.TYPE, RaceLobbyPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
+        registrar.playToServer(RaceActionPacket.TYPE, RaceActionPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         registrar.playBidirectional(GhostRidePacket.TYPE, GhostRidePacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
     }
 
