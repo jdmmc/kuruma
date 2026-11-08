@@ -78,6 +78,7 @@ HEADER = f"""<header class="bar">
         <a href="index.html">{T("Home", "トップ")}</a>
         <a href="start.html">{T("Get started", "はじめかた")}</a>
         <a href="features.html">{T("Features", "特徴")}</a>
+        <a href="race.html">{T("Racing", "レース")}</a>
         <a href="compare.html">{T("Compare", "比較")}</a>
         <a href="shaders.html">{T("Shaders", "シェーダー")}</a>
         <a href="guide.html">{T("Car Pack Guide", "作成ガイド")}</a>
@@ -100,7 +101,7 @@ FOOTER = f"""<footer>
     <a class="wordmark" href="index.html">KURUMA</a>
     <div class="cols">
       <div><h4>{T("Cars", "車種")}</h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html">{T("Compare cars", "車種を比較")}</a></li></ul></div>
-      <div><h4>{T("Features", "特徴")}</h4><ul><li><a href="features.html#physics">{T("Physics", "物理演算")}</a></li><li><a href="features.html#setup">{T("Setup", "セッティング")}</a></li><li><a href="features.html#lighting">{T("Headlights", "ヘッドライト")}</a></li><li><a href="features.html#racing">{T("Racing", "レース")}</a></li></ul></div>
+      <div><h4>{T("Features", "特徴")}</h4><ul><li><a href="features.html#physics">{T("Physics", "物理演算")}</a></li><li><a href="features.html#setup">{T("Setup", "セッティング")}</a></li><li><a href="features.html#lighting">{T("Headlights", "ヘッドライト")}</a></li><li><a href="race.html">{T("Racing", "レース")}</a></li></ul></div>
       <div><h4>{T("Download", "ダウンロード")}</h4><ul><li><a href="{CF}">CurseForge</a></li><li><a href="{MR}">Modrinth</a></li><li><a href="{CF_BASIC}">Basic Car Pack</a></li><li><a href="{GUIDE}">{T("Car pack guide", "カーパック作成ガイド")}</a></li></ul></div>
       <div><h4>{T("Community", "コミュニティ")}</h4><ul><li><a href="{DISCORD}">Discord</a></li><li><a href="{X}">X @kurumamod</a></li></ul></div>
     </div>
@@ -708,6 +709,7 @@ KEYS = [
     ("PgUp / PgDn", ("Camera distance", "カメラの距離")),
     ("L", ("Headlights", "ヘッドライト")),
     ("Ctrl+L", ("Headlight settings", "ヘッドライトの調整")),
+    ("K", ("Race: join, host, race info", "レース（参加・主催・レースの画面）")),
     ("J", ("Controller setup", "コントローラ設定")),
 ]
 
@@ -804,8 +806,8 @@ page("features.html", "Features | KurumaMod", "特徴 | KurumaMod", f"""
          ("Set camber, offset and wheel width until it sits just right: flush, poke, or full oni-kyan. Bolt on bumpers, side skirts, fenders, a rear wing and a diffuser. Wings and diffusers make real downforce. Mufflers change the exhaust note, and everyone nearby hears it. Gauges come in 90s JDM factory or modern style.",
           "キャンバー・オフセット・ホイールの太さで、好きな姿に。ツライチも、ハミタイも、鬼キャンも。バンパー、サイドスカート、フェンダー、リアウイング、ディフューザーも付けられ、ウイングとディフューザーは本当にダウンフォースを生みます。マフラーで排気音が変わり、周りの人にも同じ音で聞こえます。メーターは 90 年代の国産純正風とモダンの 2 種類。"))}
 {feature("racing", "", True, "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends.", "友だちとレースを。"),
-         ("Place a start line and checkpoints anywhere in your world and hold a proper race: start lights, live standings, and your gap to your best lap at every checkpoint. Multiplayer, timed to the millisecond. Cars can collide with each other, and servers can turn that off.",
-          "ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的なレースを開けます。スタートシグナル、リアルタイムの順位、チェックポイントごとのベストラップとの差。マルチプレイ対応、計測はミリ秒単位。車同士の接触もあります（サーバー側で切れます）。"))}
+         ("Place a start line and checkpoints anywhere in your world and hold a proper race. Host and join with one key, set a regulation for power, weight and grip, and race with start lights, a live tower and your gap to your best lap at every checkpoint. Multiplayer, timed to the millisecond. <a href='race.html'>More about racing</a>",
+          "ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的なレースを開けます。主催も参加もキー 1 つ。出力・車重・グリップなどのレギュレーションを決めて、スタートシグナル、リアルタイムの順位、チェックポイントごとのベストラップとの差。マルチプレイ対応、計測はミリ秒単位。<a href='race.html'>レースについて詳しく</a>"))}
 {feature("offroad", "mist", False, "offroad.jpg", ("Land Cruiser Prado climbing a rocky trail", "山道の段差を登るランドクルーザー プラド"), ("Off-road", "オフロード"), T("Head for the hills.", "土煙を上げて、山へ。"),
          ("Load the Off-road preset for four-wheel drive, a locking diff, long suspension travel and big tyres. Climb one-block ledges, let the diff pull you out of a ditch with a wheel in the air, and head into the hills with dust trailing behind you.",
           "オフロードプリセットを読み込めば、四駆・ロックするデフ・長いストローク・大径タイヤの仕様に。1 ブロックの段差をよじ登り、片輪が浮いた溝もデフの力で抜け出して、土煙を上げながら山へ。"))}
@@ -987,6 +989,167 @@ page("shaders.html", "Shader packs | KurumaMod", "シェーダーパック | Kur
 </section>
 """, desc="KurumaMod is built for shader packs: cars stay smooth, and light, shadows and smoke blend into the pack.")
 
+RACE_RULES = [
+    (("Base traits", "車の素性"),
+     ("Locks size (wheelbase, track, tyre radius), drivetrain efficiency, rolling resistance, drag, shift time, engine inertia and tyre traits other than μ to the car's own values. Changing any of these only ever makes a car faster, so the host can fix them all at once or one by one.",
+      "車の寸法（ホイールベース・トレッド・タイヤ半径）、駆動の効率、転がり抵抗、空気抵抗、変速の時間、エンジンの慣性、タイヤの性質（μ 以外）を、車種の値に固定します。どれも変えるほど速くなるだけの値なので、まとめて、あるいは 1 つずつ固定できます。")),
+    (("Max power", "最高出力の上限"),
+     ("Peak power in PS, measured with the turbo at full boost and parts included.",
+      "最高出力（PS）。ターボはブーストが乗りきった値で、パーツ込みで測ります。")),
+    (("Min weight", "車重の下限"),
+     ("Car weight in kg, without the driver.", "車重（kg）。乗員は含みません。")),
+    (("Min power-to-weight", "パワーウエイトレシオの下限"),
+     ("Weight ÷ max power (kg/PS): how many kg each PS has to move. Lower is quicker. Use it to even cars out by the ratio alone. 1,200 kg with 240 PS is 5.0.",
+      "車重 ÷ 最高出力（kg/PS）。1 PS あたり何 kg を運ぶかで、小さいほど加速が鋭くなります。出力と車重を別々に縛らず、比だけで揃えたいときに。1,200 kg・240 PS なら 5.0 です。")),
+    (("Max grip", "グリップの上限"),
+     ("Tyre grip (μ) on tarmac, tyre parts included.", "舗装路でのタイヤのグリップ（μ）。タイヤのパーツ込み。")),
+    (("Max downforce", "ダウンフォースの上限"),
+     ("Downforce at 200 km/h, front and rear added together, aero parts included.",
+      "200 km/h のときのダウンフォース（前後の合計）。空力のパーツ込み。")),
+    (("Drivetrain", "駆動方式"), ("Which of FF, FR and 4WD may enter.", "FF・FR・4WD のうち、どれで出られるか。")),
+    (("Forced induction", "過給機"), ("Whether a turbo may be fitted.", "ターボを付けてよいか。")),
+    (("Driving aids", "運転補助"), ("Whether traction control (TCS) and ABS may be used.", "トラクションコントロール（TCS）と ABS を使ってよいか。")),
+]
+race_rules = "".join(f"<tr><th scope=\"row\">{T(*n)}</th><td>{T(*d)}</td></tr>" for n, d in RACE_RULES)
+
+RACE_COMMANDS = [
+    ("/kuruma-admin point", ("Mark one end of a line where you stand (OP).", "立っている場所を線の端にする（OP）。")),
+    ("/kuruma-admin course create &lt;name&gt;", ("Make a course from the last two points. Face the racing direction. Names are up to 32 characters.",
+                                                  "最後に打った 2 点でコースを作る。走る向きを向いて打つ。名前は 32 文字まで。")),
+    ("/kuruma-admin course checkpoint &lt;name&gt;", ("Add a checkpoint from the last two points, in driving order.", "最後に打った 2 点でチェックポイントを足す。通る順に。")),
+    ("/kuruma-admin course laps &lt;name&gt; &lt;laps&gt;", ("Default number of laps.", "既定の周回数。")),
+    ("/kuruma-admin collide [true|false]", ("Whether cars hit each other.", "車同士が当たるか。")),
+    ("/kuruma race open|join|leave|start|stop", ("The same as the K screens, as commands.", "K の画面と同じことをコマンドで。")),
+    ("/kuruma best, /kuruma best top &lt;course&gt;", ("Your bests and a course's ranking.", "自己ベストと、コースのランキング。")),
+]
+race_commands = "".join(f"<div><dt><code>{c}</code></dt><dd>{T(*d)}</dd></div>" for c, d in RACE_COMMANDS)
+
+page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
+<section class="hero page" style="padding:0">
+  <img src="img/race.jpg" {ALT("Start lights on a race track", "スタートシグナルの点いたコース")}>
+  <div class="copy">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">KurumaMod</a> / {T("Racing", "レース")}</div>
+      <h1>Racing</h1>
+      <p>{T("Host and join with one key. Set a regulation, line up, and go.", "主催も参加も、キー 1 つで。レギュレーションを決めて、並んで、スタート。")}</p>
+    </div>
+  </div>
+</section>
+
+<div class="subnav">
+  <div class="wrap">
+    <span class="name">Racing</span>
+    <nav aria-label="On this page">
+      <a href="#flow">{T("How it works", "レースの流れ")}</a>
+      <a href="#regulation">{T("Regulation", "レギュレーション")}</a>
+      <a href="#setup">{T("Setup limits", "セッティングの制限")}</a>
+      <a href="#hud">{T("On track", "走行中")}</a>
+      <a href="#timeattack">{T("Time attack", "タイムアタック")}</a>
+      <a href="#commands">{T("Commands", "コマンド")}</a>
+    </nav>
+    <a class="btn" href="start.html#download">{T("Download", "ダウンロード")}</a>
+  </div>
+</div>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="eyebrow">{T("How it works", "レースの流れ")}</div>
+    <h2 class="title">{T("From an empty track to the flag.", "コース作りからチェッカーフラッグまで。")}</h2>
+    <p class="lead">{T("Everything after the course is done from the race screen, opened with <span class='key' style='border-color:var(--black)'>K</span>. No commands needed.",
+                       "コースを作ったあとは、すべて <span class='key' style='border-color:var(--black)'>K</span> で開くレースの画面から。コマンドはいりません。")}</p>
+    <ol class="steps">
+      <li><h3>{T("Build a course", "コースを作る")}</h3><p>{T("An OP marks a start line and checkpoints with <code>/kuruma-admin</code>. Once per world.", "OP が <code>/kuruma-admin</code> でスタートラインとチェックポイントを置きます。ワールドごとに 1 回だけ。")}</p></li>
+      <li><h3>{T("Open a race", "レースを開く")}</h3><p>{T("Press K with no race open. Pick the course and laps, set the regulation and press Open race. You are entered too.", "レースが無いときに K。コースと周回を選び、レギュレーションを決めて「レースを開く」。主催者も自動で参加します。")}</p></li>
+      <li><h3>{T("Join", "参加する")}</h3><p>{T("An invite pops up at the right edge for everyone in the world. Press K to join. Press K again to see the race and who is in.", "ワールドにいる全員の画面の右端に参加の案内が出ます。K で参加。もう一度 K を押すと、レースの内容と参加者を確認できます。")}</p></li>
+      <li><h3>{T("Start", "スタート")}</h3><p>{T("The host presses Start. Cars are held still under the lights (you can still steer). Lap 1 starts on GO.", "主催者が「スタート」を押します。シグナルの間は車が止まります（ハンドルは切れます）。GO と同時に 1 周目の計測が始まります。")}</p></li>
+    </ol>
+    <dl class="news-list wide">
+      <div><dt>{T("While entered", "エントリー中")}</dt><dd>{T("A green ENTERED panel at the right edge lists everyone and their check result. Hosts see a red HOSTING panel and a sound when someone joins or leaves. Both stay up while you have G or H open.", "右端に緑の ENTERED の欄が出て、参加者と判定が並びます。主催者には赤い HOSTING の欄が出て、誰かが入る・抜けると音で知らせます。G や H を開いていても出たままです。")}</dd></div>
+      <div><dt>{T("Leaving and kicking", "エントリーの取り消しとキック")}</dt><dd>{T("Leave from the race screen. The host can remove an entrant with the × on their row.", "エントリーの取り消しはレースの画面から。主催者は、参加者の行の × でキックできます。")}</dd></div>
+      <div><dt>{T("One race per world", "レースはワールドに 1 つ")}</dt><dd>{T("Each world (dimension) runs one race at a time. Invites only reach players in that world.", "1 つのワールド（ディメンション）で開けるレースは 1 つです。参加の案内はそのワールドにいる人にだけ届きます。")}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="mist" id="regulation">
+  <div class="wrap">
+    <div class="eyebrow">{T("Regulation", "レギュレーション")}</div>
+    <h2 class="title">{T("Same rules for every car.", "全員を同じ条件で。")}</h2>
+    <p class="lead">{T("The host picks which limits apply. Unticked limits are ignored. Hover a rule on the host screen to see what it measures.", "使う条件を主催者が選びます。切った条件は見ません。主催者画面で条件の名前にカーソルを乗せると、何を測るかが出ます。")}</p>
+    <div class="compare-wrap">
+      <table class="compare fit">
+        <thead><tr><th scope="col">{T("Rule", "条件")}</th><th scope="col">{T("What it measures", "何を測るか")}</th></tr></thead>
+        <tbody>{race_rules}</tbody>
+      </table>
+    </div>
+    <div class="packs">
+      <div class="pack static"><small>{T("Check", "判定")}</small><h3>{T("Blue OK, red breach", "青が適合、赤が違反")}</h3><p>{T("The server checks every entrant's car with the same maths the client uses. The host sees each car's numbers, with the ones out of range in red.", "サーバーが全員の車を、クライアントと同じ式で判定します。主催者には各車の値が並び、外れている値は赤で出ます。")}</p></div>
+      <div class="pack static"><small>{T("At the start", "スタート")}</small><h3>{T("Breach means spectating", "違反なら観戦")}</h3><p>{T("Anyone still in breach when the lights come on watches instead. Leave the regulation mid-race and you are disqualified.", "スタートシグナルが点いた時点で違反している人は観戦になります。レース中にレギュレーションを外れると失格です。")}</p></div>
+      <div class="pack static"><small>{T("Presets", "プリセット")}</small><h3>{T("Saved on the server", "サーバーに保存")}</h3><p>{T("OPs save regulations as named presets on the server. Anyone can pick and load them on the host screen.", "OP はレギュレーションに名前を付けてサーバーに保存できます。選んで読み込むのは誰でもできます。")}</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap">
+    <div class="eyebrow">{T("Setup limits", "セッティングの制限")}</div>
+    <h2 class="title">{T("G knows the rules.", "G 画面もレギュレーションに従う。")}</h2>
+    <p class="lead">{T("From the moment you enter until you finish, the setup screen (G) will not let you leave the regulation.", "エントリーしてからゴールするまで、セッティング画面（G）ではレギュレーションを外れる値にできません。")}</p>
+    <dl class="news-list wide">
+      <div><dt>{T("Hatched sliders", "範囲外は斜線で表示")}</dt><dd>{T("The part of each slider that would break a rule is hatched in orange, and the slider stops at its edge.", "レギュレーションを外れる範囲は橙の斜線で示され、つまみはその手前で止まります。")}</dd></div>
+      <div><dt>{T("Locked traits", "固定された項目")}</dt><dd>{T("Fixed base traits show a padlock and cannot be moved.", "固定された素性には錠前が付き、動かせません。")}</dd></div>
+      <div><dt>{T("Red items and tabs", "違反は赤で表示")}</dt><dd>{T("Anything that puts your car in breach is red, and so is the tab it lives on, so you can find it quickly.", "違反の原因になっている項目と、その項目があるタブが赤く表示されるので、すぐに見つかります。")}</dd></div>
+      <div><dt>{T("Fixing it yourself", "自動では直しません")}</dt><dd>{T("Nothing is moved for you. If you are already out of range, you can only move back towards it. Reset and R still work before the start.", "値を勝手に動かすことはしません。外れている車は、直す向きにだけ動かせます。スタート前なら「すべて戻す」と R も使えます。")}</dd></div>
+      <div><dt>{T("Parts", "パーツ")}</dt><dd>{T("Parts that would break the regulation cannot be fitted while you are entered.", "エントリー中は、レギュレーションを外れる部品には換えられません。")}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="mist" id="hud">
+  <div class="wrap">
+    <div class="eyebrow">{T("On track", "走行中")}</div>
+    <h2 class="title">{T("Broadcast-style graphics.", "テレビ中継のような表示。")}</h2>
+    <div class="packs">
+      <div class="pack static"><small>{T("Top left", "左上")}</small><h3>{T("The tower", "順位表")}</h3><p>{T("Position, name and gap to the leader for everyone, live.", "全員の順位と、トップとの差をリアルタイムで表示します。")}</p></div>
+      <div class="pack static"><small>{T("Top right", "右上")}</small><h3>{T("Your clock", "ラップタイム")}</h3><p>{T("Lap time, gap to your best at the last checkpoint, checkpoint progress, last and best lap.", "現在のラップタイム、直前のチェックポイントでの自己ベストとの差、チェックポイントの通過状況、前周とベストラップ。")}</p></div>
+      <div class="pack static"><small>{T("Centre", "中央")}</small><h3>{T("Call-outs", "画面中央の通知")}</h3><p>{T("Checkpoint deltas, personal best laps, final lap, and a clear reason when a lap does not count.", "チェックポイント通過時のタイム差、自己ベスト更新、ファイナルラップ、周回が無効になったときの理由。")}</p></div>
+    </div>
+    <dl class="news-list wide">
+      <div><dt>{T("Finish", "ゴール")}</dt><dd>{T("A FINISH band with your position, then the results. Press Esc to close them, or wait 15 seconds.", "順位入りの FINISH 表示のあと、リザルトが出ます。Esc ですぐ閉じられます（15 秒で自動的に閉じます）。")}</dd></div>
+      <div><dt>{T("Lap 1 starts on GO", "1 周目の計測はスタートの合図から")}</dt><dd>{T("Line up before or after the start line. Crossing it right after GO is not counted as a lap.", "グリッドはスタートラインの手前でも先でも構いません。スタート直後にラインを越えても、周回には数えません。")}</dd></div>
+      <div><dt>{T("Missed checkpoints", "チェックポイントを通り損ねたら")}</dt><dd>{T("Miss one and the lap does not count. Pass it and cross the line again to complete the lap.", "1 つでも通り損ねると、その周は無効になります。通り損ねたチェックポイントを通ってからラインを越えれば、周回が成立します。")}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="timeattack">
+  <div class="wrap">
+    <div class="eyebrow">{T("Time attack", "タイムアタック")}</div>
+    <h2 class="title">{T("Just drive across the line.", "スタートラインを越えるだけ。")}</h2>
+    <p class="lead">{T("Cross any start line to start timing on your own. The tower turns into your sector times with the gap to your best in each, and your best lap runs beside you as a ghost.", "どのスタートラインでも、越えれば 1 人で計測が始まります。塔は区間タイムと区間ごとの自己ベストとの差に変わり、ベストの走りがゴーストとして隣を走ります。")}</p>
+  </div>
+</section>
+
+<section class="mist" id="commands">
+  <div class="wrap">
+    <div class="eyebrow">{T("Commands", "コマンド")}</div>
+    <h2 class="title">{T("For OPs and scripts.", "OP 向けのコマンド。")}</h2>
+    <p class="lead">{T("Courses are built with commands. Everything else can also be done from the K screens.", "コースはコマンドで作ります。それ以外は K の画面でもできます。")}</p>
+    <dl class="news-list wide">{race_commands}</dl>
+  </div>
+</section>
+
+<section class="dark cta-band">
+  <div class="wrap">
+    <div>
+      <h2 class="title">{T("Looking for people to race?", "一緒に走る仲間を探すなら。")}</h2>
+      <p class="lead">{T("Find races and share regulations on Discord.", "Discord でレースの告知やレギュレーションを共有できます。")}</p>
+    </div>
+    <div class="acts"><a class="btn light arrow" href="{DISCORD}">Discord</a></div>
+  </div>
+</section>
+""", desc="Host and join races with one key. Set a regulation for power, weight, grip and more, and race with broadcast-style graphics.", image="img/race.jpg")
+
 page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f"""
 <section class="hero page" style="padding:0">
   <img src="img/hud.jpg" {ALT("Silvia S15 on the start line", "スタートラインに止まる S15")}>
@@ -1077,8 +1240,8 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
         <div><dt>{T("Build a course (OP)", "コースを作る（OP）")}</dt><dd>{T("Mark both ends of each line with <code>/kuruma-admin point</code>. Face the racing direction and run <code>/kuruma-admin course create &lt;name&gt;</code>, then add checkpoints in order with <code>/kuruma-admin course checkpoint &lt;name&gt;</code>.",
                                                                      "各ラインの両端を <code>/kuruma-admin point</code> で指定し、走る向きを向いて <code>/kuruma-admin course create &lt;名前&gt;</code>。続けてチェックポイントを通る順に <code>/kuruma-admin course checkpoint &lt;名前&gt;</code>。")}</dd></div>
         <div><dt>{T("Time attack", "タイムアタック")}</dt><dd>{T("Just drive across a start line.", "スタートラインを通過するだけ。")}</dd></div>
-        <div><dt>{T("Race", "レース")}</dt><dd>{T("<code>/kuruma race open &lt;course&gt; [laps]</code>, then others <code>/kuruma race join</code>, line up behind the start line, and <code>/kuruma race start</code>.",
-                                                   "<code>/kuruma race open &lt;コース&gt; [周回数]</code> → 参加者は <code>/kuruma race join</code> → ラインの手前に並んで <code>/kuruma race start</code>。")}</dd></div>
+        <div><dt>{T("Race", "レース")}</dt><dd>{T("Press K to open a race and set the regulation. Others press K when the invite appears. The host presses Start. <a href='race.html'>How racing works</a>",
+                                                   "K でレースを開いてレギュレーションを決める → 参加の案内が出たら参加者も K → 主催者が「スタート」。<a href='race.html'>レースの詳しい説明</a>")}</dd></div>
         <div><dt>{T("Records", "記録")}</dt><dd><code>/kuruma best</code>, <code>/kuruma best top &lt;course&gt;</code></dd></div>
       </dl>
     </div>
