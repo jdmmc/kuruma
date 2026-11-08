@@ -907,11 +907,27 @@ public class CarTuningScreen extends Screen {
 
         /** つまみを {@code position} に置いてよいか（レース中の決まり）。 */
         private boolean allowedAt(double position) {
+            outsideRanges();
+            for (double[] end : blockedEnds) {
+                if (position >= end[0] - 1e-9 && position <= end[1] + 1e-9) {
+                    return false;
+                }
+            }
             return RaceLobby.allowsTuning(CarTuning.spec(), candidateAt(position));
         }
 
         /** 決まりの外になる範囲（つまみの位置 0〜1 の区間の並び）。縛られていなければ空。 */
         private List<double[]> outside = List.of();
+        /**
+         * 両端に細く残った空きを塞いだぶん。<b>つまみもそこへは置かせない</b>（{@link #allowedAt}）。
+         *
+         * <p>最大トルク回転数をレブより上に置くと回しきれずに出力がわずかに下がる、というように、
+         * 端の近くで一度外に出た値がまた中へ戻ることがある。計算としては合っているが、使う意味の無い値が
+         * 斜線の先に島のように残って紛らわしいので、幅が {@link #END_GAP} 未満なら外として扱う。</p>
+         */
+        private List<double[]> blockedEnds = List.of();
+        /** 両端の空きを塞ぐ幅（スライダーの幅に対する割合）。 */
+        private static final double END_GAP = 0.05;
         /** いまのつまみの位置が決まりの外か。項目の名前を赤くする。 */
         private boolean violating;
         private int rangeRevision = Integer.MIN_VALUE;
@@ -935,6 +951,7 @@ public class CarTuningScreen extends Screen {
             rangeRevision = revision;
             rangeRule = rule;
             outside = new ArrayList<>();
+            blockedEnds = new ArrayList<>();
             violating = false;
             if (rule == null) {
                 return outside;
@@ -981,6 +998,19 @@ public class CarTuningScreen extends Screen {
             }
             if (previous) {
                 outside.add(new double[]{start, 1.0});
+            }
+            // 両端に細く残った空きは塞ぐ
+            if (!outside.isEmpty()) {
+                double[] first = outside.get(0);
+                if (first[0] > 0.0 && first[0] < END_GAP) {
+                    blockedEnds.add(new double[]{0.0, first[0]});
+                    first[0] = 0.0;
+                }
+                double[] last = outside.get(outside.size() - 1);
+                if (last[1] < 1.0 && 1.0 - last[1] < END_GAP) {
+                    blockedEnds.add(new double[]{last[1], 1.0});
+                    last[1] = 1.0;
+                }
             }
             violating = isBad(excessAt(rule, parameter.sliderPosition(CarTuning.spec())), affected);
             return outside;
