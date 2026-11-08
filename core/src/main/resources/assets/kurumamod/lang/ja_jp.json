@@ -911,5 +911,13 @@
   "screen.kurumamod.race_host.preset_delete": "削除",
   "screen.kurumamod.race_host.preset_save": "保存",
   "screen.kurumamod.race_host.preset_name": "名前",
-  "race.kurumamod.course_name_too_long": "コース名は %s 文字までにしてください"
+  "race.kurumamod.course_name_too_long": "コース名は %s 文字までにしてください",
+  "screen.kurumamod.race_host.presets": "プリセット",
+  "screen.kurumamod.race_host.presets_title": "レギュレーションのプリセット",
+  "race.kurumamod.host_left": "主催者の %s さんが抜けたため、レースを中止しました",
+  "screen.kurumamod.race_info.spectate": "観戦する",
+  "screen.kurumamod.race_info.unspectate": "観戦をやめる",
+  "race.kurumamod.spectate_on": "観戦に切り替えました（エントリーはしていません）",
+  "race.kurumamod.spectate_off": "観戦をやめました",
+  "race.kurumamod.countdown_aborted": "エントリーがいなくなったため、スタートを取りやめました"
 }

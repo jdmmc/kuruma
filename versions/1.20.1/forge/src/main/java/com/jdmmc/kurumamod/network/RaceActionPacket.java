@@ -36,6 +36,10 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         START,
         /** 中止する・終える。 */
         STOP,
+        /** 観戦に切り替える（エントリーしていれば取り消す）。 */
+        SPECTATE,
+        /** 観戦をやめる。 */
+        UNSPECTATE,
         /** 参加者をエントリーから外す（主催者だけ）。{@code course} に外す人の名前を入れる。 */
         KICK,
         /** レギュレーションのプリセットを保存する。{@code course} に名前、{@code regulation} に中身。 */

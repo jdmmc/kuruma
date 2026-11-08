@@ -21,7 +21,7 @@ import java.util.List;
  * @param laps   規定周回数
  * @param rows   並び順（受付中は入った順、走行中とリザルトは順位順）
  */
-public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row> rows) implements CustomPacketPayload {
+public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row> rows, long elapsedMillis) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<RaceStandingsPacket> TYPE = new CustomPacketPayload.Type<>(
             Identifier.fromNamespaceAndPath(Kurumamod.MODID, "race_standings"));
@@ -61,8 +61,13 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
                       boolean started) {
     }
 
+    /** 経過時間の要らない場面（受付・リザルト）。 */
+    public RaceStandingsPacket(Phase phase, String course, int laps, List<Row> rows) {
+        this(phase, course, laps, rows, 0L);
+    }
+
     public RaceStandingsPacket(FriendlyByteBuf buf) {
-        this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), readRows(buf));
+        this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), readRows(buf), buf.readLong());
     }
 
     private static List<Row> readRows(FriendlyByteBuf buf) {
@@ -88,6 +93,8 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
             buf.writeBoolean(row.finished());
             buf.writeBoolean(row.started());
         }
+        // 号砲からの経過時間 [ms]。観戦者の時計に使う（走っている人は自分のラップを測っている）
+        buf.writeLong(elapsedMillis);
     }
 
     public void handle(PacketContext context) {

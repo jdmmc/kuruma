@@ -28,6 +28,7 @@ import java.util.List;
  * @param hostName    主催者の名前
  * @param isHost      受け取った人が主催者か
  * @param joined      受け取った人が参加しているか
+ * @param spectating  受け取った人が観戦しているか（エントリーせず、レースの HUD だけを見る）
  * @param canManage   受け取った人がスタート・中止・決まりの変更をしてよいか（主催者か OP）
  * @param bestMillis  受け取った人のこのコースの自己ベスト [ms]。無ければ 0
  * @param regulation  決まり（{@link Regulation#toArray}）
@@ -37,7 +38,8 @@ import java.util.List;
  * @param presetAdmin 受け取った人がプリセットを保存・削除してよいか（OP）
  */
 public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoints, String hostName,
-                              boolean isHost, boolean joined, boolean canManage, long bestMillis,
+                              boolean isHost, boolean joined, boolean spectating, boolean canManage,
+                              long bestMillis,
                               double[] regulation, List<Entrant> entrants, List<CourseInfo> courses,
                               List<Preset> presets, boolean presetAdmin)
         implements CustomPacketPayload {
@@ -143,13 +145,13 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
 
     /** レースが無いときの中身。 */
     public static RaceLobbyPacket none(List<CourseInfo> courses, List<Preset> presets, boolean presetAdmin) {
-        return new RaceLobbyPacket(Phase.NONE, "", 0, 0, "", false, false, false, 0L,
+        return new RaceLobbyPacket(Phase.NONE, "", 0, 0, "", false, false, false, false, 0L,
                 Regulation.DEFAULT.toArray(), List.of(), courses, presets, presetAdmin);
     }
 
     public RaceLobbyPacket(FriendlyByteBuf buf) {
         this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), buf.readVarInt(), buf.readUtf(256),
-                buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readLong(),
+                buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readLong(),
                 readDoubles(buf), readEntrants(buf), readCourses(buf), readPresets(buf), buf.readBoolean());
     }
 
@@ -210,6 +212,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
         buf.writeUtf(hostName, 256);
         buf.writeBoolean(isHost);
         buf.writeBoolean(joined);
+        buf.writeBoolean(spectating);
         buf.writeBoolean(canManage);
         buf.writeLong(bestMillis);
         buf.writeVarInt(regulation.length);

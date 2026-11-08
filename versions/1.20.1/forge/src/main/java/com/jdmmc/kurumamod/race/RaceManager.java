@@ -146,6 +146,27 @@ public final class RaceManager {
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         dropOut(event.getEntity(), event.getEntity().level().dimension());
+        cancelIfHost(event.getEntity(), event.getEntity().level().dimension());
+    }
+
+    /**
+     * 主催者が落ちたら、そのレースは中止する（リザルトも出さない）。
+     *
+     * <p>主催者のいないレースを残すと、誰が畳むのか・誰がスタートを押すのかの取り回しが面倒になる。
+     * 抜けたのが主催者でなければ何もしない。</p>
+     */
+    private static void cancelIfHost(net.minecraft.world.entity.player.Player player, ResourceKey<Level> from) {
+        Session session = SESSIONS.get(from);
+        if (session == null || !player.getUUID().equals(session.host) || player.getServer() == null) {
+            return;
+        }
+        ServerLevel level = player.getServer().getLevel(from);
+        if (level == null) {
+            return;
+        }
+        cleanup(level, session);
+        broadcast(level, Component.translatable("race.kurumamod.host_left", session.hostName)
+                .withStyle(ChatFormatting.GRAY));
     }
 
     /**
@@ -160,6 +181,9 @@ public final class RaceManager {
             byPlayer.remove(player.getUUID());
         }
         Session session = SESSIONS.get(from);
+        if (session != null) {
+            session.spectators.remove(player.getUUID());
+        }
         if (session == null || !session.started || session.showingResult
                 || !session.entrants.contains(player.getUUID())
                 || session.finishOrder.containsKey(player.getUUID())) {
@@ -242,6 +266,16 @@ public final class RaceManager {
         if (session.countdown < 0) {
             return;
         }
+        // 信号の途中で全員が抜けた（取り消し・キック・観戦への切り替え）。誰もいないまま号砲を鳴らすと、
+        // 走る人のいないレースが猶予のあいだ残る。受付に戻す
+        if (session.entrants.isEmpty()) {
+            session.countdown = -1;
+            toViewers(level, session, RaceEventPacket.cleared());
+            broadcast(level, Component.translatable("race.kurumamod.countdown_aborted")
+                    .withStyle(ChatFormatting.GRAY));
+            broadcastLobby(level, session);
+            return;
+        }
         session.countdown++;
         int lights = Math.min(LIGHT_COUNT, session.countdown / LIGHT_INTERVAL);
         if (session.countdown < LIGHT_COUNT * LIGHT_INTERVAL) {
@@ -294,17 +328,26 @@ public final class RaceManager {
         }
     }
 
-    /** カウントダウンは<b>参加者にだけ</b>。関係ない人の操作を奪わない。 */
+    /**
+     * カウントダウンは<b>参加者と観戦者にだけ</b>。観戦者の操作は止めない（クライアントが
+     * {@code RaceLobby#spectating} を見て止めない）。
+     */
     private static void broadcastCountdown(ServerLevel level, Session session,
                                            int lights, boolean frozen) {
-        toEntrants(level, session, RaceEventPacket.countdown(lights, frozen));
+        toViewers(level, session, RaceEventPacket.countdown(lights, frozen));
     }
 
-    /** 参加者にだけ配る。 */
-    private static void toEntrants(ServerLevel level, Session session, Object packet) {
-        for (UUID id : session.entrants) {
+    /**
+     * 参加者と観戦者に配る（信号・順位・リザルト）。<b>エントリーも観戦もしていない人にはレースの HUD を出さない。</b>
+     *
+     * <p>そのワールドにいる人だけに配る。別の次元へ移った参加者に信号を送ると、移った先で車が止まる。</p>
+     */
+    private static void toViewers(ServerLevel level, Session session, Object packet) {
+        List<UUID> ids = new ArrayList<>(session.entrants);
+        ids.addAll(session.spectators);
+        for (UUID id : ids) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-            if (player != null) {
+            if (player != null && player.level() == level) {
                 KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
             }
         }
@@ -322,6 +365,15 @@ public final class RaceManager {
 
     private static void trackCar(ServerLevel level, Session session, Map<UUID, LapState> states,
                                  ServerPlayer player, CarEntity car) {
+        // 観戦している人は測らない。タイムアタックの線を跨いでも始めない（観戦を優先する）
+        if (session != null && session.spectators.contains(player.getUUID())) {
+            return;
+        }
+        // 信号の間の参加者も測らない。止めきれずにラインを越えると、号砲の前にタイムアタックが始まる
+        // （号砲で捨てられるが、それまで時計とゴーストが出る）
+        if (session != null && session.countdown >= 0 && session.entrants.contains(player.getUUID())) {
+            return;
+        }
         RaceData data = RaceData.get(level);
 
         LapState state = states.get(player.getUUID());
@@ -603,8 +655,8 @@ public final class RaceManager {
             sendLobby(player);
         }
         session.entrants.forEach(states(level)::remove);
-        toEntrants(level, session, RaceEventPacket.cleared());
-        toEntrants(level, session,
+        toViewers(level, session, RaceEventPacket.cleared());
+        toViewers(level, session,
                 new RaceStandingsPacket(RaceStandingsPacket.Phase.ENTRY, "", 0, List.of()));
         RaceSync.sendToAll(level.getServer());
     }
@@ -674,7 +726,7 @@ public final class RaceManager {
                 state.finished = true;
             }
         }
-        toEntrants(level, session, new RaceStandingsPacket(RaceStandingsPacket.Phase.RESULT,
+        toViewers(level, session, new RaceStandingsPacket(RaceStandingsPacket.Phase.RESULT,
                 session.course, session.laps, rows));
     }
 
@@ -756,8 +808,9 @@ public final class RaceManager {
             rows.add(new RaceStandingsPacket.Row(
                     player.getGameProfile().getName(), 0, 0L, false, false, false));
         }
-        toEntrants(level, session, new RaceStandingsPacket(RaceStandingsPacket.Phase.RUNNING,
-                session.course, session.laps, rows));
+        toViewers(level, session, new RaceStandingsPacket(RaceStandingsPacket.Phase.RUNNING,
+                session.course, session.laps, rows,
+                (long) ((level.getServer().getTickCount() - session.startedTick) * TICK_MILLIS)));
     }
 
     // ------------------------------------------------------------------
@@ -814,6 +867,8 @@ public final class RaceManager {
             }
             session.entrants.remove(id);
             states.remove(id);
+            // 失格した人はそのまま観戦に回す（順位とリザルトは見られる）
+            session.spectators.add(id);
             removed = true;
             send(player, RaceEventPacket.cleared());
             player.sendSystemMessage(Component.translatable("race.kurumamod.disqualified")
@@ -876,7 +931,8 @@ public final class RaceManager {
         long best = data.bestLap(viewer.getUUID(), session.course);
         return new RaceLobbyPacket(phaseOf(session), session.course, session.laps, checkpoints,
                 session.hostName, viewer.getUUID().equals(session.host),
-                session.entrants.contains(viewer.getUUID()), canManage(viewer), Math.max(0L, best),
+                session.entrants.contains(viewer.getUUID()), session.spectators.contains(viewer.getUUID()),
+                canManage(viewer), Math.max(0L, best),
                 session.regulation.toArray(), list, courses, RegulationPresets.list(level.getServer()),
                 isOp(viewer));
     }
@@ -988,6 +1044,20 @@ public final class RaceManager {
                 }
                 if (session != null) {
                     broadcastLobby(level, session);
+                } else {
+                    sendLobby(player);
+                }
+            }
+            case SPECTATE -> {
+                if (spectate(player)) {
+                    tell(player, Component.translatable("race.kurumamod.spectate_on"));
+                } else {
+                    sendLobby(player);
+                }
+            }
+            case UNSPECTATE -> {
+                if (unspectate(player)) {
+                    tell(player, Component.translatable("race.kurumamod.spectate_off"));
                 } else {
                     sendLobby(player);
                 }
@@ -1144,7 +1214,8 @@ public final class RaceManager {
         if (session == null) {
             return JoinResult.NO_RACE;
         }
-        if (session.started) {
+        // 途中参加は不可。信号が点いた時点で締め切る（点いてから入ると、決まりの判定を通らずに走れてしまう）
+        if (session.started || session.countdown >= 0) {
             return JoinResult.ALREADY_STARTED;
         }
         if (course != null && !session.course.equals(course)) {
@@ -1153,10 +1224,56 @@ public final class RaceManager {
         if (!session.entrants.add(player.getUUID())) {
             return JoinResult.ALREADY_JOINED;
         }
+        session.spectators.remove(player.getUUID());
         broadcast((ServerLevel) player.level(), Component.translatable("race.kurumamod.joined_announce",
                 player.getGameProfile().getName(), session.entrants.size()));
         broadcastLobby((ServerLevel) player.level(), session);
         return JoinResult.JOINED;
+    }
+
+    /**
+     * 観戦に切り替える。<b>エントリーはせず、レースの HUD（信号・順位・リザルト）だけを受け取る。</b>
+     *
+     * <p>エントリーしていたなら取り消す（走行中ならリタイア）。ゴールした人はリザルトに残すため切り替えない。
+     * 観戦者は信号の間も車を止められず、G の制限も掛からない。</p>
+     *
+     * @return 切り替えたか
+     */
+    public static boolean spectate(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        Session session = SESSIONS.get(level.dimension());
+        UUID id = player.getUUID();
+        if (session == null || session.showingResult || session.finishOrder.containsKey(id)
+                || session.spectators.contains(id)) {
+            return false;
+        }
+        if (session.entrants.contains(id)) {
+            leave(player);
+            // 最後の 1 人が抜けると、その場で畳まれることがある
+            session = SESSIONS.get(level.dimension());
+            if (session == null || session.showingResult) {
+                return false;
+            }
+        }
+        session.spectators.add(id);
+        // 測っていたタイムアタックは捨てる（観戦を優先する）
+        states(level).remove(id);
+        // 信号で止まっていた車を放す・タイムアタックの時計を消す（以後の信号は観戦者として受け取る）
+        send(player, RaceEventPacket.cleared());
+        broadcastLobby(level, session);
+        return true;
+    }
+
+    /** 観戦をやめる。レースの HUD は消える。 */
+    public static boolean unspectate(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        Session session = SESSIONS.get(level.dimension());
+        if (session == null || !session.spectators.remove(player.getUUID())) {
+            return false;
+        }
+        send(player, RaceEventPacket.cleared());
+        broadcastLobby(level, session);
+        return true;
     }
 
     /** {@link #leave} の結果。 */
@@ -1242,6 +1359,7 @@ public final class RaceManager {
             List<Regulation.Violation> violations = player == null ? null : violations(player, session.regulation);
             if (violations != null && !violations.isEmpty()) {
                 session.entrants.remove(id);
+                session.spectators.add(id);
                 player.sendSystemMessage(Component.translatable("race.kurumamod.spectating")
                         .withStyle(ChatFormatting.GOLD));
                 broadcast(level, Component.translatable("race.kurumamod.spectating_announce",
@@ -1254,7 +1372,16 @@ public final class RaceManager {
         }
         session.countdown = 0;
         session.holdTicks = HOLD_MIN + level.random.nextInt(HOLD_MAX - HOLD_MIN + 1);
-        session.entrants.forEach(states(level)::remove);
+        // 参加者が測っていたタイムアタックは捨て、<b>捨てたことを伝える</b>。伝えないと信号の間も
+        // タイムアタックの時計が回り続け、そのコースのゴーストもグリッドの前を走り続ける
+        Map<UUID, LapState> lapStates = states(level);
+        for (UUID id : session.entrants) {
+            LapState dropped = lapStates.remove(id);
+            ServerPlayer entrant = level.getServer().getPlayerList().getPlayer(id);
+            if (dropped != null && (dropped.timing || dropped.finished) && entrant != null) {
+                send(entrant, RaceEventPacket.cleared());
+            }
+        }
         broadcast(level, Component.translatable("race.kurumamod.starting",
                 session.course, session.laps).withStyle(ChatFormatting.YELLOW));
         broadcastLobby(level, session);
@@ -1363,6 +1490,11 @@ public final class RaceManager {
          * カウントダウンで操作を奪われる。</p>
          */
         private final java.util.Set<UUID> entrants = new java.util.LinkedHashSet<>();
+        /**
+         * 観戦している人。エントリーはせず、レースの HUD（信号・順位・リザルト）だけを受け取る。
+         * <b>参加者と重ならない</b>（入ったら外し、観戦に切り替えたらエントリーを取り消す）。
+         */
+        private final java.util.Set<UUID> spectators = new java.util.LinkedHashSet<>();
         private int countdown = -1;
         private int holdTicks;
         private boolean started;

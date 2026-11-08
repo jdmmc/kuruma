@@ -92,7 +92,7 @@ public final class RaceLobby {
         if (!wasOpen && packet.phase() == RaceLobbyPacket.Phase.OPEN && !packet.isHost() && !packet.joined()) {
             inviteTicks = INVITE_TICKS;
         }
-        if (packet.joined() || packet.phase() != RaceLobbyPacket.Phase.OPEN) {
+        if (packet.joined() || packet.spectating() || packet.phase() != RaceLobbyPacket.Phase.OPEN) {
             inviteTicks = 0;
         }
         // 主催者には、参加・離脱を一言知らせる
@@ -199,6 +199,11 @@ public final class RaceLobby {
      * <p>受付中で入っていなければ参加（誘いの通知が消えたあとでも参加できる）、入っていれば
      * 参加したレースの画面、主催していれば主催者画面、レースが無ければ主催者画面（＝開く入口）。</p>
      */
+    /** 観戦しているか。観戦者は信号の間も車を止めない。 */
+    public static boolean spectating() {
+        return lobby != null && lobby.spectating();
+    }
+
     public static void onKey(Minecraft minecraft) {
         if (minecraft.screen != null || minecraft.player == null) {
             return;
@@ -214,7 +219,7 @@ public final class RaceLobby {
             minecraft.setScreen(new RaceOrganizerScreen());
             return;
         }
-        if (lobby.phase() == RaceLobbyPacket.Phase.OPEN && !lobby.joined()) {
+        if (lobby.phase() == RaceLobbyPacket.Phase.OPEN && !lobby.joined() && !lobby.spectating()) {
             KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.JOIN));
             inviteTicks = 0;
             // 参加したら、そのまま参加したレースの画面を開く（参加済みかどうかは次の配信で画面に反映される）

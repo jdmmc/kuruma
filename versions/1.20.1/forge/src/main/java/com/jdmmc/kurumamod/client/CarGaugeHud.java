@@ -222,7 +222,7 @@ public final class CarGaugeHud {
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
-        if (!ClientConfig.showGauges) {
+        if (!ClientConfig.showGauges || RaceHud.isShowingResults()) {
             clearBounds();
             return;
         }

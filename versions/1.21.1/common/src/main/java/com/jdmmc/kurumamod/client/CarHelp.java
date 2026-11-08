@@ -56,7 +56,7 @@ public final class CarHelp {
     }
 
     public static void onRenderGui(GuiRender event) {
-        if (!ClientConfig.showHelp) {
+        if (!ClientConfig.showHelp || RaceHud.isShowingResults()) {
             return;
         }
         // 換装・セッティング画面が開いている間は引っ込める（メーターと同じ理由）

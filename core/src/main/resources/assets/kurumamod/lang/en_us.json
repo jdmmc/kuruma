@@ -911,5 +911,13 @@
   "screen.kurumamod.race_host.preset_delete": "Delete",
   "screen.kurumamod.race_host.preset_save": "Save",
   "screen.kurumamod.race_host.preset_name": "Name",
-  "race.kurumamod.course_name_too_long": "Course names can be up to %s characters"
+  "race.kurumamod.course_name_too_long": "Course names can be up to %s characters",
+  "screen.kurumamod.race_host.presets": "Presets",
+  "screen.kurumamod.race_host.presets_title": "Regulation presets",
+  "race.kurumamod.host_left": "The race was cancelled because the host, %s, left",
+  "screen.kurumamod.race_info.spectate": "Spectate",
+  "screen.kurumamod.race_info.unspectate": "Stop watching",
+  "race.kurumamod.spectate_on": "You are now spectating (not entered)",
+  "race.kurumamod.spectate_off": "You stopped spectating",
+  "race.kurumamod.countdown_aborted": "The start was called off because no one is entered"
 }

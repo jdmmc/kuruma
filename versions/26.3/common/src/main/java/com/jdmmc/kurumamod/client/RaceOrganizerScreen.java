@@ -34,8 +34,14 @@ import java.util.function.BooleanSupplier;
  */
 public final class RaceOrganizerScreen extends Screen {
 
-    private static final int LEFT_WIDTH = 240;
-    private static final int ROW = 18;
+    /**
+     * 左の列の幅と、1 行の高さ。<b>画面が小さいとき（GUI スケールが大きいとき）は詰める</b>
+     * （{@link #compact}）。GUI スケール Auto の 1080p では、画面は 480×270 しかない。
+     */
+    private int leftWidth = 240;
+    private int rowHeight = 18;
+    /** 画面が小さい。行を詰め、説明の 2 行目と下の説明を省く。 */
+    private boolean compact;
 
     /** 画面で決めている決まり。受付中はサーバーの値に合わせ直す（自分が変えた直後を除く）。 */
     private Regulation draft = Regulation.DEFAULT;
@@ -67,6 +73,9 @@ public final class RaceOrganizerScreen extends Screen {
     /** レギュレーションのプリセット（サーバーに保存）。選んでいる番号と、保存する名前。 */
     private int presetIndex = -1;
     private Button presetButton;
+    /** プリセットの一覧を開いているか。 */
+    private boolean showPresets;
+    private Button presetsButton;
     private Button presetLoad;
     private Button presetDelete;
     private Button presetSave;
@@ -87,7 +96,10 @@ public final class RaceOrganizerScreen extends Screen {
         regulationWidgets.clear();
         limitButtons.clear();
         leftX = 12;
-        topY = 30;
+        compact = height < 330 || width < 600;
+        leftWidth = compact ? Math.min(200, width / 2 - 18) : 240;
+        rowHeight = compact ? 15 : 18;
+        topY = compact ? 26 : 30;
         int x = leftX;
         int y = topY;
 
@@ -95,58 +107,62 @@ public final class RaceOrganizerScreen extends Screen {
         courseButton = addRenderableWidget(Button.builder(Component.empty(), button -> cycleCourse())
                 .bounds(x + 52, y, 100, 16).build());
         lapsDown = addRenderableWidget(Button.builder(Component.literal("-"), button -> changeLaps(-1))
-                .bounds(x + LEFT_WIDTH - 72, y, 16, 16).build());
+                .bounds(x + leftWidth - 72, y, 16, 16).build());
         lapsUp = addRenderableWidget(Button.builder(Component.literal("+"), button -> changeLaps(1))
-                .bounds(x + LEFT_WIDTH - 16, y, 16, 16).build());
+                .bounds(x + leftWidth - 16, y, 16, 16).build());
         y += 22 + 14;
 
         // 車の素性の固定
-        addToggle(x + 6, y + 4, LEFT_WIDTH - 60, "screen.kurumamod.race_host.tip.fixed",
+        addToggle(x + 6, y + (compact ? 2 : 4), leftWidth - 60, "screen.kurumamod.race_host.tip.fixed",
                 () -> draft.fixesAll(), () -> draft.fixedTraits() && !draft.fixesAll(),
                 () -> draft = draft.withFixedTraits(!draft.fixesAll()));
         traitsButton = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.traits"),
-                button -> showTraits = !showTraits).bounds(x + LEFT_WIDTH - 48, y + 4, 44, 16).build());
-        y += 26;
+                button -> {
+                    showTraits = !showTraits;
+                    showPresets = false;
+                }).bounds(x + leftWidth - 48, y + (compact ? 1 : 4), 44, compact ? 14 : 16).build());
+        y += compact ? 18 : 26;
 
         // 数値の条件
         addLimit(x, y, "screen.kurumamod.race_host.tip.power", () -> draft.powerOn(), () -> draft = draft.withPower(!draft.powerOn(), draft.powerMax()),
                 d -> draft = draft.withPower(draft.powerOn(), draft.powerMax() + d * 10));
-        y += ROW;
+        y += rowHeight;
         addLimit(x, y, "screen.kurumamod.race_host.tip.mass", () -> draft.massOn(), () -> draft = draft.withMass(!draft.massOn(), draft.massMin()),
                 d -> draft = draft.withMass(draft.massOn(), draft.massMin() + d * 50));
-        y += ROW;
+        y += rowHeight;
         addLimit(x, y, "screen.kurumamod.race_host.tip.pwr", () -> draft.pwrOn(), () -> draft = draft.withPwr(!draft.pwrOn(), draft.pwrMin()),
                 d -> draft = draft.withPwr(draft.pwrOn(), draft.pwrMin() + d * 0.5));
-        y += ROW;
+        y += rowHeight;
         addLimit(x, y, "screen.kurumamod.race_host.tip.grip", () -> draft.gripOn(), () -> draft = draft.withGrip(!draft.gripOn(), draft.gripMax()),
                 d -> draft = draft.withGrip(draft.gripOn(), Math.round((draft.gripMax() + d * 0.05) * 100.0) / 100.0));
-        y += ROW;
+        y += rowHeight;
         addLimit(x, y, "screen.kurumamod.race_host.tip.downforce", () -> draft.downforceOn(),
                 () -> draft = draft.withDownforce(!draft.downforceOn(), draft.downforceMax()),
                 d -> draft = draft.withDownforce(draft.downforceOn(), draft.downforceMax() + d * 10));
-        y += ROW;
+        y += rowHeight;
 
         // 駆動方式
+        int chipY = compact ? 1 : 2;
         addHelp(x + 6, y + 3, 64, "screen.kurumamod.race_host.tip.drive");
         String[] drives = {"FF", "FR", "4WD"};
         for (int i = 0; i < drives.length; i++) {
             int bit = 1 << i;
-            addChip(x + 74 + i * 42, y + 2, 38, Component.literal(drives[i]),
+            addChip(x + 74 + i * 42, y + chipY, 38, Component.literal(drives[i]),
                     () -> (draft.drives() & bit) != 0, () -> draft = draft.withDrives(draft.drives() ^ bit));
         }
-        y += ROW;
+        y += rowHeight;
         // 過給機
         addHelp(x + 6, y + 3, 64, "screen.kurumamod.race_host.tip.turbo");
-        addChip(x + 74, y + 2, 60, Component.translatable("screen.kurumamod.race_host.turbo_yes"),
+        addChip(x + 74, y + chipY, 60, Component.translatable("screen.kurumamod.race_host.turbo_yes"),
                 () -> draft.turbo(), () -> draft = draft.withTurbo(true));
-        addChip(x + 138, y + 2, 60, Component.translatable("screen.kurumamod.race_host.turbo_no"),
+        addChip(x + 138, y + chipY, 60, Component.translatable("screen.kurumamod.race_host.turbo_no"),
                 () -> !draft.turbo(), () -> draft = draft.withTurbo(false));
-        y += ROW;
+        y += rowHeight;
         // 運転補助（白は使ってよい）
         addHelp(x + 6, y + 3, 64, "screen.kurumamod.race_host.tip.assist");
-        addChip(x + 74, y + 2, 38, Component.literal("TCS"),
+        addChip(x + 74, y + chipY, 38, Component.literal("TCS"),
                 () -> draft.tractionControl(), () -> draft = draft.withTractionControl(!draft.tractionControl()));
-        addChip(x + 116, y + 2, 38, Component.literal("ABS"),
+        addChip(x + 116, y + chipY, 38, Component.literal("ABS"),
                 () -> draft.abs(), () -> draft = draft.withAbs(!draft.abs()));
 
         // 素性を項目ごとに（「個別」で開く一覧）
@@ -161,12 +177,18 @@ public final class RaceOrganizerScreen extends Screen {
         kickButtons.clear();
         kickNames = List.of();
 
-        // 下の段の左: レギュレーションのプリセット（選ぶ・読み込む・消す・名前を付けて保存）
+        // 下の段の左: レギュレーションのプリセット。押すと右に一覧を開く（選ぶ・読み込む・消す・名前を付けて保存）。
+        // 下の段に全部並べると、小さい画面ではスタートのボタンと重なった
         int py = height - 28;
+        presetsButton = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.presets"),
+                button -> {
+                    showPresets = !showPresets;
+                    showTraits = false;
+                }).bounds(12, py, 90, 20).build());
         presetButton = addRenderableWidget(Button.builder(Component.empty(), button -> cyclePreset())
-                .bounds(12, py, 110, 20).build());
+                .bounds(0, 0, 110, 20).build());
         presetLoad = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.preset_load"),
-                button -> loadPreset()).bounds(126, py, 40, 20).build());
+                button -> loadPreset()).bounds(0, 0, 40, 20).build());
         presetDelete = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.preset_delete"),
                 button -> {
                     RaceLobbyPacket.Preset preset = selectedPreset();
@@ -175,15 +197,15 @@ public final class RaceOrganizerScreen extends Screen {
                                 new double[0]));
                         presetIndex = -1;
                     }
-                }).bounds(170, py, 40, 20).build());
-        presetName = new EditBox(font, 216, py, 90, 20, Component.translatable("screen.kurumamod.race_host.preset_name"));
+                }).bounds(0, 0, 40, 20).build());
+        presetName = new EditBox(font, 0, 0, 90, 20, Component.translatable("screen.kurumamod.race_host.preset_name"));
         presetName.setHint(Component.translatable("screen.kurumamod.race_host.preset_name"));
         presetName.setMaxLength(32);
         presetName.setValue(presetNameText);
         presetName.setResponder(text -> presetNameText = text);
         addRenderableWidget(presetName);
         presetSave = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.preset_save"),
-                button -> savePreset()).bounds(310, py, 40, 20).build());
+                button -> savePreset()).bounds(0, 0, 40, 20).build());
 
         // 下の進行のボタン
         int by = height - 28;
@@ -260,22 +282,23 @@ public final class RaceOrganizerScreen extends Screen {
 
     /** 「個別」の一覧の位置（参加者の表の上に重ねる）。{x, y, 幅, 1 列の幅}。 */
     private int[] traitsArea() {
-        int x = leftX + LEFT_WIDTH + 12;
+        int x = leftX + leftWidth + 12;
         int w = width - 12 - x;
         return new int[]{x, topY + 14, w, w / 2};
     }
 
     private void addLimit(int x, int y, String tooltip, BooleanSupplier on, Runnable flip, Step step) {
         // 四角だけでなく行の名前まで押せる。名前にカーソルを乗せると説明が出る
-        addToggle(x + 6, y + 3, LEFT_WIDTH - 116, tooltip, on, null, flip);
+        int size = compact ? 13 : 16;
+        addToggle(x + 6, y + (compact ? 1 : 3), leftWidth - 116, tooltip, on, null, flip);
         Button down = Button.builder(Component.literal("-"), button -> {
             step.apply(-1);
             changed();
-        }).bounds(x + LEFT_WIDTH - 108, y + 1, 16, 16).build();
+        }).bounds(x + leftWidth - 108, y + 1, size, size).build();
         Button up = Button.builder(Component.literal("+"), button -> {
             step.apply(1);
             changed();
-        }).bounds(x + LEFT_WIDTH - 18, y + 1, 16, 16).build();
+        }).bounds(x + leftWidth - 2 - size, y + 1, size, size).build();
         regulationWidgets.add(addRenderableWidget(down));
         regulationWidgets.add(addRenderableWidget(up));
         limitButtons.add(new LimitButtons(on, down, up));
@@ -433,7 +456,7 @@ public final class RaceOrganizerScreen extends Screen {
 
         // 参加者の「×」（主催者だけ。素性の一覧を開いている間は隠す）
         rebuildKickButtons(lobby);
-        boolean kickable = lobby != null && lobby.canManage() && !showTraits
+        boolean kickable = lobby != null && lobby.canManage() && !showTraits && !showPresets
                 && phase != RaceLobbyPacket.Phase.RESULT;
         int rowTop = topY + 15 + 11;
         for (int i = 0; i < kickButtons.size(); i++) {
@@ -443,6 +466,32 @@ public final class RaceOrganizerScreen extends Screen {
             button.setY(rowY + 4);
             button.visible = kickable && !kickNames.get(i).isEmpty() && rowY + 22 <= height - 36;
         }
+
+        // プリセットの一覧（右の表の上に重ねる）
+        int pw = area[2] - 12;
+        int px = area[0] + 6;
+        int pyTop = area[1] + 18;
+        presetButton.setX(px);
+        presetButton.setY(pyTop);
+        presetButton.setWidth(pw);
+        presetLoad.setX(px);
+        presetLoad.setY(pyTop + 24);
+        presetLoad.setWidth((pw - 4) / 2);
+        presetDelete.setX(px + (pw - 4) / 2 + 4);
+        presetDelete.setY(pyTop + 24);
+        presetDelete.setWidth(pw - (pw - 4) / 2 - 4);
+        presetName.setX(px);
+        presetName.setY(pyTop + 52);
+        presetName.setWidth(pw - 54);
+        presetSave.setX(px + pw - 50);
+        presetSave.setY(pyTop + 52);
+        presetSave.setWidth(50);
+        for (net.minecraft.client.gui.components.AbstractWidget widget
+                : List.of(presetButton, presetLoad, presetDelete, presetName, presetSave)) {
+            widget.visible = showPresets;
+        }
+        presetsButton.setMessage(Component.translatable(showPresets
+                ? "screen.kurumamod.race_host.traits_close" : "screen.kurumamod.race_host.presets"));
 
         // プリセット
         RaceLobbyPacket.Preset preset = selectedPreset();
@@ -532,10 +581,15 @@ public final class RaceOrganizerScreen extends Screen {
         if (showTraits) {
             renderTraits(graphics, font);
         }
+        if (showPresets) {
+            renderPresets(graphics, font);
+        }
 
         // 下の説明
         Component note = noteFor(lobby);
-        Slant.fit(graphics, font, note, 12, height - 42, width - 24, RaceLobby.GREY);
+        if (!compact) {
+            Slant.fit(graphics, font, note, 12, height - 42, width - 24, RaceLobby.GREY);
+        }
     }
 
     private Component noteFor(RaceLobbyPacket lobby) {
@@ -558,7 +612,7 @@ public final class RaceOrganizerScreen extends Screen {
     }
 
     private void row(GuiGraphicsExtractor graphics, int y, int height, boolean alt) {
-        graphics.fill(leftX, y, leftX + LEFT_WIDTH, y + height, alt ? RaceLobby.PANEL_LIGHT : RaceLobby.PANEL);
+        graphics.fill(leftX, y, leftX + leftWidth, y + height, alt ? RaceLobby.PANEL_LIGHT : RaceLobby.PANEL);
     }
 
     private void renderLeft(GuiGraphicsExtractor graphics, Font font) {
@@ -568,28 +622,31 @@ public final class RaceOrganizerScreen extends Screen {
         graphics.text(font, Component.translatable("screen.kurumamod.race_host.course"), x + 6, y + 4,
                 RaceLobby.WHITE, false);
         String lapText = Component.translatable("screen.kurumamod.race_host.laps", laps).getString();
-        graphics.text(font, lapText, x + LEFT_WIDTH - 36 - font.width(lapText) / 2, y + 4, RaceLobby.WHITE, false);
+        graphics.text(font, lapText, x + leftWidth - 36 - font.width(lapText) / 2, y + 4, RaceLobby.WHITE, false);
         y += 22;
 
-        Slant.fill(graphics, x, y, LEFT_WIDTH, 12, RaceLobby.INK);
+        Slant.fill(graphics, x, y, leftWidth, 12, RaceLobby.INK);
         graphics.text(font, "REGULATION", x + 7, y + 2, RaceLobby.WHITE, false);
         Component hint = Component.translatable("screen.kurumamod.race_host.off_hint");
-        graphics.text(font, hint, x + LEFT_WIDTH - 7 - font.width(hint), y + 2, RaceLobby.GREY, false);
+        graphics.text(font, hint, x + leftWidth - 7 - font.width(hint), y + 2, RaceLobby.GREY, false);
         y += 14;
 
         // 素性の固定（既定でオン）
-        row(graphics, y, 24, false);
+        int fixedHeight = compact ? 16 : 24;
+        row(graphics, y, fixedHeight, false);
         if (draft.fixedTraits()) {
-            graphics.fill(x, y, x + 2, y + 24, RaceLobby.ACCENT);
+            graphics.fill(x, y, x + 2, y + fixedHeight, RaceLobby.ACCENT);
         }
         Slant.fit(graphics, font, draft.fixesAll() || !draft.fixedTraits()
                         ? Component.translatable("screen.kurumamod.race_host.fixed")
                         : Component.translatable("screen.kurumamod.race_host.fixed_partial",
                         draft.fixedCount(), Regulation.FIXED_PARAMETERS.size()),
-                x + 24, y + 3, LEFT_WIDTH - 80, RaceLobby.WHITE);
-        Slant.fit(graphics, font, Component.translatable("screen.kurumamod.race_host.fixed_hint"),
-                x + 24, y + 13, LEFT_WIDTH - 80, RaceLobby.GREY);
-        y += 26;
+                x + 24, y + (compact ? 4 : 3), leftWidth - 80, RaceLobby.WHITE);
+        if (!compact) {
+            Slant.fit(graphics, font, Component.translatable("screen.kurumamod.race_host.fixed_hint"),
+                    x + 24, y + 13, leftWidth - 80, RaceLobby.GREY);
+        }
+        y += compact ? 18 : 26;
 
         String[][] limits = {
                 {"screen.kurumamod.race_host.power", String.format(Locale.ROOT, "%.0f PS", draft.powerMax())},
@@ -599,22 +656,37 @@ public final class RaceOrganizerScreen extends Screen {
                 {"screen.kurumamod.race_host.downforce", String.format(Locale.ROOT, "%.0f kg", draft.downforceMax())}};
         boolean[] on = {draft.powerOn(), draft.massOn(), draft.pwrOn(), draft.gripOn(), draft.downforceOn()};
         for (int i = 0; i < limits.length; i++) {
-            row(graphics, y, ROW - 1, (i & 1) == 0);
+            row(graphics, y, rowHeight - 1, (i & 1) == 0);
             int color = on[i] ? RaceLobby.WHITE : 0xFF8A8A8A;
-            Slant.fit(graphics, font, Component.translatable(limits[i][0]), x + 24, y + 5, LEFT_WIDTH - 136, color);
+            int textY = y + (compact ? 3 : 5);
+            Slant.fit(graphics, font, Component.translatable(limits[i][0]), x + 24, textY, leftWidth - 136, color);
             String value = limits[i][1];
-            Slant.fit(graphics, font, value, x + LEFT_WIDTH - 55 - Math.min(font.width(value), 68) / 2, y + 5, 68, color);
-            y += ROW;
+            int valueRoom = compact ? 72 : 68;
+            int valueCenter = x + leftWidth - 2 - (compact ? 13 : 16) - (100 - (compact ? 13 : 16)) / 2 + 4;
+            Slant.fit(graphics, font, value, valueCenter - Math.min(font.width(value), valueRoom) / 2, textY,
+                    valueRoom, color);
+            y += rowHeight;
         }
         String[] labels = {"screen.kurumamod.race_host.drive", "screen.kurumamod.race_host.turbo",
                 "screen.kurumamod.race_host.assist"};
         for (int i = 0; i < labels.length; i++) {
-            row(graphics, y, ROW - 1, ((i + 1) & 1) == 0);
-            Slant.fit(graphics, font, Component.translatable(labels[i]), x + 6, y + 5, 64, RaceLobby.WHITE);
-            y += ROW;
+            row(graphics, y, rowHeight - 1, ((i + 1) & 1) == 0);
+            Slant.fit(graphics, font, Component.translatable(labels[i]), x + 6, y + (compact ? 3 : 5), 64, RaceLobby.WHITE);
+            y += rowHeight;
         }
-        graphics.text(font, Component.translatable("screen.kurumamod.race_host.assist_hint"),
-                x + 6, y + 3, RaceLobby.GREY, false);
+        if (!compact) {
+            Slant.fit(graphics, font, Component.translatable("screen.kurumamod.race_host.assist_hint"),
+                    x + 6, y + 3, leftWidth - 12, RaceLobby.GREY);
+        }
+    }
+
+    /** プリセットの一覧。参加者の表の上に重ねる。 */
+    private void renderPresets(GuiGraphicsExtractor graphics, Font font) {
+        int[] area = traitsArea();
+        graphics.fill(area[0], area[1] - 2, area[0] + area[2], area[1] + 18 + 76, 0xF0111111);
+        Slant.fill(graphics, area[0], area[1] - 2, area[2], 14, RaceLobby.ACCENT);
+        Slant.fit(graphics, font, Component.translatable("screen.kurumamod.race_host.presets_title"),
+                area[0] + 7, area[1] + 1, area[2] - 14, RaceLobby.WHITE);
     }
 
     /** 「個別」: 固定する素性を項目ごとに選ぶ一覧。参加者の表の上に重ねる。 */
@@ -638,7 +710,7 @@ public final class RaceOrganizerScreen extends Screen {
     }
 
     private void renderEntrants(GuiGraphicsExtractor graphics, Font font, RaceLobbyPacket lobby) {
-        int x = leftX + LEFT_WIDTH + 12;
+        int x = leftX + leftWidth + 12;
         int right = width - 12;
         int w = right - x;
         int y = topY;
@@ -670,9 +742,8 @@ public final class RaceOrganizerScreen extends Screen {
         // 列。狭い画面では値の列を減らす（名前と判定は必ず残す）
         String[] heads = {"PS", "kg", "μ", "DF", ""};
         int[] widths = {38, 42, 32, 32, 0};
-        boolean narrow = w < 330;
-        int verdictWidth = 108;
-        int valueColumns = narrow ? 2 : 4;
+        int verdictWidth = w >= 300 ? 108 : 92;
+        int valueColumns = w >= 380 ? 4 : w >= 300 ? 2 : w >= 220 ? 1 : 0;
         int valuesWidth = 0;
         for (int i = 0; i < valueColumns; i++) {
             valuesWidth += widths[i];

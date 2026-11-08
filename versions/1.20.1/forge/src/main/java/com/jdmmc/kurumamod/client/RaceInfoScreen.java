@@ -29,6 +29,9 @@ public final class RaceInfoScreen extends Screen {
 
     private Button leave;
     private Button join;
+    /** 観戦に切り替える。エントリーせず、レースの HUD だけを見る。 */
+    private Button spectate;
+    private Button unspectate;
 
     public RaceInfoScreen() {
         super(Component.translatable("screen.kurumamod.race_info.title"));
@@ -45,6 +48,12 @@ public final class RaceInfoScreen extends Screen {
         join = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_info.join"),
                         button -> KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.JOIN)))
                 .bounds(right - 90, y, 90, 20).build());
+        spectate = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_info.spectate"),
+                        button -> KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.SPECTATE)))
+                .bounds(right - 184, y, 90, 20).build());
+        unspectate = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_info.unspectate"),
+                        button -> KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.UNSPECTATE)))
+                .bounds(right - 184, y, 90, 20).build());
     }
 
     private int panelWidth() {
@@ -59,8 +68,12 @@ public final class RaceInfoScreen extends Screen {
             return;
         }
         boolean open = lobby.phase() == RaceLobbyPacket.Phase.OPEN;
+        boolean result = lobby.phase() == RaceLobbyPacket.Phase.RESULT;
         leave.visible = lobby.joined();
         join.visible = !lobby.joined() && open;
+        // ゴールした人とリザルトの間は切り替えない（リザルトに残すため）
+        spectate.visible = !lobby.spectating() && !result && !(lobby.joined() && RaceHud.hasFinished());
+        unspectate.visible = lobby.spectating();
     }
 
     @Override
@@ -78,7 +91,8 @@ public final class RaceInfoScreen extends Screen {
         int top = Math.max(12, height / 2 - 120);
 
         // 見出しの帯
-        String tag = switch (lobby.phase()) {
+        String tag = lobby.spectating() && lobby.phase() != RaceLobbyPacket.Phase.RESULT ? "WATCHING"
+                : switch (lobby.phase()) {
             case OPEN -> lobby.joined() ? "ENTERED" : "ENTRY OPEN";
             case COUNTDOWN, RUNNING -> "LIVE";
             case RESULT -> "RESULT";

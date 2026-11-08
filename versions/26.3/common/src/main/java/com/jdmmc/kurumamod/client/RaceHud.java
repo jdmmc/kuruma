@@ -74,6 +74,9 @@ public final class RaceHud {
     private static int totalLaps;
     /** 今の周が始まってからのティック数。実時間ではなくこれで数える。 */
     private static int lapTicks;
+    /** 観戦中の時計（号砲からの経過ティック）。サーバーの順位表で合わせ、間はクライアントで進める。 */
+    private static double watchTicks;
+    private static boolean watchKnown;
     private static long lastLapMillis;
     private static long bestMillis;
     private static boolean lastWasBest;
@@ -130,7 +133,8 @@ public final class RaceHud {
 
     /** カウントダウン中は運転操作を受け付けない。 */
     public static boolean isFrozen() {
-        return frozen;
+        // 観戦者には信号を見せるが、車は止めない
+        return frozen && !RaceLobby.spectating();
     }
 
     /** このレースをゴールしたか。ゴールした人は G セッティングを縛らない。 */
@@ -147,6 +151,16 @@ public final class RaceHud {
             timing = false;
             splitTicks = 0;
             finalTicks = 0;
+        }
+        if (packet.phase() == RaceStandingsPacket.Phase.RUNNING) {
+            double server = packet.elapsedMillis() / 50.0;
+            // 届くたびに合わせると、10 ティックごとに数字が少し戻って見える。ずれが大きいときだけ合わせる
+            if (!watchKnown || Math.abs(server - watchTicks) > 3.0) {
+                watchTicks = server;
+            }
+            watchKnown = true;
+        } else {
+            watchKnown = false;
         }
         standings = packet.rows();
         phase = packet.phase();
@@ -288,6 +302,7 @@ public final class RaceHud {
         // <b>順位表もここで消すこと。</b>抜けた人へは以後何も届かないので、
         // 消さないと最後に受け取った一覧が画面に残り続ける
         standings = List.of();
+        watchKnown = false;
     }
 
     /**
@@ -345,6 +360,14 @@ public final class RaceHud {
      * 区間タイムの表示がこれで、120fps なら 2 秒のはずが 0.7 秒しか出なかった。</p>
      */
     /** リザルト（ゴールの帯と結果の表）を出しているか。 */
+    /**
+     * リザルトを出しているか。出している間は<b>メーターと操作ヘルプを引っ込める</b>
+     * （どちらも HUD の最後に描くので、暗幕の上に明るく残り、小さい画面では表を隠す）。
+     */
+    public static boolean isShowingResults() {
+        return showingResults();
+    }
+
     private static boolean showingResults() {
         return phase == RaceStandingsPacket.Phase.RESULT && !standings.isEmpty() && !resultsDismissed;
     }
@@ -370,6 +393,9 @@ public final class RaceHud {
         }
         if (timing) {
             lapTicks++;
+        }
+        if (watchKnown) {
+            watchTicks++;
         }
         if (goTicks > 0 && !frozen) {
             goTicks--;
@@ -413,7 +439,7 @@ public final class RaceHud {
 
         // 左上: 順位の塔（グリッドではエントリー、タイムアタックでは区間）
         if (!results) {
-            if (frozen && lobby != null && lobby.joined()) {
+            if (frozen && lobby != null && (lobby.joined() || lobby.spectating())) {
                 renderGridTower(graphics, font, lobby);
             } else if (timing && totalLaps == 0) {
                 renderSectorTower(graphics, font);
@@ -425,12 +451,14 @@ public final class RaceHud {
         // 右上: 時計・CP の差・CP の進み・前回とベスト
         if ((timing || place > 0) && !results && !(resultsDismissed && phase == RaceStandingsPacket.Phase.RESULT)) {
             renderClock(graphics, font, width, partialTick);
+        } else if (RaceLobby.spectating() && watchKnown && phase == RaceStandingsPacket.Phase.RUNNING && !results) {
+            renderWatchClock(graphics, font, width, partialTick);
         }
 
         // スタートの灯とレギュレーションの帯
         if (frozen || goTicks > 0) {
             renderLights(graphics, font, width);
-            if (frozen && lobby != null && lobby.joined()) {
+            if (frozen && lobby != null && (lobby.joined() || lobby.spectating())) {
                 renderRegulationBand(graphics, font, width, height);
             }
         }
@@ -621,6 +649,27 @@ public final class RaceHud {
             Slant.fill(graphics, right - w, y + 13, w, 11, WHITE);
             Slant.text(graphics, font, text, right - w + 5, y + 15, INK);
         }
+    }
+
+    /** 観戦中の時計。号砲からの経過時間と、先頭の周回。 */
+    private static void renderWatchClock(GuiGraphicsExtractor graphics, Font font, int width, float partialTick) {
+        int right = width - MARGIN;
+        int y = MARGIN;
+        String time = RaceManager.format((long) ((watchTicks + partialTick) * 50.0));
+        float scale = 1.6F;
+        int timeWidth = Slant.width(font, time, scale);
+        Slant.fill(graphics, right - timeWidth - 16, y, timeWidth + 16, 19, INK);
+        Slant.scaled(graphics, font, time, right - timeWidth - 8, y + 3, scale, WHITE);
+        y += 20;
+        int leaderLaps = standings.isEmpty() ? 0 : standings.get(0).laps();
+        String lap = "LAP " + Math.max(1, Math.min(courseLaps, leaderLaps + 1)) + " / " + courseLaps;
+        int lapWidth = font.width(lap) + 10;
+        Slant.fill(graphics, right - lapWidth, y + 1, lapWidth, 11, 0xBF111111);
+        Slant.text(graphics, font, lap, right - lapWidth + 5, y + 3, WHITE);
+        String tag = "WATCHING";
+        int tagWidth = font.width(tag) + 10;
+        Slant.fill(graphics, right - lapWidth - 1 - tagWidth, y + 1, tagWidth, 11, ACCENT);
+        Slant.text(graphics, font, tag, right - lapWidth - 1 - tagWidth + 5, y + 3, WHITE);
     }
 
     // ----- スタート -----

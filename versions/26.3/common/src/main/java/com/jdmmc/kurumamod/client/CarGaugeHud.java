@@ -209,7 +209,7 @@ public final class CarGaugeHud {
     }
 
     public static void onRenderGui(GuiRender event) {
-        if (!ClientConfig.showGauges) {
+        if (!ClientConfig.showGauges || RaceHud.isShowingResults()) {
             clearBounds();
             return;
         }
