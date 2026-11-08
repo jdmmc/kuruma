@@ -56,6 +56,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.core.BlockPos;
@@ -1327,10 +1328,61 @@ public class CarEntity extends CarEntityBase {
                 blockField.add(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
             }
         }
+        addWorldBorder(area, x, z);
         // 範囲の外は、聞かれたときにワールドを引く（見えない壁の端の角を、壁に沿って探すため）
         outsideShapes.clear();
         blockField.setOutside(new double[]{area.minX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ},
                 this::solidOutside);
+    }
+
+    /**
+     * 車を止めるワールドボーダーの内側 {minX, minZ, maxX, maxZ}。止めないときは null。
+     * {@link #fillBlockField} が 1 ティックに 1 回決める。
+     */
+    @Nullable
+    private double[] border;
+
+    /**
+     * ワールドボーダーを壁として {@link #blockField} に足す。
+     *
+     * <p>{@code getBlockCollisions} はボーダーを返さない（バニラは {@code Entity#collide} で
+     * 別に足している）ので、車の物理はボーダーを素通りしていた。引っかかって見えたのは、
+     * サーバーの {@code handleMoveVehicle} が「ボーダーに食い込んだ」として位置を差し戻していたから。
+     * 速いと 1 ティックで車の箱ごとボーダーの外へ出てしまい、差し戻す判定（ボーダーの内側に
+     * いる箱だけを止める）を抜けて、アクセルを踏み続けると突破できた。物理の側で壁にして止める。</p>
+     *
+     * <p>バニラと同じく、中心がボーダーの内側にある車だけを止める。外にいる車（ボーダーが
+     * 縮んだ・外で出した）を壁の中に閉じ込めないため。</p>
+     */
+    private void addWorldBorder(AABB area, double x, double z) {
+        WorldBorder worldBorder = level().getWorldBorder();
+        border = null;
+        if (!worldBorder.isWithinBounds(x, z)) {
+            return;
+        }
+        double minX = worldBorder.getMinX();
+        double minZ = worldBorder.getMinZ();
+        double maxX = worldBorder.getMaxX();
+        double maxZ = worldBorder.getMaxZ();
+        border = new double[]{minX, minZ, maxX, maxZ};
+        // 壁は集める範囲に収まるぶんだけ（ボーダーは無限に高く長い）
+        if (area.minX < minX) {
+            blockField.add(area.minX, area.minY, area.minZ, minX, area.maxY, area.maxZ);
+        }
+        if (area.maxX > maxX) {
+            blockField.add(maxX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ);
+        }
+        if (area.minZ < minZ) {
+            blockField.add(area.minX, area.minY, area.minZ, area.maxX, area.maxY, minZ);
+        }
+        if (area.maxZ > maxZ) {
+            blockField.add(area.minX, area.minY, maxZ, area.maxX, area.maxY, area.maxZ);
+        }
+    }
+
+    /** 点が車を止めるワールドボーダーの外か。範囲の外を聞かれたときも、壁が途切れないように答える。 */
+    private boolean outsideBorder(double x, double z) {
+        return border != null && (x < border[0] || z < border[1] || x > border[2] || z > border[3]);
     }
 
     /** {@link #blockField} の範囲の外を引いたブロックの形。1 ティックの間だけ覚えておく。 */
@@ -1338,6 +1390,9 @@ public class CarEntity extends CarEntityBase {
 
     /** 点がブロックの当たり判定の中か。{@link #blockField} の範囲の外を聞かれたときに使う。 */
     private boolean solidOutside(double x, double y, double z) {
+        if (outsideBorder(x, z)) {
+            return true;
+        }
         BlockPos pos = BlockPos.containing(x, y, z);
         VoxelShape shape = outsideShapes.computeIfAbsent(pos.asLong(),
                 key -> level().getBlockState(pos).getCollisionShape(level(), pos));
