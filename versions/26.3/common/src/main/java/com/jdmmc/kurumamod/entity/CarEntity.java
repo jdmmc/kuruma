@@ -116,6 +116,14 @@ public class CarEntity extends CarEntityBase {
      */
     private static final EntityDataAccessor<Float> DATA_YAW =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
+    /**
+     * 運転席に座っている乗員のエンティティ ID。空いていれば -1。<b>サーバーが決めて配る。</b>
+     *
+     * <p>乗員の並び順で席を決めると、運転者が降りたとたんに助手席の人が先頭へ繰り上がり、
+     * 運転席へ移って運転を始めてしまう。席は乗ったときに決め、降りるまで変えない。</p>
+     */
+    private static final EntityDataAccessor<Integer> DATA_DRIVER =
+            SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.INT);
     /** ピッチ角 [rad]。正で鼻上げ。 */
     private static final EntityDataAccessor<Float> DATA_PITCH =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
@@ -671,6 +679,7 @@ public class CarEntity extends CarEntityBase {
         builder.define(DATA_LIGHTS, (byte) 0);
         builder.define(DATA_BOOST, 0.0F);
         builder.define(DATA_YAW, 0.0F);
+        builder.define(DATA_DRIVER, -1);
     }
 
     /** 停車時のシャシー基準面の地上高 [m]。スポーンさせるときにこの高さぶん持ち上げる。 */
@@ -2951,19 +2960,46 @@ public class CarEntity extends CarEntityBase {
     @Nullable
     @Override
     public LivingEntity getControllingPassenger() {
-        return getFirstPassenger() instanceof LivingEntity living ? living : null;
+        int driver = entityData.get(DATA_DRIVER);
+        if (driver < 0) {
+            return null;
+        }
+        for (Entity passenger : getPassengers()) {
+            if (passenger.getId() == driver) {
+                return passenger instanceof LivingEntity living ? living : null;
+            }
+        }
+        return null;
     }
 
     /**
      * 運転席と助手席の 2 人まで。
      *
-     * <p><b>先に乗った方が運転する。</b> 運転者かどうかの判定はすべて
-     * {@link #getControllingPassenger()}（＝先頭の乗員）を通っているので、
+     * <p><b>運転席が空いていれば運転席、埋まっていれば助手席に乗る。</b> 席は降りるまで変わらない
+     * （{@link #DATA_DRIVER}）。運転者かどうかの判定はすべて {@link #getControllingPassenger()} を通っているので、
      * 助手席の人は入力も送らないし、パケットも受け付けられないし、レースの計測にも乗らない。</p>
      */
     @Override
     protected boolean canAddPassenger(Entity passenger) {
         return getPassengers().size() < 2;
+    }
+
+    @Override
+    protected void addPassenger(Entity passenger) {
+        super.addPassenger(passenger);
+        // 運転席が空いていれば、乗った人が運転席へ。埋まっていれば助手席のまま
+        if (!level().isClientSide() && getControllingPassenger() == null && passenger instanceof LivingEntity) {
+            entityData.set(DATA_DRIVER, passenger.getId());
+        }
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        // 運転者が降りたら運転席は空ける。<b>助手席の人を繰り上げない</b>（運転したければ乗り直す）
+        if (!level().isClientSide() && passenger.getId() == entityData.get(DATA_DRIVER)) {
+            entityData.set(DATA_DRIVER, -1);
+        }
     }
 
     @Override
@@ -3053,7 +3089,7 @@ public class CarEntity extends CarEntityBase {
      * 各クライアントが自分で計算する</b>ので、サーバー側の値はどこにも見えない。</p>
      */
     private Vec3 seatOffset(Entity passenger) {
-        boolean passengerSeat = getPassengers().indexOf(passenger) == 1;
+        boolean passengerSeat = passenger.getId() != entityData.get(DATA_DRIVER);
         Vec3 seat = null;
         if (level().isClientSide()) {
             // クライアントの側でしか通らない（isClientSide()）ので、クライアント専用のクラスを直接呼んでよい
