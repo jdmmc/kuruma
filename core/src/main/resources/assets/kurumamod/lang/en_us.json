@@ -325,7 +325,7 @@
   "tuning.kurumamod.visual_slip_limit.tooltip": "How far the front wheels can be steered away from their direction of travel while sliding. Narrower makes countersteer quicker and more precise; wider lets you steer in deeper. The visible wheel angle stays within this range too. 0 turns it off.",
   "race.kurumamod.go": "GO!",
   "race.kurumamod.starting": "Race started: %s (%s laps)",
-  "race.kurumamod.finished": "%s finished P%s (last lap %s)",
+  "race.kurumamod.finished": "%s finished P%s (time %s)",
   "race.kurumamod.course_created": "Created course %s (length %s, direction %s)",
   "race.kurumamod.checkpoint_added": "Added checkpoint %s to %s",
   "race.kurumamod.laps_set": "Set %s to %s laps",

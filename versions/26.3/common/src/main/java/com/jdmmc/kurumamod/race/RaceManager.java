@@ -76,11 +76,6 @@ public final class RaceManager {
      */
     private static final int START_GRACE_TICKS = 100;
 
-    /**
-     * 号砲の直後、グリッドからスタートラインを越えたぶんを数えない長さ [ms]。
-     * チェックポイントの無いコースだけで使う（ある場合は、最初の CP を通るまで数えない）。
-     */
-    private static final double GRID_GRACE_MILLIS = 10_000.0;
 
     /** リザルトを出してからセッションを畳むまで [ティック]。 */
     private static final int RESULT_TICKS = 300;
@@ -316,6 +311,37 @@ public final class RaceManager {
             }
             states.put(id, state);
             beginLap(player, session, course, state, now);
+            if (player.getVehicle() instanceof CarEntity car) {
+                // ラインの手前に並んだときだけ、号砲の直後の通過を見逃す。先に並んだなら、次の通過が 1 周目の終わり。
+                // どちらとも言えない（線の幅の外）ときは、ふつうの並び方（手前）とみなす。
+                // CP のあるコースは、最初の CP を通るまで見逃す（通ったところで下ろす）
+                double fromStart = course.start().signedDistance(car.getX(), car.getZ(), car.getY());
+                state.gridStart = course.checkpointCount() > 0 || !(fromStart > 0.0);
+                skipCheckpointsBehindGrid(course, state, car, now);
+            }
+        }
+    }
+
+    /** グリッドがチェックポイントの先にあるとみなす距離 [ブロック]。 */
+    private static final double GRID_PAST_DISTANCE = 32.0;
+
+    /**
+     * 号砲の時点で<b>もう越えているチェックポイントは、通ったことにする。</b>
+     *
+     * <p>グリッドがスタートラインの先、最初のチェックポイントのすぐ先にあると、そのチェックポイントを
+     * もう 1 周してくるまで取ったことにならず、<b>1 周目のライン通過が数えられなかった</b>。
+     * ゲートのすぐ先（{@link #GRID_PAST_DISTANCE} 以内・ゲートの幅の中）にいるものだけを順に飛ばす。</p>
+     */
+    private static void skipCheckpointsBehindGrid(Course course, LapState state, CarEntity car, double now) {
+        while (state.nextCheckpoint < course.checkpointCount()) {
+            double ahead = course.checkpoint(state.nextCheckpoint).signedDistance(car.getX(), car.getZ(), car.getY());
+            if (!(ahead > 0.0 && ahead <= GRID_PAST_DISTANCE)) {
+                return;
+            }
+            state.nextCheckpoint++;
+            state.passGate(now);
+            // チェックポイントの先から出たので、次にラインを越えたら 1 周目の終わり
+            state.gridStart = false;
         }
     }
 
@@ -440,9 +466,11 @@ public final class RaceManager {
             beginLap(player, session, course, state, crossedAt);
             return;
         }
-        if (state.gridStart && (course.checkpointCount() > 0
-                || crossedAt - state.raceStartMillis < GRID_GRACE_MILLIS)) {
-            // 号砲の直後に、グリッドからラインを越えただけ。1 周目はもう号砲から測っているので数えない
+        if (state.gridStart) {
+            // 号砲の直後に、グリッドからラインを越えただけ。1 周目はもう号砲から測っているので数えない。
+            // <b>見逃すのは 1 回だけ。</b>以前は CP の無いコースで「号砲から 10 秒」を見逃していたため、
+            // 1 周が 10 秒を切る短いコースでは本当の 1 周目まで捨てられ、1 周多く走らされた
+            state.gridStart = false;
             return;
         }
         long lapMillis = (long) (crossedAt - state.lapStartMillis);
@@ -545,7 +573,10 @@ public final class RaceManager {
                                     LapState state, long lapMillis, double crossedAt) {
         // 差を出す相手は「更新する前の」ベスト。取り込んでから引くと必ず 0 になる
         long previousBest = data.bestLap(player.getUUID(), course.name());
-        boolean best = data.recordLap(player.getUUID(), player.getGameProfile().name(),
+        // <b>レースの周はタイムアタックのベストに数えない。</b>他の車がいてレギュレーションに縛られた周で、
+        // ゴーストもレース中は残さないため、数えるとベストとゴーストが食い違う（ランキングにも載せない）
+        boolean racing = isRacer(session, player, course.name());
+        boolean best = !racing && data.recordLap(player.getUUID(), player.getGameProfile().name(),
                 course.name(), lapMillis, state.splits);
         state.passGate(crossedAt);
         state.lastLapMillis = lapMillis;
@@ -556,7 +587,6 @@ public final class RaceManager {
         long delta = lapMillis - previousBest;
         boolean hasDelta = previousBest > 0L;
 
-        boolean racing = isRacer(session, player, course.name());
         if (racing && state.lap >= session.laps) {
             int place = session.finishOrder.size() + 1;
             session.finishOrder.put(player.getUUID(), place);
@@ -1539,8 +1569,8 @@ public final class RaceManager {
         private long totalMillis;
         private boolean finished;
         /**
-         * 号砲で 1 周目を始めて、まだ最初の CP を通っていない。この間にスタートラインを越えても
-         * 周回の終わりとは数えない（グリッドがラインの手前にあるとき）。
+         * 号砲で 1 周目を始めたグリッドが、まだスタートラインを越えていない（ラインの手前に並んだ）。
+         * 次の 1 回の通過は周回の終わりと数えない。CP のあるコースでは最初の CP を通ったところでも下ろす。
          */
         private boolean gridStart;
 

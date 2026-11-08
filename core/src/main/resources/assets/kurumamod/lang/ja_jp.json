@@ -325,7 +325,7 @@
   "tuning.kurumamod.visual_slip_limit.tooltip": "滑っている間、前輪を進む向きから何度まで切れるか。狭いほどカウンターが速く正確に当たり、広いほど深く切り込めます。見た目のタイヤ角もこの範囲に収まります。0 でオフ。",
   "race.kurumamod.go": "GO!",
   "race.kurumamod.starting": "レース開始: %s（%s 周）",
-  "race.kurumamod.finished": "%s が %s 位でゴール（最終ラップ %s）",
+  "race.kurumamod.finished": "%s が %s 位でゴール（タイム %s）",
   "race.kurumamod.course_created": "コース %s を作成（線の長さ %s、通過方向 %s）",
   "race.kurumamod.checkpoint_added": "%s にチェックポイント %s を追加",
   "race.kurumamod.laps_set": "%s の周回数を %s に設定",

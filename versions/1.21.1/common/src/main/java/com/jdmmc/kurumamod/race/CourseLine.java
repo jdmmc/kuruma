@@ -76,6 +76,38 @@ public record CourseLine(double ax, double az, double bx, double bz,
     }
 
     /**
+     * 点がこの線の<b>先（通過方向の側）</b>へどれだけ出ているか [ブロック]。手前なら負。
+     * 線の幅の外・高さの外なら NaN（どちら側とも言えない）。
+     *
+     * <p>号砲の時点で、グリッドがスタートラインやチェックポイントの手前か先かを見るのに使う。</p>
+     */
+    public double signedDistance(double x, double z, double y) {
+        if (y < yMin || y > yMax) {
+            return Double.NaN;
+        }
+        double lineX = bx - ax;
+        double lineZ = bz - az;
+        double length2 = lineX * lineX + lineZ * lineZ;
+        if (length2 <= 0.0) {
+            return Double.NaN;
+        }
+        // 線の幅の中か（線分へ下ろした足の位置）
+        double t = ((x - ax) * lineX + (z - az) * lineZ) / length2;
+        if (t < 0.0 || t > 1.0) {
+            return Double.NaN;
+        }
+        // 線に垂直な向きを、通過方向の側へ揃える
+        double length = Math.sqrt(length2);
+        double normalX = -lineZ / length;
+        double normalZ = lineX / length;
+        if (normalX * forwardX + normalZ * forwardZ < 0.0) {
+            normalX = -normalX;
+            normalZ = -normalZ;
+        }
+        return (x - ax) * normalX + (z - az) * normalZ;
+    }
+
+    /**
      * 前ティックの位置から今の位置までの移動が、この線を正しい向きに横切ったか。
      *
      * @return 横切っていれば移動線分上の位置（0〜1）、していなければ負の値。
