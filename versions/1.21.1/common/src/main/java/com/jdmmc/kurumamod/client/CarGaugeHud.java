@@ -183,6 +183,17 @@ public final class CarGaugeHud {
     private static int reservedHeight;
     private static int leftEdge;
     private static int rightEdge;
+    /**
+     * 中央の小窓（シフトインジケーターを含む）の上端。画面の Y。出していないときは NaN。
+     * アクションバーをこれより上へ逃がす（{@link #overlayMessageY}）。
+     */
+    private static float panelTop = Float.NaN;
+
+    /**
+     * アクションバーの文字の基準点から、下敷きの下端までの距離に、小窓との隙間 2px を足したもの。
+     * 文字は基準点の 4px 上から 9px、下敷きが上下に 2px 付くので、下端は基準点の 7px 下。
+     */
+    private static final float OVERLAY_MESSAGE_CLEARANCE = 9.0F;
 
     private CarGaugeHud() {
     }
@@ -217,6 +228,23 @@ public final class CarGaugeHud {
         return ClientConfig.showGauges ? leftEdge : Integer.MAX_VALUE;
     }
 
+    /**
+     * アクションバー（{@code setOverlayMessage} の 1 行）を置く高さ。<b>中央の小窓より上へ逃がす。</b>
+     *
+     * <p>バニラはアクションバーを画面下端から 68px のところに置くが、小窓は下端から 51px より上を使う
+     * （倍率 1 で 90px まで）ので重なる。小窓はアクションバーより後に描くので、アクションバーが
+     * <b>小窓の裏に回って読めなくなっていた</b>。小窓を出していないときは元の高さのまま。</p>
+     *
+     * <p>{@code y} はローダーが決めた文字の基準点（体力バーが高く積まれていれば、そのぶん上がっている）。
+     * それより下へは動かさない。値は前のフレームで描いた小窓のもの（アクションバーのほうが先に描かれる）。</p>
+     */
+    public static float overlayMessageY(float y) {
+        if (!ClientConfig.showGauges || Float.isNaN(panelTop)) {
+            return y;
+        }
+        return Math.min(y, panelTop - OVERLAY_MESSAGE_CLEARANCE);
+    }
+
     public static void onRenderGui(GuiRender event) {
         if (!ClientConfig.showGauges || RaceHud.isShowingResults()) {
             clearBounds();
@@ -243,6 +271,7 @@ public final class CarGaugeHud {
         reservedHeight = 0;
         leftEdge = Integer.MAX_VALUE;
         rightEdge = 0;
+        panelTop = Float.NaN;
     }
 
     private static void render(GuiGraphics graphics, Minecraft minecraft, CarEntity car) {
@@ -277,6 +306,8 @@ public final class CarGaugeHud {
         // 小窓は下げられるだけ下げる。2 眼の間で高い位置にあると浮いて見えるので、
         // 体力バーの手前まで落とす（メーターの中心より下がることになる）
         float panelBottom = screenHeight - HEARTS_ROW_TOP;
+        // 小窓の地（PANEL_HEIGHT）の 4px 上から、シフトインジケーターの LED が 3px 伸びる
+        panelTop = panelBottom - (PANEL_HEIGHT + 4.0F + 3.0F) * scale;
         renderCenterPanel(graphics, font, theme, car, spec, screenWidth * 0.5F,
                 panelBottom, scale);
         graphics.pose().popPose();
