@@ -45,13 +45,6 @@ public final class RaceCommands {
                     RaceData.get(ctx.getSource().getLevel()).courses().stream().map(Course::name),
                     builder);
 
-    /** 受付中のレースのコース名だけを候補にする。 */
-    private static final SuggestionProvider<CommandSourceStack> OPEN_RACE = (ctx, builder) -> {
-        String open = RaceManager.openCourse(ctx.getSource().getLevel());
-        return open == null
-                ? builder.buildFuture()
-                : SharedSuggestionProvider.suggest(java.util.List.of(open), builder);
-    };
 
     /** 自分が記録を持っているコースだけを候補にする。 */
     private static final SuggestionProvider<CommandSourceStack> MY_RECORDS = (ctx, builder) -> {
@@ -97,7 +90,8 @@ public final class RaceCommands {
 
     /** コマンドの登録。NeoForge は {@code RegisterCommandsEvent}、Fabric は {@code CommandRegistrationCallback} から。 */
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // コースを作る側は /kuruma-admin。走る側（race / best）は誰でも撃つので /kuruma に残す。
+        // コースを作る側と、OP の非常口（race stop）は /kuruma-admin。記録（best）は誰でも撃つので /kuruma に残す。
+        // レースの参加・主催は K の画面だけ（コマンドは無い）。
         // 根を分けておくと、権限のない人の補完候補にコース作成の枝が出てこない
         dispatcher.register(Commands.literal("kuruma-admin")
                 .then(Commands.literal("point")
@@ -127,7 +121,12 @@ public final class RaceCommands {
                                 .then(Commands.argument("name", StringArgumentType.word())
                                         .suggests(COURSES)
                                         .executes(RaceCommands::removeCourse)))
-                        .then(Commands.literal("list").executes(RaceCommands::listCourses))));
+                        .then(Commands.literal("list").executes(RaceCommands::listCourses)))
+                // レースの操作は K の画面だけ。主催者ではない OP が、放置されたレースを畳むための非常口だけ残す
+                // （K で主催者画面を開けるのは主催した本人だけなので、画面からは止められない）
+                .then(Commands.literal("race")
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .then(Commands.literal("stop").executes(RaceCommands::stopRace))));
 
         dispatcher.register(Commands.literal("kuruma")
                 .then(Commands.literal("best")
@@ -151,26 +150,7 @@ public final class RaceCommands {
                                         .suggests(COURSES)
                                         .executes(RaceCommands::clearCourseBests))))
                 .then(Commands.literal("timeattack")
-                        .then(Commands.literal("reset").executes(RaceCommands::resetTimeAttack)))
-                .then(Commands.literal("race")
-                        // 参加まわりは誰でも撃てる。開催の操作だけ OP
-                        .then(Commands.literal("join")
-                                .executes(ctx -> joinRace(ctx, null))
-                                .then(Commands.argument("name", StringArgumentType.word())
-                                        .suggests(OPEN_RACE)
-                                        .executes(ctx -> joinRace(ctx,
-                                                StringArgumentType.getString(ctx, "name")))))
-                        .then(Commands.literal("leave").executes(RaceCommands::leaveRace))
-                        .then(Commands.literal("entrants").executes(RaceCommands::listEntrants))
-                        .then(Commands.literal("open")
-                                .then(Commands.argument("name", StringArgumentType.word())
-                                        .suggests(COURSES)
-                                        .executes(ctx -> openRace(ctx, -1))
-                                        .then(Commands.argument("laps", IntegerArgumentType.integer(1, 99))
-                                                .executes(ctx -> openRace(ctx,
-                                                        IntegerArgumentType.getInteger(ctx, "laps"))))))
-                        .then(Commands.literal("start").executes(RaceCommands::startRace))
-                        .then(Commands.literal("stop").executes(RaceCommands::stopRace))));
+                        .then(Commands.literal("reset").executes(RaceCommands::resetTimeAttack))));
     }
 
     // ------------------------------------------------------------------
@@ -534,129 +514,6 @@ public final class RaceCommands {
     // レース
     // ------------------------------------------------------------------
 
-    /** エントリーの受付を始める。まだ走らない。 */
-    private static int openRace(CommandContext<CommandSourceStack> ctx, int laps)
-            throws CommandSyntaxException {
-        ServerPlayer player = ctx.getSource().getPlayerOrException();
-        String name = StringArgumentType.getString(ctx, "name");
-        RaceData data = RaceData.get(ctx.getSource().getLevel());
-        Course course = data.course(name).orElse(null);
-        if (course == null || !course.isReady()) {
-            return failNoCourse(ctx, name);
-        }
-        if (!RaceManager.openRace(ctx.getSource().getLevel(), course,
-                laps > 0 ? laps : course.laps(), player)) {
-            ServerLevel level = ctx.getSource().getLevel();
-            String open = RaceManager.openCourse(level);
-            // 「開催中です」だけだと、待てば始まるのか終わるのを待つのかが分からない
-            ctx.getSource().sendFailure(open != null
-                    ? Component.translatable("race.kurumamod.already_open_entry", open)
-                    : Component.translatable("race.kurumamod.already_open_running",
-                            RaceManager.racingCourse(level)));
-            return 0;
-        }
-        return 1;
-    }
-
-    private static int joinRace(CommandContext<CommandSourceStack> ctx, String course)
-            throws CommandSyntaxException {
-        ServerPlayer player = ctx.getSource().getPlayerOrException();
-        ServerLevel level = ctx.getSource().getLevel();
-        switch (RaceManager.join(player, course)) {
-            case NO_RACE -> {
-                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.no_entry"));
-                return 0;
-            }
-            case ALREADY_STARTED -> {
-                // 「受付中のレースがありません」で片付けると、レース自体が無いと読める
-                ctx.getSource().sendFailure(Component.translatable(
-                        "race.kurumamod.already_started", RaceManager.racingCourse(level)));
-                return 0;
-            }
-            case WRONG_COURSE -> {
-                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.wrong_course",
-                        RaceManager.openCourse(level)));
-                return 0;
-            }
-            case ALREADY_JOINED -> {
-                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.already_joined"));
-                return 0;
-            }
-            case JOINED -> {
-                ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.joined")
-                        .withStyle(ChatFormatting.GREEN), true);
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    private static int leaveRace(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerPlayer player = ctx.getSource().getPlayerOrException();
-        switch (RaceManager.leave(player)) {
-            case NOT_ENTERED -> {
-                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.not_entered"));
-                return 0;
-            }
-            case RETIRED -> {
-                // 走行中に抜けた。車から降りただけでは抜けないので、ここは明示的な意思表示
-                ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.retired_self")
-                        .withStyle(ChatFormatting.GRAY), false);
-                return 1;
-            }
-            case LEFT -> {
-                ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.left"), true);
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    private static int listEntrants(CommandContext<CommandSourceStack> ctx) {
-        var names = RaceManager.entrants(ctx.getSource().getLevel());
-        if (names.isEmpty()) {
-            ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.no_entrants"), false);
-            return 0;
-        }
-        String open = RaceManager.racingCourse(ctx.getSource().getLevel());
-        ctx.getSource().sendSuccess(() -> Component.translatable(
-                "race.kurumamod.entrants", open == null ? "-" : open,
-                names.size(), String.join(", ", names)), false);
-        return names.size();
-    }
-
-    /** カウントダウンを始める。開催した本人か OP だけ。 */
-    private static int startRace(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerLevel level = ctx.getSource().getLevel();
-        if (!RaceManager.hasSession(level)) {
-            // 権限より先に「そもそも無い」を言う。主催者でないと断られても次の手が分からない
-            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.no_race_to_start"));
-            return 0;
-        }
-        if (!RaceManager.canManage(ctx.getSource().getPlayerOrException())) {
-            return failNotHost(ctx);
-        }
-        switch (RaceManager.beginCountdown(level)) {
-            case NO_RACE -> {
-                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.no_race_to_start"));
-                return 0;
-            }
-            case ALREADY_STARTED -> {
-                ctx.getSource().sendFailure(Component.translatable(
-                        "race.kurumamod.already_started", RaceManager.racingCourse(level)));
-                return 0;
-            }
-            case NO_ENTRANTS -> {
-                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.no_entrants_to_start"));
-                return 0;
-            }
-            case STARTED -> {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
     /** 誰なら操作できるのかを名指しする。「本人だけ」では誰なのか分からない。 */
     private static int failNotHost(CommandContext<CommandSourceStack> ctx) {
         String host = RaceManager.hostName(ctx.getSource().getLevel());
@@ -666,6 +523,7 @@ public final class RaceCommands {
         return 0;
     }
 
+    /** {@code /kuruma-admin race stop}。走行中ならリザルトを出し、もう一度撃つと畳む。 */
     private static int stopRace(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         if (!RaceManager.hasSession(ctx.getSource().getLevel())) {
             ctx.getSource().sendFailure(Component.translatable("race.kurumamod.no_race_to_start"));

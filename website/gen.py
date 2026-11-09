@@ -1019,7 +1019,7 @@ RACE_COMMANDS = [
     ("/kuruma-admin course checkpoint &lt;name&gt;", ("Add a checkpoint from the last two points, in driving order.", "最後に打った 2 点でチェックポイントを足す。通る順に。")),
     ("/kuruma-admin course laps &lt;name&gt; &lt;laps&gt;", ("Default number of laps.", "既定の周回数。")),
     ("/kuruma-admin collide [true|false]", ("Whether cars hit each other.", "車同士が当たるか。")),
-    ("/kuruma race open|join|leave|start|stop", ("The same as the K screens, as commands.", "K の画面と同じことをコマンドで。")),
+    ("/kuruma-admin race stop", ("Stop a race someone else is hosting (OP). Racing itself is done from the K screens.", "他の人が主催しているレースを止める（OP）。レースの操作そのものは K の画面で。")),
     ("/kuruma best, /kuruma best top &lt;course&gt;", ("Your bests and a course's ranking.", "自己ベストと、コースのランキング。")),
 ]
 race_commands = "".join(f"<div><dt><code>{c}</code></dt><dd>{T(*d)}</dd></div>" for c, d in RACE_COMMANDS)

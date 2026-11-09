@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * クライアント → サーバー。レースの画面とキー（K）からの操作。
  *
- * <p>コマンド（{@code /kuruma race ...}）と同じ処理を呼ぶ。<b>できるかどうかを決めるのはサーバー</b>
+ * <p>コマンドだった頃と同じ処理を呼ぶ。<b>できるかどうかを決めるのはサーバー</b>
  * なので、画面はボタンを押しただけで結果を決めつけない（次の {@link RaceLobbyPacket} で分かる）。</p>
  *
  * @param action     何をするか
