@@ -67,6 +67,10 @@ public class KurumaMenuScreen extends Screen {
     private final List<Row> rows = new ArrayList<>();
 
     private static final int SIDEBAR_WIDTH = 110;
+    /** 操作説明のページのキーの列の幅。 */
+    private static final int CONTROLS_KEY_WIDTH = 120;
+    /** 操作説明のキーの色（右下の操作ヘルプと同じ）。 */
+    private static final int COLOR_KEY = 0xFFFFD26A;
     private static final int SIDEBAR_GAP = 12;
 
     /**
@@ -75,6 +79,8 @@ public class KurumaMenuScreen extends Screen {
      */
     private enum Page {
         DISPLAY("display"), EFFECTS("effects"), GAUGES("gauges"), DRIVING("driving"), SOUND("sound"), CAMERA("camera"),
+        /** 操作説明（キーの一覧）。右下の操作ヘルプと同じ中身。ヘルプを消した人もここで見られる */
+        CONTROLS("controls"),
         /** 車の音（パック用）。左の一覧には出さず、Ctrl+H のデバッグ画面（{@link #soundDebug()}）だけで開く */
         CAR_SOUND("car_sound");
 
@@ -208,6 +214,7 @@ public class KurumaMenuScreen extends Screen {
                 slider("cockpit_look_ahead", 0.0, 1.6, ClientConfig.COCKPIT_LOOK_AHEAD);
                 slider("cockpit_drift_look", 0.0, 1.0, ClientConfig.COCKPIT_DRIFT_LOOK);
             }
+            case CONTROLS -> controlsPage();
             case CAR_SOUND -> carSoundPage();
         }
 
@@ -245,6 +252,16 @@ public class KurumaMenuScreen extends Screen {
 
         scroll = Math.max(0, Math.min(scroll, rows.size() - visibleRows));
         layout();
+    }
+
+    /**
+     * 操作説明。右下の操作ヘルプと同じ一覧（{@link CarHelp#lines}）で、キーは割り当てから引く。
+     * 変える項目は無いので、行は文字だけ（キーを左、説明を右に並べる）。
+     */
+    private void controlsPage() {
+        for (CarHelp.Line line : CarHelp.lines(minecraft)) {
+            rows.add(new Row(Component.translatable(line.descriptionKey()), null, false, null, null, line.key()));
+        }
     }
 
     // ------------------------------------------------------------------
@@ -553,6 +570,14 @@ public class KurumaMenuScreen extends Screen {
             if (!row.visible) {
                 continue;
             }
+            if (row.keyName != null) {
+                // 操作説明: キーを左（黄色）、説明を右に
+                graphics.drawString(font, font.plainSubstrByWidth(row.keyName, CONTROLS_KEY_WIDTH - GAP), panelLeft,
+                        row.y + 5, COLOR_KEY, false);
+                graphics.drawString(font, font.plainSubstrByWidth(row.label.getString(), PANEL_WIDTH - CONTROLS_KEY_WIDTH),
+                        panelLeft + CONTROLS_KEY_WIDTH, row.y + 5, COLOR_NAME, false);
+                continue;
+            }
             String name = row.label.getString();
             graphics.drawString(font,
                     font.plainSubstrByWidth(name, row.widget == null ? PANEL_WIDTH : LABEL_WIDTH - GAP),
@@ -626,6 +651,8 @@ public class KurumaMenuScreen extends Screen {
         private final Button reset;
         /** 既定（車の音ならパックの値）から変えているか。名前を黄色にする。無ければ変えようがない行 */
         private final java.util.function.BooleanSupplier changed;
+        /** 操作説明の行のキー（左に黄色で出す）。ほかの行では null。 */
+        private final String keyName;
 
         private int y;
         private boolean visible;
@@ -640,6 +667,12 @@ public class KurumaMenuScreen extends Screen {
 
         private Row(Component label, AbstractWidget widget, boolean isHeader, Button reset,
                     java.util.function.BooleanSupplier changed) {
+            this(label, widget, isHeader, reset, changed, null);
+        }
+
+        private Row(Component label, AbstractWidget widget, boolean isHeader, Button reset,
+                    java.util.function.BooleanSupplier changed, String keyName) {
+            this.keyName = keyName;
             this.label = label;
             this.widget = widget;
             this.isHeader = isHeader;

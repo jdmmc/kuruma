@@ -409,9 +409,10 @@ public final class RaceManager {
         if (session != null && session.spectators.contains(player.getUUID())) {
             return;
         }
-        // 信号の間の参加者も測らない。止めきれずにラインを越えると、号砲の前にタイムアタックが始まる
-        // （号砲で捨てられるが、それまで時計とゴーストが出る）
-        if (session != null && session.countdown >= 0 && session.entrants.contains(player.getUUID())) {
+        // エントリーしてから号砲までの参加者も測らない。レースを待っている間にタイムアタックの計測や
+        // ウォームアップが始まると、どちらの準備をしているのか分からなくなる（信号の間に止めきれずに
+        // ラインを越えた場合も、ここで止まる）
+        if (session != null && !session.started && session.entrants.contains(player.getUUID())) {
             return;
         }
         RaceData data = RaceData.get(level);
@@ -1511,6 +1512,11 @@ public final class RaceManager {
             return JoinResult.ALREADY_JOINED;
         }
         session.spectators.remove(player.getUUID());
+        // 測っていたタイムアタック（ウォームアップ中も）は捨て、時計を消す。号砲まではタイムアタックを測らない
+        LapState dropped = states((ServerLevel) player.level()).remove(player.getUUID());
+        if (dropped != null && (dropped.timing || dropped.course != null)) {
+            send(player, RaceEventPacket.cleared());
+        }
         broadcast((ServerLevel) player.level(), Component.translatable("race.kurumamod.joined_announce",
                 player.getGameProfile().getName(), session.entrants.size()));
         broadcastLobby((ServerLevel) player.level(), session);
