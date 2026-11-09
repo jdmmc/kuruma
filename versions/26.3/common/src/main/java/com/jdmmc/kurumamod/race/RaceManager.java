@@ -111,7 +111,7 @@ public final class RaceManager {
     public static void onServerStopped() {
         STATES.clear();
         SESSIONS.clear();
-        RegulationPresets.clear();
+        RaceClasses.clear();
     }
 
     /**
@@ -930,7 +930,7 @@ public final class RaceManager {
     private static RaceLobbyPacket lobbyFor(ServerLevel level, Session session, ServerPlayer viewer,
                                             List<RaceLobbyPacket.CourseInfo> courses) {
         if (session == null) {
-            return RaceLobbyPacket.none(courses, RegulationPresets.list(level.getServer()), isOp(viewer));
+            return RaceLobbyPacket.none(courses, RaceClasses.list(level.getServer()), isOp(viewer));
         }
         List<RaceLobbyPacket.Entrant> list = new ArrayList<>();
         for (UUID id : session.entrants) {
@@ -954,7 +954,7 @@ public final class RaceManager {
                 session.hostName, viewer.getUUID().equals(session.host),
                 session.entrants.contains(viewer.getUUID()), session.spectators.contains(viewer.getUUID()),
                 canManage(viewer), Math.max(0L, best),
-                session.regulation.toArray(), list, courses, RegulationPresets.list(level.getServer()),
+                session.regulation.toArray(), list, courses, RaceClasses.list(level.getServer()),
                 isOp(viewer));
     }
 
@@ -1051,17 +1051,17 @@ public final class RaceManager {
                     }
                 }
             }
-            case SAVE_PRESET, DELETE_PRESET -> {
+            case SAVE_CLASS, DELETE_CLASS -> {
                 // サーバーに残るものなので OP だけ。選んで読み込むのは誰でもできる（画面の側）
                 boolean allowed = isOp(player);
                 if (!allowed) {
-                    tell(player, Component.translatable("race.kurumamod.preset_denied"));
-                } else if (packet.action() == RaceActionPacket.Action.SAVE_PRESET) {
-                    tell(player, RegulationPresets.put(level.getServer(), packet.course(), packet.regulation())
-                            ? Component.translatable("race.kurumamod.preset_saved", packet.course().trim())
-                            : Component.translatable("race.kurumamod.preset_invalid"));
-                } else if (RegulationPresets.remove(level.getServer(), packet.course())) {
-                    tell(player, Component.translatable("race.kurumamod.preset_deleted", packet.course()));
+                    tell(player, Component.translatable("race.kurumamod.class_denied"));
+                } else if (packet.action() == RaceActionPacket.Action.SAVE_CLASS) {
+                    tell(player, RaceClasses.put(level.getServer(), packet.course(), packet.regulation())
+                            ? Component.translatable("race.kurumamod.class_saved", packet.course().trim())
+                            : Component.translatable("race.kurumamod.class_invalid"));
+                } else if (RaceClasses.remove(level.getServer(), packet.course())) {
+                    tell(player, Component.translatable("race.kurumamod.class_deleted", packet.course()));
                 }
                 if (session != null) {
                     broadcastLobby(level, session);
@@ -1142,9 +1142,15 @@ public final class RaceManager {
         }
     }
 
-    /** OP か（レギュレーションのプリセットを保存・削除してよいか）。 */
+    /**
+     * クラスを保存・削除してよいか。<b>OP と、シングルプレイの本人。</b>
+     *
+     * <p>チートを切ったシングルプレイでは本人も OP の権限を持たないが、ほかに誰もいないワールドで
+     * 保存を断る理由は無い（以前は入力欄が黙って打てなくなっていた）。</p>
+     */
     private static boolean isOp(ServerPlayer player) {
-        return player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+        return player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
+                || player.level().getServer().isSingleplayerOwner(player.nameAndId());
     }
 
     /** 画面を開いたままでも読めるよう、アクションバーに出す。 */

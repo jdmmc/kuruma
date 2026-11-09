@@ -1085,7 +1085,7 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
     <div class="packs">
       <div class="pack static"><small>{T("Check", "判定")}</small><h3>{T("Blue OK, red breach", "青が適合、赤が違反")}</h3><p>{T("The server checks every entrant's car with the same maths the client uses. The host sees each car's numbers, with the ones out of range in red.", "サーバーが全員の車を、クライアントと同じ式で判定します。主催者には各車の値が並び、外れている値は赤で出ます。")}</p></div>
       <div class="pack static"><small>{T("At the start", "スタート")}</small><h3>{T("Breach means spectating", "違反なら観戦")}</h3><p>{T("Anyone still in breach when the lights come on watches instead. Leave the regulation mid-race and you are disqualified.", "スタートシグナルが点いた時点で違反している人は観戦になります。レース中にレギュレーションを外れると失格です。")}</p></div>
-      <div class="pack static"><small>{T("Presets", "プリセット")}</small><h3>{T("Saved on the server", "サーバーに保存")}</h3><p>{T("OPs save regulations as named presets on the server. Anyone can pick and load them on the host screen.", "OP はレギュレーションに名前を付けてサーバーに保存できます。選んで読み込むのは誰でもできます。")}</p></div>
+      <div class="pack static"><small>{T("Classes", "クラス")}</small><h3>{T("Saved on the server", "サーバーに保存")}</h3><p>{T("OPs save regulations as named classes on the server. Anyone can pick and load them on the host screen.", "OP はレギュレーションに名前を付けて、クラスとしてサーバーに保存できます。選んで読み込むのは誰でもできます。")}</p></div>
     </div>
   </div>
 </section>

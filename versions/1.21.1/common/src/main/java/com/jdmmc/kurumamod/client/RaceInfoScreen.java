@@ -133,6 +133,18 @@ public final class RaceInfoScreen extends Screen {
         Slant.text(graphics, font, "REGULATION", left + 7, columnTop + 3, RaceLobby.WHITE);
         Component mineHead = Component.translatable("screen.kurumamod.race_info.rule_mine");
         Slant.text(graphics, font, mineHead, left + half - 7 - font.width(mineHead), columnTop + 3, RaceLobby.GREY);
+        // クラスで開いたレースなら、見出しの横にクラスの名前
+        String className = RaceLobby.classNameOf(regulation);
+        if (className != null) {
+            int classX = left + 7 + font.width("REGULATION") + 8;
+            int room = left + half - 7 - font.width(mineHead) - 14 - classX;
+            if (room > 12) {
+                int shown = Math.min(font.width(className), room);
+                Slant.fill(graphics, classX - 4, columnTop + 1, shown + 10, 11, RaceLobby.ACCENT);
+                Slant.fit(graphics, font, Component.literal(className), classX + 1, columnTop + 3, room,
+                        RaceLobby.WHITE);
+            }
+        }
         int y = columnTop + 14;
         if (rules.isEmpty()) {
             graphics.fill(left, y, left + half, y + ROW - 1, RaceLobby.PANEL_LIGHT);

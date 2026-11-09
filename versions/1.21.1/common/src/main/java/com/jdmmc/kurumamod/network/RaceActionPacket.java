@@ -55,10 +55,10 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         UNSPECTATE,
         /** 参加者をエントリーから外す（主催者だけ）。{@code course} に外す人の名前を入れる。 */
         KICK,
-        /** レギュレーションのプリセットを保存する。{@code course} に名前、{@code regulation} に中身。 */
-        SAVE_PRESET,
-        /** レギュレーションのプリセットを消す。{@code course} に名前。 */
-        DELETE_PRESET
+        /** クラスを保存する。{@code course} に名前、{@code regulation} に中身。 */
+        SAVE_CLASS,
+        /** クラスを消す。{@code course} に名前。 */
+        DELETE_CLASS
     }
 
     private static final Action[] ACTIONS = Action.values();

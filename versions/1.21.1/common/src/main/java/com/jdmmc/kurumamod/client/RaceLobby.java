@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -73,8 +74,8 @@ public final class RaceLobby {
         boolean wasOpen = previous != null && previous.phase() == RaceLobbyPacket.Phase.OPEN;
         lobby = packet.phase() == RaceLobbyPacket.Phase.NONE ? null : packet;
         coursesSeen = packet.courses();
-        presetsSeen = packet.presets();
-        presetAdminSeen = packet.presetAdmin();
+        classesSeen = packet.classes();
+        classAdminSeen = packet.classAdmin();
         if (lobby == null) {
             inviteTicks = 0;
             knownEntrants = new HashSet<>();
@@ -116,17 +117,64 @@ public final class RaceLobby {
     }
 
     private static List<RaceLobbyPacket.CourseInfo> coursesSeen = List.of();
-    private static List<RaceLobbyPacket.Preset> presetsSeen = List.of();
-    private static boolean presetAdminSeen;
+    private static List<RaceLobbyPacket.RaceClass> classesSeen = List.of();
+    private static boolean classAdminSeen;
 
-    /** プリセットを保存・削除してよいか（OP）。最後に受け取ったもの。 */
-    static boolean presetAdmin() {
-        return presetAdminSeen;
+    /** クラスを保存・削除してよいか（OP）。最後に受け取ったもの。 */
+    static boolean classAdmin() {
+        return classAdminSeen;
     }
 
-    /** サーバーに保存してあるレギュレーションのプリセット（最後に受け取ったもの）。 */
-    static List<RaceLobbyPacket.Preset> presets() {
-        return presetsSeen;
+    /** サーバーに保存してあるクラス（最後に受け取ったもの）。 */
+    static List<RaceLobbyPacket.RaceClass> classes() {
+        return classesSeen;
+    }
+
+    /**
+     * 決まりとぴったり同じ中身のクラスの名前。無ければ null。
+     *
+     * <p><b>レースはクラスの名前を持たない。</b>持つのは決まりの中身だけなので、どのクラスで開いたかは
+     * 中身を比べて引く。1 項目でも変えれば別物（＝どのクラスでもない）になる。同じ中身のクラスが
+     * 2 つあれば先のほう。</p>
+     */
+    static String classNameOf(Regulation regulation) {
+        double[] values = regulation.toArray();
+        for (RaceLobbyPacket.RaceClass raceClass : classesSeen) {
+            // 保存したときと項目の数が違っても比べられるよう、一度読み直して並びを揃える
+            double[] other = Regulation.fromArray(raceClass.regulation()).toArray();
+            if (sameValues(values, other)) {
+                return raceClass.name();
+            }
+        }
+        return null;
+    }
+
+    private static boolean sameValues(double[] a, double[] b) {
+        if (a.length != b.length) {
+            return false;
+        }
+        for (int i = 0; i < a.length; i++) {
+            if (Math.abs(a[i] - b[i]) > 1e-6 * Math.max(1.0, Math.abs(a[i]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** 決まりを 1 行に縮めたもの（「250 PS 以下 · FR」）。何も縛っていなければ「決まりはありません」。 */
+    static Component summary(Regulation regulation) {
+        List<Rule> rules = rules(regulation);
+        if (rules.isEmpty()) {
+            return Component.translatable("race.kurumamod.rule.free");
+        }
+        MutableComponent out = Component.empty();
+        for (int i = 0; i < rules.size(); i++) {
+            if (i > 0) {
+                out.append(" · ");
+            }
+            out.append(rules.get(i).rule());
+        }
+        return out;
     }
 
     private static void ping(String name, boolean joined) {
@@ -182,8 +230,8 @@ public final class RaceLobby {
     private static void reset() {
         lobby = null;
         coursesSeen = List.of();
-        presetsSeen = List.of();
-        presetAdminSeen = false;
+        classesSeen = List.of();
+        classAdminSeen = false;
         inviteTicks = 0;
         knownEntrants = new HashSet<>();
         pingTicks = 0;
@@ -478,9 +526,14 @@ public final class RaceLobby {
         Slant.fill(graphics, left, row, panel, 17, PANEL_LIGHT);
         Component join = Component.translatable("race.kurumamod.invite.join", keyName());
         int joinWidth = font.width(join) + 8;
-        Slant.fit(graphics, font, Component.translatable("race.kurumamod.invite.detail",
-                lobby.course(), lobby.laps(), lobby.entrants().size()), left + 6, row + 5,
-                panel - joinWidth - 16, WHITE);
+        // クラスで開いたレースなら、クラスの名前を先頭に出す（どの車で出ればいいかがまず分かる）
+        String className = classNameOf(Regulation.fromArray(lobby.regulation()));
+        Component detail = className != null
+                ? Component.translatable("race.kurumamod.invite.detail_class", className,
+                lobby.course(), lobby.laps(), lobby.entrants().size())
+                : Component.translatable("race.kurumamod.invite.detail",
+                lobby.course(), lobby.laps(), lobby.entrants().size());
+        Slant.fit(graphics, font, detail, left + 6, row + 5, panel - joinWidth - 16, WHITE);
         Slant.fill(graphics, left + panel - joinWidth - 4, row + 3, joinWidth, 11, WHITE);
         Slant.text(graphics, font, join, left + panel - joinWidth, row + 5, INK);
 
