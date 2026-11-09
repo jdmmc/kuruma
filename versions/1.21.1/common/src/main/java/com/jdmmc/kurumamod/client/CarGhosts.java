@@ -109,6 +109,8 @@ public final class CarGhosts {
     private static final List<Frame> trail = new ArrayList<>();
     /** いま周回を測っているコース。測っていなければ null。 */
     private static String lapCourse;
+    /** いまの周の比べる相手のクラス（空なら総合）。走らせるゴーストもこれで選ぶ。 */
+    private static String lapClass = "";
     private static CarEntity trailCar;
 
     // 助手席へ流している車（運転者の側）。流していなければ -1
@@ -215,6 +217,12 @@ public final class CarGhosts {
      * <p>タイムアタックだけ。レース中（規定周回あり）はゴーストを出さない——並んで走る相手が
      * いるところに半透明の車が混ざると、どれが本物か分からなくなる。</p>
      *
+     * <p><b>ゴーストは「コース × クラス」ごとに 1 本</b>（総合と、宣言して走ったクラス）。走らせるのは
+     * その周の比べる相手（宣言しているクラス、していなければ総合）のもの。</p>
+     *
+     * <p>周の始めに届く比べる相手のベスト（{@code targetBest}）と、手元のゴーストのタイムが合わなければ、
+     * そのゴーストは捨てる（落ちている間に記録が消されていた）。</p>
+     *
      * <p>周回が無効だった合図（取りこぼし・短すぎ）では何もしない。サーバーは測り直さずに
      * 元のスタートから測り続けるので、こちらも書き溜めを続ける。</p>
      */
@@ -223,29 +231,36 @@ public final class CarGhosts {
         switch (packet.kind()) {
             case LAP_STARTED -> {
                 if (packet.totalLaps() == 0) {
-                    beginLap(minecraft, packet.course());
+                    beginLap(minecraft, packet.course(), packet.raceClass(), packet.targetBest());
                 } else {
                     resetLap();
                 }
             }
             case LAP_COMPLETED -> {
                 if (packet.totalLaps() == 0) {
-                    completeLap(minecraft, packet.course(), packet.millis(), packet.best());
+                    completeLap(minecraft, packet);
                 } else {
                     resetLap();
                 }
             }
             case FINISHED, CLEARED -> resetLap();
-            case BEST_CLEARED -> deleteLapGhosts(minecraft, packet.course());
+            case BEST_CLEARED -> {
+                if (packet.raceClass().isEmpty()) {
+                    deleteLapGhosts(minecraft, packet.course());
+                } else {
+                    deleteClassGhosts(minecraft, packet.raceClass());
+                }
+            }
             default -> {
             }
         }
     }
 
-    private static void beginLap(Minecraft minecraft, String course) {
+    private static void beginLap(Minecraft minecraft, String course, String raceClass, long targetBest) {
         trail.subList(0, crossingIndex()).clear();
         lapCourse = course;
-        startLapGhost(minecraft, course);
+        lapClass = raceClass;
+        startLapGhost(minecraft, course, raceClass, targetBest);
     }
 
     /**
@@ -253,23 +268,63 @@ public final class CarGhosts {
      * （{@code best}）だけを残す。手元のゴーストと速さを比べると、ベストを消した後も古い
      * ゴーストが残り、それより遅い新しいベストが記録されなくなる。
      */
-    private static void completeLap(Minecraft minecraft, String course, long millis, boolean best) {
+    private static void completeLap(Minecraft minecraft, RaceEventPacket packet) {
+        String course = packet.course();
+        long millis = packet.millis();
         int at = crossingIndex();
-        if (best && course.equals(lapCourse) && at > 0 && trailCar != null) {
-            Path file = lapFile(minecraft, course);
-            Ghost current = load(file);
-            Ghost ghost = toGhost(new ArrayList<>(trail.subList(0, at)), trailCar, millis);
-            if (save(file, ghost)) {
-                message(minecraft, (current == null || millis >= current.lapMillis()
-                        ? Component.translatable("ghost.kurumamod.timeattack_new", course, lapTime(millis))
-                        : Component.translatable("ghost.kurumamod.timeattack_faster", course, lapTime(millis),
-                                "-" + lapTime(current.lapMillis() - millis)))
-                        .withStyle(ChatFormatting.AQUA));
+        if (course.equals(lapCourse) && at > 0 && trailCar != null) {
+            Ghost ghost = null;
+            // 総合と、記録したクラスの両方を更新することがある。知らせは 1 回だけ（クラスを更新したならそちら）
+            if (packet.overallBest()) {
+                ghost = toGhost(new ArrayList<>(trail.subList(0, at)), trailCar, millis);
+                saveLapGhost(minecraft, lapFile(minecraft, course, ""), ghost, course, millis,
+                        !packet.classBest());
+            }
+            if (packet.classBest() && !packet.countedClass().isEmpty()) {
+                if (ghost == null) {
+                    ghost = toGhost(new ArrayList<>(trail.subList(0, at)), trailCar, millis);
+                }
+                saveLapGhost(minecraft, lapFile(minecraft, course, packet.countedClass()), ghost,
+                        course + " / " + packet.countedClass(), millis, true);
             }
         }
         trail.subList(0, at).clear();
         lapCourse = course;
-        startLapGhost(minecraft, course);
+        lapClass = packet.raceClass();
+        startLapGhost(minecraft, course, lapClass, packet.targetBest());
+    }
+
+    private static void saveLapGhost(Minecraft minecraft, Path file, Ghost ghost, String label, long millis,
+                                     boolean announce) {
+        Ghost current = load(file);
+        if (save(file, ghost) && announce) {
+            message(minecraft, (current == null || millis >= current.lapMillis()
+                    ? Component.translatable("ghost.kurumamod.timeattack_new", label, lapTime(millis))
+                    : Component.translatable("ghost.kurumamod.timeattack_faster", label, lapTime(millis),
+                            "-" + lapTime(current.lapMillis() - millis)))
+                    .withStyle(ChatFormatting.AQUA));
+        }
+    }
+
+    /** クラスの記録を消したので、そのクラスのゴーストを全コースぶん消す。 */
+    private static void deleteClassGhosts(Minecraft minecraft, String raceClass) {
+        if (playing != null && raceClass.equals(lapClass)) {
+            stopPlayback();
+        }
+        deleteTree(classDir(minecraft, raceClass));
+    }
+
+    private static void deleteTree(Path root) {
+        if (!Files.exists(root)) {
+            return;
+        }
+        try (var walk = Files.walk(root)) {
+            for (Path path : walk.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(path);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("タイムアタックのゴーストを消せませんでした: {}", root, e);
+        }
     }
 
     /**
@@ -280,28 +335,31 @@ public final class CarGhosts {
         if (playing != null && (course.isEmpty() || course.equals(lapCourse))) {
             stopPlayback();
         }
-        Path target = lapFile(minecraft, course.isEmpty() ? "_" : course);
+        Path world = worldDir(minecraft);
+        if (course.isEmpty()) {
+            deleteTree(world);
+            return;
+        }
+        // 総合と、全クラスのそのコースのぶん
         try {
-            if (!course.isEmpty()) {
-                Files.deleteIfExists(target);
-                return;
-            }
-            Path world = target.getParent();
-            if (Files.isDirectory(world)) {
-                try (var files = Files.list(world)) {
-                    for (Path file : files.filter(f -> f.toString().endsWith(EXTENSION)).toList()) {
-                        Files.deleteIfExists(file);
+            Files.deleteIfExists(lapFile(minecraft, course, ""));
+            Path classes = world.resolve(CLASS_DIR);
+            if (Files.isDirectory(classes)) {
+                try (var dirs = Files.list(classes)) {
+                    for (Path dir : dirs.toList()) {
+                        Files.deleteIfExists(dir.resolve(safe(course) + EXTENSION));
                     }
                 }
             }
         } catch (IOException e) {
-            LOGGER.warn("タイムアタックのゴーストを消せませんでした: {}", target, e);
+            LOGGER.warn("タイムアタックのゴーストを消せませんでした: {}", world, e);
         }
     }
 
     private static void resetLap() {
         trail.clear();
         lapCourse = null;
+        lapClass = "";
         stopPlayback();
     }
 
@@ -309,10 +367,21 @@ public final class CarGhosts {
      * そのコースのゴーストを走らせる。<b>跨いだ瞬間に揃える</b>——合図が届くまでに
      * 自分はもう数ティック進んでいるので、ゴーストもそのぶん進めた位置から始める。
      */
-    private static void startLapGhost(Minecraft minecraft, String course) {
+    private static void startLapGhost(Minecraft minecraft, String course, String raceClass, long targetBest) {
         Ghost ghost = null;
         if (ClientConfig.timeAttackGhost && minecraft.level != null) {
-            ghost = load(lapFile(minecraft, course));
+            Path file = lapFile(minecraft, course, raceClass);
+            ghost = load(file);
+            // <b>サーバーのベストと同じ周でなければ捨てる。</b>ゴーストは手元にしか無いので、落ちている間に
+            // 記録が消された（クラスの上書き・削除、コースの引き直し）ことは、ここでしか分からない
+            if (ghost != null && ghost.lapMillis() != targetBest) {
+                ghost = null;
+                try {
+                    Files.deleteIfExists(file);
+                } catch (IOException e) {
+                    LOGGER.warn("古いゴーストを消せませんでした: {}", file, e);
+                }
+            }
             if (ghost != null && !minecraft.level.dimension().location().toString().equals(ghost.dimension())) {
                 ghost = null;
             }
@@ -534,17 +603,39 @@ public final class CarGhosts {
      * <p>コースの名前はワールドごとに付けるので、名前だけで引くと別のワールドの同名のコースの
      * ゴーストが、何もない場所を走り出す。シングルはセーブのフォルダ名、マルチは接続先で分ける。</p>
      */
-    private static Path lapFile(Minecraft minecraft, String course) {
-        String world;
+    private static Path lapFile(Minecraft minecraft, String course, String raceClass) {
+        Path base = raceClass == null || raceClass.isEmpty() ? worldDir(minecraft) : classDir(minecraft, raceClass);
+        return base.resolve(safe(course) + EXTENSION);
+    }
+
+    /** クラスごとのゴーストを置くフォルダの名前（ワールドのフォルダの下）。 */
+    private static final String CLASS_DIR = "class";
+
+    private static Path worldDir(Minecraft minecraft) {
+        return dir().resolve("timeattack").resolve(safe(worldKey(minecraft)));
+    }
+
+    /**
+     * そのクラスのゴーストのフォルダ。<b>名前に英数字以外が入っていたら 16 進にする</b>——クラスの名前は
+     * 日本語のことが多く、{@link #safe} で潰すと別のクラスと同じフォルダになる。
+     */
+    private static Path classDir(Minecraft minecraft, String raceClass) {
+        String folder = UNSAFE.matcher(raceClass).find() || raceClass.chars().allMatch(c -> c == '.')
+                ? "x" + java.util.HexFormat.of().formatHex(raceClass.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                : raceClass;
+        return worldDir(minecraft).resolve(CLASS_DIR).resolve(folder);
+    }
+
+    /** いま入っているワールド（サーバー）の名前。シングルはセーブのフォルダ名、マルチは接続先。 */
+    static String worldKey(Minecraft minecraft) {
         if (minecraft.getSingleplayerServer() != null) {
             Path root = minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).normalize();
-            world = "local-" + root.getFileName();
-        } else if (minecraft.getCurrentServer() != null) {
-            world = "server-" + minecraft.getCurrentServer().ip;
-        } else {
-            world = "unknown";
+            return "local-" + root.getFileName();
         }
-        return dir().resolve("timeattack").resolve(safe(world)).resolve(safe(course) + EXTENSION);
+        if (minecraft.getCurrentServer() != null) {
+            return "server-" + minecraft.getCurrentServer().ip;
+        }
+        return "unknown";
     }
 
     /** ファイル名に使えない文字を潰す。点だけの名前（親へ上がる）も潰す。 */

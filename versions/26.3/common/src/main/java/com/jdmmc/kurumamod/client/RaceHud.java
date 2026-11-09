@@ -1,6 +1,8 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.hook.GuiRender;
+import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.network.RaceLobbyPacket;
 import com.jdmmc.kurumamod.network.RaceStandingsPacket;
@@ -32,6 +34,14 @@ public final class RaceHud {
 
     private static final int MARGIN = 12;
     private static final int TOWER_WIDTH = 125;
+    /**
+     * 知らせ（CP・ラップの差、ベストラップ、周回無効、計測開始）を出す高さ。<b>画面の上の真ん中</b>——
+     * 左上の塔と右上の時計の間は走っている間は空いていて、真ん中より下に出すと前が見えなくなる。
+     */
+    private static final int NOTICE_TOP = MARGIN;
+    /** タイムアタックの区間の塔が使ってよい画面の高さの割合と、最低の行数。 */
+    private static final double SECTOR_TOWER_SHARE = 0.35;
+    private static final int SECTOR_ROWS_MIN = 4;
 
     private static final int WHITE = 0xFFFFFFFF;
     private static final int INK = 0xFF111111;
@@ -68,6 +78,12 @@ public final class RaceHud {
     private static boolean frozen;
     /** 消灯した瞬間からの経過ティック。少しの間 GO を出すために使う。 */
     private static int goTicks;
+    /** タイムアタックの計測が始まったときの帯を出しておく残りティック。 */
+    private static int attackStartTicks;
+    private static final int ATTACK_START_TICKS = 50;
+    /** タイムアタックのウォームアップ中か（1 回目にラインを越えてから、計測が始まるまで）。 */
+    private static boolean warmingUp;
+    private static String warmUpCourse = "";
 
     private static boolean timing;
     private static int lap;
@@ -88,6 +104,12 @@ public final class RaceHud {
     /** 最終周の帯の残りティック。 */
     private static int finalTicks;
     private static String courseName = "";
+    /** 今の周の比べる相手のクラス（空なら総合）。タイムアタックの札に出す。 */
+    private static String lapClass = "";
+    /** 宣言しているクラスの決まりに、乗っている車が外れているか（{@link #CLASS_CHECK_TICKS} ごとに測る）。 */
+    private static boolean classViolating;
+    private static int classCheckTicks;
+    private static final int CLASS_CHECK_TICKS = 10;
 
     /** 区間・ラップの通過表示。残りティックが 0 なら出さない。 */
     private static int splitTicks;
@@ -137,6 +159,11 @@ public final class RaceHud {
         return frozen && !RaceLobby.spectating();
     }
 
+    /** タイムアタックを計測しているか、ウォームアップ中か（レースの周ではない）。 */
+    public static boolean isTimeAttacking() {
+        return timing && totalLaps == 0 || warmingUp && !timing;
+    }
+
     /** このレースをゴールしたか。ゴールした人は G セッティングを縛らない。 */
     public static boolean hasFinished() {
         return place > 0;
@@ -183,11 +210,28 @@ public final class RaceHud {
                     RaceSounds.start();
                 }
             }
+            case WARM_UP -> {
+                warmingUp = true;
+                warmUpCourse = packet.course();
+                lapClass = packet.raceClass();
+                RaceSounds.light();
+            }
             case LAP_STARTED -> {
+                warmingUp = false;
+                if (packet.totalLaps() == 0 && !timing) {
+                    // タイムアタックの計測が始まった。ラインを越えた瞬間だと分かるように、音と帯で知らせる
+                    attackStartTicks = ATTACK_START_TICKS;
+                    RaceSounds.start();
+                }
                 timing = true;
                 lap = packet.lap();
                 totalLaps = packet.totalLaps();
                 courseName = packet.course();
+                lapClass = packet.raceClass();
+                if (totalLaps == 0) {
+                    // BEST は、この周の比べる相手（宣言したクラスか総合）のベスト
+                    bestMillis = packet.targetBest();
+                }
                 lapTicks = 0;
                 place = 0;
                 finishMillis = 0L;
@@ -230,8 +274,9 @@ public final class RaceHud {
                 lap = packet.lap();
                 totalLaps = packet.totalLaps();
                 courseName = packet.course();
+                lapClass = packet.raceClass();
                 lastLapMillis = packet.millis();
-                bestMillis = packet.bestMillis();
+                bestMillis = totalLaps == 0 ? packet.targetBest() : packet.bestMillis();
                 lastWasBest = packet.best();
                 lapTicks = 0;
                 checkpointsPassed = 0;
@@ -255,6 +300,17 @@ public final class RaceHud {
                 RaceSounds.finish();
             }
             case CLEARED -> clear();
+            case BEST_CLEARED -> {
+                // 記録が消された（クラスの書き換え・削除、コースの引き直し、/kuruma best clear）。
+                // 今の周の比べる相手が消えたなら、周の終わりを待たずに BEST を消す
+                boolean classGone = !packet.raceClass().isEmpty() && packet.raceClass().equals(lapClass);
+                boolean courseGone = packet.raceClass().isEmpty()
+                        && (packet.course().isEmpty() || packet.course().equals(courseName));
+                if (totalLaps == 0 && (classGone || courseGone)) {
+                    bestMillis = 0L;
+                }
+                TimeAttackScreen.recordsChanged();
+            }
             default -> {
             }
         }
@@ -295,10 +351,13 @@ public final class RaceHud {
         finishTicks = 0;
         finalTicks = 0;
         splitTicks = 0;
+        attackStartTicks = 0;
+        warmingUp = false;
         checkpointsPassed = 0;
         checkpointCount = 0;
         lastCheckpoint = 0;
         sectorTimes = new long[0];
+        lapClass = "";
         // <b>順位表もここで消すこと。</b>抜けた人へは以後何も届かないので、
         // 消さないと最後に受け取った一覧が画面に残り続ける
         standings = List.of();
@@ -400,6 +459,9 @@ public final class RaceHud {
         if (goTicks > 0 && !frozen) {
             goTicks--;
         }
+        if (attackStartTicks > 0) {
+            attackStartTicks--;
+        }
         if (splitTicks > 0) {
             splitTicks--;
         }
@@ -409,6 +471,20 @@ public final class RaceHud {
         if (finalTicks > 0) {
             finalTicks--;
         }
+        if (--classCheckTicks <= 0) {
+            classCheckTicks = CLASS_CHECK_TICKS;
+            classViolating = checkClassViolation();
+        }
+    }
+
+    /** 乗っている車が、宣言しているクラスの決まりに外れているか。サーバーの判定と同じ式。 */
+    private static boolean checkClassViolation() {
+        Regulation regulation = TimeAttackClass.regulation();
+        CarEntity car = CarClientDriver.ridingCar(Minecraft.getInstance());
+        if (regulation == null || car == null) {
+            return false;
+        }
+        return !regulation.check(car.getSpec(), CarTypes.get(car.getCarId()).spec()).isEmpty();
     }
 
     // ------------------------------------------------------------------
@@ -442,7 +518,7 @@ public final class RaceHud {
             if (frozen && lobby != null && (lobby.joined() || lobby.spectating())) {
                 renderGridTower(graphics, font, lobby);
             } else if (timing && totalLaps == 0) {
-                renderSectorTower(graphics, font);
+                renderSectorTower(graphics, font, height);
             } else if (phase == RaceStandingsPacket.Phase.RUNNING && !standings.isEmpty()) {
                 renderTower(graphics, font, minecraft);
             }
@@ -450,7 +526,14 @@ public final class RaceHud {
 
         // 右上: 時計・CP の差・CP の進み・前回とベスト
         if ((timing || place > 0) && !results && !(resultsDismissed && phase == RaceStandingsPacket.Phase.RESULT)) {
-            renderClock(graphics, font, width, partialTick);
+            int bottom = renderClock(graphics, font, width, partialTick);
+            if (timing && totalLaps == 0) {
+                renderClassTag(graphics, font, width, bottom + 2, minecraft);
+            }
+        } else if (!results && !RaceLobby.racingNow() && !RaceLobby.spectating()) {
+            // 走り出す前（ラインを跨ぐ前）: ウォームアップ中であることと、どのクラスで測るか
+            int y = renderWarmUp(graphics, font, width, minecraft);
+            renderClassTag(graphics, font, width, y, minecraft);
         } else if (RaceLobby.spectating() && watchKnown && phase == RaceStandingsPacket.Phase.RUNNING && !results) {
             renderWatchClock(graphics, font, width, partialTick);
         }
@@ -464,6 +547,9 @@ public final class RaceHud {
         }
 
         // 知らせ
+        if (attackStartTicks > 0 && timing && totalLaps == 0 && splitTicks == 0) {
+            renderAttackStart(graphics, font, width);
+        }
         if (finishTicks > 0) {
             renderFinishBand(graphics, font, width);
         } else if (splitTicks > 0) {
@@ -557,11 +643,44 @@ public final class RaceHud {
     }
 
     /** タイムアタック: 区間ごとのタイムと自己ベストとの差。 */
-    private static void renderSectorTower(GuiGraphicsExtractor graphics, Font font) {
+    /**
+     * タイムアタックの区間の塔。<b>行の数は画面の高さで決め、今の区間のあたりだけを出す。</b>
+     *
+     * <p>全部の区間を並べると、GUI スケールが大きい画面や区間の多いコースでは画面の縦を埋めてしまう。
+     * 出すのは画面の高さの {@link #SECTOR_TOWER_SHARE} まで（少なくとも {@link #SECTOR_ROWS_MIN} 行）。
+     * 窓は「終えた区間・走っている区間・次の区間」が見えるようにずらし、前に隠れた区間は差の合計を 1 行にまとめる。</p>
+     */
+    private static void renderSectorTower(GuiGraphicsExtractor graphics, Font font, int screenHeight) {
         towerHeader(graphics, font, "TIME ATTACK", courseName);
         int y = MARGIN + 16;
         int current = sectorsComplete ? -1 : checkpointsPassed;
-        for (int i = 0; i < sectorTimes.length && i < 12; i++) {
+        int total = sectorTimes.length;
+        int rows = Math.max(SECTOR_ROWS_MIN, (int) ((screenHeight * SECTOR_TOWER_SHARE - 16) / 13));
+        int first = 0;
+        if (total > rows) {
+            // まとめの行に 1 行使う。今の区間の後ろに 1 行（次の区間）を残す
+            int focus = current < 0 ? total - 1 : Math.min(total - 1, current + 1);
+            first = Math.max(1, Math.min(total - (rows - 1), focus - (rows - 2)));
+            // 前に隠れた区間: 差の合計（全部比べられるときだけ）
+            long sum = 0L;
+            boolean comparable = true;
+            for (int i = 0; i < first; i++) {
+                comparable &= sectorTimes[i] >= 0L && sectorHasDiff[i];
+                sum += sectorDiffs[i];
+            }
+            String label = "S1-" + first;
+            Slant.fill(graphics, MARGIN, y, TOWER_WIDTH, 12, 0xBF111111);
+            Slant.text(graphics, font, label, MARGIN + 5, y + 2, GREY);
+            if (comparable) {
+                String diff = signed(sum);
+                int w = font.width(diff) + 6;
+                int x = MARGIN + TOWER_WIDTH - 3 - w;
+                Slant.fill(graphics, x, y + 1, w, 10, sum < 0 ? FASTER : SLOWER);
+                Slant.text(graphics, font, diff, x + 3, y + 2, WHITE);
+            }
+            y += 13;
+        }
+        for (int i = first; i < total && i < first + rows - (first > 0 ? 1 : 0); i++) {
             boolean now = i == current;
             boolean done = sectorTimes[i] >= 0L;
             String label = "S" + (i + 1);
@@ -574,7 +693,7 @@ public final class RaceHud {
                 String diff = signed(sectorDiffs[i]);
                 int w = font.width(diff) + 6;
                 int x = MARGIN + TOWER_WIDTH - 3 - w;
-                graphics.fill(x, y + 1, x + w, y + 11, sectorDiffs[i] < 0 ? FASTER : SLOWER);
+                Slant.fill(graphics, x, y + 1, w, 10, sectorDiffs[i] < 0 ? FASTER : SLOWER);
                 Slant.text(graphics, font, diff, x + 3, y + 2, WHITE);
             }
             y += 13;
@@ -590,9 +709,135 @@ public final class RaceHud {
 
     // ----- 右上の時計 -----
 
-    private static void renderClock(GuiGraphicsExtractor graphics, Font font, int width, float partialTick) {
+    /**
+     * タイムアタックのクラスの札（「〇〇で計測中」）。宣言していなければ何も出さない。
+     *
+     * <p>乗っている車がクラスの決まりに外れていたら赤くする（その周はクラスの記録に入らない）。
+     * 周の途中で宣言を変えたら、次の周から何で測るかを下に添える。</p>
+     */
+    private static void renderClassTag(GuiGraphicsExtractor graphics, Font font, int width, int y, Minecraft minecraft) {
+        String declared = TimeAttackClass.declared();
+        String measuring = timing ? lapClass : declared;
+        if ((measuring.isEmpty() && declared.isEmpty()) || CarClientDriver.ridingCar(minecraft) == null) {
+            return;
+        }
+        int right = width - MARGIN;
+        // 走っている間のクラスは時計の上の札に出ているので、ここは走り出す前だけ
+        if (!measuring.isEmpty() && !timing) {
+            boolean bad = classViolating && measuring.equals(declared);
+            // 時計の上の札と同じ形（「CLASS」と名前を別の枠に）
+            classPills(graphics, font, right, y, bad
+                    ? Component.translatable("race.kurumamod.hud_class_violation", measuring)
+                    : Component.literal(measuring), bad);
+            y += 13;
+        }
+        if (timing && !declared.equals(lapClass)) {
+            Component text = Component.translatable("race.kurumamod.hud_class_next", declared.isEmpty()
+                    ? Component.translatable("race.kurumamod.hud_class_overall") : Component.literal(declared));
+            int w = font.width(text) + 12;
+            Slant.fill(graphics, right - w, y, w, 11, 0xBF111111);
+            Slant.text(graphics, font, text, right - w + 6, y + 2, GREY);
+        }
+    }
+
+    /**
+     * クラスの札: 「CLASS」の黒い枠と、名前の白い枠（条件を満たしていなければ赤）を、間を空けて斜めに並べる。
+     * 右端を {@code right} に揃える。
+     */
+    private static void classPills(GuiGraphicsExtractor graphics, Font font, int right, int y, Component name, boolean bad) {
+        int w = font.width(name) + 14;
+        Slant.fill(graphics, right - w, y, w, 11, bad ? SLOWER : WHITE);
+        Slant.text(graphics, font, name, right - w + 7, y + 2, bad ? WHITE : INK);
+        String tag = "CLASS";
+        int tagWidth = font.width(tag) + 10;
+        int tagX = right - w - 4 - tagWidth;
+        Slant.fill(graphics, tagX, y, tagWidth, 11, INK);
+        Slant.text(graphics, font, tag, tagX + 5, y + 2, GREY);
+    }
+
+    /**
+     * 時計の上に出すクラスの札。タイムアタックは比べる相手のクラス（宣言していなければ「総合」）、
+     * レースはそのレースのクラス（決まりを変えてあれば「カスタム」、決まりが無ければ出さない）。
+     */
+    private static Component clockClassLabel() {
+        if (totalLaps == 0) {
+            if (!timing) {
+                return null;
+            }
+            if (lapClass.isEmpty()) {
+                return Component.translatable("race.kurumamod.hud_class_overall_best");
+            }
+            return clockClassViolating() ? Component.translatable("race.kurumamod.hud_class_violation", lapClass)
+                    : Component.literal(lapClass);
+        }
+        Regulation regulation = RaceLobby.regulation();
+        if (RaceLobby.lobby() == null || regulation.isFree()) {
+            return null;
+        }
+        String name = RaceLobby.classNameOf(regulation);
+        return name != null ? Component.literal(name)
+                : Component.translatable("screen.kurumamod.race_host.class_custom");
+    }
+
+    /** 走っているクラスの条件を、乗っている車が満たしていないか（タイムアタックだけ。レースは失格で分かる）。 */
+    private static boolean clockClassViolating() {
+        return totalLaps == 0 && timing && classViolating && lapClass.equals(TimeAttackClass.declared());
+    }
+
+    /**
+     * ウォームアップの札（1 回目にラインを越えてから、計測が始まるまで）。
+     * タイムアタックは<b>次にラインを越えたところから</b>測るので、それまでは測っていないことを出しておく。
+     *
+     * @return 次の札を置く高さ
+     */
+    private static int renderWarmUp(GuiGraphicsExtractor graphics, Font font, int width, Minecraft minecraft) {
+        if (!warmingUp || CarClientDriver.ridingCar(minecraft) == null) {
+            return MARGIN;
+        }
         int right = width - MARGIN;
         int y = MARGIN;
+        String tag = "WARM UP";
+        Component sub = Component.translatable("race.kurumamod.hud_warm_up", warmUpCourse);
+        int tagWidth = font.width(tag) + 12;
+        int subWidth = font.width(sub) + 12;
+        Slant.fill(graphics, right - subWidth, y, subWidth, 13, 0xD8111111);
+        Slant.text(graphics, font, sub, right - subWidth + 6, y + 3, WHITE);
+        Slant.fill(graphics, right - subWidth - tagWidth + 2, y, tagWidth, 13, VOID);
+        Slant.text(graphics, font, tag, right - subWidth - tagWidth + 8, y + 3, INK);
+        return y + 15;
+    }
+
+    /** タイムアタックの計測が始まった帯（画面の中ほど、少しの間）。 */
+    private static void renderAttackStart(GuiGraphicsExtractor graphics, Font font, int width) {
+        int center = width / 2;
+        int y = NOTICE_TOP + 12;
+        String head = "TIME ATTACK";
+        Component big = Component.translatable("race.kurumamod.hud_attack_start");
+        float scale = 2.0F;
+        int bigWidth = Slant.width(font, big.getString(), scale) + 30;
+        Slant.fill(graphics, center - bigWidth / 2, y, bigWidth, 24, ACCENT);
+        Slant.scaled(graphics, font, big.getString(), center - Slant.width(font, big.getString(), scale) / 2.0F,
+                y + 5, scale, WHITE);
+        int headWidth = font.width(head) + 16;
+        Slant.fill(graphics, center - headWidth / 2, y - 12, headWidth, 12, INK);
+        Slant.text(graphics, font, head, center - font.width(head) / 2, y - 10, WHITE);
+        Component sub = lapClass.isEmpty() ? Component.translatable("race.kurumamod.hud_class_overall_best")
+                : Component.literal(lapClass);
+        int subWidth = font.width(sub) + 16;
+        Slant.fill(graphics, center - subWidth / 2, y + 25, subWidth, 12, WHITE);
+        Slant.text(graphics, font, sub, center - font.width(sub) / 2, y + 27, INK);
+    }
+
+    /** @return 描いた下の端 */
+    private static int renderClock(GuiGraphicsExtractor graphics, Font font, int width, float partialTick) {
+        int right = width - MARGIN;
+        int y = MARGIN;
+        // 時計の上: どのクラスで走っているか（BEST もこのクラスのもの）
+        Component classLabel = clockClassLabel();
+        if (classLabel != null) {
+            classPills(graphics, font, right, y, classLabel, clockClassViolating());
+            y += 12;
+        }
         String time;
         int timeColor = WHITE;
         if (finishMillis > 0L) {
@@ -632,8 +877,9 @@ public final class RaceHud {
             y += 8;
         }
 
-        // 前回とベスト
+        // 前回とベスト（どのクラスのベストかは時計の上の札）
         String best = "BEST " + (bestMillis > 0 ? RaceManager.format(bestMillis) : "--:--.---");
+
         int bestWidth = font.width(best) + 10;
         Slant.fill(graphics, right - bestWidth, y + 1, bestWidth, 11, BEST);
         Slant.text(graphics, font, best, right - bestWidth + 5, y + 3, WHITE);
@@ -648,7 +894,9 @@ public final class RaceHud {
             int w = font.width(text) + 10;
             Slant.fill(graphics, right - w, y + 13, w, 11, WHITE);
             Slant.text(graphics, font, text, right - w + 5, y + 15, INK);
+            return y + 24;
         }
+        return y + 12;
     }
 
     /** 観戦中の時計。号砲からの経過時間と、先頭の周回。 */
@@ -740,7 +988,7 @@ public final class RaceHud {
     /** CP・ラップの通過。<b>差の符号と色がここの本体</b>——今どちらに転んでいるかは走っている最中にしか意味がない。 */
     private static void renderSplit(GuiGraphicsExtractor graphics, Font font, int width) {
         int center = width / 2;
-        int y = 70;
+        int y = NOTICE_TOP;
         String head = splitIndex > 0
                 ? "CHECKPOINT " + splitIndex + " / " + checkpointCount
                 : Component.translatable("race.kurumamod.hud_lap_label").getString().toUpperCase(Locale.ROOT)
@@ -768,16 +1016,16 @@ public final class RaceHud {
         }
     }
 
-    /** ベストラップ。紫の帯が右から入る。 */
+    /** ベストラップ。紫の帯を、上の真ん中に（右寄せだと時計の LAST/BEST に重なる）。 */
     private static void renderBestLap(GuiGraphicsExtractor graphics, Font font, int width) {
-        int y = 62;
+        int y = NOTICE_TOP;
         String time = splitTime;
         String delta = splitHasDelta ? signed(splitDelta) : "";
         float scale = 2.0F;
         int timeWidth = Slant.width(font, time, scale);
         int bandWidth = timeWidth + font.width(delta) + 34;
         int tagWidth = font.width("PERSONAL") + 16;
-        int left = width - bandWidth - tagWidth + 8;
+        int left = (width - (tagWidth + bandWidth + 20)) / 2;
         Slant.fill(graphics, left, y, tagWidth, 32, WHITE);
         Slant.text(graphics, font, "PERSONAL", left + 8, y + 6, BEST);
         Slant.text(graphics, font, "BEST LAP", left + 8, y + 17, BEST);
@@ -789,7 +1037,7 @@ public final class RaceHud {
     /** 周回無効。<b>理由と、次に何をすればいいか</b>まで出す。 */
     private static void renderVoid(GuiGraphicsExtractor graphics, Font font, int width) {
         int center = width / 2;
-        int y = 75;
+        int y = NOTICE_TOP;
         Component title = Component.translatable("race.kurumamod.hud_void_title");
         float scale = 1.6F;
         int tagWidth = font.width("LAP VOID") + 18;
@@ -820,7 +1068,8 @@ public final class RaceHud {
 
     /** 最終周。画面を横切る白い帯。 */
     private static void renderFinalLap(GuiGraphicsExtractor graphics, Font font, int width) {
-        int y = 118;
+        // ラップの差の表示（上の真ん中）と同時に出るので、そのすぐ下
+        int y = NOTICE_TOP + 58;
         graphics.fill(0, y, width, y + 34, WHITE);
         String text = "FINAL LAP";
         float scale = 2.6F;

@@ -24,7 +24,6 @@ import java.util.List;
  */
 public final class RaceInfoScreen extends Screen {
 
-    private static final int PANEL_WIDTH = 440;
     private static final int ROW = 20;
 
     private Button leave;
@@ -42,6 +41,9 @@ public final class RaceInfoScreen extends Screen {
         int left = (width - panelWidth()) / 2;
         int right = left + panelWidth();
         int y = height - 34;
+        for (RaceTabs.Tab tab : RaceTabs.create(left, 6, RaceTabs.Page.RACE)) {
+            addRenderableWidget(tab);
+        }
         leave = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_info.leave"),
                         button -> KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.LEAVE)))
                 .bounds(right - 90, y, 90, 20).build());
@@ -57,7 +59,8 @@ public final class RaceInfoScreen extends Screen {
     }
 
     private int panelWidth() {
-        return Math.min(PANEL_WIDTH, width - 24);
+        // 枠（フル HD の幅が上限）いっぱいに広げる
+        return UiFrame.width(width) - 24;
     }
 
     @Override
@@ -95,7 +98,7 @@ public final class RaceInfoScreen extends Screen {
         Font font = this.font;
         int panel = panelWidth();
         int left = (width - panel) / 2;
-        int top = Math.max(12, height / 2 - 120);
+        int top = Math.max(26, height / 2 - 120);
 
         // 見出しの帯
         String tag = lobby.spectating() && lobby.phase() != RaceLobbyPacket.Phase.RESULT ? "WATCHING"

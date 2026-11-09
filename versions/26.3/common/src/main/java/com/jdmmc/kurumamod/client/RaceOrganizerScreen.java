@@ -62,6 +62,10 @@ public final class RaceOrganizerScreen extends Screen {
 
     private int leftX;
     private int topY;
+    /** 中身の枠の右端（{@link UiFrame}。フル HD の幅が上限で、広い画面では中央に寄せる）。 */
+    private int frameRight;
+    /** 上のタブの右端。見出しの札はこの右に置く。 */
+    private int tabsRight;
 
     /** 素性を項目ごとに選ぶ一覧を開いているか（「個別」）。 */
     private boolean showTraits;
@@ -76,6 +80,10 @@ public final class RaceOrganizerScreen extends Screen {
     private static final int CLASS_ROW = 22;
     /** 一覧の右端の、消すボタンの列の幅（「本当に？」が収まる幅＋隙間）。 */
     private static final int CLASS_DELETE_COLUMN = 58;
+    /** 消すボタンの左の、並べ替えの「▲」「▼」の列の幅。 */
+    private static final int CLASS_MOVE_COLUMN = 32;
+    /** 上書きの警告の帯の高さ。 */
+    private static final int WARNING_HEIGHT = 22;
     /** 「本当に？」を出しておく長さ [ティック]。 */
     private static final int ARM_TICKS = 60;
 
@@ -86,21 +94,39 @@ public final class RaceOrganizerScreen extends Screen {
     /** 一覧の行（クラス 1 つにつき 1 つ）と、消すボタン。クラスの並びか中身が変わったら作り直す。 */
     private final List<ClassRow> classRows = new ArrayList<>();
     private final List<Button> classDeletes = new ArrayList<>();
+    /** 並べ替えの「▲」「▼」（クラスのタブだけ）。行と同じ順。 */
+    private final List<Button> classUps = new ArrayList<>();
+    private final List<Button> classDowns = new ArrayList<>();
     private List<String> classRowKeys = List.of();
     /** 一覧の先頭に出している行の番号（スクロール）。 */
     private int classScroll;
     /** 「本当に？」を出しているクラスの名前と、残りティック。 */
     private String armedDelete;
     private int armedTicks;
+    /** 「もう一度で上書き」を出しているクラスの名前（記録が消える上書きだけ 2 回押させる）。 */
+    private String armedSave;
     /** 最後に読み込んだ（保存した）クラスの名前。中身を変えたら「（変更あり）」と出すため。 */
     private String loadedClass;
     /** 名前を付けて保存。 */
     private EditBox className;
     private String classNameText = "";
     private Button classSave;
+    /** クラスのタブ: 今の決まりを白紙に戻して、新しいクラスを作り始める。 */
+    private Button newClassButton;
+    /** レースのタブ: 今の決まりを持ってクラスのタブへ移る（保存はクラスのタブだけでする）。 */
+    private Button toClassesButton;
+
+    /**
+     * <b>クラスのタブとして開いているか。</b>決まりの編集はレースと同じものを使い、コース・周回・参加者・
+     * 進行のボタンを隠して、右にクラスの一覧と「名前を付けて保存」を常に出す。サーバーへは送らない
+     * （保存したときだけ送る）。
+     */
+    private final boolean classMode;
+    /** クラスのタブを開いたら、名前の欄にフォーカスを入れる（レースのタブから決まりを持ってきたとき）。 */
+    private boolean focusName;
 
     public RaceOrganizerScreen() {
-        super(Component.translatable("screen.kurumamod.race_host.title"));
+        this(false);
         RaceLobbyPacket lobby = RaceLobby.lobby();
         if (lobby != null) {
             draft = Regulation.fromArray(lobby.regulation());
@@ -108,21 +134,59 @@ public final class RaceOrganizerScreen extends Screen {
         }
     }
 
+    private RaceOrganizerScreen(boolean classMode) {
+        super(Component.translatable(classMode ? "screen.kurumamod.classes.title" : "screen.kurumamod.race_host.title"));
+        this.classMode = classMode;
+    }
+
+    /**
+     * クラスのタブ。{@code carried} はレースのタブから持ってきた決まり（null なら、最初のクラスを読み込んで開く）。
+     * 持ってきたときは名前の欄にフォーカスを入れる。
+     */
+    static RaceOrganizerScreen classes(Regulation carried) {
+        // 一覧と記録の件数（上書き・削除の警告に出す）を今のものにしてもらう
+        KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.QUERY));
+        RaceOrganizerScreen screen = new RaceOrganizerScreen(true);
+        if (carried != null) {
+            screen.draft = carried;
+            screen.focusName = true;
+        } else if (!RaceLobby.classes().isEmpty()) {
+            RaceLobbyPacket.RaceClass first = RaceLobby.classes().get(0);
+            screen.draft = Regulation.fromArray(first.regulation());
+            screen.loadedClass = first.name();
+            screen.classNameText = first.name();
+        }
+        return screen;
+    }
+
+    /** クラスの一覧を出しているか。クラスのタブでは常に出す（素性の一覧を開いている間を除く）。 */
+    private boolean classesShown() {
+        return classMode ? !showTraits : showClasses;
+    }
+
     @Override
     protected void init() {
         regulationWidgets.clear();
         limitButtons.clear();
-        leftX = 12;
-        compact = height < 330 || width < 600;
-        leftWidth = compact ? Math.min(200, width / 2 - 18) : 240;
+        leftX = UiFrame.left(width) + 12;
+        frameRight = UiFrame.right(width) - 12;
+        int frameWidth = frameRight - leftX;
+        compact = height < 330 || frameWidth < 576;
+        leftWidth = compact ? Math.min(200, frameWidth / 2 - 6) : 240;
         rowHeight = compact ? 15 : 18;
         topY = compact ? 26 : 30;
         int x = leftX;
         int y = topY;
+        List<RaceTabs.Tab> tabs = RaceTabs.create(leftX, 6, classMode ? RaceTabs.Page.CLASSES : RaceTabs.Page.RACE);
+        for (RaceTabs.Tab tab : tabs) {
+            addRenderableWidget(tab);
+        }
+        tabsRight = RaceTabs.right(tabs);
 
         // コースと周回（レースを開く前だけ選べる。周回は受付中も変えられる）
-        courseButton = addRenderableWidget(Button.builder(Component.empty(), button -> cycleCourse())
-                .bounds(x + 52, y, 100, 16).build());
+        // トラックのボタンは周回の「−」の手前まで。固定の幅だと、狭い画面（左の列が詰まる）で周回に重なる
+        courseButton = addRenderableWidget(new DropdownButton(x + 52, y, leftWidth - 52 - 76, 16,
+                coursePick::isOpen, button -> toggleCoursePick()));
         lapsDown = addRenderableWidget(Button.builder(Component.literal("-"), button -> changeLaps(-1))
                 .bounds(x + leftWidth - 72, y, 16, 16).build());
         lapsUp = addRenderableWidget(Button.builder(Component.literal("+"), button -> changeLaps(1))
@@ -130,8 +194,16 @@ public final class RaceOrganizerScreen extends Screen {
         y += 22;
 
         // クラス（名前を付けて保存した決まり）。押すと右に一覧を開く
-        classPicker = addRenderableWidget(Button.builder(Component.empty(), button -> toggleClasses())
-                .bounds(x + 52, y, leftWidth - 52, 16).build());
+        classPicker = addRenderableWidget(new DropdownButton(x + 52, y, leftWidth - 52 - 64, 16,
+                () -> showClasses, button -> toggleClasses()));
+        toClassesButton = addRenderableWidget(Button.builder(
+                        Component.translatable("screen.kurumamod.race_host.to_classes"),
+                        button -> minecraft.gui.setScreen(classes(draft)))
+                .bounds(x + leftWidth - 60, y, 60, 16)
+                .tooltip(Tooltip.create(Component.translatable("screen.kurumamod.race_host.to_classes_tip")))
+                .build());
+        newClassButton = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.classes.new"),
+                button -> newClass()).bounds(x + leftWidth - 60, topY, 60, 16).build());
         y += 22 + 14;
 
         // 車の素性の固定
@@ -212,17 +284,21 @@ public final class RaceOrganizerScreen extends Screen {
         addRenderableWidget(className);
         classSave = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.class_save"),
                 button -> saveClass()).bounds(0, 0, 56, 20).build());
+        if (focusName && classMode) {
+            focusName = false;
+            setInitialFocus(className);
+        }
 
         // 下の進行のボタン
         int by = height - 28;
         openButton = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_host.open"),
-                button -> openRace()).bounds(width - 12 - 110, by, 110, 20).build());
+                button -> openRace()).bounds(frameRight - 110, by, 110, 20).build());
         startButton = addRenderableWidget(Button.builder(Component.empty(),
                         button -> KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.START)))
-                .bounds(width - 12 - 110, by, 110, 20).build());
+                .bounds(frameRight - 110, by, 110, 20).build());
         stopButton = addRenderableWidget(Button.builder(Component.empty(),
                         button -> KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.STOP)))
-                .bounds(width - 12 - 110 - 6 - 90, by, 90, 20).build());
+                .bounds(frameRight - 110 - 6 - 90, by, 90, 20).build());
         refreshWidgets();
     }
 
@@ -289,7 +365,7 @@ public final class RaceOrganizerScreen extends Screen {
     /** 「個別」の一覧の位置（参加者の表の上に重ねる）。{x, y, 幅, 1 列の幅}。 */
     private int[] traitsArea() {
         int x = leftX + leftWidth + 12;
-        int w = width - 12 - x;
+        int w = frameRight - x;
         return new int[]{x, topY + 14, w, w / 2};
     }
 
@@ -323,6 +399,7 @@ public final class RaceOrganizerScreen extends Screen {
     }
 
     private void toggleClasses() {
+        coursePick.close();
         showClasses = !showClasses;
         showTraits = false;
         armedDelete = null;
@@ -337,6 +414,9 @@ public final class RaceOrganizerScreen extends Screen {
 
     /** 決まりを変えられる場面か（主催者で、受付中かレースを開く前）。 */
     private boolean editable() {
+        if (classMode) {
+            return classAdmin();
+        }
         RaceLobbyPacket lobby = RaceLobby.lobby();
         RaceLobbyPacket.Phase phase = lobby == null ? RaceLobbyPacket.Phase.NONE : lobby.phase();
         boolean none = phase == RaceLobbyPacket.Phase.NONE;
@@ -353,18 +433,45 @@ public final class RaceOrganizerScreen extends Screen {
         }
         draft = Regulation.fromArray(raceClass.regulation());
         loadedClass = raceClass.name();
-        if (classNameText.trim().isEmpty()) {
+        // クラスのタブでは、読み込んだクラスの名前を入れる（直してそのまま上書きできるように）
+        if (classMode || classNameText.trim().isEmpty()) {
             classNameText = raceClass.name();
             className.setValue(raceClass.name());
         }
+        armedSave = null;
         changed();
+        if (!classMode) {
+            // レースのタブはドロップダウン。選んだら閉じる（クラスのタブは一覧が常に出ている）
+            showClasses = false;
+            refreshWidgets();
+        }
+    }
+
+    /** 新しいクラスを作り始める。決まりを既定に戻し、名前の欄を空にしてフォーカスを入れる。 */
+    private void newClass() {
+        draft = Regulation.DEFAULT;
+        loadedClass = null;
+        armedSave = null;
+        classNameText = "";
+        className.setValue("");
+        setFocused(className);
+        refreshWidgets();
+    }
+
+    /** クラスを並びの中で 1 つ動かす（サーバーが保存して、全員へ配り直す）。 */
+    private void moveClass(String name, int direction) {
+        armedDelete = null;
+        KurumaNetwork.sendToServer(new RaceActionPacket(RaceActionPacket.Action.MOVE_CLASS, name, direction,
+                new double[0]));
     }
 
     /** 消すボタンを押した。<b>1 回目は「本当に？」に変わるだけ</b>で、もう一度押すと消す。 */
     private void deleteClass(String name) {
         if (!name.equals(armedDelete)) {
             armedDelete = name;
+            armedSave = null;
             armedTicks = ARM_TICKS;
+            warnRecords(name);
             return;
         }
         armedDelete = null;
@@ -377,8 +484,38 @@ public final class RaceOrganizerScreen extends Screen {
         if (name.isEmpty() || !classAdmin()) {
             return;
         }
+        // 中身を変えて上書きすると、そのクラスの記録は消える。記録があるときだけ 2 回押させる
+        RaceLobbyPacket.RaceClass existing = findClass(name);
+        boolean changes = existing != null && !java.util.Arrays.equals(
+                Regulation.fromArray(existing.regulation()).toArray(), draft.toArray());
+        if (changes && existing.records() > 0 && !name.equals(armedSave)) {
+            armedSave = name;
+            armedDelete = null;
+            armedTicks = ARM_TICKS;
+            warnRecords(name);
+            return;
+        }
+        armedSave = null;
         KurumaNetwork.sendToServer(new RaceActionPacket(RaceActionPacket.Action.SAVE_CLASS, name, 0, draft.toArray()));
         loadedClass = name;
+    }
+
+    private static RaceLobbyPacket.RaceClass findClass(String name) {
+        for (RaceLobbyPacket.RaceClass raceClass : RaceLobby.classes()) {
+            if (raceClass.name().equals(name)) {
+                return raceClass;
+            }
+        }
+        return null;
+    }
+
+    /** 消す・上書きする前に、消えるタイムアタックの記録の件数を知らせる（アクションバー）。 */
+    private void warnRecords(String name) {
+        RaceLobbyPacket.RaceClass raceClass = findClass(name);
+        if (raceClass != null && raceClass.records() > 0 && minecraft != null && minecraft.player != null) {
+            minecraft.player.sendOverlayMessage(Component.translatable(
+                    "screen.kurumamod.race_host.class_records_warning", name, raceClass.records()));
+        }
     }
 
     private boolean classExists(String name) {
@@ -388,6 +525,33 @@ public final class RaceOrganizerScreen extends Screen {
             }
         }
         return false;
+    }
+
+    /** クラスのタブの「編集中」の行。一致するクラス／「〇〇（変更あり）」／「新しいクラス」。 */
+    private Component editingLabel() {
+        RaceLobbyPacket.RaceClass loaded = loadedClass == null ? null : findClass(loadedClass);
+        if (loaded == null) {
+            return Component.translatable("screen.kurumamod.classes.unsaved");
+        }
+        return sameAsSaved(loaded) ? Component.literal(loaded.name())
+                : Component.translatable("screen.kurumamod.race_host.class_modified", loaded.name());
+    }
+
+    /** 画面の決まりが、保存してあるそのクラスの中身と同じか。 */
+    private boolean sameAsSaved(RaceLobbyPacket.RaceClass raceClass) {
+        return java.util.Arrays.equals(Regulation.fromArray(raceClass.regulation()).toArray(), draft.toArray());
+    }
+
+    /**
+     * 保存すると中身の違う既存のクラスを上書きすることになるなら、そのクラス。<b>上書きすると記録とゴーストが
+     * 全員ぶん消える</b>ので、保存する前から一覧の下に警告を出す。
+     */
+    private RaceLobbyPacket.RaceClass overwriteTarget() {
+        if (!classMode) {
+            return null;
+        }
+        RaceLobbyPacket.RaceClass target = findClass(classNameText.trim());
+        return target != null && !sameAsSaved(target) ? target : null;
     }
 
     /** 左の列の「クラス」の行に出す名前。一致するクラス／「〇〇（変更あり）」／「カスタム」。 */
@@ -410,7 +574,9 @@ public final class RaceOrganizerScreen extends Screen {
 
     /** 一覧の下の段（保存の欄か、保存できない人への一言）の上端。 */
     private int classFooterTop() {
-        return classesArea()[3] - (classAdmin() ? 24 : 14);
+        // 名前を付けて保存する段はクラスのタブだけ（レースのタブは選んで読み込むだけ）。
+        // 上書きの警告を出すときは、その帯のぶんも空ける
+        return classesArea()[3] - (classMode ? 24 : 0) - (overwriteTarget() != null ? WARNING_HEIGHT : 0);
     }
 
     /** 一覧に一度に並べられる行の数。 */
@@ -436,8 +602,16 @@ public final class RaceOrganizerScreen extends Screen {
         for (Button button : classDeletes) {
             removeWidget(button);
         }
+        for (Button button : classUps) {
+            removeWidget(button);
+        }
+        for (Button button : classDowns) {
+            removeWidget(button);
+        }
         classRows.clear();
         classDeletes.clear();
+        classUps.clear();
+        classDowns.clear();
         for (RaceLobbyPacket.RaceClass raceClass : classes) {
             ClassRow row = new ClassRow(raceClass);
             row.visible = false;
@@ -449,11 +623,28 @@ public final class RaceOrganizerScreen extends Screen {
                     .build();
             delete.visible = false;
             classDeletes.add(addRenderableWidget(delete));
+            // 並べ替え。並びはサーバーに保存し、全員の一覧とランキングの順になる
+            Button up = Button.builder(Component.literal("▲"), b -> moveClass(name, -1))
+                    .bounds(0, 0, 14, 14)
+                    .tooltip(Tooltip.create(Component.translatable("screen.kurumamod.classes.move_up")))
+                    .build();
+            Button down = Button.builder(Component.literal("▼"), b -> moveClass(name, 1))
+                    .bounds(0, 0, 14, 14)
+                    .tooltip(Tooltip.create(Component.translatable("screen.kurumamod.classes.move_down")))
+                    .build();
+            up.visible = false;
+            down.visible = false;
+            classUps.add(addRenderableWidget(up));
+            classDowns.add(addRenderableWidget(down));
         }
     }
 
     /** 決まりを変えた。受付中ならその場で送る。 */
     private void changed() {
+        if (classMode) {
+            // クラスのタブは手元で直すだけ。サーバーへ送るのは保存したとき
+            return;
+        }
         pendingTicks = 20;
         RaceLobbyPacket lobby = RaceLobby.lobby();
         if (lobby != null && lobby.phase() == RaceLobbyPacket.Phase.OPEN && lobby.canManage()) {
@@ -462,13 +653,58 @@ public final class RaceOrganizerScreen extends Screen {
         }
     }
 
-    private void cycleCourse() {
-        List<RaceLobbyPacket.CourseInfo> courses = RaceLobby.courses();
-        if (courses.isEmpty()) {
+    /** コースの一覧（右の列に重ねて開く。タイムアタックの画面と同じ）。 */
+    private final PickList coursePick = new PickList();
+
+    private void toggleCoursePick() {
+        if (coursePick.isOpen()) {
+            coursePick.close();
+            refreshWidgets();
             return;
         }
-        courseIndex = (courseIndex + 1) % courses.size();
-        laps = courses.get(courseIndex).laps();
+        List<RaceLobbyPacket.CourseInfo> courses = RaceLobby.courses();
+        List<PickList.Item> items = new ArrayList<>();
+        for (RaceLobbyPacket.CourseInfo course : courses) {
+            items.add(new PickList.Item(course.name(), Component.literal(course.name()),
+                    Component.translatable("screen.kurumamod.race_host.course_sub", course.laps(), course.checkpoints()),
+                    null, 0, false));
+        }
+        String current = courses.isEmpty() ? null : courses.get(Math.min(courseIndex, courses.size() - 1)).name();
+        showClasses = false;
+        showTraits = false;
+        int x = leftX + leftWidth + 12;
+        // クラスの一覧と同じ位置（参加者の見出しの下）に開く
+        coursePick.open(Component.translatable("screen.kurumamod.race_host.pick_course"), x, classesArea()[1] - 2,
+                frameRight - x, height - 36, items, current, key -> {
+                    for (int i = 0; i < courses.size(); i++) {
+                        if (courses.get(i).name().equals(key)) {
+                            courseIndex = i;
+                            laps = courses.get(i).laps();
+                        }
+                    }
+                    refreshWidgets();
+                });
+        refreshWidgets();
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        // 一覧はボタンより上に（26.3 は描いた順で重なる）
+        coursePick.render(graphics, font, mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        if (coursePick.isOpen()) {
+            if (!coursePick.contains(event.x(), event.y()) && courseButton.isMouseOver(event.x(), event.y())) {
+                return super.mouseClicked(event, doubleClick);
+            }
+            coursePick.mouseClicked(event.x(), event.y());
+            refreshWidgets();
+            return true;
+        }
+        return super.mouseClicked(event, doubleClick);
     }
 
     private void changeLaps(int direction) {
@@ -496,9 +732,10 @@ public final class RaceOrganizerScreen extends Screen {
         }
         if (armedTicks > 0 && --armedTicks == 0) {
             armedDelete = null;
+            armedSave = null;
         }
         RaceLobbyPacket lobby = RaceLobby.lobby();
-        if (lobby != null && pendingTicks == 0) {
+        if (lobby != null && pendingTicks == 0 && !classMode) {
             draft = Regulation.fromArray(lobby.regulation());
             laps = lobby.laps();
         }
@@ -518,7 +755,7 @@ public final class RaceOrganizerScreen extends Screen {
         boolean none = phase == RaceLobbyPacket.Phase.NONE;
         boolean open = phase == RaceLobbyPacket.Phase.OPEN;
         boolean manage = none || (lobby != null && lobby.canManage());
-        boolean editable = manage && (none || open);
+        boolean editable = classMode ? classAdmin() : manage && (none || open);
 
         List<RaceLobbyPacket.CourseInfo> courses = RaceLobby.courses();
         if (none) {
@@ -528,9 +765,18 @@ public final class RaceOrganizerScreen extends Screen {
         } else {
             courseButton.setMessage(Component.literal(lobby.course()));
         }
-        courseButton.active = none && courses.size() > 1;
+        courseButton.active = none && !courses.isEmpty();
         lapsDown.active = editable && laps > 1;
         lapsUp.active = editable && laps < 99;
+        // クラスのタブにはコース・周回・クラスの選び口が無い（右の一覧から選ぶ）
+        courseButton.visible = !classMode;
+        lapsDown.visible = !classMode;
+        lapsUp.visible = !classMode;
+        classPicker.visible = !classMode;
+        newClassButton.visible = classMode && classAdmin();
+        // レースのタブから、今の決まりを持ってクラスのタブへ（保存できる人だけ）
+        toClassesButton.visible = !classMode && classAdmin();
+        classPicker.setWidth(toClassesButton.visible ? leftWidth - 52 - 64 : leftWidth - 52);
 
         for (AbstractButton widget : regulationWidgets) {
             widget.active = editable;
@@ -556,24 +802,25 @@ public final class RaceOrganizerScreen extends Screen {
 
         // 参加者の「×」（主催者だけ。素性の一覧を開いている間は隠す）
         rebuildKickButtons(lobby);
-        boolean kickable = lobby != null && lobby.canManage() && !showTraits && !showClasses
+        boolean kickable = !classMode && lobby != null && lobby.canManage() && !showTraits && !showClasses
+                && !coursePick.isOpen()
                 && phase != RaceLobbyPacket.Phase.RESULT;
         int rowTop = topY + 15 + 11;
         for (int i = 0; i < kickButtons.size(); i++) {
             Button button = kickButtons.get(i);
             int rowY = rowTop + i * 22;
-            button.setX(width - 12 - 16);
+            button.setX(frameRight - 16);
             button.setY(rowY + 4);
             button.visible = kickable && !kickNames.get(i).isEmpty() && rowY + 22 <= height - 36;
         }
 
         // クラス。左の列の行は、今の決まりがどのクラスかを出す（押すと右に一覧を開く）
-        classPicker.setMessage(Component.empty().append(currentClassLabel())
-                .append(showClasses ? "  ▲" : "  ▼"));
+        classPicker.setMessage(currentClassLabel());
 
         // クラスの一覧（右の表の上に重ねる）。行を押すと読み込み、右端の「x」を 2 回押すと消す
         rebuildClassRows();
-        boolean admin = classAdmin();
+        // 消すのはクラスのタブだけ（レースのタブは選ぶだけ）
+        boolean admin = classMode && classAdmin();
         int[] ca = classesArea();
         int rowsTop = ca[1] + 16;
         int visibleRows = visibleClassRows();
@@ -582,7 +829,7 @@ public final class RaceOrganizerScreen extends Screen {
             ClassRow row = classRows.get(i);
             Button delete = classDeletes.get(i);
             int slot = i - classScroll;
-            boolean shown = showClasses && slot >= 0 && slot < visibleRows;
+            boolean shown = classesShown() && slot >= 0 && slot < visibleRows;
             int rowY = rowsTop + slot * CLASS_ROW;
             row.visible = shown;
             row.active = editable;
@@ -590,7 +837,18 @@ public final class RaceOrganizerScreen extends Screen {
             row.setY(rowY);
             // 消すボタンの列は行に含めない。行が下に敷かれていると、先に足した行がクリックを取ってしまい
             // 「x」を押しても読み込みになる（実際に消せなかった）
-            row.setWidth(ca[2] - 8 - (admin ? CLASS_DELETE_COLUMN : 0));
+            row.setWidth(ca[2] - 8 - (admin ? CLASS_DELETE_COLUMN + CLASS_MOVE_COLUMN : 0));
+            Button up = classUps.get(i);
+            Button down = classDowns.get(i);
+            int moveX = ca[0] + ca[2] - 8 - CLASS_DELETE_COLUMN - CLASS_MOVE_COLUMN + 2;
+            up.visible = shown && admin;
+            down.visible = shown && admin;
+            up.active = i > 0;
+            down.active = i < classRows.size() - 1;
+            up.setX(moveX);
+            down.setX(moveX + 15);
+            up.setY(rowY + (CLASS_ROW - 2 - 14) / 2);
+            down.setY(rowY + (CLASS_ROW - 2 - 14) / 2);
             boolean armed = row.raceClass.name().equals(armedDelete);
             int deleteWidth = armed ? 52 : 14;
             delete.visible = shown && admin;
@@ -602,8 +860,9 @@ public final class RaceOrganizerScreen extends Screen {
         }
 
         // 名前を付けて保存。保存できない人には欄ごと出さない（打てない入力欄を見せない）
-        int footerTop = classFooterTop();
-        boolean saving = showClasses && admin;
+        // 保存の欄は、上書きの警告の帯の下
+        int footerTop = classFooterTop() + (overwriteTarget() != null ? WARNING_HEIGHT : 0);
+        boolean saving = classesShown() && admin;
         className.visible = saving;
         className.setX(ca[0] + 6);
         className.setY(footerTop + 2);
@@ -612,7 +871,8 @@ public final class RaceOrganizerScreen extends Screen {
         classSave.setX(ca[0] + ca[2] - 6 - 56);
         classSave.setY(footerTop + 2);
         String typed = classNameText.trim();
-        classSave.setMessage(Component.translatable(classExists(typed)
+        classSave.setMessage(Component.translatable(typed.equals(armedSave)
+                ? "screen.kurumamod.race_host.class_overwrite_confirm" : classExists(typed)
                 ? "screen.kurumamod.race_host.class_overwrite" : "screen.kurumamod.race_host.class_save"));
         classSave.active = !typed.isEmpty();
         // 隠した入力欄がキーを吸い続けないように（K で閉じられなくなる）
@@ -620,10 +880,10 @@ public final class RaceOrganizerScreen extends Screen {
             setFocused(null);
         }
 
-        openButton.visible = none;
+        openButton.visible = none && !classMode;
         openButton.active = !courses.isEmpty();
-        startButton.visible = open && manage;
-        stopButton.visible = !none && manage;
+        startButton.visible = open && manage && !classMode;
+        stopButton.visible = !none && manage && !classMode;
         int ok = 0;
         if (lobby != null) {
             for (RaceLobbyPacket.Entrant entrant : lobby.entrants()) {
@@ -638,9 +898,9 @@ public final class RaceOrganizerScreen extends Screen {
                 ? "screen.kurumamod.race_host.cancel" : "screen.kurumamod.race_host.stop"));
         if (!open && !none) {
             // 走っている間は「終える」を右端へ
-            stopButton.setX(width - 12 - 90);
+            stopButton.setX(frameRight - 90);
         } else {
-            stopButton.setX(width - 12 - 110 - 6 - 90);
+            stopButton.setX(frameRight - 110 - 6 - 90);
         }
     }
 
@@ -667,42 +927,47 @@ public final class RaceOrganizerScreen extends Screen {
         RaceLobbyPacket.Phase phase = lobby == null ? RaceLobbyPacket.Phase.NONE : lobby.phase();
 
         // 見出し
-        graphics.text(font, title, 12, 11, RaceLobby.WHITE, false);
-        String tag = switch (phase) {
+        String tag = classMode ? "CLASSES" : switch (phase) {
             case NONE -> "NO RACE";
             case OPEN -> "ENTRY OPEN";
             case COUNTDOWN, RUNNING -> "LIVE";
             case RESULT -> "RESULT";
         };
-        int tagX = 12 + font.width(title) + 12;
+        int tagX = tabsRight + 10;
         int tagWidth = font.width(tag) + 12;
-        Slant.fill(graphics, tagX, 8, tagWidth, 14, phase == RaceLobbyPacket.Phase.NONE ? 0xFF3A3A3A : RaceLobby.ACCENT);
+        Slant.fill(graphics, tagX, 8, tagWidth, 14, phase == RaceLobbyPacket.Phase.NONE || classMode
+                ? 0xFF3A3A3A : RaceLobby.ACCENT);
         graphics.text(font, tag, tagX + 6, 11, RaceLobby.WHITE, false);
-        if (lobby != null) {
+        if (lobby != null && !classMode) {
             Component course = Component.translatable("race.kurumamod.hud_course", lobby.course(), lobby.laps());
-            int room = width - 24 - (tagX + tagWidth) - 14;
+            int room = frameRight - (tagX + tagWidth) - 14;
             int shown = Math.min(font.width(course), room);
             Slant.fill(graphics, tagX + tagWidth, 8, shown + 14, 14, RaceLobby.PANEL);
             Slant.fit(graphics, font, course, tagX + tagWidth + 7, 11, room, RaceLobby.WHITE);
         }
 
         renderLeft(graphics, font);
-        renderEntrants(graphics, font, lobby);
+        if (!classMode) {
+            renderEntrants(graphics, font, lobby);
+        }
         if (showTraits) {
             renderTraits(graphics, font);
         }
-        if (showClasses) {
+        if (classesShown()) {
             renderClasses(graphics, font);
         }
 
         // 下の説明
         Component note = noteFor(lobby);
         if (!compact) {
-            Slant.fit(graphics, font, note, 12, height - 42, width - 24, RaceLobby.GREY);
+            Slant.fit(graphics, font, note, leftX, height - 42, frameRight - leftX, RaceLobby.GREY);
         }
     }
 
     private Component noteFor(RaceLobbyPacket lobby) {
+        if (classMode) {
+            return Component.translatable("screen.kurumamod.classes.note");
+        }
         if (lobby == null) {
             return RaceLobby.courses().isEmpty()
                     ? Component.translatable("screen.kurumamod.race_host.note_no_course")
@@ -728,21 +993,38 @@ public final class RaceOrganizerScreen extends Screen {
     private void renderLeft(GuiGraphicsExtractor graphics, Font font) {
         int x = leftX;
         int y = topY;
-        row(graphics, y - 2, 20, false);
-        graphics.text(font, Component.translatable("screen.kurumamod.race_host.course"), x + 6, y + 4,
-                RaceLobby.WHITE, false);
-        String lapText = Component.translatable("screen.kurumamod.race_host.laps", laps).getString();
-        graphics.text(font, lapText, x + leftWidth - 36 - font.width(lapText) / 2, y + 4, RaceLobby.WHITE, false);
-        y += 22;
+        if (classMode) {
+            // クラスのタブ: いま直している決まりがどのクラスか（一致・変更あり・新規）
+            row(graphics, y - 2, 20, false);
+            if (loadedClass != null && findClass(loadedClass) != null) {
+                graphics.fill(x, y - 2, x + 2, y + 18, RaceLobby.ACCENT);
+            }
+            graphics.text(font, Component.translatable("screen.kurumamod.classes.editing"), x + 6, y + 4,
+                    RaceLobby.GREY, false);
+            int labelX = x + 12 + font.width(Component.translatable("screen.kurumamod.classes.editing"));
+            int room = leftWidth - (labelX - x) - (newClassButton.visible ? 66 : 6);
+            Slant.fit(graphics, font, editingLabel(), labelX, y + 4, room, RaceLobby.WHITE);
+            y += 22;
+            row(graphics, y - 2, 20, true);
+            Slant.fit(graphics, font, RaceLobby.summary(draft), x + 6, y + 4, leftWidth - 12, RaceLobby.GREY);
+            y += 22;
+        } else {
+            row(graphics, y - 2, 20, false);
+            graphics.text(font, Component.translatable("screen.kurumamod.race_host.course"), x + 6, y + 4,
+                    RaceLobby.WHITE, false);
+            String lapText = Component.translatable("screen.kurumamod.race_host.laps", laps).getString();
+            graphics.text(font, lapText, x + leftWidth - 36 - font.width(lapText) / 2, y + 4, RaceLobby.WHITE, false);
+            y += 22;
 
-        // クラス。クラスに一致しているときは左に赤い印
-        row(graphics, y - 2, 20, false);
-        if (RaceLobby.classNameOf(draft) != null) {
-            graphics.fill(x, y - 2, x + 2, y + 18, RaceLobby.ACCENT);
+            // クラス。クラスに一致しているときは左に赤い印
+            row(graphics, y - 2, 20, false);
+            if (RaceLobby.classNameOf(draft) != null) {
+                graphics.fill(x, y - 2, x + 2, y + 18, RaceLobby.ACCENT);
+            }
+            graphics.text(font, Component.translatable("screen.kurumamod.race_host.class"), x + 6, y + 4,
+                    RaceLobby.WHITE, false);
+            y += 22;
         }
-        graphics.text(font, Component.translatable("screen.kurumamod.race_host.class"), x + 6, y + 4,
-                RaceLobby.WHITE, false);
-        y += 22;
 
         Slant.fill(graphics, x, y, leftWidth, 12, RaceLobby.INK);
         graphics.text(font, "REGULATION", x + 7, y + 2, RaceLobby.WHITE, false);
@@ -822,11 +1104,28 @@ public final class RaceOrganizerScreen extends Screen {
                     x + 8, rowsTop + 6, w - 16, RaceLobby.GREY);
         }
 
-        int footerTop = classFooterTop();
-        graphics.fill(x, footerTop - 1, x + w, footerTop, 0x33FFFFFF);
-        if (!classAdmin()) {
-            Slant.fit(graphics, font, Component.translatable("screen.kurumamod.race_host.class_admin_only"),
-                    x + 8, footerTop + 3, w - 16, RaceLobby.GREY);
+        if (classMode) {
+            int footerTop = classFooterTop();
+            RaceLobbyPacket.RaceClass target = overwriteTarget();
+            if (target != null) {
+                // 上書きで消えるもの。記録が無ければ消えるものは無いと言う（色も落とす）
+                boolean loses = target.records() > 0;
+                graphics.fill(x + 4, footerTop + 1, x + w - 4, footerTop + WARNING_HEIGHT - 1,
+                        loses ? RaceLobby.NG : 0xFF3A3A3A);
+                Component line1 = Component.translatable(loses ? "screen.kurumamod.classes.overwrite_warning"
+                        : "screen.kurumamod.classes.overwrite_empty", target.name(), target.records());
+                Slant.fit(graphics, font, line1, x + 9, footerTop + 3, w - 18, RaceLobby.WHITE);
+                if (loses) {
+                    Slant.fit(graphics, font, Component.translatable("screen.kurumamod.classes.overwrite_warning_sub"),
+                            x + 9, footerTop + 12, w - 18, RaceLobby.WHITE);
+                }
+                footerTop += WARNING_HEIGHT;
+            }
+            graphics.fill(x, footerTop - 1, x + w, footerTop, 0x33FFFFFF);
+            if (!classAdmin()) {
+                Slant.fit(graphics, font, Component.translatable("screen.kurumamod.race_host.class_admin_only"),
+                        x + 8, footerTop + 3, w - 16, RaceLobby.GREY);
+            }
         }
     }
 
@@ -852,7 +1151,7 @@ public final class RaceOrganizerScreen extends Screen {
 
     private void renderEntrants(GuiGraphicsExtractor graphics, Font font, RaceLobbyPacket lobby) {
         int x = leftX + leftWidth + 12;
-        int right = width - 12;
+        int right = frameRight;
         int w = right - x;
         int y = topY;
         List<RaceLobbyPacket.Entrant> entrants = lobby == null ? List.of() : lobby.entrants();
@@ -949,7 +1248,12 @@ public final class RaceOrganizerScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         // Esc は、開いている一覧を先に閉じる（画面ごと閉じると、選びかけたものを探し直すことになる）
-        if (event.isEscape() && (showClasses || showTraits)) {
+        if (event.isEscape() && coursePick.isOpen()) {
+            coursePick.close();
+            refreshWidgets();
+            return true;
+        }
+        if (event.isEscape() && ((showClasses && !classMode) || showTraits)) {
             showClasses = false;
             showTraits = false;
             setFocused(null);
@@ -976,7 +1280,10 @@ public final class RaceOrganizerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (showClasses && overClassList(mouseX, mouseY)) {
+        if (coursePick.mouseScrolled(mouseX, mouseY, scrollY)) {
+            return true;
+        }
+        if (classesShown() && overClassList(mouseX, mouseY)) {
             classScroll -= (int) Math.signum(scrollY);
             refreshWidgets();
             return true;
@@ -1020,7 +1327,10 @@ public final class RaceOrganizerScreen extends Screen {
             int y = getY();
             int w = getWidth();
             int h = getHeight();
-            boolean current = raceClass.name().equals(RaceLobby.classNameOf(draft));
+            // クラスのタブは「読み込んで直しているクラス」を光らせる（新規なら何も光らせない）。中身で比べると、
+            // 既定の中身と同じクラスが新規のときにも光ってしまう
+            boolean current = classMode ? raceClass.name().equals(loadedClass)
+                    : raceClass.name().equals(RaceLobby.classNameOf(draft));
             int background = current ? 0x55E1261C : isHovered() && active ? 0x33FFFFFF : 0x18FFFFFF;
             graphics.fill(x, y, x + w, y + h, background);
             if (current) {

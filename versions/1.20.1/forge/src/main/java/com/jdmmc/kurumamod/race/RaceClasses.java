@@ -7,8 +7,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jdmmc.kurumamod.network.RaceLobbyPacket;
+import com.jdmmc.kurumamod.tuning.Regulation;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 
@@ -96,13 +98,23 @@ public final class RaceClasses {
         }
     }
 
-    /** 保存してあるクラス（名前の付けた順）。 */
+    /** 保存してあるクラス（名前の付けた順）。記録の件数は全ワールドぶんを足す。 */
     public static List<RaceLobbyPacket.RaceClass> list(MinecraftServer server) {
         List<RaceLobbyPacket.RaceClass> out = new ArrayList<>();
         for (Map.Entry<String, double[]> entry : classes(server).entrySet()) {
-            out.add(new RaceLobbyPacket.RaceClass(entry.getKey(), entry.getValue().clone()));
+            int records = 0;
+            for (ServerLevel level : server.getAllLevels()) {
+                records += RaceData.get(level).countClassBests(entry.getKey());
+            }
+            out.add(new RaceLobbyPacket.RaceClass(entry.getKey(), entry.getValue().clone(), records));
         }
         return out;
+    }
+
+    /** その名前のクラスの決まり。無ければ null。 */
+    public static Regulation regulation(MinecraftServer server, String name) {
+        double[] values = name == null ? null : classes(server).get(name);
+        return values == null ? null : Regulation.fromArray(values);
     }
 
     /**
@@ -120,6 +132,30 @@ public final class RaceClasses {
             return false;
         }
         map.put(trimmed, regulation.clone());
+        save(server);
+        return true;
+    }
+
+    /**
+     * 並びの中で 1 つ動かす（{@code direction} が負なら前へ、正なら後ろへ）。並び順は一覧・ランキングの順になる。
+     *
+     * @return 動かしたか（端で動かせない・名前が無いときは false）
+     */
+    public static boolean move(MinecraftServer server, String name, int direction) {
+        Map<String, double[]> map = classes(server);
+        List<String> names = new ArrayList<>(map.keySet());
+        int from = names.indexOf(name);
+        int to = from + Integer.signum(direction);
+        if (from < 0 || direction == 0 || to < 0 || to >= names.size()) {
+            return false;
+        }
+        names.remove(from);
+        names.add(to, name);
+        Map<String, double[]> reordered = new LinkedHashMap<>();
+        for (String key : names) {
+            reordered.put(key, map.get(key));
+        }
+        classes = reordered;
         save(server);
         return true;
     }

@@ -141,5 +141,11 @@ public final class KurumaNetwork {
                 .decoder(RaceActionPacket::new)
                 .consumerMainThread(RaceActionPacket::handle)
                 .add();
+        // タイムアタックの記録（K の画面がコースを選んだとき）
+        CHANNEL.messageBuilder(TimeAttackRecordsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(TimeAttackRecordsPacket::encode)
+                .decoder(TimeAttackRecordsPacket::new)
+                .consumerMainThread(TimeAttackRecordsPacket::handle)
+                .add();
     }
 }

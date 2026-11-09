@@ -69,6 +69,8 @@ public final class KurumaNetwork {
         // 運転者の画面で走っているゴーストを、同じ車の助手席の人へ。運転者 → サーバー → ほかの乗員
         // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
         registrar.playToClient(RaceLobbyPacket.TYPE, RaceLobbyPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        // タイムアタックの記録（K の画面がコースを選んだとき）
+        registrar.playToClient(TimeAttackRecordsPacket.TYPE, TimeAttackRecordsPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
         registrar.playToServer(RaceActionPacket.TYPE, RaceActionPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         registrar.playBidirectional(GhostRidePacket.TYPE, GhostRidePacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));

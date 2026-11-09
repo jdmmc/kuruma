@@ -31,6 +31,7 @@ public final class KurumaNetworkClient {
         on(CarPartTypesPacket.TYPE, p -> p::handle);
         on(CarPartsPacket.TYPE, p -> p::handle);
         on(RaceLobbyPacket.TYPE, p -> p::handle);
+        on(TimeAttackRecordsPacket.TYPE, p -> p::handle);
         on(GhostRidePacket.TYPE, p -> p::handle);
         on(CarSpawnDataPacket.TYPE, p -> p::handle);
     }

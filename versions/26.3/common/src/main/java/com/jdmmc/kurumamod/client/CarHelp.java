@@ -32,8 +32,8 @@ import java.util.List;
 public final class CarHelp {
 
     private static final int MARGIN = 6;
-    private static final int PADDING = 4;
-    private static final int LINE_HEIGHT = 10;
+    private static final int PADDING = 3;
+    private static final int LINE_HEIGHT = 9;
     /** キーの列と説明の列の間隔。 */
     private static final int COLUMN_GAP = 6;
 
@@ -90,6 +90,7 @@ public final class CarHelp {
         lines.add(new Line(key(minecraft.options.keyShift), "help.kurumamod.dismount"));
         lines.add(new Line(key(KurumaKeys.OPEN_TUNING), "help.kurumamod.tuning"));
         lines.add(new Line(key(KurumaKeys.OPEN_MENU), "help.kurumamod.menu"));
+        lines.add(new Line(key(KurumaKeys.OPEN_RACE), "help.kurumamod.race"));
         lines.add(new Line(key(KurumaKeys.TOGGLE_HEADLIGHTS), "help.kurumamod.headlights"));
         lines.add(new Line(key(KurumaKeys.OPEN_HEADLIGHT_SETTINGS), "help.kurumamod.headlight_settings"));
         lines.add(new Line(key(KurumaKeys.TOGGLE_CAMERA), "help.kurumamod.camera"));
@@ -118,18 +119,23 @@ public final class CarHelp {
 
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+        float scale = scale(minecraft);
+        int shownWidth = (int) Math.ceil(panelWidth * scale);
+        int shownHeight = (int) Math.ceil(panelHeight * scale);
 
-        // 速度計の上へ。テレメトリを消しているときは速度計も出ないので、下まで下ろす
-        int left = screenWidth - MARGIN - panelWidth;
-        // メーターに重なるときだけ上へ逃がす。画面が広くて横に並べられるなら下端のままでよい
-        int bottom = screenHeight - MARGIN
-                - (left < CarGaugeHud.gaugeRightEdge() ? CarGaugeHud.reservedBottomHeight() : 0);
-        int top = bottom - panelHeight;
+        // 画面の右下の角に固定する。メーターと重なってもずらさない（2026-11-10、ユーザーの指示）。
+        // ホットバーとだけは重ねない（横に重なるときは、ホットバーの上まで持ち上げる）
+        int left = screenWidth - MARGIN - shownWidth;
+        int bottom = screenHeight - MARGIN - HotbarClearance.lift(left, left + shownWidth, screenWidth);
+        int top = bottom - shownHeight;
 
-        graphics.fill(left, top, left + panelWidth, bottom, COLOR_BACKGROUND);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(left, top);
+        graphics.pose().scale(scale, scale);
+        graphics.fill(0, 0, panelWidth, panelHeight, COLOR_BACKGROUND);
 
-        int textLeft = left + PADDING;
-        int y = top + PADDING;
+        int textLeft = PADDING;
+        int y = PADDING;
         graphics.text(minecraft.font, title, textLeft, y, COLOR_TITLE, false);
         y += LINE_HEIGHT;
 
@@ -141,6 +147,16 @@ public final class CarHelp {
         }
 
         graphics.text(minecraft.font, hint, textLeft, y, COLOR_HINT, false);
+        graphics.pose().popMatrix();
+    }
+
+    /**
+     * 一覧を縮める倍率。GUI スケールが 3 以上なら {@code (n-1)/n}（4 なら 3/4、3 なら 2/3）、それより小さければ等倍。
+     * <b>文字の 1 ドットが画面の整数ピクセルに乗る倍率だけを使う</b>（半端な倍率だと字がにじむ）。
+     */
+    private static float scale(Minecraft minecraft) {
+        int gui = (int) Math.round(minecraft.getWindow().getGuiScale());
+        return gui >= 3 ? (gui - 1) / (float) gui : 1.0F;
     }
 
     /** キーの表示名。割り当てを変えたらそのまま追従する。 */

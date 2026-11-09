@@ -7,6 +7,7 @@ import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.network.RaceActionPacket;
 import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.network.RaceLobbyPacket;
+import com.jdmmc.kurumamod.network.TimeAttackRecordsPacket;
 import com.jdmmc.kurumamod.tuning.Regulation;
 import com.jdmmc.kurumamod.network.RaceStandingsPacket;
 import net.minecraft.ChatFormatting;
@@ -86,6 +87,13 @@ public final class RaceManager {
     private static final Map<ResourceKey<Level>, Map<UUID, LapState>> STATES = new HashMap<>();
     /** 進行中のレース。ワールドごとに 1 つ。 */
     private static final Map<ResourceKey<Level>, Session> SESSIONS = new HashMap<>();
+    /**
+     * タイムアタックで宣言しているクラスの名前。プレイヤーごと（サーバー全体で 1 つ。クラスはサーバーに 1 組）。
+     *
+     * <p><b>覚えているのはクライアント</b>で、入ったとき・宣言を変えたときに送ってくる。サーバーは
+     * 落ちた人のぶんを捨てる。</p>
+     */
+    private static final Map<UUID, String> DECLARED = new HashMap<>();
 
     private RaceManager() {
     }
@@ -118,6 +126,7 @@ public final class RaceManager {
     public static void onServerStopped(ServerStoppedEvent event) {
         STATES.clear();
         SESSIONS.clear();
+        DECLARED.clear();
         RaceClasses.clear();
     }
 
@@ -140,6 +149,7 @@ public final class RaceManager {
 
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        DECLARED.remove(event.getEntity().getUUID());
         dropOut(event.getEntity(), event.getEntity().level().dimension());
         cancelIfHost(event.getEntity(), event.getEntity().level().dimension());
     }
@@ -252,7 +262,7 @@ public final class RaceManager {
         states.remove(player.getUUID());
         // 計測していたぶんだけ、捨てたことをクライアントへ伝える。<b>伝えないと画面の時計が
         // 回り続ける</b>。降りるのは毎ティック通る道なので、測っていなかった人には送らない
-        if (state != null && (state.timing || state.finished)) {
+        if (state != null && (state.timing || state.finished || state.course != null)) {
             send(player, RaceEventPacket.cleared());
         }
     }
@@ -289,7 +299,6 @@ public final class RaceManager {
         // 参加者の計測だけ捨てる。同じワールドでタイムアタック中の人は巻き込まない
         session.entrants.forEach(states::remove);
         startFirstLap(level, session, states);
-        broadcast(level, Component.translatable("race.kurumamod.go").withStyle(ChatFormatting.GREEN));
     }
 
     /**
@@ -379,6 +388,11 @@ public final class RaceManager {
         }
     }
 
+    /** 終了の告知。開催の告知と同じく、主催者とトラック（と周回数）を出す。 */
+    private static net.minecraft.network.chat.MutableComponent raceOver(Session session) {
+        return Component.translatable("race.kurumamod.race_over", session.hostName, session.course, session.laps);
+    }
+
     private static void broadcast(ServerLevel level, Component message) {
         for (ServerPlayer player : level.players()) {
             player.sendSystemMessage(message);
@@ -420,11 +434,16 @@ public final class RaceManager {
             return;
         }
         if (state == null || !courseName.equals(state.course)) {
+            // 1 回目にラインを越えた: <b>ウォームアップの始まり</b>。計測は次にラインを越えたところから
+            // （助走をつけて越えられるように）。そう決めたことを伝えて、HUD にウォームアップを出してもらう
             state = new LapState(courseName);
             states.put(player.getUUID(), state);
-            state.lastX = car.xOld;
-            state.lastZ = car.zOld;
+            state.lastX = car.getX();
+            state.lastZ = car.getZ();
             state.hasLast = true;
+            String declared = declaredClass(player);
+            send(player, RaceEventPacket.warmUp(courseName, declared == null ? "" : declared));
+            return;
         }
 
         if (!state.hasLast) {
@@ -472,6 +491,16 @@ public final class RaceManager {
             return;
         }
         if (!state.timing) {
+            // タイムアタックで宣言したクラスの条件を満たしていなければ、計測を始めない（ウォームアップのまま。
+            // 直して次にラインを越えたら始まる）。レースの参加者は号砲で始まるのでここには来ない
+            String declared = isRacer(session, player, state.course) ? null : declaredClass(player);
+            Regulation rules = declared == null ? null : RaceClasses.regulation(player.getServer(), declared);
+            List<Regulation.Violation> violations = rules == null ? null : violations(player, rules);
+            if (violations != null && !violations.isEmpty()) {
+                tell(player, Component.translatable("race.kurumamod.class_start_blocked", declared)
+                        .withStyle(ChatFormatting.RED));
+                return;
+            }
             beginLap(player, session, course, state, crossedAt);
             return;
         }
@@ -528,6 +557,104 @@ public final class RaceManager {
                 && session.entrants.contains(player.getUUID());
     }
 
+    /** そのクラスの今の中身（{@link Regulation#toArray}）。クラスが無ければ null。周の始めに覚えておく。 */
+    private static double[] classRules(ServerPlayer player, String raceClass) {
+        Regulation regulation = raceClass == null ? null : RaceClasses.regulation(player.getServer(), raceClass);
+        return regulation == null ? null : regulation.toArray();
+    }
+
+    /** デルタとベストの比べる相手のクラス（空なら総合）。 */
+    private static String comparedClass(LapState state) {
+        return state.raceClass == null ? RaceData.OVERALL : state.raceClass;
+    }
+
+    /**
+     * この周をクラスの記録に入れるなら、そのクラスの名前。入れないなら null。
+     *
+     * <p>入れるのは<b>周を始めたときと終えたときで宣言が同じ</b>で、<b>終えた時点の車がそのクラスの決まりに
+     * 合っている</b>とき。G と換装はクラスの外へ出られないようにしてあるが、受付中のレースにエントリーしていると
+     * レースの決まりのほうで縛られるので、ここで確かめ直す。</p>
+     */
+    private static String countedClass(ServerPlayer player, LapState state) {
+        if (state.raceClass == null || !state.raceClass.equals(declaredClass(player))) {
+            return null;
+        }
+        Regulation regulation = RaceClasses.regulation(player.getServer(), state.raceClass);
+        // 周の途中でクラスの中身が書き換えられたら入れない。前半を古い条件で走った周が、新しい条件の記録になってしまう
+        if (regulation == null || !java.util.Arrays.equals(regulation.toArray(), state.classRules)) {
+            return null;
+        }
+        List<Regulation.Violation> violations = violations(player, regulation);
+        return violations != null && violations.isEmpty() ? state.raceClass : null;
+    }
+
+    /** その人が宣言しているクラスの名前。宣言していない・もう無いクラスなら null。 */
+    public static String declaredClass(ServerPlayer player) {
+        String name = DECLARED.get(player.getUUID());
+        if (name == null || player.getServer() == null
+                || RaceClasses.regulation(player.getServer(), name) == null) {
+            return null;
+        }
+        return name;
+    }
+
+    /**
+     * タイムアタックで走るクラスを宣言する（空ならやめる）。
+     *
+     * <p>周の途中で変えても、比べる相手が変わるのは次の周から（{@link #completeLap}）。</p>
+     */
+    private static void declare(ServerPlayer player, String name) {
+        String trimmed = name == null ? "" : name.trim();
+        if (trimmed.isEmpty()) {
+            DECLARED.remove(player.getUUID());
+        } else if (RaceClasses.regulation(player.getServer(), trimmed) == null) {
+            // 覚えていたクラスがサーバーで消されていた（入り直したときなど）。宣言していないことにする
+            DECLARED.remove(player.getUUID());
+            tell(player, Component.translatable("race.kurumamod.class_gone", trimmed));
+        } else {
+            DECLARED.put(player.getUUID(), trimmed);
+        }
+        sendLobby(player);
+    }
+
+    /**
+     * クラスの中身が変わった・消えたので、そのクラスの記録を全ワールドから消し、いま入っている全員のゴーストも消させる。
+     * 様子の配り直しは呼んだ側（{@link #lobbyToAll}）。
+     */
+    private static int clearClassRecords(MinecraftServer server, String name, boolean deleted) {
+        int removed = 0;
+        for (ServerLevel level : server.getAllLevels()) {
+            removed += RaceData.get(level).clearClassBests(name);
+        }
+        for (ServerPlayer online : server.getPlayerList().getPlayers()) {
+            send(online, RaceEventPacket.bestCleared("", name));
+            if (deleted && name.equals(DECLARED.get(online.getUUID()))) {
+                DECLARED.remove(online.getUUID());
+                online.sendSystemMessage(Component.translatable("race.kurumamod.class_gone", name)
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * サーバーの全員へ、レースの様子（クラスの一覧を含む）を配り直す。<b>クラスはサーバーに 1 組</b>なので、
+     * 追加・上書き・削除はどのワールドにいる人にも届けること（届けないと、ほかの人の画面に新しいクラスが出ず、
+     * 宣言している人の締め付けも古い中身のまま残る）。後から入ってきた人にはログインのときに送っている。
+     */
+    private static void lobbyToAll(MinecraftServer server) {
+        for (ServerLevel level : server.getAllLevels()) {
+            Session session = SESSIONS.get(level.dimension());
+            if (session != null) {
+                broadcastLobby(level, session);
+            } else {
+                for (ServerPlayer player : level.players()) {
+                    sendLobby(player);
+                }
+            }
+        }
+    }
+
     /**
      * 区間タイムと自己ベストとの差を知らせる。
      *
@@ -539,7 +666,7 @@ public final class RaceManager {
         if (index < state.splits.length) {
             state.splits[index] = elapsed;
         }
-        long[] best = data.bestSplits(player.getUUID(), course.name());
+        long[] best = data.bestSplits(player.getUUID(), course.name(), comparedClass(state));
         boolean hasDelta = best != null && best.length == course.checkpointCount()
                 && index < best.length && best[index] > 0L;
         send(player, RaceEventPacket.split(index + 1, course.checkpointCount() + 1, elapsed,
@@ -573,28 +700,46 @@ public final class RaceManager {
         state.progress = 0;
         state.gateTimes.clear();
         state.gateTimes.put(0, crossedAt);
+        state.raceClass = isRacer(session, player, state.course) ? null : declaredClass(player);
+        state.classRules = classRules(player, state.raceClass);
         send(player, RaceEventPacket.lapStarted(state.lap, lapTarget(session, player, state.course),
-                course.checkpointCount() + 1, course.name()));
+                course.checkpointCount() + 1, course.name(), comparedClass(state),
+                RaceData.get((ServerLevel) player.level()).bestLap(player.getUUID(), course.name(),
+                        comparedClass(state))));
     }
 
     private static void completeLap(ServerLevel level, Session session, Map<UUID, LapState> states,
                                     ServerPlayer player, RaceData data, Course course,
                                     LapState state, long lapMillis, double crossedAt) {
-        // 差を出す相手は「更新する前の」ベスト。取り込んでから引くと必ず 0 になる
-        long previousBest = data.bestLap(player.getUUID(), course.name());
+        // 差を出す相手は「更新する前の」ベスト。取り込んでから引くと必ず 0 になる。
+        // 相手はこの周を始めたときに宣言していたクラスの自己ベスト（宣言していなければ総合）
+        String compared = comparedClass(state);
+        long previousBest = data.bestLap(player.getUUID(), course.name(), compared);
         // <b>レースの周はタイムアタックのベストに数えない。</b>他の車がいてレギュレーションに縛られた周で、
         // ゴーストもレース中は残さないため、数えるとベストとゴーストが食い違う（ランキングにも載せない）
         boolean racing = isRacer(session, player, course.name());
-        boolean best = !racing && data.recordLap(player.getUUID(), player.getGameProfile().getName(),
-                course.name(), lapMillis, state.splits);
+        String counted = racing ? null : countedClass(player, state);
+        RaceData.LapRecord record = racing ? new RaceData.LapRecord(false, false)
+                : data.recordLap(player.getUUID(), player.getGameProfile().getName(),
+                        course.name(), counted, lapMillis, state.splits);
+        // クラスが消されていたら言わない（消えたことは削除のときに伝えてある）
+        if (!racing && state.raceClass != null && counted == null
+                && RaceClasses.regulation(player.getServer(), state.raceClass) != null) {
+            // 宣言して走り出したのに、クラスの記録に入らなかった（条件を満たしていない・宣言を変えた・
+            // 中身が書き換えられた）。黙っていると、記録が増えない理由が分からない
+            player.sendSystemMessage(Component.translatable("race.kurumamod.class_lap_not_counted",
+                    state.raceClass).withStyle(ChatFormatting.GRAY));
+        }
         state.passGate(crossedAt);
         state.lastLapMillis = lapMillis;
         state.lapStartMillis = crossedAt;
         state.nextCheckpoint = 0;
         state.splits = new long[course.checkpointCount()];
-        long bestMillis = data.bestLap(player.getUUID(), course.name());
+        long bestMillis = data.bestLap(player.getUUID(), course.name(), compared);
         long delta = lapMillis - previousBest;
         boolean hasDelta = previousBest > 0L;
+        // 比べたクラスのベストを更新したか（HUD の「ベスト」の表示はこちら）
+        boolean best = compared.isEmpty() ? record.overall() : counted != null && record.inClass();
 
         if (racing && state.lap >= session.laps) {
             int place = session.finishOrder.size() + 1;
@@ -609,15 +754,27 @@ public final class RaceManager {
             // 参加者が全員ゴールしたらリザルト
             if (allFinished(level, session)) {
                 broadcastResult(level, session, states);
-                broadcast(level, Component.translatable("race.kurumamod.race_over")
+                broadcast(level, raceOver(session)
                         .withStyle(ChatFormatting.GOLD));
             }
             return;
         }
 
         state.lap++;
+        // 宣言を周の途中で変えたら、比べる相手が変わるのはここ（次の周）から
+        String nextClass = racing ? null : declaredClass(player);
+        state.raceClass = nextClass;
+        state.classRules = classRules(player, nextClass);
         send(player, RaceEventPacket.lapCompleted(state.lap, racing ? session.laps : 0,
-                lapMillis, bestMillis, best, delta, hasDelta, course.name()));
+                lapMillis, bestMillis, best, delta, hasDelta, course.name(),
+                counted == null ? "" : counted, record.inClass(), record.overall(),
+                nextClass == null ? "" : nextClass,
+                data.bestLap(player.getUUID(), course.name(), nextClass == null ? RaceData.OVERALL : nextClass)));
+        if (!best && record.overall() && !compared.isEmpty()) {
+            // クラスでは届かなかったが総合を更新した。HUD はクラスの方を出すので、チャットで知らせる
+            player.sendSystemMessage(Component.translatable("race.kurumamod.overall_best",
+                    course.name(), format(lapMillis)).withStyle(ChatFormatting.AQUA));
+        }
     }
 
     /**
@@ -668,7 +825,7 @@ public final class RaceManager {
             return;
         }
         broadcastResult(level, session, states);
-        broadcast(level, Component.translatable("race.kurumamod.race_over")
+        broadcast(level, raceOver(session)
                 .withStyle(ChatFormatting.GOLD));
     }
 
@@ -862,17 +1019,27 @@ public final class RaceManager {
     /**
      * いまレースの決まりに縛られている人の決まり。縛られていなければ null。
      *
-     * <p>縛るのは<b>エントリーしてからゴールするまで</b>の参加者（G セッティングの制限と同じ）。
+     * <p>縛るのは<b>エントリーしてからゴールするまで</b>の参加者と、タイムアタックでクラスを宣言している人
+     * （G セッティングの制限と同じ）。
      * 換装の要求（{@code CarPartRequestPacket}）が、決まりの外へ出る部品を弾くのに使う。</p>
      */
     public static Regulation restrictionFor(ServerPlayer player) {
         Session session = SESSIONS.get(player.level().dimension());
-        if (session == null || session.regulation.isFree() || session.showingResult
-                || !session.entrants.contains(player.getUUID())
-                || session.finishOrder.containsKey(player.getUUID())) {
+        boolean entered = session != null && !session.showingResult
+                && session.entrants.contains(player.getUUID())
+                && !session.finishOrder.containsKey(player.getUUID());
+        if (entered) {
+            // エントリーしている間はレースの決まりが優先。宣言は止めておく（ゴールか抜けたら戻る）
+            return session.regulation.isFree() ? null : session.regulation;
+        }
+        if (session != null && session.spectators.contains(player.getUUID())) {
+            // 観戦している間は測らないので、宣言も止めておく
             return null;
         }
-        return session.regulation;
+        // タイムアタックで宣言しているクラス
+        String declared = declaredClass(player);
+        Regulation regulation = declared == null ? null : RaceClasses.regulation(player.getServer(), declared);
+        return regulation == null || regulation.isFree() ? null : regulation;
     }
 
     /**
@@ -939,7 +1106,8 @@ public final class RaceManager {
     private static RaceLobbyPacket lobbyFor(ServerLevel level, Session session, ServerPlayer viewer,
                                             List<RaceLobbyPacket.CourseInfo> courses) {
         if (session == null) {
-            return RaceLobbyPacket.none(courses, RaceClasses.list(level.getServer()), isOp(viewer));
+            return RaceLobbyPacket.none(courses, RaceClasses.list(level.getServer()), isOp(viewer),
+                    declaredName(viewer));
         }
         List<RaceLobbyPacket.Entrant> list = new ArrayList<>();
         for (UUID id : session.entrants) {
@@ -964,7 +1132,12 @@ public final class RaceManager {
                 session.entrants.contains(viewer.getUUID()), session.spectators.contains(viewer.getUUID()),
                 canManage(viewer), Math.max(0L, best),
                 session.regulation.toArray(), list, courses, RaceClasses.list(level.getServer()),
-                isOp(viewer));
+                isOp(viewer), declaredName(viewer));
+    }
+
+    private static String declaredName(ServerPlayer player) {
+        String name = declaredClass(player);
+        return name == null ? "" : name;
     }
 
     /** そのワールドの全員へ、受け取る人ごとに組んで配る。 */
@@ -1066,17 +1239,42 @@ public final class RaceManager {
                 if (!allowed) {
                     tell(player, Component.translatable("race.kurumamod.class_denied"));
                 } else if (packet.action() == RaceActionPacket.Action.SAVE_CLASS) {
-                    tell(player, RaceClasses.put(level.getServer(), packet.course(), packet.regulation())
-                            ? Component.translatable("race.kurumamod.class_saved", packet.course().trim())
-                            : Component.translatable("race.kurumamod.class_invalid"));
+                    String name = packet.course().trim();
+                    Regulation before = RaceClasses.regulation(level.getServer(), name);
+                    if (RaceClasses.put(level.getServer(), name, packet.regulation())) {
+                        tell(player, Component.translatable("race.kurumamod.class_saved", name));
+                        // <b>中身が変わったら、そのクラスの記録は消す</b>（前の決まりで出したタイムとは比べられない）。
+                        // 同じ中身で上書きしただけなら残す
+                        if (before != null && !java.util.Arrays.equals(before.toArray(),
+                                Regulation.fromArray(packet.regulation()).toArray())) {
+                            announceClassRecordsCleared(player, name,
+                                    clearClassRecords(level.getServer(), name, false));
+                        }
+                    } else {
+                        tell(player, Component.translatable("race.kurumamod.class_invalid"));
+                    }
                 } else if (RaceClasses.remove(level.getServer(), packet.course())) {
                     tell(player, Component.translatable("race.kurumamod.class_deleted", packet.course()));
+                    announceClassRecordsCleared(player, packet.course(),
+                            clearClassRecords(level.getServer(), packet.course(), true));
                 }
-                if (session != null) {
-                    broadcastLobby(level, session);
+                // 断ったときも本人には送り直す（画面を今の一覧に戻す）
+                lobbyToAll(level.getServer());
+            }
+            case DECLARE_CLASS -> declare(player, packet.course());
+            case RECORDS -> sendRecords(player, packet.course());
+            case RESET_TIME_ATTACK -> tell(player, switch (resetTimeAttack(player)) {
+                case NOT_TIMING -> Component.translatable("race.kurumamod.not_timing");
+                case RACING -> Component.translatable("race.kurumamod.reset_while_racing");
+                case RESET -> Component.translatable("race.kurumamod.timeattack_reset");
+            });
+            case MOVE_CLASS -> {
+                if (!isOp(player)) {
+                    tell(player, Component.translatable("race.kurumamod.class_denied"));
                 } else {
-                    sendLobby(player);
+                    RaceClasses.move(level.getServer(), packet.course(), packet.laps());
                 }
+                lobbyToAll(level.getServer());
             }
             case SPECTATE -> {
                 if (spectate(player)) {
@@ -1162,6 +1360,58 @@ public final class RaceManager {
                 && player.getServer().isSingleplayerOwner(player.getGameProfile());
     }
 
+    /**
+     * そのコースの記録（総合と、サーバーにある全クラス）を送る。K のタイムアタックの画面から頼まれる。
+     *
+     * <p>記録がまだ無いクラスも空のランキングとして送る（画面で「まだ記録がありません」と出すため）。</p>
+     */
+    private static void sendRecords(ServerPlayer player, String course) {
+        RaceData data = RaceData.get((ServerLevel) player.level());
+        List<TimeAttackRecordsPacket.Board> boards = new ArrayList<>();
+        boards.add(board(data, player, course, RaceData.OVERALL));
+        for (RaceLobbyPacket.RaceClass raceClass : RaceClasses.list(player.getServer())) {
+            boards.add(board(data, player, course, raceClass.name()));
+        }
+        KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new TimeAttackRecordsPacket(course, boards));
+    }
+
+    private static TimeAttackRecordsPacket.Board board(RaceData data, ServerPlayer player, String course,
+                                                       String raceClass) {
+        List<RaceData.Entry> all = data.leaderboard(course, raceClass, 0);
+        List<TimeAttackRecordsPacket.Row> rows = new ArrayList<>();
+        boolean listedSelf = false;
+        for (int i = 0; i < all.size(); i++) {
+            RaceData.Entry entry = all.get(i);
+            boolean you = entry.player().equals(player.getUUID());
+            if (i < TimeAttackRecordsPacket.TOP || you && !listedSelf) {
+                rows.add(new TimeAttackRecordsPacket.Row(i + 1, displayName(player.getServer(), entry),
+                        entry.millis(), you));
+                listedSelf |= you;
+            }
+            if (i >= TimeAttackRecordsPacket.TOP && listedSelf) {
+                break;
+            }
+        }
+        return new TimeAttackRecordsPacket.Board(raceClass, all.size(), rows);
+    }
+
+    /** 記録に名前が入っていなければ（古い記録）プロフィールキャッシュで引く。 */
+    private static String displayName(MinecraftServer server, RaceData.Entry entry) {
+        if (!entry.name().isEmpty()) {
+            return entry.name();
+        }
+        return server.getProfileCache() == null ? "?" : server.getProfileCache().get(entry.player())
+                .map(com.mojang.authlib.GameProfile::getName).orElse("?");
+    }
+
+    /** クラスの記録を消したことを、消した本人のチャットに残す（アクションバーは保存の知らせで埋まる）。 */
+    private static void announceClassRecordsCleared(ServerPlayer player, String name, int removed) {
+        if (removed > 0) {
+            player.sendSystemMessage(Component.translatable("race.kurumamod.class_records_cleared", name, removed)
+                    .withStyle(ChatFormatting.YELLOW));
+        }
+    }
+
     /** 画面を開いたままでも読めるよう、アクションバーに出す。 */
     private static void tell(ServerPlayer player, Component message) {
         player.displayClientMessage(message, true);
@@ -1196,8 +1446,8 @@ public final class RaceManager {
         SESSIONS.put(level.dimension(), session);
         RaceSync.sendToAll(level.getServer());
         level.getServer().getPlayerList().broadcastSystemMessage(
-                Component.translatable("race.kurumamod.opened", session.hostName, course.name(), laps,
-                        level.dimension().location().toString()).withStyle(ChatFormatting.YELLOW), false);
+                Component.translatable("race.kurumamod.opened", session.hostName, course.name(), laps)
+                        .withStyle(ChatFormatting.YELLOW), false);
         level.getServer().getPlayerList().broadcastSystemMessage(
                 Component.translatable("race.kurumamod.how_to_join").withStyle(ChatFormatting.GRAY), false);
         broadcastLobby(level, session);
@@ -1449,7 +1699,7 @@ public final class RaceManager {
         Map<UUID, LapState> states = states(level);
         if (session.started && !session.showingResult) {
             broadcastResult(level, session, states);
-            broadcast(level, Component.translatable("race.kurumamod.race_over")
+            broadcast(level, raceOver(session)
                     .withStyle(ChatFormatting.GOLD));
             return;
         }
@@ -1483,7 +1733,8 @@ public final class RaceManager {
         ServerLevel level = (ServerLevel) player.level();
         Map<UUID, LapState> states = states(level);
         LapState state = states.get(player.getUUID());
-        if (state == null || !state.timing) {
+        // ウォームアップ中（コースは決まったが、まだ測っていない）も取り消せる
+        if (state == null || !state.timing && state.course == null) {
             return ResetResult.NOT_TIMING;
         }
         if (isRacer(SESSIONS.get(level.dimension()), player, state.course)) {
@@ -1588,6 +1839,16 @@ public final class RaceManager {
          * 次の 1 回の通過は周回の終わりと数えない。CP のあるコースでは最初の CP を通ったところでも下ろす。
          */
         private boolean gridStart;
+        /**
+         * この周を始めたときに宣言していたクラス（宣言していない・レースの周なら null）。
+         * デルタとベストの比べる相手で、宣言を周の途中で変えても次の周まで変わらない。
+         */
+        private String raceClass;
+        /**
+         * この周を始めたときのクラスの中身（{@link Regulation#toArray}）。周の終わりに今の中身と比べ、
+         * 途中で書き換えられていたらクラスの記録に入れない。
+         */
+        private double[] classRules;
 
         private LapState(String course) {
             this.course = course;

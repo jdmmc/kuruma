@@ -48,6 +48,11 @@ public final class CarClientPackets {
         RaceLobby.accept(packet);
     }
 
+    /** タイムアタックの記録を受け取る。開いている K の画面へ渡す。 */
+    public static void applyTimeAttackRecords(com.jdmmc.kurumamod.network.TimeAttackRecordsPacket packet) {
+        TimeAttackScreen.acceptRecords(packet);
+    }
+
     /** ラップ計測とスタート信号の合図を受け取る。 */
     public static void applyRaceEvent(RaceEventPacket packet) {
         RaceHud.accept(packet);

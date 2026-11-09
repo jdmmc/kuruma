@@ -31,10 +31,10 @@ import java.util.Set;
  * クライアント側のレースの様子（{@link RaceLobbyPacket}）。<b>参加と主催の入口。</b>
  *
  * <ul>
- *   <li>誰かがレースを開いたら、画面の右の中ほどに<b>誘いの通知</b>を数秒出す。K でその場で参加</li>
+ *   <li>誰かがレースを開いたら、画面の右の中ほどに<b>誘いの通知</b>を数秒出す。K でレースの画面を開き、「参加する」で参加</li>
  *   <li>主催している間は、同じ場所に<b>主催中の表示</b>を出し続ける。K で主催者画面へ戻れる</li>
  *   <li>参加している間の K は、参加したレースの画面（{@link RaceInfoScreen}）を開く</li>
- *   <li>レースが無いときの K は、主催者画面（{@link RaceOrganizerScreen}）を開く＝レースを開く入口</li>
+ *   <li>レースが無いときの K は、タイムアタックの画面（{@link TimeAttackScreen}）を開く。タブでレースを開く画面へ</li>
  * </ul>
  *
  * <p>G セッティングの制限（{@link #restriction}・{@link #allowsTuning}）もここで決める。
@@ -78,6 +78,7 @@ public final class RaceLobby {
 
     public static void accept(RaceLobbyPacket packet) {
         RaceLobbyPacket previous = lobby;
+        TimeAttackClass.accept(packet);
         boolean wasOpen = previous != null && previous.phase() == RaceLobbyPacket.Phase.OPEN;
         lobby = packet.phase() == RaceLobbyPacket.Phase.NONE ? null : packet;
         coursesSeen = packet.courses();
@@ -225,6 +226,7 @@ public final class RaceLobby {
         if (pingTicks > 0) {
             pingTicks--;
         }
+        TimeAttackClass.onClientTick();
     }
 
     @SubscribeEvent
@@ -245,6 +247,7 @@ public final class RaceLobby {
         inviteTicks = 0;
         knownEntrants = new HashSet<>();
         pingTicks = 0;
+        TimeAttackClass.reset();
     }
 
     // ------------------------------------------------------------------
@@ -254,8 +257,8 @@ public final class RaceLobby {
     /**
      * K を押した。<b>いまの立場で意味が変わる。</b>
      *
-     * <p>受付中で入っていなければ参加（誘いの通知が消えたあとでも参加できる）、入っていれば
-     * 参加したレースの画面、主催していれば主催者画面、レースが無ければ主催者画面（＝開く入口）。</p>
+     * <p>レースがあればそのレースの画面（主催していれば主催者画面）、レースが無ければタイムアタックの画面。
+     * どの画面も上のタブで行き来できる。</p>
      */
     /** 観戦しているか。観戦者は信号の間も車を止めない。 */
     public static boolean spectating() {
@@ -266,23 +269,31 @@ public final class RaceLobby {
         if (minecraft.screen != null || minecraft.player == null) {
             return;
         }
+        // レースが無ければタイムアタックの画面（タブでレースを開く画面へ行ける）
+        if (lobby == null) {
+            KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.QUERY));
+            minecraft.setScreen(new TimeAttackScreen());
+            return;
+        }
+        // レースがあるときは、そのレースの画面。<b>K を押しただけでは参加しない</b>——タイムアタックの宣言を
+        // 変えたいだけの人まで参加させてしまうため。参加は画面の「参加する」から
+        inviteTicks = 0;
+        openRaceTab(minecraft);
+    }
+
+    /**
+     * レースのタブ。主催者画面へ行くのは主催した本人とレースが無いとき（開く入口）。OP でも主催者でなければ
+     * 参加したレースの画面（LAN に公開したワールドでは入ってきた人も OP なので、OP を通すと参加できなくなる）。
+     */
+    static void openRaceTab(Minecraft minecraft) {
         if (lobby == null) {
             KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.QUERY));
             minecraft.setScreen(new RaceOrganizerScreen());
-            return;
-        }
-        // 主催者画面へ行くのは主催した本人だけ。OP でも主催者でなければ、K は参加（OP はコマンドで操作できる）。
-        // LAN に公開したワールドでは入ってきた人も OP なので、ここで OP を通すと参加できなくなる
-        if (lobby.isHost()) {
+        } else if (lobby.isHost()) {
             minecraft.setScreen(new RaceOrganizerScreen());
-            return;
+        } else {
+            minecraft.setScreen(new RaceInfoScreen());
         }
-        if (lobby.phase() == RaceLobbyPacket.Phase.OPEN && !lobby.joined() && !lobby.spectating()) {
-            KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.JOIN));
-            inviteTicks = 0;
-            // 参加したら、そのまま参加したレースの画面を開く（参加済みかどうかは次の配信で画面に反映される）
-        }
-        minecraft.setScreen(new RaceInfoScreen());
     }
 
     // ------------------------------------------------------------------
@@ -295,21 +306,45 @@ public final class RaceLobby {
      * <p>縛るのは<b>エントリーしてからゴールするまで</b>。受付中も縛る——決まりに合わせて入ったあとで
      * 外へ出られては判定の意味が無い。決まりに外れたまま入った車は、<b>直す向きにだけ</b>動かせる
      * （{@link Regulation#allowsChange}）。</p>
+     *
+     * <p>レースに出ていなければ、<b>タイムアタックで宣言しているクラス</b>で縛る（観戦中は測らないので縛らない）。
+     * サーバーの {@code RaceManager#restrictionFor} と同じ順で決める。</p>
      */
     public static Regulation restriction() {
-        if (lobby == null || !lobby.joined() || RaceHud.hasFinished()) {
+        Regulation race = raceRestriction();
+        if (race != null || racingNow()) {
+            return race;
+        }
+        if (spectating()) {
             return null;
         }
-        if (lobby.phase() == RaceLobbyPacket.Phase.RESULT) {
+        Regulation declared = TimeAttackClass.regulation();
+        return declared == null || declared.isFree() ? null : declared;
+    }
+
+    /** エントリーしていてまだゴールしていない（宣言よりレースの決まりが優先される）。 */
+    static boolean racingNow() {
+        return lobby != null && lobby.joined() && !RaceHud.hasFinished()
+                && lobby.phase() != RaceLobbyPacket.Phase.RESULT;
+    }
+
+    private static Regulation raceRestriction() {
+        if (!racingNow()) {
             return null;
         }
         Regulation regulation = regulation();
         return regulation.isFree() ? null : regulation;
     }
 
-    /** 戻す（R・すべて戻す）を決まりに関係なく通してよいか。縛られていないか、まだスタート前なら通す。 */
+    /**
+     * 戻す（R・すべて戻す）を決まりに関係なく通してよいか。縛られていないか、まだスタート前なら通す。
+     * クラスで縛られているときは通さない（戻した先が決まりに合うかを見る）。
+     */
     public static boolean allowsReset() {
-        return restriction() == null || lobby.phase() == RaceLobbyPacket.Phase.OPEN;
+        if (raceRestriction() != null) {
+            return lobby.phase() == RaceLobbyPacket.Phase.OPEN;
+        }
+        return restriction() == null;
     }
 
     /** 調整画面の値に、いま乗っている車の部品（ターボ・タイヤ・空力）を載せる。 */
@@ -441,16 +476,21 @@ public final class RaceLobby {
 
     /** 自分の車の、その決まりに当たる値。乗っていなければ「-」。 */
     static String myValue(Regulation.Kind kind) {
+        return myValue(kind, regulation());
+    }
+
+    /** 乗っている車の値を、{@code regulation} の決まりの行に並べる形で（素性の固定は、その決まりで固定する項目で数える）。 */
+    static String myValue(Regulation.Kind kind, Regulation regulation) {
         CarEntity car = CarClientDriver.ridingCar(Minecraft.getInstance());
         if (car == null) {
             return "-";
         }
         CarSpec spec = car.getSpec();
         return switch (kind) {
-            case FIXED -> Regulation.alteredTraits(spec, CarTypes.get(car.getCarId()).spec(), regulation().fixedMask()) == 0
+            case FIXED -> Regulation.alteredTraits(spec, CarTypes.get(car.getCarId()).spec(), regulation.fixedMask()) == 0
                     ? Component.translatable("race.kurumamod.rule.fixed.mine_ok").getString()
                     : Component.translatable("race.kurumamod.violation.fixed",
-                    Regulation.alteredTraits(spec, CarTypes.get(car.getCarId()).spec(), regulation().fixedMask())).getString();
+                    Regulation.alteredTraits(spec, CarTypes.get(car.getCarId()).spec(), regulation.fixedMask())).getString();
             case POWER -> round(Regulation.powerPs(spec)) + " PS";
             case MASS -> round(spec.mass()) + " kg";
             case PWR -> String.format(Locale.ROOT, "%.1f", Regulation.powerWeightRatio(spec));

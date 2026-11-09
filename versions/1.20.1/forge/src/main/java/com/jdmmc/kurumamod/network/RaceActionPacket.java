@@ -45,7 +45,18 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         /** クラスを保存する。{@code course} に名前、{@code regulation} に中身。 */
         SAVE_CLASS,
         /** クラスを消す。{@code course} に名前。 */
-        DELETE_CLASS
+        DELETE_CLASS,
+        /**
+         * タイムアタックで走るクラスを宣言する。{@code course} にクラスの名前（空ならやめる）。
+         * クライアントがサーバーごとに覚えていて、入ったときにも送り直す。
+         */
+        DECLARE_CLASS,
+        /** タイムアタックの記録を送ってほしい。{@code course} にコースの名前。 */
+        RECORDS,
+        /** クラスを並びの中で 1 つ動かす。{@code course} に名前、{@code laps} に向き（-1 で前、1 で後ろ）。 */
+        MOVE_CLASS,
+        /** 計測中のタイムアタックをやめる（{@code /kuruma timeattack reset} と同じ）。 */
+        RESET_TIME_ATTACK
     }
 
     private static final Action[] ACTIONS = Action.values();

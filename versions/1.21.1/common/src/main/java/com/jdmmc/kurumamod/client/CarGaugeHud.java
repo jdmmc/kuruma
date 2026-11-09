@@ -179,10 +179,6 @@ public final class CarGaugeHud {
     private static final double REDLINE_WARN = 0.95;
     private static final int COLOR_NEEDLE_WARN = 0xFFFFFFFF;
 
-    /** 最後に計算した占有高さと右端。{@link CarHelp} が右下の置き場所を決めるのに使う。 */
-    private static int reservedHeight;
-    private static int leftEdge;
-    private static int rightEdge;
     /**
      * 中央の小窓（シフトインジケーターを含む）の上端。画面の Y。出していないときは NaN。
      * アクションバーをこれより上へ逃がす（{@link #overlayMessageY}）。
@@ -196,36 +192,6 @@ public final class CarGaugeHud {
     private static final float OVERLAY_MESSAGE_CLEARANCE = 9.0F;
 
     private CarGaugeHud() {
-    }
-
-    /**
-     * メーターが画面下端から使っている高さ。{@link CarHelp} がその上に並べる。
-     *
-     * <p>実際に描いたときの値を覚えておく——大きさが画面とスケールで変わるので、
-     * 定数から計算し直すと食い違う。</p>
-     */
-    static int reservedBottomHeight() {
-        return ClientConfig.showGauges ? reservedHeight : 0;
-    }
-
-    /**
-     * 右のメーターの右端。<b>{@link CarHelp} はここに重なるときだけ上へ逃げる。</b>
-     *
-     * <p>画面が広ければヘルプはメーターの横に並べられるので、常に上へ押しやると
-     * 何もない場所に浮くことになる。</p>
-     */
-    static int gaugeRightEdge() {
-        return ClientConfig.showGauges ? rightEdge : 0;
-    }
-
-    /**
-     * 左のメーターの左端。<b>{@link CarHud} のテレメトリはここに重なるときだけ上へ逃げる。</b>
-     *
-     * <p>出していないときは十分に大きい値を返す。呼ぶ側に「出しているか」を
-     * 判定させると、条件の書き方が 2 か所でずれる。</p>
-     */
-    static int gaugeLeftEdge() {
-        return ClientConfig.showGauges ? leftEdge : Integer.MAX_VALUE;
     }
 
     /**
@@ -266,11 +232,8 @@ public final class CarGaugeHud {
         render(event.getGuiGraphics(), minecraft, car);
     }
 
-    /** 出していないことを、置き場所を聞いてくる側へ伝える。 */
+    /** 出していないことを、アクションバーの高さを聞いてくる側（{@link #overlayMessageY}）へ伝える。 */
     private static void clearBounds() {
-        reservedHeight = 0;
-        leftEdge = Integer.MAX_VALUE;
-        rightEdge = 0;
         panelTop = Float.NaN;
     }
 
@@ -291,9 +254,6 @@ public final class CarGaugeHud {
         float centerY = screenHeight - BOTTOM_MARGIN - radius;
         float leftX = screenWidth * 0.5F - HOTBAR_HALF_WIDTH - HOTBAR_GAP - radius;
         float rightX = screenWidth * 0.5F + HOTBAR_HALF_WIDTH + HOTBAR_GAP + radius;
-        reservedHeight = (int) Math.ceil(radius * 2.0F + BOTTOM_MARGIN);
-        leftEdge = (int) Math.floor(leftX - radius);
-        rightEdge = (int) Math.ceil(rightX + radius);
 
         Font font = minecraft.font;
         CarSpec spec = car.getSpec();
