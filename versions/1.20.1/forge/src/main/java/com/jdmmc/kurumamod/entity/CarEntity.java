@@ -3088,7 +3088,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      *
      * <p>素の殴りは何も残さずに消す。設定を残したいときはシフトを押しながら殴る。</p>
      *
-     * <p>乗っている人がいる車はどちらもさせない。座っている人ごと消えることになるため。</p>
+     * <p>運転席に人がいる車はどちらもさせない。走っている車を外から消せてしまうため。
+     * <b>助手席にだけ人がいる車は壊せる</b>（同乗者は降ろされる）。残った同乗者が車を守ってしまわないように。
+     * 乗っている本人は自分の車を壊せない。</p>
      */
     @Override
     public boolean hurt(DamageSource source, float amount) {
@@ -3098,7 +3100,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         if (level().isClientSide || isRemoved()) {
             return true;
         }
-        if (!(source.getEntity() instanceof Player player) || !getPassengers().isEmpty()) {
+        if (!(source.getEntity() instanceof Player player)
+                || getControllingPassenger() != null || player.getVehicle() == this) {
             return false;
         }
         if (!player.isShiftKeyDown()) {
