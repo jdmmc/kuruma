@@ -77,6 +77,11 @@ public final class RaceManager {
      */
     private static final int START_GRACE_TICKS = 100;
 
+    /** 走行中に車を降りたままリタイアになるまで [ティック]（60 秒）。 */
+    private static final int AWAY_RETIRE_TICKS = 20 * 60;
+    /** 降りたままの参加者に、残りの秒数を出し始めるまで [ティック]（30 秒）。 */
+    private static final int AWAY_WARN_TICKS = 20 * 30;
+
 
     /** リザルトを出してからセッションを畳むまで [ティック]。 */
     private static final int RESULT_TICKS = 300;
@@ -131,6 +136,8 @@ public final class RaceManager {
      */
     public static void onChangedDimension(Player player, ResourceKey<Level> from) {
         dropOut(player, from);
+        // 主催者が別の次元へ移ったら、落ちたときと同じ（受付中は中止、走行中は続ける）。元のレースを操作できなくなるため
+        cancelIfHost(player, from);
         // 捨てたことは<b>必ず伝える</b>。伝えないと画面の時計だけが回り続け、
         // サーバーには周回状態が無いので /kuruma timeattack reset が
         // 「計測していません」を返す——画面とサーバーが食い違う
@@ -183,6 +190,15 @@ public final class RaceManager {
      */
     private static void dropOut(net.minecraft.world.entity.player.Player player,
                                 ResourceKey<Level> from) {
+        // <b>消す前に、レースの走りを覚えておく</b>（リザルトを出し終えるまで）。消すと、ゴールした人が落ちたら
+        // リザルトから消え（2 位の人が 1 位として並んだ）、落ちてリタイアした人も出なかった
+        Session departing = SESSIONS.get(from);
+        Map<UUID, LapState> fromStates = STATES.get(from);
+        LapState raceState = fromStates == null ? null : fromStates.get(player.getUUID());
+        if (departing != null && departing.started && raceState != null
+                && departing.entrants.contains(player.getUUID()) && !departing.retired.contains(player.getUUID())) {
+            departing.kept.put(player.getUUID(), raceState);
+        }
         for (Map<UUID, LapState> byPlayer : STATES.values()) {
             byPlayer.remove(player.getUUID());
         }
@@ -190,18 +206,31 @@ public final class RaceManager {
         if (session != null) {
             session.spectators.remove(player.getUUID());
         }
-        if (session == null || !session.started || session.showingResult
+        if (session == null || session.showingResult
                 || !session.entrants.contains(player.getUUID())
                 || session.finishOrder.containsKey(player.getUUID())) {
             return;
         }
-        // <b>落ちた時点でリタイア。</b>名簿には残す（リザルトに「完走していない人」として出す）が、入り直しても
-        // そのレースには数えない。数えると、スタートラインを越えたところからレースの 1 周目を測り直していた
-        session.retired.add(player.getUUID());
+        // <b>主催者がスタートを押す前（受付中）なら、エントリーから外す。</b>名簿に残すと、入り直したあと
+        // 走行中のレースに 1 周目から加わり、走らずにいると全員ゴールの判定がその人を待ってレースが締まらなかった
+        boolean entryOpen = !session.started && session.countdown < 0;
+        if (entryOpen) {
+            session.entrants.remove(player.getUUID());
+        } else {
+            // <b>スタートを押した後（信号の間も）は、落ちた時点でリタイア。</b>名簿には残す（リザルトに
+            // 「完走していない人」として出す）が、入り直してもそのレースには数えない
+            session.retired.add(player.getUUID());
+        }
         ServerLevel level = player.level().getServer() == null ? null : player.level().getServer().getLevel(from);
         if (level != null) {
-            broadcast(level, Component.translatable("race.kurumamod.retired",
-                    player.getGameProfile().name()).withStyle(ChatFormatting.GRAY));
+            if (entryOpen) {
+                broadcast(level, Component.translatable("race.kurumamod.left_announce",
+                        player.getGameProfile().name(), session.entrants.size()));
+                broadcastLobby(level, session);
+            } else {
+                broadcast(level, Component.translatable("race.kurumamod.retired",
+                        player.getGameProfile().name()).withStyle(ChatFormatting.GRAY));
+            }
         }
     }
 
@@ -218,6 +247,9 @@ public final class RaceManager {
                 trackCar(level, session, states, player, car);
             } else {
                 dismount(session, states, player);
+            }
+            if (session != null) {
+                watchAway(level, session, states, player);
             }
         }
 
@@ -239,6 +271,45 @@ public final class RaceManager {
             }
             // 決まりと判定は、受付中もレース中も配る（誘い・主催中の表示・参加したレースの画面）
             broadcastLobby(level, session);
+        }
+    }
+
+    /**
+     * 走行中の参加者が車を降りたまま（自分で運転していないまま）{@link #AWAY_RETIRE_TICKS} たったらリタイアにする。
+     * {@link #AWAY_WARN_TICKS} を過ぎたら、本人に残りの秒数を毎秒出す。車に戻れば数え直す。
+     *
+     * <p>降りた参加者を待つのは、ひっくり返した車を立て直す人を見捨てないため。ただ、降りたままどこかへ行った人がいると
+     * 全員ゴールの判定がその人を待ち続け、レースが締まらなかった。</p>
+     */
+    private static void watchAway(ServerLevel level, Session session, Map<UUID, LapState> states, ServerPlayer player) {
+        UUID id = player.getUUID();
+        if (!session.started || session.showingResult || !session.entrants.contains(id)
+                || session.retired.contains(id) || session.finishOrder.containsKey(id)) {
+            session.awayTicks.remove(id);
+            return;
+        }
+        if (player.getVehicle() instanceof CarEntity car && car.getControllingPassenger() == player) {
+            session.awayTicks.remove(id);
+            return;
+        }
+        int away = session.awayTicks.merge(id, 1, Integer::sum);
+        if (away >= AWAY_RETIRE_TICKS) {
+            session.awayTicks.remove(id);
+            session.retired.add(id);
+            LapState raceState = states.remove(id);
+            if (raceState != null) {
+                session.kept.put(id, raceState);
+            }
+            // レースの HUD を消す（以後はレースに参加していない人として扱う）
+            send(player, RaceEventPacket.cleared());
+            player.sendSystemMessage(Component.translatable("race.kurumamod.away_retired_self")
+                    .withStyle(ChatFormatting.RED));
+            broadcast(level, Component.translatable("race.kurumamod.away_retired",
+                    player.getGameProfile().name()).withStyle(ChatFormatting.GRAY));
+            broadcastLobby(level, session);
+        } else if (away >= AWAY_WARN_TICKS && away % 20 == 0) {
+            tell(player, Component.translatable("race.kurumamod.away_warning", (AWAY_RETIRE_TICKS - away) / 20)
+                    .withStyle(ChatFormatting.RED));
         }
     }
 
@@ -924,7 +995,12 @@ public final class RaceManager {
         for (ServerPlayer player : level.players()) {
             sendLobby(player);
         }
-        session.entrants.forEach(states(level)::remove);
+        for (UUID id : session.entrants) {
+            // リタイアした人は入り直してタイムアタックを走っていることがある。そちらは消さない
+            if (!session.retired.contains(id)) {
+                states(level).remove(id);
+            }
+        }
         toViewers(level, session, RaceEventPacket.cleared());
         toViewers(level, session,
                 new RaceStandingsPacket(RaceStandingsPacket.Phase.ENTRY, "", 0, List.of()));
@@ -958,38 +1034,35 @@ public final class RaceManager {
     private static void broadcastResult(ServerLevel level, Session session, Map<UUID, LapState> states) {
         List<RaceStandingsPacket.Row> rows = new ArrayList<>();
         long winner = 0L;
+        // 落ちた人・リタイアした人も並べる。走りは覚えておいたもの（kept）、名前はエントリーしたときのもの
         for (UUID id : session.finishOrder.keySet()) {
-            ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-            LapState state = states.get(id);
-            if (player == null || state == null) {
+            LapState state = raceState(session, states, id);
+            if (state == null) {
                 continue;
             }
             boolean first = rows.isEmpty();
             if (first) {
                 winner = state.totalMillis;
             }
-            rows.add(new RaceStandingsPacket.Row(player.getGameProfile().name(),
-                    state.lap, first ? state.totalMillis : state.totalMillis - winner, first, true, true));
+            rows.add(new RaceStandingsPacket.Row(entrantName(level, session, id),
+                    state.lap, first ? state.totalMillis : state.totalMillis - winner, first, true, true, false));
         }
-        // 完走していない人。強制終了したときに出る
+        // 完走していない人（リタイア・強制終了）。進んだ地点の多い順
         List<UUID> rest = new ArrayList<>(session.entrants);
         rest.removeAll(session.finishOrder.keySet());
-        rest.sort((a, b) -> Integer.compare(progressOf(states, b), progressOf(states, a)));
+        rest.sort((a, b) -> Integer.compare(progressOf(session, states, b), progressOf(session, states, a)));
         for (UUID id : rest) {
-            ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-            if (player == null) {
-                continue;
-            }
-            LapState state = states.get(id);
-            rows.add(new RaceStandingsPacket.Row(player.getGameProfile().name(),
+            LapState state = raceState(session, states, id);
+            rows.add(new RaceStandingsPacket.Row(entrantName(level, session, id),
                     state != null ? Math.max(0, state.lap - 1) : 0, 0L, false, false,
-                    state != null && state.progress > 0));
+                    state != null && state.progress > 0, session.retired.contains(id)));
         }
         session.showingResult = true;
         session.resultTick = level.getServer().getTickCount();
-        // レースは終わった。まだ走っている人の計測も止める（中止したとき、周回を数え続けないように）
+        // レースは終わった。まだ走っている人の計測も止める（中止したとき、周回を数え続けないように）。
+        // <b>リタイアした人には触らない</b>——入り直してタイムアタックを走っているので、止めると時計だけが回り続けた
         for (UUID id : session.entrants) {
-            LapState state = states.get(id);
+            LapState state = session.retired.contains(id) ? null : states.get(id);
             if (state != null) {
                 // finished も立てる。立てないと、ラインを越えたところで計測が測り直しになる
                 state.timing = false;
@@ -1000,9 +1073,24 @@ public final class RaceManager {
                 session.course, session.laps, rows));
     }
 
-    private static int progressOf(Map<UUID, LapState> states, UUID id) {
-        LapState state = states.get(id);
+    /** その参加者のレースの走り。落ちた・リタイアした人は覚えておいたもの（今の状態はタイムアタックのもの）。 */
+    private static LapState raceState(Session session, Map<UUID, LapState> states, UUID id) {
+        LapState kept = session.kept.get(id);
+        if (kept != null || session.retired.contains(id)) {
+            return kept;
+        }
+        return states.get(id);
+    }
+
+    private static int progressOf(Session session, Map<UUID, LapState> states, UUID id) {
+        LapState state = raceState(session, states, id);
         return state == null ? -1 : state.progress;
+    }
+
+    /** 参加者の名前。落ちていてもエントリーしたときの名前で出す。 */
+    private static String entrantName(ServerLevel level, Session session, UUID id) {
+        ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
+        return player != null ? player.getGameProfile().name() : session.names.getOrDefault(id, "?");
     }
 
     /**
@@ -1600,6 +1688,7 @@ public final class RaceManager {
             return JoinResult.ALREADY_JOINED;
         }
         session.spectators.remove(player.getUUID());
+        session.names.put(player.getUUID(), player.getGameProfile().name());
         // 測っていたタイムアタック（ウォームアップ中も）は捨て、時計を消す。号砲まではタイムアタックを測らない
         LapState dropped = states((ServerLevel) player.level()).remove(player.getUUID());
         if (dropped != null && (dropped.timing || dropped.course != null)) {
@@ -1627,7 +1716,7 @@ public final class RaceManager {
                 || session.spectators.contains(id)) {
             return false;
         }
-        if (session.entrants.contains(id)) {
+        if (session.entrants.contains(id) && !session.retired.contains(id)) {
             leave(player);
             // 最後の 1 人が抜けると、その場で畳まれることがある
             session = SESSIONS.get(level.dimension());
@@ -1881,6 +1970,15 @@ public final class RaceManager {
          * 入り直してもそのレースには数えない（HUD を出さず、参加していない人として扱う）。
          */
         private final java.util.Set<UUID> retired = new java.util.HashSet<>();
+        /**
+         * 落ちた・リタイアした参加者のレースの走り。<b>リザルトを出し終えるまで覚えておく</b>
+         * （その人の今の状態は消えているか、入り直してタイムアタックのものになっている）。
+         */
+        private final Map<UUID, LapState> kept = new HashMap<>();
+        /** エントリーしたときの名前。落ちた人もリザルトに名前で出す。 */
+        private final Map<UUID, String> names = new HashMap<>();
+        /** 走行中の参加者が車を降りてからのティック数（{@link #watchAway}）。車に戻れば消す。 */
+        private final Map<UUID, Integer> awayTicks = new HashMap<>();
         private int countdown = -1;
         private int holdTicks;
         private boolean started;

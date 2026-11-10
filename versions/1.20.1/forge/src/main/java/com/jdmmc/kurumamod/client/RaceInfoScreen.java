@@ -31,6 +31,8 @@ public final class RaceInfoScreen extends Screen {
     /** 観戦に切り替える。エントリーせず、レースの HUD だけを見る。 */
     private Button spectate;
     private Button unspectate;
+    /** 終える（受付中は中止）。主催者がいない間の参加者と OP に出す（サーバーの canManage と同じ人）。 */
+    private Button stop;
 
     public RaceInfoScreen() {
         super(Component.translatable("screen.kurumamod.race_info.title"));
@@ -53,6 +55,10 @@ public final class RaceInfoScreen extends Screen {
         spectate = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_info.spectate"),
                         button -> KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.SPECTATE)))
                 .bounds(right - 184, y, 90, 20).build());
+        stop = addRenderableWidget(Button.builder(Component.empty(), button -> {
+                    KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.STOP));
+                    onClose();
+                }).bounds(right - 278, y, 90, 20).build());
         unspectate = addRenderableWidget(Button.builder(Component.translatable("screen.kurumamod.race_info.unspectate"),
                         button -> KurumaNetwork.CHANNEL.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.UNSPECTATE)))
                 .bounds(right - 184, y, 90, 20).build());
@@ -77,6 +83,10 @@ public final class RaceInfoScreen extends Screen {
         // ゴールした人とリザルトの間は切り替えない（リザルトに残すため）
         spectate.visible = !lobby.spectating() && !result && !(lobby.joined() && RaceHud.hasFinished());
         unspectate.visible = lobby.spectating();
+        // 主催者がいなくなった走行中のレースを、残った参加者と OP が画面から畳めるように
+        stop.visible = lobby.canManage() && !lobby.isHost() && !result;
+        stop.setMessage(Component.translatable(lobby.phase() == RaceLobbyPacket.Phase.RUNNING
+                ? "screen.kurumamod.race_host.stop" : "screen.kurumamod.race_host.cancel"));
     }
 
     @Override

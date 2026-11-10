@@ -140,7 +140,15 @@ public final class TimeAttackClass {
             if (!awaiting.equals(fromServer) && awaitTicks > 0 && exists) {
                 return;
             }
+            boolean refused = !awaiting.equals(fromServer);
             awaiting = null;
+            if (refused) {
+                // 送った宣言をサーバーが受けなかった（ログアウト中にクラスが消された、など）。<b>覚えた宣言も消す</b>——
+                // 下の「変わったら覚える」は declared がもう同じ値だと通らず、入るたびに送り直していた
+                declared = fromServer;
+                remember(fromServer);
+                return;
+            }
         }
         if (!fromServer.equals(declared)) {
             declared = fromServer;

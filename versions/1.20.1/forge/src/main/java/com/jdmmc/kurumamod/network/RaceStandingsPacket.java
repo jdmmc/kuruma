@@ -46,7 +46,12 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
      *                 タイムの代わりに「未スタート」と出すために要る
      */
     public record Row(String name, int laps, long millis, boolean leader, boolean finished,
-                      boolean started) {
+                      boolean started, boolean retired) {
+
+        /** リタイアしていない行。 */
+        public Row(String name, int laps, long millis, boolean leader, boolean finished, boolean started) {
+            this(name, laps, millis, leader, finished, started, false);
+        }
     }
 
     /** 経過時間の要らない場面（受付・リザルト）。 */
@@ -63,7 +68,7 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
         List<Row> rows = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             rows.add(new Row(buf.readUtf(32), buf.readVarInt(), buf.readLong(),
-                    buf.readBoolean(), buf.readBoolean(), buf.readBoolean()));
+                    buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean()));
         }
         return rows;
     }
@@ -80,6 +85,7 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
             buf.writeBoolean(row.leader());
             buf.writeBoolean(row.finished());
             buf.writeBoolean(row.started());
+            buf.writeBoolean(row.retired());
         }
         // 号砲からの経過時間 [ms]。観戦者の時計に使う（走っている人は自分のラップを測っている）
         buf.writeLong(elapsedMillis);

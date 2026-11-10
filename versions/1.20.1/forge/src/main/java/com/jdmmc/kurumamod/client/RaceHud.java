@@ -1139,7 +1139,10 @@ public final class RaceHud {
             Slant.text(graphics, font, pos, left + 11 - font.width(pos) / 2, y + 5, WHITE);
             Slant.text(graphics, font, row.name(), left + 30, y + 5, me ? INK : WHITE);
             String value;
-            if (!row.finished()) {
+            if (row.retired()) {
+                // 落ちた・降りたままでリタイアした人。リザルトを出し終えるまで覚えておいて、リタイアとして並べる
+                value = Component.translatable("race.kurumamod.hud_retired", row.laps()).getString();
+            } else if (!row.finished()) {
                 value = Component.translatable("race.kurumamod.hud_dnf", row.laps()).getString();
             } else if (row.leader()) {
                 value = RaceManager.format(row.millis());

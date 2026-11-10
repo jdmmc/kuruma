@@ -224,26 +224,6 @@ public class RaceData extends SavedData {
         return sectors;
     }
 
-    /** そのプレイヤーのそのコースのベストを（総合も全クラスも）消す。消したら true。 */
-    public boolean clearBest(UUID player, String course) {
-        Map<String, Map<String, Best>> byCourse = bestLaps.get(player);
-        if (byCourse == null || byCourse.remove(course) == null) {
-            return false;
-        }
-        setDirty();
-        return true;
-    }
-
-    /** そのプレイヤーのベストを全部消す。消したコースの数。 */
-    public int clearBests(UUID player) {
-        Map<String, Map<String, Best>> byCourse = bestLaps.remove(player);
-        if (byCourse == null) {
-            return 0;
-        }
-        setDirty();
-        return byCourse.size();
-    }
-
     /**
      * そのコースの全員のベストを消す。消した人数。
      *
@@ -301,12 +281,6 @@ public class RaceData extends SavedData {
         return removed;
     }
 
-    /** そのプレイヤーが記録を持っているコース名。 */
-    public java.util.Set<String> recordedCourses(UUID player) {
-        Map<String, Map<String, Best>> byCourse = bestLaps.get(player);
-        return byCourse == null ? java.util.Set.of() : new java.util.HashSet<>(byCourse.keySet());
-    }
-
     /** 総合のベストラップ [ms]。無ければ 0。 */
     public long bestLap(UUID player, String course) {
         return bestLap(player, course, OVERALL);
@@ -327,31 +301,6 @@ public class RaceData extends SavedData {
     public long[] bestSplits(UUID player, String course, String raceClass) {
         Best best = best(player, course, raceClass);
         return best == null || best.millis <= 0L ? null : best.splits;
-    }
-
-    /** 総合の理論ベスト [ms]。 */
-    public long theoreticalBest(UUID player, String course) {
-        return theoreticalBest(player, course, OVERALL);
-    }
-
-    /**
-     * 理論ベスト [ms]。区間ベストの合計。揃っていなければ 0。
-     *
-     * <p>ベストラップと同じ値になることもある（全区間を同じ周に出した場合）。</p>
-     */
-    public long theoreticalBest(UUID player, String course, String raceClass) {
-        Best best = best(player, course, raceClass);
-        if (best == null || best.sectors.length == 0) {
-            return 0L;
-        }
-        long total = 0L;
-        for (long sector : best.sectors) {
-            if (sector <= 0L) {
-                return 0L;
-            }
-            total += sector;
-        }
-        return total;
     }
 
     private Best best(UUID player, String course, String raceClass) {
@@ -378,11 +327,6 @@ public class RaceData extends SavedData {
 
     /** ランキングの 1 行。名前は記録した時点のもの。 */
     public record Entry(UUID player, String name, long millis) {
-    }
-
-    /** そのコースの総合の速い順。 */
-    public List<Entry> leaderboard(String course, int limit) {
-        return leaderboard(course, OVERALL, limit);
     }
 
     /**
