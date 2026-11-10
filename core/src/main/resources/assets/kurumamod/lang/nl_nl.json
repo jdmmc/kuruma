@@ -384,6 +384,7 @@
   "race.kurumamod.left_announce": "%s heeft zich uitgeschreven (%s deelnemers in totaal)",
   "race.kurumamod.not_host": "Alleen de host kan dit doen",
   "race.kurumamod.retired": "%s heeft de race verlaten",
+  "race.kurumamod.host_left_running": "Host %s is vertrokken. De race gaat door",
   "race.kurumamod.not_timing": "Er wordt geen tijdrit getimed",
   "race.kurumamod.reset_while_racing": "Je kunt niet resetten tijdens een race (verlaat de race via het racescherm, K)",
   "race.kurumamod.timeattack_reset": "Tijdrit afgebroken. De tijd loopt opnieuw vanaf je volgende passage over de start-/finishlijn",

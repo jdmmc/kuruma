@@ -375,6 +375,7 @@
   "race.kurumamod.left_announce": "%s отменяет участие (всего: %s)",
   "race.kurumamod.not_host": "Это может сделать только организатор",
   "race.kurumamod.retired": "%s выбывает из гонки",
+  "race.kurumamod.host_left_running": "Организатор %s вышел. Гонка продолжается",
   "race.kurumamod.not_timing": "Заезд на время сейчас не идёт",
   "race.kurumamod.reset_while_racing": "Во время гонки сброс недоступен (выйти из гонки можно на экране гонки, K)",
   "race.kurumamod.timeattack_reset": "Заезд на время отменён. Отсчёт начнётся при следующем пересечении стартовой линии",

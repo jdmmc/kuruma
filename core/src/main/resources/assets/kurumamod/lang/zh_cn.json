@@ -384,6 +384,7 @@
   "race.kurumamod.left_announce": "%s 已取消报名（%s 人）",
   "race.kurumamod.not_host": "只有举办者本人可以操作",
   "race.kurumamod.retired": "%s 退出了比赛",
+  "race.kurumamod.host_left_running": "主办者 %s 已离开。比赛继续进行",
   "race.kurumamod.not_timing": "未在计时赛计时",
   "race.kurumamod.reset_while_racing": "比赛中无法取消（退出请在比赛界面（K）操作）",
   "race.kurumamod.timeattack_reset": "已取消计时赛。下次通过起跑线时重新计时",

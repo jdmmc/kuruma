@@ -146,10 +146,11 @@ public final class RaceManager {
     }
 
     /**
-     * 主催者が落ちたら、そのレースは中止する（リザルトも出さない）。
+     * 主催者が落ちたら、受付中のレースは中止する（リザルトも出さない）。走行中は続ける。
      *
      * <p>主催者のいないレースを残すと、誰が畳むのか・誰がスタートを押すのかの取り回しが面倒になる。
-     * 抜けたのが主催者でなければ何もしない。</p>
+     * <b>ただし走行中は中止しない</b>（ほかの人が走っている途中で打ち切らない）。全員がゴールすれば締まり、
+     * OP と参加者が「終える」を押せる。抜けたのが主催者でなければ何もしない。</p>
      */
     private static void cancelIfHost(net.minecraft.world.entity.player.Player player, ResourceKey<Level> from) {
         Session session = SESSIONS.get(from);
@@ -158,6 +159,14 @@ public final class RaceManager {
         }
         ServerLevel level = player.level().getServer().getLevel(from);
         if (level == null) {
+            return;
+        }
+        if (session.started && !session.showingResult) {
+            // <b>走行中は続ける。</b>ほかの人が走っている途中で打ち切らない。全員がゴールすれば締まり、
+            // OP と（主催者がいない間は）参加者が「終える」を押せる（canManage）
+            broadcast(level, Component.translatable("race.kurumamod.host_left_running", session.hostName)
+                    .withStyle(ChatFormatting.GRAY));
+            broadcastLobby(level, session);
             return;
         }
         cleanup(level, session);
@@ -169,7 +178,8 @@ public final class RaceManager {
      * 走行状態を捨て、レース中ならリタイアとして知らせる。
      *
      * <p>エントリー名簿からは<b>消さない</b>。リザルトに「完走していない人」として
-     * 残す方が、誰が出走していたか分かる。</p>
+     * 残す方が、誰が出走していたか分かる。代わりに {@code retired} に入れ、入り直してもレースの HUD は出さず、
+     * レースに参加していない人として扱う。</p>
      */
     private static void dropOut(net.minecraft.world.entity.player.Player player,
                                 ResourceKey<Level> from) {
@@ -185,6 +195,9 @@ public final class RaceManager {
                 || session.finishOrder.containsKey(player.getUUID())) {
             return;
         }
+        // <b>落ちた時点でリタイア。</b>名簿には残す（リザルトに「完走していない人」として出す）が、入り直しても
+        // そのレースには数えない。数えると、スタートラインを越えたところからレースの 1 周目を測り直していた
+        session.retired.add(player.getUUID());
         ServerLevel level = player.level().getServer() == null ? null : player.level().getServer().getLevel(from);
         if (level != null) {
             broadcast(level, Component.translatable("race.kurumamod.retired",
@@ -370,6 +383,8 @@ public final class RaceManager {
      */
     private static void toViewers(ServerLevel level, Session session, CustomPacketPayload packet) {
         List<UUID> ids = new ArrayList<>(session.entrants);
+        // リタイアした人（落ちて入り直した人）にはレースの HUD を出さない
+        ids.removeAll(session.retired);
         ids.addAll(session.spectators);
         for (UUID id : ids) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
@@ -414,10 +429,29 @@ public final class RaceManager {
         // あると、別コースをタイムアタックしている人まで参加者にされてしまう
         String courseName = state != null ? state.course : null;
         if (courseName == null) {
-            courseName = findCourseCrossed(data, car, state);
-            if (courseName == null) {
+            List<String> crossed = coursesCrossed(data, car, state);
+            if (crossed.isEmpty()) {
                 rememberPosition(states, player, car, null);
                 return;
+            }
+            startWarmUp(states, player, car, crossed);
+            return;
+        }
+        // ウォームアップ中（まだ測っていない・レースの参加者ではない）は、トラックを決め直せる
+        if (!state.timing && !state.finished && state.hasLast && !isRacer(session, player, state.course)) {
+            // 1. 別のトラックのスタートラインを越えたら、そちらへ乗り換える。最初に越えたトラックに縛られると、
+            //    隣のトラックへ移っても降りるか「計測をやめる」まで測れなかった
+            List<String> crossed = coursesCrossed(data, car, state);
+            crossed.removeAll(state.candidates);
+            crossed.remove(state.course);
+            if (!crossed.isEmpty()) {
+                startWarmUp(states, player, car, crossed);
+                return;
+            }
+            // 2. スタートラインを共有するトラックがいくつかあるなら、通ったチェックポイントで絞る
+            if (state.candidates.size() > 1) {
+                state = narrowCandidates(data, states, player, car, state);
+                courseName = state.course;
             }
         }
 
@@ -514,19 +548,75 @@ public final class RaceManager {
         completeLap(level, session, states, player, data, course, state, lapMillis, crossedAt);
     }
 
-    /** どのコースも走っていないとき、跨いだスタートラインからコースを決める。 */
-    private static String findCourseCrossed(RaceData data, CarEntity car, LapState state) {
+    /**
+     * 前のティックから今までに越えたスタートラインのトラック（名前順）。<b>スタートラインを共有するトラックは
+     * 全部返す</b>（レイアウト違いなど）。どれを走るかは {@link #narrowCandidates} がチェックポイントで決める。
+     */
+    private static List<String> coursesCrossed(RaceData data, CarEntity car, LapState state) {
+        List<String> out = new ArrayList<>();
         if (state == null || !state.hasLast) {
-            return null;
+            return out;
         }
         for (Course course : data.courses()) {
             CourseLine start = course.start();
-            if (start != null && start.crossingFraction(
+            if (course.isReady() && start != null && start.crossingFraction(
                     state.lastX, state.lastZ, car.getX(), car.getZ(), car.getY()) >= 0.0) {
-                return course.name();
+                out.add(course.name());
             }
         }
-        return null;
+        return out;
+    }
+
+    /**
+     * ウォームアップを始める（越えたスタートラインのトラックで）。候補が 2 つ以上なら、HUD には「A / B」と並べ、
+     * 計測が始まるまでにチェックポイントで絞る。絞り切れなければ名前順で先のトラックで測る。
+     */
+    private static void startWarmUp(Map<UUID, LapState> states, ServerPlayer player, CarEntity car,
+                                     List<String> candidates) {
+        LapState state = new LapState(candidates.get(0));
+        state.candidates = List.copyOf(candidates);
+        state.lastX = car.getX();
+        state.lastZ = car.getZ();
+        state.hasLast = true;
+        states.put(player.getUUID(), state);
+        String declared = declaredClass(player);
+        send(player, RaceEventPacket.warmUp(String.join(" / ", candidates), declared == null ? "" : declared));
+    }
+
+    /**
+     * スタートラインを共有するトラックを、ウォームアップ中に通ったチェックポイントで絞る。通った線を持つ候補だけを
+     * 残し、1 つになったら確定してウォームアップを出し直す。どの候補も持つ線（共有の区間）では絞らない。
+     *
+     * @return 今のトラックの周回状態（絞ったら作り直したもの）
+     */
+    private static LapState narrowCandidates(RaceData data, Map<UUID, LapState> states, ServerPlayer player,
+                                             CarEntity car, LapState state) {
+        List<String> passed = new ArrayList<>();
+        for (String name : state.candidates) {
+            Course candidate = data.course(name).orElse(null);
+            if (candidate == null) {
+                continue;
+            }
+            for (int i = 0; i < candidate.checkpointCount(); i++) {
+                if (candidate.checkpoint(i).crossingFraction(state.lastX, state.lastZ, car.getX(), car.getZ(),
+                        car.getY()) >= 0.0) {
+                    passed.add(name);
+                    break;
+                }
+            }
+        }
+        if (passed.isEmpty() || passed.size() == state.candidates.size()) {
+            return state;
+        }
+        LapState narrowed = new LapState(passed.get(0));
+        narrowed.candidates = List.copyOf(passed);
+        narrowed.lastX = state.lastX;
+        narrowed.lastZ = state.lastZ;
+        narrowed.hasLast = true;
+        states.put(player.getUUID(), narrowed);
+        String declared = declaredClass(player);
+        send(player, RaceEventPacket.warmUp(String.join(" / ", passed), declared == null ? "" : declared));
+        return narrowed;
     }
 
     private static void rememberPosition(Map<UUID, LapState> states, ServerPlayer player,
@@ -546,7 +636,8 @@ public final class RaceManager {
     private static boolean isRacer(Session session, ServerPlayer player, String course) {
         return session != null && session.started
                 && session.course.equals(course)
-                && session.entrants.contains(player.getUUID());
+                && session.entrants.contains(player.getUUID())
+                && !session.retired.contains(player.getUUID());
     }
 
     /** そのクラスの今の中身（{@link Regulation#toArray}）。クラスが無ければ null。周の始めに覚えておく。 */
@@ -781,8 +872,8 @@ public final class RaceManager {
      */
     private static boolean allFinished(ServerLevel level, Session session) {
         for (UUID id : session.entrants) {
-            if (session.finishOrder.containsKey(id)) {
-                continue;
+            if (session.finishOrder.containsKey(id) || session.retired.contains(id)) {
+                continue;   // ゴールした・リタイアした（落ちて入り直した人も待たない）
             }
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
             if (player == null || player.level() != level) {
@@ -930,6 +1021,9 @@ public final class RaceManager {
         List<ServerPlayer> racers = new ArrayList<>();
         List<ServerPlayer> waiting = new ArrayList<>();
         for (UUID id : session.entrants) {
+            if (session.retired.contains(id)) {
+                continue;
+            }
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
             if (player == null || player.level() != level) {
                 continue;
@@ -1019,6 +1113,7 @@ public final class RaceManager {
         Session session = SESSIONS.get(player.level().dimension());
         boolean entered = session != null && !session.showingResult
                 && session.entrants.contains(player.getUUID())
+                && !session.retired.contains(player.getUUID())
                 && !session.finishOrder.containsKey(player.getUUID());
         if (entered) {
             // エントリーしている間はレースの決まりが優先。宣言は止めておく（ゴールか抜けたら戻る）
@@ -1046,7 +1141,7 @@ public final class RaceManager {
         }
         boolean removed = false;
         for (UUID id : new ArrayList<>(session.entrants)) {
-            if (session.finishOrder.containsKey(id)) {
+            if (session.finishOrder.containsKey(id) || session.retired.contains(id)) {
                 continue;
             }
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
@@ -1104,7 +1199,7 @@ public final class RaceManager {
         List<RaceLobbyPacket.Entrant> list = new ArrayList<>();
         for (UUID id : session.entrants) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-            if (player == null) {
+            if (player == null || session.retired.contains(id)) {
                 continue;
             }
             List<Regulation.Violation> violations = violations(player, session.regulation);
@@ -1121,7 +1216,8 @@ public final class RaceManager {
         long best = data.bestLap(viewer.getUUID(), session.course);
         return new RaceLobbyPacket(phaseOf(session), session.course, session.laps, checkpoints,
                 session.hostName, viewer.getUUID().equals(session.host),
-                session.entrants.contains(viewer.getUUID()), session.spectators.contains(viewer.getUUID()),
+                session.entrants.contains(viewer.getUUID()) && !session.retired.contains(viewer.getUUID()),
+                session.spectators.contains(viewer.getUUID()),
                 canManage(viewer), Math.max(0L, best),
                 session.regulation.toArray(), list, courses, RaceClasses.list(level.getServer()),
                 isOp(viewer), declaredName(viewer));
@@ -1459,7 +1555,8 @@ public final class RaceManager {
         boolean hostOnline = session.host != null
                 && player.level().getServer() != null
                 && player.level().getServer().getPlayerList().getPlayer(session.host) != null;
-        return !hostOnline && session.entrants.contains(player.getUUID());
+        return !hostOnline && session.entrants.contains(player.getUUID())
+                && !session.retired.contains(player.getUUID());
     }
 
     /** 受付中のレースのコース名。無ければ null。 */
@@ -1779,6 +1876,11 @@ public final class RaceManager {
          * <b>参加者と重ならない</b>（入ったら外し、観戦に切り替えたらエントリーを取り消す）。
          */
         private final java.util.Set<UUID> spectators = new java.util.LinkedHashSet<>();
+        /**
+         * 走行中に落ちた（別の次元へ移った）参加者。<b>名簿には残す</b>（リザルトに完走していない人として出す）が、
+         * 入り直してもそのレースには数えない（HUD を出さず、参加していない人として扱う）。
+         */
+        private final java.util.Set<UUID> retired = new java.util.HashSet<>();
         private int countdown = -1;
         private int holdTicks;
         private boolean started;
@@ -1841,6 +1943,11 @@ public final class RaceManager {
          * デルタとベストの比べる相手で、宣言を周の途中で変えても次の周まで変わらない。
          */
         private String raceClass;
+        /**
+         * スタートラインを越えたときの候補のトラック（共有のスタートラインなら 2 つ以上）。ウォームアップ中に
+         * チェックポイントで絞る。{@link #course} は候補の先頭。
+         */
+        private List<String> candidates = List.of();
         /**
          * この周を始めたときのクラスの中身（{@link Regulation#toArray}）。周の終わりに今の中身と比べ、
          * 途中で書き換えられていたらクラスの記録に入れない。

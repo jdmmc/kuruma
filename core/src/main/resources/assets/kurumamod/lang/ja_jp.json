@@ -977,6 +977,7 @@
   "screen.kurumamod.race_host.class_admin_only": "クラスの保存と削除は OP だけです",
   "race.kurumamod.invite.detail_class": "%s · %s · %s 周 · %s 人",
   "race.kurumamod.host_left": "主催者の %s さんが抜けたため、レースを中止しました",
+  "race.kurumamod.host_left_running": "主催者の %s さんが抜けました。レースはそのまま続きます",
   "screen.kurumamod.race_info.spectate": "観戦する",
   "screen.kurumamod.race_info.unspectate": "観戦をやめる",
   "race.kurumamod.spectate_on": "観戦に切り替えました（エントリーはしていません）",

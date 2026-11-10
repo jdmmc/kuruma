@@ -384,6 +384,7 @@
   "race.kurumamod.left_announce": "%s abgemeldet (%s insgesamt)",
   "race.kurumamod.not_host": "Nur der Gastgeber kann das tun",
   "race.kurumamod.retired": "%s hat das Rennen aufgegeben",
+  "race.kurumamod.host_left_running": "Gastgeber %s hat das Spiel verlassen. Das Rennen läuft weiter",
   "race.kurumamod.not_timing": "Es läuft keine Zeitfahrt-Messung",
   "race.kurumamod.reset_while_racing": "Zurücksetzen während eines Rennens nicht möglich (aussteigen über den Rennbildschirm, K)",
   "race.kurumamod.timeattack_reset": "Zeitfahren abgebrochen. Die Zeitmessung beginnt beim nächsten Überqueren der Startlinie",
