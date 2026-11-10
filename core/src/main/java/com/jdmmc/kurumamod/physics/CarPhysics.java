@@ -41,6 +41,14 @@ public final class CarPhysics {
 
     /** これ以下の速さは「停止している」とみなす [m/s] */
     private static final double STOP_THRESHOLD = 0.3;
+    /**
+     * 回転の上限の手前で駆動を絞り始める幅 [rpm]（{@link #limitedTorque}）。<b>自動の変速点（レブの
+     * {@code UPSHIFT_CEILING}）より上だけで絞る</b>——広げると、上がる直前に駆動を削って前進の加速が遅くなる
+     * （250 だと 0-100 km/h が 0.06 秒遅れた）。
+     */
+    private static final double REV_LIMIT_BAND = 100.0;
+    /** 後退のときの回転の上限（レブリミットに対する割合）。初期の車で約 3,150 rpm・26 km/h。 */
+    private static final double REVERSE_RPM_SHARE = 0.45;
 
     /**
      * 1 輪が受け持つ荷重の上限（停車時荷重の何倍か）。
@@ -732,7 +740,7 @@ public final class CarPhysics {
 
         double torque;
         if (accelerating) {
-            torque = state.engineRpm >= spec.redlineRpm() ? 0.0 : spec.engineTorque(state.engineRpm);
+            torque = limitedTorque(spec, state.engineRpm, revLimit(spec, state.gear));
         } else {
             torque = -engineBrakeTorque(spec, state.engineRpm);
         }
@@ -772,7 +780,10 @@ public final class CarPhysics {
 
         // 後退は同じトルクを逆向きに掛ける
         double direction = state.gear == -1 ? -1.0 : 1.0;
-        state.driveTorque = state.engineTorque * ratio * spec.drivetrainEfficiency() * direction;
+        // エンジンブレーキは<b>実際に転がっている向きに逆らう</b>。段の向きと逆へ転がっているとき
+        // （1 速のまま坂を後ろへ下がる、など）にそのまま掛けると、逆らうどころか転がる向きへ押してしまう
+        double brakeSign = state.engineTorque < 0.0 && state.forwardSpeed * direction < -STOP_THRESHOLD ? -1.0 : 1.0;
+        state.driveTorque = state.engineTorque * brakeSign * ratio * spec.drivetrainEfficiency() * direction;
 
         for (Wheel wheel : Wheel.VALUES) {
             state.wheelDriveTorque[wheel.ordinal()] = state.driveTorque * spec.driveShare(wheel);
@@ -813,6 +824,12 @@ public final class CarPhysics {
         boolean movingForward = state.forwardSpeed > STOP_THRESHOLD;
         if (input.brake() && !movingForward) {
             return -1; // 停止していれば S でバックに入る
+        }
+        // <b>後ろへ転がっている間は後退のまま。</b>実車の AT で R のまま足を離したのと同じ。ここで下の
+        // 「0 以下なら 1 速」へ落ちると、後ろへ動いたまま 1 速に入り、前へ回るのを止める向きのエンジンブレーキが
+        // 後ろへ押す力になって加速し続けた（S を 1 秒押して離すと、8 秒で後ろへ 55 km/h）
+        if (state.gear == -1 && state.forwardSpeed < -STOP_THRESHOLD) {
+            return -1;
         }
         if (state.gear <= 0) {
             return 1;
@@ -1268,6 +1285,32 @@ public final class CarPhysics {
      * ノーズダウンし（-0.017 度）、停止中に舵を切るだけで少し動いた。0 へは
      * {@link #ENGINE_BRAKE_FADE_RPM} かけて滑らかに落とす（段差にすると直結の境目で車が揺れる）。</p>
      */
+    /**
+     * 踏んでいるときに回転の上限（{@link #revLimit}）で頭打ちにする。上限の {@link #REV_LIMIT_BAND} 手前から
+     * 駆動を絞り、上限を超えたらエンジンブレーキで引き戻す。
+     *
+     * <p><b>ちょうど上限で 0 にするだけでは効かなかった。</b>上限の速さ（{@code maxReverseSpeed}）で頭を
+     * 押さえているので回転数は上限の手前で止まり、判定は毎回「まだ手前」になって全開のまま押し付けていた
+     * （バックで 3 秒のうちに 57.5 km/h へ張り付き、駆動は全開のまま）。</p>
+     */
+    private static double limitedTorque(CarSpec spec, double rpm, double limit) {
+        if (rpm >= limit) {
+            return -engineBrakeTorque(spec, rpm);
+        }
+        double torque = spec.engineTorque(rpm);
+        double room = limit - rpm;
+        return room < REV_LIMIT_BAND ? torque * room / REV_LIMIT_BAND : torque;
+    }
+
+    /**
+     * 踏んでいるときの回転の上限。前進はレブリミット、<b>後退はその {@link #REVERSE_RPM_SHARE}</b>。
+     * 後退は 1 速と同じギア比なので、レブまで回せると 1 速と同じ勢いで後ろへ走ってしまう（初期の車で 57.5 km/h）。
+     * 実車の AT と同じく、後退では回転を低く抑える。
+     */
+    private static double revLimit(CarSpec spec, int gear) {
+        return gear == -1 ? spec.redlineRpm() * REVERSE_RPM_SHARE : spec.redlineRpm();
+    }
+
     private static double engineBrakeTorque(CarSpec spec, double rpm) {
         double above = rpm - spec.idleRpm();
         if (above <= 0.0) {
