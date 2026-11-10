@@ -365,7 +365,7 @@ public final class PartFitment {
         //
         // しかも投げ先が悪い——呼び出し元は Forge の enqueueWork の中で、返る CompletableFuture を
         // 誰も見ていないため、<b>例外はログにすら出ずに握り潰される</b>。症状は「換装ボタンを押しても
-        // 何も起きず、ログにも何も出ない」。CLAUDE.md の tryRebuildTabContents と同じ形の地雷
+        // 何も起きず、ログにも何も出ない」。tryRebuildTabContents と同じ形の地雷
         EnumMap<PartSlot, Setting> next = new EnumMap<>(PartSlot.class);
         next.putAll(parts);
         if (setting.isEmpty()) {
