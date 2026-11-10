@@ -297,7 +297,11 @@ public final class RaceOrganizerScreen extends Screen {
                         button -> KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.START)))
                 .bounds(frameRight - 110, by, 110, 20).build());
         stopButton = addRenderableWidget(Button.builder(Component.empty(),
-                        button -> KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.STOP)))
+                        button -> {
+                            KurumaNetwork.sendToServer(RaceActionPacket.of(RaceActionPacket.Action.STOP));
+                            // 終えた（中止した）ら主催者画面は閉じる。開いたままだと、そのあとのリザルトが画面の裏に隠れる
+                            onClose();
+                        })
                 .bounds(frameRight - 110 - 6 - 90, by, 90, 20).build());
         refreshWidgets();
     }
