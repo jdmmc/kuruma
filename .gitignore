@@ -39,5 +39,5 @@ carpack/example/*.jar
 # このマシン固有の設定（ローカルの絶対パスが入る）
 gradle-local.properties
 
-# Claude Code 向けの資料（CLAUDE.md から分けた詳細）
+# 開発用のメモ（公開しない詳細）
 docs/

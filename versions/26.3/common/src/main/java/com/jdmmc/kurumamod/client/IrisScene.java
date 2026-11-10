@@ -47,7 +47,7 @@ import java.util.Set;
  * <b>Iris 26.3 は OpenGL でしか動かない</b>（Iris 自身が {@code GlDevice}・{@code GlTexture} を前提にしている）ので、
  * この口が呼ばれるのはパック使用中の OpenGL だけ。Vulkan や Iris の無い環境では一度も通らない。</p>
  *
- * <p>Iris の中身はリフレクションで聞く（Minecraft の名前ではないので CLAUDE.md の禁止に当たらない）。
+ * <p>Iris の中身はリフレクションで聞く（Minecraft の名前ではないので、名前を引く禁止には当たらない）。
  * 聞けなければ仕上げ前には描かず、呼ぶ側は仕上がった絵に重ねる描き方に戻る。</p>
  *
  * <p><b>深度について。</b>Iris 1.11.7 はパック使用中も深度を逆向き（Reversed-Z）のまま使う
