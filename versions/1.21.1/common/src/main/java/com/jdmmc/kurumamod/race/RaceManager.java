@@ -519,7 +519,8 @@ public final class RaceManager {
         }
         // ゴールしてから落ちた（別のワールドへ移った）人が戻ってきた。覚えておいたゴールの状態を戻す。
         // 戻さないとラインを越えたところでレースの周を測り直し、もう一度ゴールして順位が書き換わった
-        if (session != null && session.started && !session.showingResult
+        // リザルトを出している間も戻す（戻さないと、リザルトの最中にタイムアタックが始まった）
+        if (session != null && session.started
                 && session.finishOrder.containsKey(player.getUUID()) && !states.containsKey(player.getUUID())) {
             LapState finished = session.kept.remove(player.getUUID());
             if (finished != null) {
@@ -739,9 +740,9 @@ public final class RaceManager {
         return regulation == null ? null : regulation.toArray();
     }
 
-    /** デルタとベストの比べる相手のクラス（空なら総合）。 */
+    /** デルタとベストの比べる相手のクラス（空ならクラスなし）。 */
     private static String comparedClass(LapState state) {
-        return state.raceClass == null ? RaceData.OVERALL : state.raceClass;
+        return state.raceClass == null ? RaceData.NO_CLASS : state.raceClass;
     }
 
     /**
@@ -889,7 +890,7 @@ public final class RaceManager {
                                     ServerPlayer player, RaceData data, Course course,
                                     LapState state, long lapMillis, double crossedAt) {
         // 差を出す相手は「更新する前の」ベスト。取り込んでから引くと必ず 0 になる。
-        // 相手はこの周を始めたときに宣言していたクラスの自己ベスト（宣言していなければ総合）
+        // 相手はこの周を始めたときに宣言していたクラスの自己ベスト（宣言していなければクラスなし）
         String compared = comparedClass(state);
         long previousBest = data.bestLap(player.getUUID(), course.name(), compared);
         // <b>レースの周はタイムアタックのベストに数えない。</b>他の車がいてレギュレーションに縛られた周で、
@@ -916,7 +917,7 @@ public final class RaceManager {
         long delta = lapMillis - previousBest;
         boolean hasDelta = previousBest > 0L;
         // 比べたクラスのベストを更新したか（HUD の「ベスト」の表示はこちら）
-        boolean best = compared.isEmpty() ? record.overall() : counted != null && record.inClass();
+        boolean best = compared.isEmpty() ? record.noClass() : counted != null && record.inClass();
         if (counted != null && record.inClass() && previousBest <= 0L) {
             // そのクラスのはじめての記録。一覧の記録の件数が 1 つ増える
             classesToAll(player.getServer());
@@ -948,11 +949,11 @@ public final class RaceManager {
         state.classRules = classRules(player, nextClass);
         send(player, RaceEventPacket.lapCompleted(state.lap, racing ? session.laps : 0,
                 lapMillis, bestMillis, best, delta, hasDelta, course.name(),
-                counted == null ? "" : counted, record.inClass(), record.overall(),
+                counted == null ? "" : counted, record.inClass(), record.noClass(),
                 nextClass == null ? "" : nextClass,
-                data.bestLap(player.getUUID(), course.name(), nextClass == null ? RaceData.OVERALL : nextClass)));
-        if (!best && record.overall() && !compared.isEmpty()) {
-            // クラスでは届かなかったが総合を更新した。HUD はクラスの方を出すので、チャットで知らせる
+                data.bestLap(player.getUUID(), course.name(), nextClass == null ? RaceData.NO_CLASS : nextClass)));
+        if (!best && record.noClass() && !compared.isEmpty()) {
+            // クラスの条件を満たさず、クラスなしの記録になってベストを更新した。HUD はクラスの方を出すので、チャットで知らせる
             player.sendSystemMessage(Component.translatable("race.kurumamod.overall_best",
                     course.name(), format(lapMillis)).withStyle(ChatFormatting.AQUA));
         }
@@ -1000,9 +1001,10 @@ public final class RaceManager {
         if (!allFinished(level, session)) {
             return;
         }
-        if (session.entrants.isEmpty()) {
-            // 全員が抜けた。並べる相手がいないのでリザルトは出さない
+        if (session.finishOrder.isEmpty() && session.retired.containsAll(session.entrants)) {
+            // 誰もゴールせずに全員が抜けた（リタイア・落ちた）。リタイアだけを並べても仕方がないのでリザルトは出さない
             cleanup(level, session);
+            broadcast(level, Component.translatable("race.kurumamod.all_retired").withStyle(ChatFormatting.GRAY));
             return;
         }
         broadcastResult(level, session, states);
@@ -1377,6 +1379,38 @@ public final class RaceManager {
         }
     }
 
+    /**
+     * コースが消された（{@code /kuruma-admin course remove}）。<b>そのコースのレースは中止し（リザルトも出さない）、
+     * 測っていたタイムアタックを止め、記録とゴーストも消す。</b>
+     *
+     * <p>放っておくと、ラインを判定できないまま画面の時計とゴーストが回り続け、レースは誰もゴールできずに
+     * 終わらなかった。記録はサーバーに残り、K の画面には出ないのにクラスの記録の件数には数えられていた。</p>
+     */
+    public static void onCourseRemoved(ServerLevel level, String name) {
+        Session session = SESSIONS.get(level.dimension());
+        if (session != null && session.course.equals(name)) {
+            cleanup(level, session);
+            broadcast(level, Component.translatable("race.kurumamod.course_removed_race", name)
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        Map<UUID, LapState> states = states(level);
+        for (ServerPlayer player : level.players()) {
+            LapState state = states.get(player.getUUID());
+            if (state != null && name.equals(state.course)) {
+                states.remove(player.getUUID());
+                send(player, RaceEventPacket.cleared());
+            }
+        }
+        // ゴーストはクライアントにあるので、入っている全員に消させる（入っていない人のものは、次に走り出したとき
+        // サーバーのベストと周が合わずに消える）
+        if (RaceData.get(level).clearCourseBests(name) > 0) {
+            for (ServerPlayer online : level.getServer().getPlayerList().getPlayers()) {
+                notifyBestCleared(online, name);
+            }
+        }
+        classesToAll(level.getServer());
+    }
+
     /** 1 人へ配る。ログインしたとき・次元を移ったとき・主催者画面を開いたとき。 */
     public static void sendLobby(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
@@ -1504,6 +1538,13 @@ public final class RaceManager {
                 case RACING -> Component.translatable("race.kurumamod.reset_while_racing");
                 case RESET -> Component.translatable("race.kurumamod.timeattack_reset");
             });
+            case DELETE_RECORD -> {
+                if (!isOp(player)) {
+                    tell(player, Component.translatable("race.kurumamod.record_denied"));
+                } else {
+                    deleteRecord(player, packet.course(), packet.extra());
+                }
+            }
             case MOVE_CLASS -> {
                 if (!isOp(player)) {
                     tell(player, Component.translatable("race.kurumamod.class_denied"));
@@ -1607,14 +1648,59 @@ public final class RaceManager {
     }
 
     /**
-     * そのコースの記録（総合と、サーバーにある全クラス）を送る。K のタイムアタックの画面から頼まれる。
+     * タイムアタックの記録を 1 つ消す（OP が K の画面から）。消したら、記録の持ち主にも知らせる。
+     *
+     * <p><b>ゴーストは持ち主のクライアントにある。</b>持ち主が入っていれば、知らせを受けてその場で消す。入っていなければ
+     * 手元に残るが、次にそのコースを走り出したとき、サーバーのベストと周が合わないので消える（{@code CarGhosts}）。</p>
+     *
+     * @param target 「消す人の UUID」と「クラスの名前（空ならクラスなし）」を空白 1 つで区切ったもの
+     */
+    private static void deleteRecord(ServerPlayer player, String course, String target) {
+        int space = target.indexOf(' ');
+        UUID id;
+        try {
+            id = UUID.fromString(space < 0 ? target : target.substring(0, space));
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        String raceClass = space < 0 ? "" : target.substring(space + 1);
+        MinecraftServer server = player.getServer();
+        RaceData data = RaceData.get((ServerLevel) player.level());
+        RaceData.Entry entry = data.entry(id, course, raceClass);
+        String name = entry == null ? null : displayName(server, entry);
+        if (name == null || !data.removeBest(id, course, raceClass)) {
+            tell(player, Component.translatable("race.kurumamod.record_not_found"));
+            sendRecords(player, course);
+            return;
+        }
+        Component board = raceClass.isEmpty()
+                ? Component.translatable("screen.kurumamod.time_attack.overall") : Component.literal(raceClass);
+        player.sendSystemMessage(Component.translatable("race.kurumamod.record_deleted", name, course, board)
+                .withStyle(ChatFormatting.GRAY));
+        ServerPlayer owner = server.getPlayerList().getPlayer(id);
+        if (owner != null) {
+            // 持ち主のゴーストと、HUD の比べる相手を消させる（消した 1 つだけ）
+            send(owner, raceClass.isEmpty() ? RaceEventPacket.noClassCleared(course)
+                    : RaceEventPacket.bestCleared(course, raceClass));
+            if (owner != player) {
+                owner.sendSystemMessage(Component.translatable("race.kurumamod.record_deleted_owner",
+                        course, board, player.getGameProfile().getName()).withStyle(ChatFormatting.GRAY));
+            }
+        }
+        // クラスの記録の件数が変わる。消した本人の画面は、すぐ新しいランキングに
+        classesToAll(server);
+        sendRecords(player, course);
+    }
+
+    /**
+     * そのコースの記録（クラスなしと、サーバーにある全クラス）を送る。K のタイムアタックの画面から頼まれる。
      *
      * <p>記録がまだ無いクラスも空のランキングとして送る（画面で「まだ記録がありません」と出すため）。</p>
      */
     private static void sendRecords(ServerPlayer player, String course) {
         RaceData data = RaceData.get((ServerLevel) player.level());
         List<TimeAttackRecordsPacket.Board> boards = new ArrayList<>();
-        boards.add(board(data, player, course, RaceData.OVERALL));
+        boards.add(board(data, player, course, RaceData.NO_CLASS));
         for (String raceClass : RaceClasses.names(player.getServer())) {
             boards.add(board(data, player, course, raceClass));
         }
@@ -1631,7 +1717,7 @@ public final class RaceManager {
             boolean you = entry.player().equals(player.getUUID());
             if (i < TimeAttackRecordsPacket.TOP || you && !listedSelf) {
                 rows.add(new TimeAttackRecordsPacket.Row(i + 1, displayName(player.getServer(), entry),
-                        entry.millis(), you));
+                        entry.millis(), you, entry.player()));
                 listedSelf |= you;
             }
             if (i >= TimeAttackRecordsPacket.TOP && listedSelf) {

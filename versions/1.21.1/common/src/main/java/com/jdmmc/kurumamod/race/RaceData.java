@@ -24,8 +24,10 @@ import java.util.UUID;
  * 速いか」を出すには、ベスト走行が各チェックポイントを何秒で通ったかが要る。あわせて
  * 区間ごとのベスト（別々の周に出したものでよい）も持つので、その合計が理論ベストになる。</p>
  *
- * <p>ベストは<b>「プレイヤー × コース × クラス」ごとに 1 本</b>。クラスの名前が空（{@link #OVERALL}）のものが
- * <b>総合</b>で、宣言の有無に関係なく全部の周の最速。クラスを宣言して走った周は、総合とそのクラスの両方に入る。</p>
+ * <p>ベストは<b>「プレイヤー × コース × クラス」ごとに 1 本</b>。クラスの名前が空（{@link #NO_CLASS}）のものが
+ * <b>クラスなし</b>。<b>1 つの周は 1 か所にだけ入る</b>——宣言したクラス（条件を満たしたとき）か、クラスなし。
+ * 以前は全部の周を「総合」にも入れていたので、同じ周が 2 か所にあり、片方を消したときにもう片方をどうするかが
+ * 決められなかった。</p>
  */
 public class RaceData extends SavedData {
 
@@ -33,8 +35,8 @@ public class RaceData extends SavedData {
 
     private static final long[] NONE = new long[0];
 
-    /** 総合の記録のクラス名。宣言していない周はここにだけ入る。 */
-    public static final String OVERALL = "";
+    /** クラスなしの記録のクラス名。宣言していない周（と、宣言したクラスの条件を満たさなかった周）が入る。 */
+    public static final String NO_CLASS = "";
 
     // 名前順。線が重なったときにどちらが選ばれるかを再現可能にしておく
     private final Map<String, Course> courses = new java.util.TreeMap<>();
@@ -85,22 +87,21 @@ public class RaceData extends SavedData {
         return courses.values();
     }
 
-    /** 1 周を取り込んだ結果。ベストを更新したか（総合・クラス）。 */
-    public record LapRecord(boolean overall, boolean inClass) {
+    /** 1 周を取り込んだ結果。ベストを更新したか（クラスなし・クラス。入るのはどちらか 1 か所だけ）。 */
+    public record LapRecord(boolean noClass, boolean inClass) {
     }
 
     /**
-     * 1 周ぶんの記録を取り込む。総合には必ず、{@code raceClass} が null でなければそのクラスにも入れる。
+     * 1 周ぶんの記録を取り込む。{@code raceClass} が null でなければそのクラスに、null ならクラスなしに入れる（1 か所だけ）。
      *
      * @param raceClass 宣言して走ったクラスの名前。宣言していなければ null
      * @param splits    各チェックポイントの通過時刻。ラップ開始からの相対 [ms]
      */
     public LapRecord recordLap(UUID player, String playerName, String course, String raceClass,
                                long millis, long[] splits) {
-        boolean overall = recordInto(player, playerName, course, OVERALL, millis, splits);
-        boolean inClass = raceClass != null && !raceClass.isEmpty()
-                && recordInto(player, playerName, course, raceClass, millis, splits);
-        return new LapRecord(overall, inClass);
+        boolean declared = raceClass != null && !raceClass.isEmpty();
+        boolean improved = recordInto(player, playerName, course, declared ? raceClass : NO_CLASS, millis, splits);
+        return new LapRecord(!declared && improved, declared && improved);
     }
 
     /**
@@ -168,6 +169,28 @@ public class RaceData extends SavedData {
         return removed;
     }
 
+    /**
+     * 1 人の 1 つの記録を消す（OP が K の画面から）。消したか。
+     *
+     * <p>消すのはその 1 つだけ（{@code raceClass} が空ならクラスなしの記録）。1 つの周は 1 か所にしか入らないので、
+     * ほかの記録には触らなくてよい。</p>
+     */
+    public boolean removeBest(UUID player, String course, String raceClass) {
+        Map<String, Map<String, Best>> byCourse = bestLaps.get(player);
+        Map<String, Best> byClass = byCourse == null ? null : byCourse.get(course);
+        if (byClass == null) {
+            return false;
+        }
+        boolean removed = byClass.remove(raceClass == null ? NO_CLASS : raceClass) != null;
+        if (byClass.isEmpty()) {
+            byCourse.remove(course);
+        }
+        if (removed) {
+            setDirty();
+        }
+        return removed;
+    }
+
     /** そのクラスの記録の件数（全員・全コース）。クラスを変える前の確認に出す。 */
     public int countClassBests(String raceClass) {
         int count = 0;
@@ -186,7 +209,7 @@ public class RaceData extends SavedData {
      * そのクラスの記録を全員・全コースぶん消す。消した件数。
      *
      * <p><b>クラスの中身が変わったら、前の決まりで出したタイムとは比べられない。</b>上書きと削除のときに使う。
-     * 総合の記録は消さない（決まりに関係なく出したタイムだから）。</p>
+     * クラスなしの記録は消さない（決まりに関係なく出したタイムだから）。</p>
      */
     public int clearClassBests(String raceClass) {
         if (raceClass == null || raceClass.isEmpty()) {
@@ -207,12 +230,12 @@ public class RaceData extends SavedData {
         return removed;
     }
 
-    /** 総合のベストラップ [ms]。無ければ 0。 */
+    /** クラスなしのベストラップ [ms]。無ければ 0。 */
     public long bestLap(UUID player, String course) {
-        return bestLap(player, course, OVERALL);
+        return bestLap(player, course, NO_CLASS);
     }
 
-    /** そのクラスのベストラップ [ms]。無ければ 0。{@code raceClass} が空なら総合。 */
+    /** そのクラスのベストラップ [ms]。無ければ 0。{@code raceClass} が空ならクラスなし。 */
     public long bestLap(UUID player, String course, String raceClass) {
         Best best = best(player, course, raceClass);
         return best == null ? 0L : best.millis;
@@ -229,13 +252,19 @@ public class RaceData extends SavedData {
         return best == null || best.millis <= 0L ? null : best.splits;
     }
 
+    /** その人のそのコース・そのクラス（空ならクラスなし）の記録。無ければ null。 */
+    public Entry entry(UUID player, String course, String raceClass) {
+        Best best = best(player, course, raceClass);
+        return best == null || best.millis <= 0L ? null : new Entry(player, best.name, best.millis);
+    }
+
     private Best best(UUID player, String course, String raceClass) {
         Map<String, Map<String, Best>> byCourse = bestLaps.get(player);
         Map<String, Best> byClass = byCourse == null ? null : byCourse.get(course);
-        return byClass == null ? null : byClass.get(raceClass == null ? OVERALL : raceClass);
+        return byClass == null ? null : byClass.get(raceClass == null ? NO_CLASS : raceClass);
     }
 
-    /** そのコースに記録のあるクラスの名前（総合は含めない）。 */
+    /** そのコースに記録のあるクラスの名前（クラスなしは含めない）。 */
     public java.util.Set<String> recordedClasses(String course) {
         java.util.Set<String> out = new java.util.TreeSet<>();
         for (Map<String, Map<String, Best>> byCourse : bestLaps.values()) {
@@ -265,7 +294,7 @@ public class RaceData extends SavedData {
         List<Entry> entries = new ArrayList<>();
         for (Map.Entry<UUID, Map<String, Map<String, Best>>> row : bestLaps.entrySet()) {
             Map<String, Best> byClass = row.getValue().get(course);
-            Best best = byClass == null ? null : byClass.get(raceClass == null ? OVERALL : raceClass);
+            Best best = byClass == null ? null : byClass.get(raceClass == null ? NO_CLASS : raceClass);
             if (best != null && best.millis > 0L) {
                 entries.add(new Entry(row.getKey(), best.name, best.millis));
             }
@@ -313,7 +342,7 @@ public class RaceData extends SavedData {
         for (int i = 0; i < bestList.size(); i++) {
             CompoundTag row = bestList.getCompound(i);
             // 内訳を持つ前に保存された記録も読める。タイムだけあって内訳が無い状態になり、
-            // 次にそのコースを 1 周すれば内訳が入る。クラスを持つ前の記録（"Class" が無い）は総合になる
+            // 次にそのコースを 1 周すれば内訳が入る。クラスを持つ前の記録（"Class" が無い）はクラスなしになる
             Best best = new Best();
             best.name = row.getString("PlayerName");
             best.millis = row.getLong("Millis");

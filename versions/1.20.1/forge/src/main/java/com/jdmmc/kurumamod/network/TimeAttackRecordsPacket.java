@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * サーバー → クライアント。1 つのコースのタイムアタックの記録（総合と各クラスのランキング）。
+ * サーバー → クライアント。1 つのコースのタイムアタックの記録（クラスなしと各クラスのランキング）。
  *
  * <p>K のタイムアタックの画面がコースを選んだときに頼む（{@link RaceActionPacket.Action#RECORDS}）。
  * 各ランキングは上位 {@link #TOP} 人と、そこに入っていなければ受け取った人の行。</p>
  *
  * @param course コースの名前
- * @param boards 先頭が総合（{@code raceClass} が空）、そのあとクラスの並び順
+ * @param boards 先頭がクラスなし（{@code raceClass} が空）、そのあとクラスの並び順
  */
 public record TimeAttackRecordsPacket(String course, List<Board> boards) {
 
@@ -25,13 +25,13 @@ public record TimeAttackRecordsPacket(String course, List<Board> boards) {
     public static final int TOP = 5;
 
     /** ランキングの 1 行。{@code place} は 1 から。 */
-    public record Row(int place, String name, long millis, boolean you) {
+    public record Row(int place, String name, long millis, boolean you, java.util.UUID player) {
     }
 
     /**
      * 1 つのランキング。
      *
-     * @param raceClass クラスの名前。空なら総合
+     * @param raceClass クラスの名前。空ならクラスなし
      * @param total     記録を持っている人数
      * @param rows      上位と、入っていなければ自分の行（順位の順）
      */
@@ -51,7 +51,7 @@ public record TimeAttackRecordsPacket(String course, List<Board> boards) {
             int rowCount = Math.min(TOP + 1, buf.readVarInt());
             List<Row> rows = new ArrayList<>(rowCount);
             for (int j = 0; j < rowCount; j++) {
-                rows.add(new Row(buf.readVarInt(), buf.readUtf(64), buf.readLong(), buf.readBoolean()));
+                rows.add(new Row(buf.readVarInt(), buf.readUtf(64), buf.readLong(), buf.readBoolean(), buf.readUUID()));
             }
             boards.add(new Board(raceClass, total, rows));
         }
@@ -70,6 +70,7 @@ public record TimeAttackRecordsPacket(String course, List<Board> boards) {
                 buf.writeUtf(row.name(), 64);
                 buf.writeLong(row.millis());
                 buf.writeBoolean(row.you());
+                buf.writeUUID(row.player());
             }
         }
     }

@@ -35,12 +35,12 @@ import java.util.function.Supplier;
  * @param sectorCount 区間の総数（チェックポイント数 + 1）
  * @param delta       自己ベストの同じ地点との差 [ms]。負なら速い
  * @param hasDelta    比較できるベストがあるか。無ければ {@code delta} は無意味
- * @param raceClass   クラスの名前（空なら総合）。{@link Type#LAP_STARTED}・{@link Type#LAP_COMPLETED} は
+ * @param raceClass   クラスの名前（空ならクラスなし）。{@link Type#LAP_STARTED}・{@link Type#LAP_COMPLETED} は
  *                    <b>これから走る周</b>の比べる相手（ゴーストもこれで選ぶ）、{@link Type#BEST_CLEARED} は
  *                    記録を消したクラス
  * @param countedClass 終えた周を記録したクラス（{@link Type#LAP_COMPLETED}）。宣言していない・決まりに外れていたら空
  * @param classBest   終えた周で {@code countedClass} のベストを更新したか
- * @param overallBest 終えた周で総合のベストを更新したか。{@code best} は比べた相手（宣言したクラスか総合）の方
+ * @param overallBest 終えた周でクラスなしのベストを更新したか。{@code best} は比べた相手（宣言したクラスかクラスなし）の方
  * @param targetBest  これから走る周の比べる相手（{@code raceClass}）の自己ベスト [ms]。無ければ 0。
  *                    {@link Type#LAP_STARTED}・{@link Type#LAP_COMPLETED} のとき。<b>手元のゴーストがこのタイムで
  *                    なければ捨てる</b>（落ちている間に記録が消された・上書きされた）
@@ -146,11 +146,20 @@ public record RaceEventPacket(Type type, int lights, boolean frozen, int lap, in
 
     /**
      * @param course    消したコース。空なら全コース
-     * @param raceClass 消したクラス。空ならそのコースの総合も全クラスも
+     * @param raceClass 消したクラス。空ならそのコースのクラスなしも全クラスも
      */
     public static RaceEventPacket bestCleared(String course, String raceClass) {
         return new RaceEventPacket(Type.BEST_CLEARED, 0, false, 0, 0, 0, 0, false, 0,
                 0, 0, 0, false, 0, course, raceClass, "", false, false, 0L);
+    }
+
+    /**
+     * そのコースの<b>クラスなしの記録だけ</b>を消した（OP が K の画面から）。クラスが空の {@link #bestCleared} は
+     * 「そのコースの全部」なので、{@code overallBest} を立てて見分ける。
+     */
+    public static RaceEventPacket noClassCleared(String course) {
+        return new RaceEventPacket(Type.BEST_CLEARED, 0, false, 0, 0, 0, 0, false, 0,
+                0, 0, 0, false, 0, course, "", "", false, true, 0L);
     }
 
     /** タイムアタックのウォームアップが始まった。 */

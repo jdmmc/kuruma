@@ -23,8 +23,8 @@ import java.util.List;
  *
  * <ul>
  *   <li>左の列: 「クラス ▼」の行（押すと右の列に一覧が重なって開く。<b>選んだらそのクラスで走る</b>——
- *   先頭の「総合（クラスなし）」を選べば宣言しない）、そのクラスの<b>条件と自分の車の対照表</b>、「計測をやめる」</li>
- *   <li>右の列: 先頭の行の「トラック ▼」で選んだコースの<b>総合と、選んだクラスのランキング</b>（自分の順位も）。
+ *   先頭の「クラスなし」を選べば宣言しない）、そのクラスの<b>条件と自分の車の対照表</b>、「計測をやめる」</li>
+ *   <li>右の列: 先頭の行の「トラック ▼」で選んだコースの<b>クラスなしと、選んだクラスのランキング</b>（自分の順位も）。
  *   幅があれば横に並べる。コースは記録を見るためだけのものなので、記録の側に置く</li>
  * </ul>
  *
@@ -36,6 +36,10 @@ public final class TimeAttackScreen extends Screen {
 
     private static final int RULE_ROW = 16;
     private static final int RECORD_ROW = 12;
+    /** 「×」を押してから「消す?」のままでいる時間 [ティック]。過ぎたら「×」に戻る。 */
+    private static final int ARM_TICKS = 60;
+    /** 「消す?」になってから、もう一度押して消せるまでの間 [ティック]。 */
+    private static final int CONFIRM_DELAY_TICKS = 6;
     /** 開いている間、記録を頼み直す間隔 [ティック]（走って更新した記録を出すため）。 */
     private static final int REFRESH_TICKS = 100;
 
@@ -44,7 +48,7 @@ public final class TimeAttackScreen extends Screen {
     /** 記録を見ていたコース（開き直しても同じコースから）。 */
     private static String viewedCourse;
     /**
-     * 走っているクラスの名前（宣言そのもの。ドロップダウンで選んだらその場で宣言する）。<b>空は「総合（クラスなし）」</b>——
+     * 走っているクラスの名前（宣言そのもの。ドロップダウンで選んだらその場で宣言する）。<b>空は「クラスなし」</b>——
      * 宣言しないことも一覧の 1 つとして選ばせる（「走る」「やめる」のボタンを別に置かない）。
      */
     private String selectedClass = "";
@@ -57,6 +61,17 @@ public final class TimeAttackScreen extends Screen {
     /** 計測中のタイムアタックをやめる（次にラインを越えたら測り直す）。 */
     private Button resetButton;
     private int refreshTicks;
+
+    /** 1 回押して「消す?」になっている行（コース・クラス・UUID）。もう一度押すと消す。 */
+    private String armedDelete;
+    private int armedTicks;
+    private int hoverX;
+    private int hoverY;
+    /** 描いた「×」の場所（クリックの当たり）。描くたびに作り直す。 */
+    private final List<DeleteHit> deleteHits = new java.util.ArrayList<>();
+
+    private record DeleteHit(int x0, int y0, int x1, int y1, String key, String raceClass, java.util.UUID player) {
+    }
 
     private int leftX;
     private int frameRight;
@@ -163,7 +178,7 @@ public final class TimeAttackScreen extends Screen {
     private static List<PickList.Item> classItems() {
         List<PickList.Item> items = new ArrayList<>();
         String declared = TimeAttackClass.declared();
-        // 先頭は「総合（クラスなし）」。選んで走れば宣言しないのと同じ
+        // 先頭は「クラスなし」。選んで走れば宣言しないのと同じ
         items.add(new PickList.Item("", Component.translatable("screen.kurumamod.time_attack.overall_choice"),
                 Component.translatable("screen.kurumamod.time_attack.overall_choice_sub"), null, 0, declared.isEmpty()));
         for (RaceLobbyPacket.RaceClass raceClass : RaceLobby.classes()) {
@@ -197,6 +212,9 @@ public final class TimeAttackScreen extends Screen {
 
     @Override
     public void tick() {
+        if (armedTicks > 0 && --armedTicks == 0) {
+            armedDelete = null;
+        }
         if (recordsStale) {
             recordsStale = false;
             refreshTicks = 0;
@@ -212,7 +230,7 @@ public final class TimeAttackScreen extends Screen {
     private void refreshWidgets() {
         List<RaceLobbyPacket.RaceClass> classes = RaceLobby.classes();
         String declared = TimeAttackClass.declared();
-        // 出すのは今の宣言（クラスが消されたら、サーバーが宣言を外すので総合に戻る）
+        // 出すのは今の宣言（クラスが消されたら、サーバーが宣言を外すのでクラスなしに戻る）
         selectedClass = declared;
         if (pick.isOpen()) {
             pick.update("course".equals(picking) ? courseItems() : classItems(),
@@ -276,6 +294,9 @@ public final class TimeAttackScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        // 「×」の上にマウスがあるか（記録の一覧は別のメソッドで描くので、ここで覚えておく）
+        hoverX = mouseX;
+        hoverY = mouseY;
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         // 一覧はボタンより上に
         pick.render(graphics, font, mouseX, mouseY);
@@ -338,7 +359,7 @@ public final class TimeAttackScreen extends Screen {
         y += 14;
         Regulation regulation = selectedRegulation();
         if (regulation == null) {
-            // 総合: 条件は無い。クラスがまだ 1 つも無ければ、作り方も添える
+            // クラスなし: 条件は無い。クラスがまだ 1 つも無ければ、作り方も添える
             row(graphics, y, RULE_ROW - 1, false);
             Slant.fit(graphics, font, Component.translatable("screen.kurumamod.time_attack.overall_rules"),
                     x + 6, y + 4, leftWidth - 12, RaceLobby.GREY);
@@ -389,6 +410,7 @@ public final class TimeAttackScreen extends Screen {
     }
 
     private void renderRecords(GuiGraphicsExtractor graphics, Font font) {
+        deleteHits.clear();
         int x = leftX + leftWidth + 12;
         int w = frameRight - x;
         int y = topY - 2;
@@ -404,7 +426,7 @@ public final class TimeAttackScreen extends Screen {
             return;
         }
         TimeAttackRecordsPacket shown = records != null && records.course().equals(viewedCourse) ? records : null;
-        // 総合と、選んでいるクラス。幅があれば横に並べる
+        // クラスなしと、選んでいるクラス。幅があれば横に並べる
         if (!selectedClass.isEmpty() && w >= 420) {
             int half = (w - 4) / 2;
             renderBoard(graphics, font, x, y, half, shown, "");
@@ -415,6 +437,32 @@ public final class TimeAttackScreen extends Screen {
                 renderBoard(graphics, font, x, y, w, shown, selectedClass);
             }
         }
+    }
+
+    /**
+     * 記録を消す「×」（OP だけ）。1 回押すと「消す?」に変わる。
+     *
+     * @return 使った幅（OP でなければ 0）
+     */
+    private int deleteMark(GuiGraphicsExtractor graphics, Font font, int right, int y, String raceClass,
+                           TimeAttackRecordsPacket.Row row) {
+        if (!RaceLobby.classAdmin() || viewedCourse == null) {
+            return 0;
+        }
+        String key = viewedCourse + "\n" + raceClass + "\n" + row.player();
+        boolean armed = key.equals(armedDelete);
+        String label = armed ? Component.translatable("screen.kurumamod.time_attack.delete_confirm").getString()
+                : "\u00D7";
+        int width = font.width(label) + 6;
+        int x1 = right - 2;
+        int x0 = x1 - width;
+        boolean hover = hoverX >= x0 && hoverX < x1 && hoverY >= y && hoverY < y + RECORD_ROW;
+        if (armed || hover) {
+            graphics.fill(x0, y, x1, y + RECORD_ROW, armed ? 0xD8A01818 : 0x60A01818);
+        }
+        Slant.text(graphics, font, label, x0 + 3, y + 2, armed || hover ? RaceLobby.WHITE : RaceLobby.GREY);
+        deleteHits.add(new DeleteHit(x0, y, x1, y + RECORD_ROW, key, raceClass, row.player()));
+        return width;
     }
 
     /** @return 描いた下の端 */
@@ -462,13 +510,15 @@ public final class TimeAttackScreen extends Screen {
             }
             String place = String.valueOf(row.place());
             Slant.text(graphics, font, place, x + 14 - font.width(place), y + 2, RaceLobby.GREY);
+            // OP には行の右端に「×」を出す（押すと「消す?」に変わり、もう一度押すと消す）
+            int right = x + w - 7 - deleteMark(graphics, font, x + w, y, raceClass, row);
             String time = RaceManager.format(row.millis());
             String gap = row.place() == 1 ? "" : "+" + RaceManager.format(row.millis() - fastest);
-            int timeX = x + w - 7 - font.width(time) - (gap.isEmpty() ? 0 : font.width(gap) + 6);
+            int timeX = right - font.width(time) - (gap.isEmpty() ? 0 : font.width(gap) + 6);
             Slant.fit(graphics, font, row.name(), x + 20, y + 2, timeX - x - 26, RaceLobby.WHITE);
             Slant.text(graphics, font, time, timeX, y + 2, RaceLobby.WHITE);
             if (!gap.isEmpty()) {
-                Slant.text(graphics, font, gap, x + w - 7 - font.width(gap), y + 2, RaceLobby.GREY);
+                Slant.text(graphics, font, gap, right - font.width(gap), y + 2, RaceLobby.GREY);
             }
             y += RECORD_ROW;
         }
@@ -483,6 +533,26 @@ public final class TimeAttackScreen extends Screen {
     public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
         double mouseX = event.x();
         double mouseY = event.y();
+        // 記録を消す「×」（OP だけ）。1 回目は「消す?」に変わるだけで、もう一度押すと消す
+        // 左クリックだけ。<b>26.3 は入力が SDL3 で、左ボタンは 1</b>（GLFW の頃は 0。0 と書くと左クリックが全部素通りした）
+        if (!pick.isOpen() && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+            for (DeleteHit hit : deleteHits) {
+                if (mouseX >= hit.x0() && mouseX < hit.x1() && mouseY >= hit.y0() && mouseY < hit.y1()) {
+                    if (hit.key().equals(armedDelete)) {
+                        if (ARM_TICKS - armedTicks < CONFIRM_DELAY_TICKS) {
+                            return true;   // ダブルクリックで、確かめと削除が一度に済んでしまわないように
+                        }
+                        armedDelete = null;
+                        KurumaNetwork.sendToServer(new RaceActionPacket(RaceActionPacket.Action.DELETE_RECORD,
+                                viewedCourse, 0, new double[0], hit.player() + " " + hit.raceClass()));
+                    } else {
+                        armedDelete = hit.key();
+                        armedTicks = ARM_TICKS;
+                    }
+                    return true;
+                }
+            }
+        }
         if (pick.isOpen()) {
             // 「▼」のボタンを押したら、ボタンに任せる（同じなら閉じる、別なら開き直す）
             boolean onToggle = courseButton.isMouseOver(mouseX, mouseY) || classButton.isMouseOver(mouseX, mouseY);

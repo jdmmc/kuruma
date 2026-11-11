@@ -50,7 +50,8 @@ import java.util.regex.Pattern;
  * （{@link CarEntity#playGhostFrame}）。物理は解き直さない。</p>
  *
  * <p>ゴーストは<b>サーバーに存在しない</b>。ぶつからず、殴れず、音・煙・タイヤ痕も出さない。
- * 記録は {@code config/kurumamod-ghosts/} に置き、誰にも送らない。</p>
+ * 記録は手元に置き、誰にも送らない（シングルはワールドのセーブの {@code kurumamod/ghosts/}、マルチは
+ * {@code config/kurumamod/ghosts/<アドレス>/}。{@link #worldDir}）。</p>
  *
  * <p><b>タイムアタックでは何もしなくても動く</b>（{@link ClientConfig#timeAttackGhost}）。運転中は
  * 常に走りを書き溜めておき、サーバーから「周回完了」がベスト更新として届いたら、その周を
@@ -109,7 +110,7 @@ public final class CarGhosts {
     private static final List<Frame> trail = new ArrayList<>();
     /** いま周回を測っているコース。測っていなければ null。 */
     private static String lapCourse;
-    /** いまの周の比べる相手のクラス（空なら総合）。走らせるゴーストもこれで選ぶ。 */
+    /** いまの周の比べる相手のクラス（空ならクラスなし）。走らせるゴーストもこれで選ぶ。 */
     private static String lapClass = "";
     private static CarEntity trailCar;
 
@@ -217,8 +218,8 @@ public final class CarGhosts {
      * <p>タイムアタックだけ。レース中（規定周回あり）はゴーストを出さない——並んで走る相手が
      * いるところに半透明の車が混ざると、どれが本物か分からなくなる。</p>
      *
-     * <p><b>ゴーストは「コース × クラス」ごとに 1 本</b>（総合と、宣言して走ったクラス）。走らせるのは
-     * その周の比べる相手（宣言しているクラス、していなければ総合）のもの。</p>
+     * <p><b>ゴーストは「コース × クラス」ごとに 1 本</b>（クラスなしと、宣言して走ったクラス）。走らせるのは
+     * その周の比べる相手（宣言しているクラス、していなければクラスなし）のもの。</p>
      *
      * <p>周の始めに届く比べる相手のベスト（{@code targetBest}）と、手元のゴーストのタイムが合わなければ、
      * そのゴーストは捨てる（落ちている間に記録が消されていた）。</p>
@@ -245,10 +246,15 @@ public final class CarGhosts {
             }
             case FINISHED, CLEARED -> resetLap();
             case BEST_CLEARED -> {
-                if (packet.raceClass().isEmpty()) {
+                if (packet.raceClass().isEmpty() && packet.overallBest()) {
+                    // クラスなしの記録だけ（OP が K の画面から消した）
+                    deleteClassLapGhost(minecraft, packet.course(), "");
+                } else if (packet.raceClass().isEmpty()) {
                     deleteLapGhosts(minecraft, packet.course());
-                } else {
+                } else if (packet.course().isEmpty()) {
                     deleteClassGhosts(minecraft, packet.raceClass());
+                } else {
+                    deleteClassLapGhost(minecraft, packet.course(), packet.raceClass());
                 }
             }
             default -> {
@@ -274,7 +280,7 @@ public final class CarGhosts {
         int at = crossingIndex();
         if (course.equals(lapCourse) && at > 0 && trailCar != null) {
             Ghost ghost = null;
-            // 総合と、記録したクラスの両方を更新することがある。知らせは 1 回だけ（クラスを更新したならそちら）
+            // 入るのはクラスなしか、記録したクラスのどちらか 1 か所（念のため両方を見る。知らせは 1 回だけ）
             if (packet.overallBest()) {
                 ghost = toGhost(new ArrayList<>(trail.subList(0, at)), trailCar, millis);
                 saveLapGhost(minecraft, lapFile(minecraft, course, ""), ghost, course, millis,
@@ -303,6 +309,19 @@ public final class CarGhosts {
                     : Component.translatable("ghost.kurumamod.timeattack_faster", label, lapTime(millis),
                             "-" + lapTime(current.lapMillis() - millis)))
                     .withStyle(ChatFormatting.AQUA));
+        }
+    }
+
+    /** 1 つのコースの 1 つのクラス（空ならクラスなし）の記録を消した（OP が K の画面から）。そのゴーストだけ消す。 */
+    private static void deleteClassLapGhost(Minecraft minecraft, String course, String raceClass) {
+        if (playing != null && course.equals(lapCourse) && raceClass.equals(lapClass)) {
+            stopPlayback();
+        }
+        Path file = lapFile(minecraft, course, raceClass);
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException e) {
+            LOGGER.warn("タイムアタックのゴーストを消せませんでした: {}", file, e);
         }
     }
 
@@ -340,7 +359,7 @@ public final class CarGhosts {
             deleteTree(world);
             return;
         }
-        // 総合と、全クラスのそのコースのぶん
+        // クラスなしと、全クラスのそのコースのぶん
         try {
             Files.deleteIfExists(lapFile(minecraft, course, ""));
             Path classes = world.resolve(CLASS_DIR);
@@ -371,9 +390,6 @@ public final class CarGhosts {
         Ghost ghost = null;
         if (ClientConfig.timeAttackGhost && minecraft.level != null) {
             Path file = lapFile(minecraft, course, raceClass);
-            if (raceClass == null || raceClass.isEmpty()) {
-                migrateLegacyLap(minecraft, course, file);
-            }
             ghost = load(file);
             // <b>サーバーのベストと同じ周でなければ捨てる。</b>ゴーストは手元にしか無いので、落ちている間に
             // 記録が消された（クラスの上書き・削除、コースの引き直し）ことは、ここでしか分からない
@@ -596,10 +612,10 @@ public final class CarGhosts {
     // 保存
     // ------------------------------------------------------------------
 
-    private static Path dir() {
-        return Platform.configDir().resolve("kurumamod-ghosts");
+    /** マルチプレイのゴーストの置き場所（サーバーごとのフォルダをこの下に作る）。 */
+    private static Path serversDir() {
+        return Platform.configDir().resolve("kurumamod").resolve("ghosts");
     }
-
     /**
      * タイムアタックのゴーストの置き場所。<b>ワールド（サーバー）ごと・コースごと。</b>
      *
@@ -639,27 +655,31 @@ public final class CarGhosts {
         }
     }
 
-    /**
-     * 2.0.0 までのゴースト（コースの名前をそのままファイル名にしていた）を、今の名前へ移す。総合のゴーストだけ
-     * （クラスは 2.0.0 に無い）。移した先のゴーストが今のベストと合わなければ、読んだあとで消える。
-     */
-    private static void migrateLegacyLap(Minecraft minecraft, String course, Path file) {
-        Path legacy = worldDir(minecraft).resolve(safe(course) + EXTENSION);
-        if (Files.exists(file) || !Files.isRegularFile(legacy)) {
-            return;
-        }
-        try {
-            Files.move(legacy, file);
-        } catch (IOException e) {
-            LOGGER.warn("前の版のゴーストを移せませんでした: {}", legacy, e);
-        }
-    }
 
     /** クラスごとのゴーストを置くフォルダの名前（ワールドのフォルダの下）。 */
     private static final String CLASS_DIR = "class";
 
+    /**
+     * そのワールド（サーバー）のゴーストを置くフォルダ。
+     *
+     * <ul>
+     *   <li><b>シングルプレイは、ワールドのセーブの中</b>（{@code saves/<ワールド>/kurumamod/ghosts/}）。ワールドを
+     *       消せばゴーストも消え、コピーすれば付いていく。以前は {@code config} の下にセーブのフォルダ名で分けて
+     *       置いていたので、消したワールドのゴーストが残り、コピーしたワールドには付いてこなかった</li>
+     *   <li>マルチプレイは {@code config/kurumamod/ghosts/<アドレス>/}（{@link #serverKey}）</li>
+     * </ul>
+     *
+     * <p><b>{@code kurumamod/ghosts/} から下の形は、どちらも同じ</b>（コースのファイルと {@code class/<クラス>/}）。</p>
+     *
+     * <p>2.0.0 までの置き場所（{@code config/kurumamod-ghosts/}）は見ない。残っていても使わず、そのままにする。</p>
+     */
     private static Path worldDir(Minecraft minecraft) {
-        return dir().resolve("timeattack").resolve(safe(worldKey(minecraft)));
+        if (minecraft.getSingleplayerServer() != null) {
+            return minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).normalize()
+                    .resolve("kurumamod").resolve("ghosts");
+        }
+        String address = minecraft.getCurrentServer() != null ? minecraft.getCurrentServer().ip : null;
+        return serversDir().resolve(address != null ? safe(serverKey(address)) : "unknown");
     }
 
     /** そのクラスのゴーストのフォルダ（{@link #fileKey}）。 */
@@ -674,9 +694,44 @@ public final class CarGhosts {
             return "local-" + root.getFileName();
         }
         if (minecraft.getCurrentServer() != null) {
-            return "server-" + minecraft.getCurrentServer().ip;
+            return "server-" + serverKey(minecraft.getCurrentServer().ip);
         }
         return "unknown";
+    }
+
+    /**
+     * 接続先のアドレスを、同じサーバーなら同じ文字列になるようにそろえる。小文字にし（ホスト名は大文字と小文字を
+     * 区別しない）、末尾の点と既定のポート（25565）を外す。
+     *
+     * <p>そのまま使うと、{@code play.example.com} と {@code play.example.com:25565} は別のフォルダになり、
+     * Windows では大文字と小文字だけが違うアドレスが同じフォルダに、Linux・macOS では別のフォルダになっていた。</p>
+     */
+    static String serverKey(String address) {
+        String text = address.trim().toLowerCase(java.util.Locale.ROOT);
+        String host = text;
+        String port = "";
+        if (text.startsWith("[")) {
+            // IPv6（[::1]:25565）
+            int end = text.indexOf(']');
+            if (end > 0) {
+                host = text.substring(0, end + 1);
+                String rest = text.substring(end + 1);
+                port = rest.startsWith(":") ? rest.substring(1) : "";
+            }
+        } else {
+            int colon = text.lastIndexOf(':');
+            if (colon > 0 && text.indexOf(':') == colon) {
+                host = text.substring(0, colon);
+                port = text.substring(colon + 1);
+            }
+        }
+        while (host.endsWith(".")) {
+            host = host.substring(0, host.length() - 1);
+        }
+        if (port.equals("25565")) {
+            port = "";
+        }
+        return port.isEmpty() ? host : host + ":" + port;
     }
 
     /** ファイル名に使えない文字を潰す。点だけの名前（親へ上がる）も潰す。 */

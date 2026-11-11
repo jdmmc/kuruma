@@ -264,6 +264,8 @@ public final class RaceCommands {
         if (!data.removeCourse(name)) {
             return failNoCourse(ctx, name);
         }
+        // そのコースのレース・タイムアタック・記録・ゴーストを片付ける
+        RaceManager.onCourseRemoved(ctx.getSource().getLevel(), name);
         RaceSync.sendToAll(ctx.getSource().getServer());
         ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.course_removed", name), true);
         return 1;

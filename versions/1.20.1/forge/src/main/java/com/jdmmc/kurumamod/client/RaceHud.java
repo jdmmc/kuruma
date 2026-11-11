@@ -111,7 +111,7 @@ public final class RaceHud {
     /** 最終周の帯の残りティック。 */
     private static int finalTicks;
     private static String courseName = "";
-    /** 今の周の比べる相手のクラス（空なら総合）。タイムアタックの札に出す。 */
+    /** 今の周の比べる相手のクラス（空ならクラスなし）。タイムアタックの札に出す。 */
     private static String lapClass = "";
     /** 宣言しているクラスの決まりに、乗っている車が外れているか（{@link #CLASS_CHECK_TICKS} ごとに測る）。 */
     private static boolean classViolating;
@@ -236,7 +236,7 @@ public final class RaceHud {
                 courseName = packet.course();
                 lapClass = packet.raceClass();
                 if (totalLaps == 0) {
-                    // BEST は、この周の比べる相手（宣言したクラスか総合）のベスト
+                    // BEST は、この周の比べる相手（宣言したクラスかクラスなし）のベスト
                     bestMillis = packet.targetBest();
                 }
                 lapTicks = 0;
@@ -310,9 +310,13 @@ public final class RaceHud {
             case BEST_CLEARED -> {
                 // 記録が消された（クラスの書き換え・削除、コースの引き直し、/kuruma best clear）。
                 // 今の周の比べる相手が消えたなら、周の終わりを待たずに BEST を消す
-                boolean classGone = !packet.raceClass().isEmpty() && packet.raceClass().equals(lapClass);
-                boolean courseGone = packet.raceClass().isEmpty()
+                // コースが付いていれば（OP が 1 つの記録を消した）、そのコースのときだけ
+                boolean classGone = !packet.raceClass().isEmpty() && packet.raceClass().equals(lapClass)
                         && (packet.course().isEmpty() || packet.course().equals(courseName));
+                // クラスなしの記録だけが消されたなら（overallBest）、クラスなしで走っているときだけ
+                boolean courseGone = packet.raceClass().isEmpty()
+                        && (packet.course().isEmpty() || packet.course().equals(courseName))
+                        && (!packet.overallBest() || lapClass.isEmpty());
                 if (totalLaps == 0 && (classGone || courseGone)) {
                     bestMillis = 0L;
                 }
@@ -771,7 +775,7 @@ public final class RaceHud {
     }
 
     /**
-     * 時計の上に出すクラスの札。タイムアタックは比べる相手のクラス（宣言していなければ「総合」）、
+     * 時計の上に出すクラスの札。タイムアタックは比べる相手のクラス（宣言していなければ「クラスなし」）、
      * レースはそのレースのクラス（決まりを変えてあれば「カスタム」、決まりが無ければ出さない）。
      */
     private static Component clockClassLabel() {

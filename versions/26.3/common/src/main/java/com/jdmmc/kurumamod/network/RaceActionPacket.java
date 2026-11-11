@@ -19,8 +19,10 @@ import net.minecraft.server.level.ServerPlayer;
  * @param course     開くコース（{@link Action#OPEN} のとき）
  * @param laps       周回数（{@link Action#OPEN}・{@link Action#UPDATE} のとき）
  * @param regulation 決まり（{@link Action#OPEN}・{@link Action#UPDATE} のとき。{@link Regulation#toArray}）
+ * @param extra      操作ごとの 2 つ目の値（{@link Action#DELETE_RECORD} のとき）
  */
-public record RaceActionPacket(Action action, String course, int laps, double[] regulation)
+public record RaceActionPacket(Action action, String course, int laps, double[] regulation,
+                               String extra)
         implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<RaceActionPacket> TYPE = new CustomPacketPayload.Type<>(
@@ -69,7 +71,12 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         /** クラスを並びの中で 1 つ動かす。{@code course} に名前、{@code laps} に向き（-1 で前、1 で後ろ）。 */
         MOVE_CLASS,
         /** 計測中のタイムアタックをやめる（{@code /kuruma timeattack reset} と同じ）。 */
-        RESET_TIME_ATTACK
+        RESET_TIME_ATTACK,
+        /**
+         * タイムアタックの記録を 1 つ消す（OP だけ）。{@code course} にコース、{@code extra} に
+         * 「消す人の UUID」と「クラスの名前（空ならクラスなし）」を空白 1 つで区切って入れる。
+         */
+        DELETE_RECORD
     }
 
     private static final Action[] ACTIONS = Action.values();
@@ -96,8 +103,13 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         return new RaceActionPacket(action, "", 0, new double[0]);
     }
 
+    /** 2 つ目の値を使わない操作。 */
+    public RaceActionPacket(Action action, String course, int laps, double[] regulation) {
+        this(action, course, laps, regulation, "");
+    }
+
     public RaceActionPacket(FriendlyByteBuf buf) {
-        this(readAction(buf), buf.readUtf(256), buf.readVarInt(), readDoubles(buf));
+        this(readAction(buf), buf.readUtf(256), buf.readVarInt(), readDoubles(buf), buf.readUtf(256));
     }
 
     /**
@@ -132,6 +144,7 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         for (double value : regulation) {
             buf.writeDouble(value);
         }
+        buf.writeUtf(extra, 256);
     }
 
     public void handle(PacketContext context) {

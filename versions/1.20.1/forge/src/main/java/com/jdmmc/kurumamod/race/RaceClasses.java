@@ -69,7 +69,8 @@ public final class RaceClasses {
             for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
                 // <b>手で書き換えたファイルにも、画面から保存するときと同じ上限を掛ける。</b>長すぎる名前や
                 // 多すぎるクラスをそのまま配ると、パケットが書けずに全員の接続が切れた
-                String name = clip(entry.getKey().trim());
+                String trimmed = entry.getKey().trim();
+                String name = clip(trimmed);
                 if (name.isEmpty() || out.containsKey(name)) {
                     LOGGER.warn("クラスの名前が空か、切り詰めたら重なったので読み飛ばします: {}", entry.getKey());
                     continue;
@@ -78,15 +79,25 @@ public final class RaceClasses {
                     LOGGER.warn("クラスが {} を超えているので、残りは読み飛ばします: {}", MAX_CLASSES, path);
                     break;
                 }
-                if (!name.equals(entry.getKey())) {
-                    LOGGER.warn("クラスの名前が {} 文字を超えているので切り詰めます: {} → {}", MAX_NAME, entry.getKey(), name);
+                if (!name.equals(trimmed)) {
+                    LOGGER.warn("クラスの名前が {} 文字を超えているので切り詰めます: {} → {}", MAX_NAME, trimmed, name);
                 }
-                JsonArray array = entry.getValue().getAsJsonArray();
-                double[] values = new double[array.size()];
-                for (int i = 0; i < values.length; i++) {
-                    values[i] = array.get(i).getAsDouble();
+                // <b>壊れた項目は、その 1 つだけ飛ばす。</b>読み込みごと止めると後ろのクラスが読まれず、次に保存したときに
+                // ファイルからも消えた
+                double[] values;
+                try {
+                    JsonArray array = entry.getValue().getAsJsonArray();
+                    values = new double[array.size()];
+                    for (int i = 0; i < values.length; i++) {
+                        values[i] = array.get(i).getAsDouble();
+                    }
+                } catch (RuntimeException e) {
+                    LOGGER.warn("クラス {} の中身を読めないので読み飛ばします: {}", name, entry.getValue());
+                    continue;
                 }
-                out.put(name, values);
+                // 決まりとして読み直した値で持つ（数が違う・範囲の外・数でない値を丸める）。そのまま持つと、数が多ければ
+                // 一覧のパケットを全員が読めずに切断され、NaN があれば次の保存で JSON に書けなかった
+                out.put(name, Regulation.fromArray(values).toArray());
             }
         } catch (IOException | RuntimeException e) {
             LOGGER.warn("クラスを読めませんでした: {}", path, e);
