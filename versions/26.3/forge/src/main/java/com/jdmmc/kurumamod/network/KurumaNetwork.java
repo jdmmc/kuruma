@@ -67,6 +67,7 @@ public final class KurumaNetwork {
                 .addMain(CarPartsPacket.TYPE, codec(CarPartsPacket.STREAM_CODEC), handler(p -> p::handle))
                 // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
                 .addMain(RaceLobbyPacket.TYPE, codec(RaceLobbyPacket.STREAM_CODEC), handler(p -> p::handle))
+                .addMain(RaceClassesPacket.TYPE, codec(RaceClassesPacket.STREAM_CODEC), handler(p -> p::handle))
                 .addMain(TimeAttackRecordsPacket.TYPE, codec(TimeAttackRecordsPacket.STREAM_CODEC), handler(p -> p::handle))
                 // 行きも帰りもあるもの（運転者 → サーバー → 周りのクライアント）
                 .bidirectional()

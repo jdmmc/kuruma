@@ -393,6 +393,8 @@
   "race.kurumamod.need_second_point": "Отмечена только точка A (%s, %s). Перейдите к другому концу линии и введите /kuruma-admin point.",
   "race.kurumamod.not_host_named": "Это могут сделать только %s (организатор) и операторы.",
   "race.kurumamod.retired_self": "Вы сошли с гонки. Ваши круги не будут записаны.",
+  "race.kurumamod.leave_finished": "Вы уже финишировали и останетесь в гонке до показа результатов.",
+  "race.kurumamod.kick_finished": "%s уже финишировал и останется в результатах",
   "race.kurumamod.hud_not_started": "нет старта",
   "subtitles.kurumamod.race_light": "Стартовый светофор",
   "subtitles.kurumamod.race_start": "Старт гонки",

@@ -67,6 +67,8 @@ public final class CommonHooks {
 
     public static void playerLoggedIn(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
+            // クラスの一覧はレースの様子より先に（宣言したクラスがまだあるかを、届いた一覧で確かめるため）
+            com.jdmmc.kurumamod.race.RaceManager.sendClasses(serverPlayer);
             RaceSync.sendTo(serverPlayer);
         }
     }

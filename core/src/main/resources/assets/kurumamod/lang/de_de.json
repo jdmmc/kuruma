@@ -393,6 +393,8 @@
   "race.kurumamod.need_second_point": "Nur Punkt A (%s, %s) ist markiert. Geh zum anderen Ende und führe /kuruma-admin point aus.",
   "race.kurumamod.not_host_named": "Nur %s (der Gastgeber) und Operatoren können das tun.",
   "race.kurumamod.retired_self": "Du hast das Rennen aufgegeben. Deine Runden werden nicht gewertet.",
+  "race.kurumamod.leave_finished": "Du bist bereits im Ziel. Du bleibst bis zur Ergebnisanzeige im Rennen.",
+  "race.kurumamod.kick_finished": "%s ist bereits im Ziel und bleibt in den Ergebnissen",
   "race.kurumamod.hud_not_started": "nicht gestartet",
   "subtitles.kurumamod.race_light": "Startampel",
   "subtitles.kurumamod.race_start": "Rennstart",

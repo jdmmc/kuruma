@@ -73,17 +73,50 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
     }
 
     private static final Action[] ACTIONS = Action.values();
+    /** 決まりの値の数の上限（読むとき）。 */
+    private static final int MAX_VALUES = 64;
+
+    /**
+     * 画面から送られうる形か。決まりは空（使わない操作）か {@link Regulation#toArray} と同じ長さで、
+     * どれも数であること。<b>外れていたらサーバーは何もしない</b>（改造したクライアント）。
+     */
+    public boolean wellFormed() {
+        if (regulation.length != 0 && regulation.length != Regulation.DEFAULT.toArray().length) {
+            return false;
+        }
+        for (double value : regulation) {
+            if (!Double.isFinite(value)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public static RaceActionPacket of(Action action) {
         return new RaceActionPacket(action, "", 0, new double[0]);
     }
 
     public RaceActionPacket(FriendlyByteBuf buf) {
-        this(ACTIONS[buf.readByte()], buf.readUtf(256), buf.readVarInt(), readDoubles(buf));
+        this(readAction(buf), buf.readUtf(256), buf.readVarInt(), readDoubles(buf));
+    }
+
+    /**
+     * <b>画面からは作れない形のものは読まずに断る</b>（改造したクライアント）。切り詰めて読むと残りのバイトで
+     * 読み込みがずれ、範囲外の番号は配列の外を引いた。断ると、送ってきたその人だけが切断される。
+     */
+    private static Action readAction(FriendlyByteBuf buf) {
+        int index = buf.readByte();
+        if (index < 0 || index >= ACTIONS.length) {
+            throw new io.netty.handler.codec.DecoderException("レースの操作の番号が範囲外です: " + index);
+        }
+        return ACTIONS[index];
     }
 
     private static double[] readDoubles(FriendlyByteBuf buf) {
-        int count = Math.min(64, buf.readVarInt());
+        int count = buf.readVarInt();
+        if (count < 0 || count > MAX_VALUES) {
+            throw new io.netty.handler.codec.DecoderException("レースの決まりの数が範囲外です: " + count);
+        }
         double[] values = new double[count];
         for (int i = 0; i < count; i++) {
             values[i] = buf.readDouble();

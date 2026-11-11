@@ -70,6 +70,7 @@ public final class KurumaNetwork {
         registrar.playToServer(CarPlateRequestPacket.TYPE, CarPlateRequestPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
         registrar.playToClient(RaceLobbyPacket.TYPE, RaceLobbyPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(RaceClassesPacket.TYPE, RaceClassesPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // タイムアタックの記録（K の画面がコースを選んだとき）
         registrar.playToClient(TimeAttackRecordsPacket.TYPE, TimeAttackRecordsPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ

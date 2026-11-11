@@ -78,7 +78,8 @@ public final class RaceInfoScreen extends Screen {
         }
         boolean open = lobby.phase() == RaceLobbyPacket.Phase.OPEN;
         boolean result = lobby.phase() == RaceLobbyPacket.Phase.RESULT;
-        leave.visible = lobby.joined();
+        // ゴールした人とリザルトの間は抜けられない（抜けるとリザルトから消える。サーバーも断る）
+        leave.visible = lobby.joined() && !result && !RaceHud.hasFinished();
         join.visible = !lobby.joined() && open;
         // ゴールした人とリザルトの間は切り替えない（リザルトに残すため）
         spectate.visible = !lobby.spectating() && !result && !(lobby.joined() && RaceHud.hasFinished());

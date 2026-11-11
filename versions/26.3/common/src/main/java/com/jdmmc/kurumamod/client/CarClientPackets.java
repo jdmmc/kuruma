@@ -48,6 +48,11 @@ public final class CarClientPackets {
         RaceLobby.accept(packet);
     }
 
+    /** サーバーに保存してあるクラスの一覧を受け取る。 */
+    public static void applyRaceClasses(com.jdmmc.kurumamod.network.RaceClassesPacket packet) {
+        RaceLobby.acceptClasses(packet.classes());
+    }
+
     /** タイムアタックの記録を受け取る。開いている K の画面へ渡す。 */
     public static void applyTimeAttackRecords(com.jdmmc.kurumamod.network.TimeAttackRecordsPacket packet) {
         TimeAttackScreen.acceptRecords(packet);

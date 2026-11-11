@@ -392,6 +392,8 @@
   "race.kurumamod.need_second_point": "Only point A (%s, %s) is marked. Go to the other end and run /kuruma-admin point.",
   "race.kurumamod.not_host_named": "Only %s (the host) and operators can do this.",
   "race.kurumamod.retired_self": "You retired from the race. Your laps will not be recorded.",
+  "race.kurumamod.leave_finished": "You have already finished. You stay in the race until the results are shown.",
+  "race.kurumamod.kick_finished": "%s has already finished and stays in the results",
   "race.kurumamod.hud_not_started": "not started",
   "subtitles.kurumamod.race_light": "Start light",
   "subtitles.kurumamod.race_start": "Race start",

@@ -393,6 +393,8 @@
   "race.kurumamod.need_second_point": "Alleen punt A (%s, %s) is gemarkeerd. Ga naar het andere uiteinde en voer /kuruma-admin point uit.",
   "race.kurumamod.not_host_named": "Alleen %s (de host) en operators kunnen dit doen.",
   "race.kurumamod.retired_self": "Je hebt de race verlaten. Je rondetijden worden niet geregistreerd.",
+  "race.kurumamod.leave_finished": "Je bent al gefinisht. Je blijft in de race tot de uitslag wordt getoond.",
+  "race.kurumamod.kick_finished": "%s is al gefinisht en blijft in de uitslag",
   "race.kurumamod.hud_not_started": "Nog niet gestart",
   "subtitles.kurumamod.race_light": "Startlicht",
   "subtitles.kurumamod.race_start": "Start van race",

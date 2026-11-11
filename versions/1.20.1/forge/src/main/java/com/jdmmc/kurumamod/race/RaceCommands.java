@@ -192,6 +192,8 @@ public final class RaceCommands {
         // 線が動けば過去のタイムは比較できない。消すかどうかは本人に決めてもらう
         if (data.clearCourseBests(name) > 0) {
             notifyCourseBestsCleared(ctx.getSource().getServer(), name);
+            // クラスの記録も消えたので、一覧の記録の件数を配り直す
+            RaceManager.classesToAll(ctx.getSource().getServer());
             ctx.getSource().sendSuccess(() -> Component.translatable(
                     "race.kurumamod.bests_invalidated", name).withStyle(ChatFormatting.YELLOW), false);
         }

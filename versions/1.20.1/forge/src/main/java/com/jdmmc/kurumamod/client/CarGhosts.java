@@ -350,7 +350,7 @@ public final class CarGhosts {
             if (Files.isDirectory(classes)) {
                 try (var dirs = Files.list(classes)) {
                     for (Path dir : dirs.toList()) {
-                        Files.deleteIfExists(dir.resolve(safe(course) + EXTENSION));
+                        Files.deleteIfExists(dir.resolve(courseFile(course)));
                     }
                 }
             }
@@ -374,6 +374,9 @@ public final class CarGhosts {
         Ghost ghost = null;
         if (ClientConfig.timeAttackGhost && minecraft.level != null) {
             Path file = lapFile(minecraft, course, raceClass);
+            if (raceClass == null || raceClass.isEmpty()) {
+                migrateLegacyLap(minecraft, course, file);
+            }
             ghost = load(file);
             // <b>サーバーのベストと同じ周でなければ捨てる。</b>ゴーストは手元にしか無いので、落ちている間に
             // 記録が消された（クラスの上書き・削除、コースの引き直し）ことは、ここでしか分からない
@@ -608,7 +611,51 @@ public final class CarGhosts {
      */
     private static Path lapFile(Minecraft minecraft, String course, String raceClass) {
         Path base = raceClass == null || raceClass.isEmpty() ? worldDir(minecraft) : classDir(minecraft, raceClass);
-        return base.resolve(safe(course) + EXTENSION);
+        return base.resolve(courseFile(course));
+    }
+
+    /** コースのゴーストのファイル名（{@link #fileKey}）。 */
+    private static String courseFile(String course) {
+        return fileKey(course) + EXTENSION;
+    }
+
+    /**
+     * 名前をファイル名・フォルダ名にする。<b>名前はそのまま使わない。</b>
+     *
+     * <p>そのまま使うと、Windows では大文字と小文字だけが違う名前（GT と gt）が同じファイルになって
+     * ゴーストを上書きし合い、末尾の点は消されて別の名前と重なり、CON・NUL・COM1 のような名前は作れなかった。
+     * 日本語の名前を {@link #safe} で潰すと、別の名前と同じになる。</p>
+     *
+     * <p>UTF-8 のバイト列を 16 進にする（{@code x} で始まる小文字の英数字だけ。名前が違えば必ず別になる）。
+     * 長い名前は 16 進だとファイル名の上限（255 文字）を超えるので、SHA-256 にする（{@code h} で始まる）。</p>
+     */
+    private static String fileKey(String name) {
+        byte[] bytes = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length <= 48) {
+            return "x" + java.util.HexFormat.of().formatHex(bytes);
+        }
+        try {
+            return "h" + java.util.HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);   // どの JVM にも必ずある
+        }
+    }
+
+    /**
+     * 2.0.0 までのゴースト（コースの名前をそのままファイル名にしていた）を、今の名前へ移す。総合のゴーストだけ
+     * （クラスは 2.0.0 に無い）。移した先のゴーストが今のベストと合わなければ、読んだあとで消える。
+     */
+    private static void migrateLegacyLap(Minecraft minecraft, String course, Path file) {
+        Path legacy = worldDir(minecraft).resolve(safe(course) + EXTENSION);
+        if (Files.exists(file) || !Files.isRegularFile(legacy)) {
+            return;
+        }
+        try {
+            Files.move(legacy, file);
+        } catch (IOException e) {
+            LOGGER.warn("前の版のゴーストを移せませんでした: {}", legacy, e);
+        }
     }
 
     /** クラスごとのゴーストを置くフォルダの名前（ワールドのフォルダの下）。 */
@@ -618,15 +665,9 @@ public final class CarGhosts {
         return dir().resolve("timeattack").resolve(safe(worldKey(minecraft)));
     }
 
-    /**
-     * そのクラスのゴーストのフォルダ。<b>名前に英数字以外が入っていたら 16 進にする</b>——クラスの名前は
-     * 日本語のことが多く、{@link #safe} で潰すと別のクラスと同じフォルダになる。
-     */
+    /** そのクラスのゴーストのフォルダ（{@link #fileKey}）。 */
     private static Path classDir(Minecraft minecraft, String raceClass) {
-        String folder = UNSAFE.matcher(raceClass).find() || raceClass.chars().allMatch(c -> c == '.')
-                ? "x" + java.util.HexFormat.of().formatHex(raceClass.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                : raceClass;
-        return worldDir(minecraft).resolve(CLASS_DIR).resolve(folder);
+        return worldDir(minecraft).resolve(CLASS_DIR).resolve(fileKey(raceClass));
     }
 
     /** いま入っているワールド（サーバー）の名前。シングルはセーブのフォルダ名、マルチは接続先。 */

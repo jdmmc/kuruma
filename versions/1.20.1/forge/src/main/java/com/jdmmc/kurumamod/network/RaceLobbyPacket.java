@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 
 /**
  * サーバー → クライアント。そのワールドのレースの様子（受付中か・決まり・参加者と判定）。
+ * クラスの一覧は {@link RaceClassesPacket}（変わったときだけ送る）。
  *
  * <p><b>受け取る人ごとに組む。</b>主催者か、参加しているか、自己ベストは受け取る人で変わる。
  * 誘いの通知・主催中の表示・参加したレースの画面・主催者画面は、すべてこれだけを見て描く。</p>
@@ -34,7 +35,6 @@ import java.util.function.Supplier;
  * @param regulation  決まり（{@link Regulation#toArray}）
  * @param entrants    参加者（入った順）
  * @param courses     そのワールドのコース（主催者画面で選ぶため）
- * @param classes     サーバーに保存してあるクラス
  * @param classAdmin 受け取った人がクラスを保存・削除してよいか（OP）
  * @param declaredClass 受け取った人がタイムアタックで宣言しているクラスの名前。宣言していなければ空
  */
@@ -42,7 +42,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
                               boolean isHost, boolean joined, boolean spectating, boolean canManage,
                               long bestMillis,
                               double[] regulation, List<Entrant> entrants, List<CourseInfo> courses,
-                              List<RaceClass> classes, boolean classAdmin, String declaredClass) {
+                              boolean classAdmin, String declaredClass) {
 
     /** レースの場面。 */
     public enum Phase {
@@ -138,16 +138,16 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
     }
 
     /** レースが無いときの中身。 */
-    public static RaceLobbyPacket none(List<CourseInfo> courses, List<RaceClass> classes, boolean classAdmin,
+    public static RaceLobbyPacket none(List<CourseInfo> courses, boolean classAdmin,
                                        String declaredClass) {
         return new RaceLobbyPacket(Phase.NONE, "", 0, 0, "", false, false, false, false, 0L,
-                Regulation.DEFAULT.toArray(), List.of(), courses, classes, classAdmin, declaredClass);
+                Regulation.DEFAULT.toArray(), List.of(), courses, classAdmin, declaredClass);
     }
 
     public RaceLobbyPacket(FriendlyByteBuf buf) {
         this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), buf.readVarInt(), buf.readUtf(256),
                 buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readLong(),
-                readDoubles(buf), readEntrants(buf), readCourses(buf), readClasses(buf), buf.readBoolean(),
+                readDoubles(buf), readEntrants(buf), readCourses(buf), buf.readBoolean(),
                 buf.readUtf(256));
     }
 
@@ -178,15 +178,6 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
                 values[j] = buf.readDouble();
             }
             list.add(new Entrant(name, carId, verdict, violations, values, buf.readBoolean()));
-        }
-        return list;
-    }
-
-    private static List<RaceClass> readClasses(FriendlyByteBuf buf) {
-        int count = Math.min(256, buf.readVarInt());
-        List<RaceClass> list = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            list.add(new RaceClass(buf.readUtf(256), readDoubles(buf), buf.readVarInt()));
         }
         return list;
     }
@@ -237,15 +228,6 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
             buf.writeUtf(info.name(), 256);
             buf.writeVarInt(info.laps());
             buf.writeVarInt(info.checkpoints());
-        }
-        buf.writeVarInt(classes.size());
-        for (RaceClass raceClass : classes) {
-            buf.writeUtf(raceClass.name(), 256);
-            buf.writeVarInt(raceClass.regulation().length);
-            for (double value : raceClass.regulation()) {
-                buf.writeDouble(value);
-            }
-            buf.writeVarInt(raceClass.records());
         }
         buf.writeBoolean(classAdmin);
         buf.writeUtf(declaredClass, 256);

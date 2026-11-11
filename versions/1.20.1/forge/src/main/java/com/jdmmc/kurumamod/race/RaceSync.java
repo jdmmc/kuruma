@@ -29,6 +29,8 @@ public final class RaceSync {
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            // クラスの一覧はレースの様子より先に（宣言したクラスがまだあるかを、届いた一覧で確かめるため）
+            RaceManager.sendClasses(player);
             sendTo(player);
         }
     }

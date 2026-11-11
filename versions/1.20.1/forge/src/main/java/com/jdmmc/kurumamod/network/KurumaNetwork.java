@@ -147,5 +147,11 @@ public final class KurumaNetwork {
                 .decoder(TimeAttackRecordsPacket::new)
                 .consumerMainThread(TimeAttackRecordsPacket::handle)
                 .add();
+        // クラスの一覧（変わったときだけ）
+        CHANNEL.messageBuilder(RaceClassesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(RaceClassesPacket::encode)
+                .decoder(RaceClassesPacket::new)
+                .consumerMainThread(RaceClassesPacket::handle)
+                .add();
     }
 }

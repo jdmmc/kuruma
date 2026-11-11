@@ -136,7 +136,7 @@ public final class TimeAttackClass {
         }
         if (awaiting != null) {
             // 送ったクラスがもうサーバーに無いなら、待っても返ってこない（サーバーは空で返す）
-            boolean exists = awaiting.isEmpty() || packet.classes().stream()
+            boolean exists = awaiting.isEmpty() || RaceLobby.classes().stream()
                     .anyMatch(raceClass -> raceClass.name().equals(awaiting));
             if (!awaiting.equals(fromServer) && awaitTicks > 0 && exists) {
                 return;

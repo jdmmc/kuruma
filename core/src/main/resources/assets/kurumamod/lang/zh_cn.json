@@ -393,6 +393,8 @@
   "race.kurumamod.need_second_point": "只标记了第 1 点 (%s, %s)。请在另一端使用 /kuruma-admin point",
   "race.kurumamod.not_host_named": "只有举办的 %s 和 OP 可以操作",
   "race.kurumamod.retired_self": "已退出比赛。圈数记录不会保留",
+  "race.kurumamod.leave_finished": "你已完成比赛，在显示结果前会一直留在比赛中",
+  "race.kurumamod.kick_finished": "%s 已完成比赛，会保留在结果中",
   "race.kurumamod.hud_not_started": "未起跑",
   "subtitles.kurumamod.race_light": "起跑信号",
   "subtitles.kurumamod.race_start": "起跑",

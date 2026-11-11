@@ -67,17 +67,40 @@ public final class RaceClasses {
         try {
             JsonObject root = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8)).getAsJsonObject();
             for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+                // <b>手で書き換えたファイルにも、画面から保存するときと同じ上限を掛ける。</b>長すぎる名前や
+                // 多すぎるクラスをそのまま配ると、パケットが書けずに全員の接続が切れた
+                String name = clip(entry.getKey().trim());
+                if (name.isEmpty() || out.containsKey(name)) {
+                    LOGGER.warn("クラスの名前が空か、切り詰めたら重なったので読み飛ばします: {}", entry.getKey());
+                    continue;
+                }
+                if (out.size() >= MAX_CLASSES) {
+                    LOGGER.warn("クラスが {} を超えているので、残りは読み飛ばします: {}", MAX_CLASSES, path);
+                    break;
+                }
+                if (!name.equals(entry.getKey())) {
+                    LOGGER.warn("クラスの名前が {} 文字を超えているので切り詰めます: {} → {}", MAX_NAME, entry.getKey(), name);
+                }
                 JsonArray array = entry.getValue().getAsJsonArray();
                 double[] values = new double[array.size()];
                 for (int i = 0; i < values.length; i++) {
                     values[i] = array.get(i).getAsDouble();
                 }
-                out.put(entry.getKey(), values);
+                out.put(name, values);
             }
         } catch (IOException | RuntimeException e) {
             LOGGER.warn("クラスを読めませんでした: {}", path, e);
         }
         return out;
+    }
+
+    /** {@link #MAX_NAME} 文字に切り詰める。サロゲートペア（絵文字など）の途中では切らない。 */
+    private static String clip(String name) {
+        if (name.length() <= MAX_NAME) {
+            return name;
+        }
+        int end = Character.isHighSurrogate(name.charAt(MAX_NAME - 1)) ? MAX_NAME - 1 : MAX_NAME;
+        return name.substring(0, end).trim();
     }
 
     private static void save(MinecraftServer server) {
@@ -93,7 +116,7 @@ public final class RaceClasses {
         try {
             Files.createDirectories(path.getParent());
             Files.writeString(path, GSON.toJson(root), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             LOGGER.warn("クラスを保存できませんでした: {}", path, e);
         }
     }
@@ -109,6 +132,11 @@ public final class RaceClasses {
             out.add(new RaceLobbyPacket.RaceClass(entry.getKey(), entry.getValue().clone(), records));
         }
         return out;
+    }
+
+    /** 保存してあるクラスの名前（並び順）。記録の件数は数えない。 */
+    public static List<String> names(MinecraftServer server) {
+        return new ArrayList<>(classes(server).keySet());
     }
 
     /** その名前のクラスの決まり。無ければ null。 */
@@ -131,7 +159,9 @@ public final class RaceClasses {
         if (!map.containsKey(trimmed) && map.size() >= MAX_CLASSES) {
             return false;
         }
-        map.put(trimmed, regulation.clone());
+        // 決まりとして読み直した値で持つ（範囲の外・数でない値は丸める）。届いた値をそのまま書くと、
+        // NaN が入っていたら JSON に書けずに保存が止まった
+        map.put(trimmed, Regulation.fromArray(regulation).toArray());
         save(server);
         return true;
     }

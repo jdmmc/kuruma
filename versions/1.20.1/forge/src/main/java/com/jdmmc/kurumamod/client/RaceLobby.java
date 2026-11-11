@@ -82,7 +82,6 @@ public final class RaceLobby {
         boolean wasOpen = previous != null && previous.phase() == RaceLobbyPacket.Phase.OPEN;
         lobby = packet.phase() == RaceLobbyPacket.Phase.NONE ? null : packet;
         coursesSeen = packet.courses();
-        classesSeen = packet.classes();
         classAdminSeen = packet.classAdmin();
         if (lobby == null) {
             inviteTicks = 0;
@@ -131,6 +130,11 @@ public final class RaceLobby {
     /** クラスを保存・削除してよいか（OP）。最後に受け取ったもの。 */
     static boolean classAdmin() {
         return classAdminSeen;
+    }
+
+    /** クラスの一覧を受け取る（{@code RaceClassesPacket}。変わったときだけ届く）。 */
+    public static void acceptClasses(List<RaceLobbyPacket.RaceClass> classes) {
+        classesSeen = List.copyOf(classes);
     }
 
     /** サーバーに保存してあるクラス（最後に受け取ったもの）。 */

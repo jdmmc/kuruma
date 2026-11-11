@@ -392,6 +392,8 @@
   "race.kurumamod.need_second_point": "1 点目 (%s, %s) だけ打たれています。もう一方の端で /kuruma-admin point",
   "race.kurumamod.not_host_named": "開催した %s と OP だけが操作できます",
   "race.kurumamod.retired_self": "レースからリタイアしました。周回の記録は残りません",
+  "race.kurumamod.leave_finished": "ゴールしているので抜けられません。リザルトまでレースに残ります",
+  "race.kurumamod.kick_finished": "%s はゴールしているので外せません（リザルトに残ります）",
   "race.kurumamod.hud_not_started": "未スタート",
   "subtitles.kurumamod.race_light": "スタート信号",
   "subtitles.kurumamod.race_start": "スタート",
