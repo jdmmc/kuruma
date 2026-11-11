@@ -42,7 +42,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
                               boolean isHost, boolean joined, boolean spectating, boolean canManage,
                               long bestMillis,
                               double[] regulation, List<Entrant> entrants, List<CourseInfo> courses,
-                              boolean classAdmin, String declaredClass)
+                              boolean classAdmin, String declaredClass, int self)
         implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<RaceLobbyPacket> TYPE = new CustomPacketPayload.Type<>(
@@ -93,7 +93,8 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
      * @param verdict    判定
      * @param violations 外れている決まり
      * @param values     車の値（{@link #POWER} などの順）。乗っていなければ空
-     * @param you        受け取った本人か
+     * @param you        受け取った本人か。<b>サーバーでは常に false で組み、送るときに {@link #self} から付ける</b>
+     *                   （受け取る人ごとに一覧を写し直さないため）
      */
     public record Entrant(String name, String carId, Verdict verdict,
                           List<Regulation.Violation> violations, double[] values, boolean you) {
@@ -153,14 +154,29 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
     public static RaceLobbyPacket none(List<CourseInfo> courses, boolean classAdmin,
                                        String declaredClass) {
         return new RaceLobbyPacket(Phase.NONE, "", 0, 0, "", false, false, false, false, 0L,
-                Regulation.DEFAULT.toArray(), List.of(), courses, classAdmin, declaredClass);
+                Regulation.DEFAULT.toArray(), List.of(), courses, classAdmin, declaredClass, -1);
+    }
+
+    /**
+     * {@code self}（受け取った本人が参加者の何行目か。いなければ -1）が負なら、届いた行の「本人か」から引き直す。
+     * サーバーは行を写し直さずに {@code self} だけを付け、クライアントは行の「本人か」で読む。
+     */
+    public RaceLobbyPacket {
+        if (self < 0) {
+            for (int i = 0; i < entrants.size(); i++) {
+                if (entrants.get(i).you()) {
+                    self = i;
+                    break;
+                }
+            }
+        }
     }
 
     public RaceLobbyPacket(FriendlyByteBuf buf) {
         this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), buf.readVarInt(), buf.readUtf(256),
                 buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readLong(),
                 readDoubles(buf), readEntrants(buf), readCourses(buf), buf.readBoolean(),
-                buf.readUtf(256));
+                buf.readUtf(256), -1);
     }
 
     /**
@@ -170,7 +186,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
     private static final int MAX_DOUBLES = 64;
     private static final int MAX_ENTRANTS = 256;
     private static final int MAX_LIST = 16;
-    private static final int MAX_COURSES = 256;
+    private static final int MAX_COURSES = com.jdmmc.kurumamod.race.RaceData.MAX_COURSES;
 
     /** 件数を読む。上限を超えていたら、読み違える前に止める。 */
     private static int readCount(FriendlyByteBuf buf, int max) {
@@ -235,7 +251,8 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
         writeDoubles(buf, regulation, MAX_DOUBLES);
         List<Entrant> sentEntrants = entrants.subList(0, Math.min(MAX_ENTRANTS, entrants.size()));
         buf.writeVarInt(sentEntrants.size());
-        for (Entrant entrant : sentEntrants) {
+        for (int index = 0; index < sentEntrants.size(); index++) {
+            Entrant entrant = sentEntrants.get(index);
             buf.writeUtf(entrant.name(), 32);
             buf.writeUtf(entrant.carId(), 128);
             buf.writeByte(entrant.verdict().ordinal());
@@ -248,7 +265,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
                 buf.writeDouble(violation.limit());
             }
             writeDoubles(buf, entrant.values(), MAX_LIST);
-            buf.writeBoolean(entrant.you());
+            buf.writeBoolean(index == self);
         }
         List<CourseInfo> sentCourses = courses.subList(0, Math.min(MAX_COURSES, courses.size()));
         buf.writeVarInt(sentCourses.size());

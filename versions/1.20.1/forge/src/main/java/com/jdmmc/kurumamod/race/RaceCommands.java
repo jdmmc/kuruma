@@ -185,6 +185,11 @@ public final class RaceCommands {
         if (refuseWhileRacing(ctx, level, name)) {
             return 0;
         }
+        if (data.course(name).isEmpty() && data.courses().size() >= RaceData.MAX_COURSES) {
+            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.too_many_courses",
+                    RaceData.MAX_COURSES));
+            return 0;
+        }
         Course course = data.course(name).orElseGet(() -> data.createCourse(name));
         course.setStart(line);
         course.clearCheckpoints();
@@ -215,7 +220,7 @@ public final class RaceCommands {
     }
 
     /**
-     * そのコースでレースを受け付けている・走っている間は、線を変えさせない。変えると、走っている人の周が
+     * そのコースでレースを受け付けている・走っている間は、線を変えさせない・消させない。変えると、走っている人の周が
      * 無効になったり、古い線のまま測られたりする。タイムアタックは止めて変える（{@link RaceManager#onCourseChanged}）。
      */
     private static boolean refuseWhileRacing(CommandContext<CommandSourceStack> ctx, ServerLevel level, String name) {
@@ -236,6 +241,11 @@ public final class RaceCommands {
             return failNoCourse(ctx, name);
         }
         if (refuseWhileRacing(ctx, level, name)) {
+            return 0;
+        }
+        if (course.checkpointCount() >= Course.MAX_CHECKPOINTS) {
+            ctx.getSource().sendFailure(Component.translatable("race.kurumamod.too_many_checkpoints",
+                    name, Course.MAX_CHECKPOINTS));
             return 0;
         }
         CourseLine line = takeLine(ctx, player);
@@ -299,12 +309,19 @@ public final class RaceCommands {
 
     private static int removeCourse(CommandContext<CommandSourceStack> ctx) {
         String name = StringArgumentType.getString(ctx, "name");
-        RaceData data = RaceData.get(ctx.getSource().getLevel());
-        if (!data.removeCourse(name)) {
+        // コマンドを打った場所の次元（コンソールからならオーバーワールド）
+        ServerLevel level = ctx.getSource().getLevel();
+        RaceData data = RaceData.get(level);
+        if (data.course(name).isEmpty()) {
             return failNoCourse(ctx, name);
         }
-        // そのコースのレース・タイムアタック・記録・ゴーストを片付ける
-        RaceManager.onCourseRemoved(ctx.getSource().getLevel(), name);
+        // レースをしている間は消させない（走っているレースが、リザルトも出さずに消えた）
+        if (refuseWhileRacing(ctx, level, name)) {
+            return 0;
+        }
+        data.removeCourse(name);
+        // そのコースのタイムアタック・記録・ゴーストを片付ける
+        RaceManager.onCourseRemoved(level, name);
         RaceSync.sendToAll(ctx.getSource().getServer());
         ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.course_removed", name), true);
         return 1;

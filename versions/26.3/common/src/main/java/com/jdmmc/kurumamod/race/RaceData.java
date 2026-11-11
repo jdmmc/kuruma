@@ -142,6 +142,12 @@ public class RaceData extends SavedData {
         return Optional.ofNullable(courses.get(name));
     }
 
+    /**
+     * 1 つの次元に作れるコースの数。<b>作るときに断る</b>（{@code RaceCommands}）。上限が無いと、ロビーの
+     * パケットに載る一覧が溢れ、後ろのコースが K の画面から黙って消えた。
+     */
+    public static final int MAX_COURSES = 256;
+
     public Course createCourse(String name) {
         Course course = new Course(name);
         courses.put(name, course);

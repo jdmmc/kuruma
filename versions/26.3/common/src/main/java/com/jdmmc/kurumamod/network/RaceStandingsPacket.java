@@ -75,8 +75,17 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
         this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), readRows(buf), buf.readLong());
     }
 
+    /**
+     * 行の数の上限（ロビーの参加者の上限と同じ）。<b>書く側も同じ数で切る。</b>届いた数をそのまま配列の大きさに
+     * すると、壊れた数で巨大な配列を作ろうとして落ちる（ほかのパケットとそろえてある）。
+     */
+    private static final int MAX_ROWS = 256;
+
     private static List<Row> readRows(FriendlyByteBuf buf) {
         int count = buf.readVarInt();
+        if (count < 0 || count > MAX_ROWS) {
+            throw new io.netty.handler.codec.DecoderException("順位表の行の数が範囲外です: " + count);
+        }
         List<Row> rows = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             rows.add(new Row(buf.readUtf(32), buf.readVarInt(), buf.readLong(),
@@ -89,8 +98,9 @@ public record RaceStandingsPacket(Phase phase, String course, int laps, List<Row
         buf.writeByte(phase.ordinal());
         buf.writeUtf(course, 256);
         buf.writeVarInt(laps);
-        buf.writeVarInt(rows.size());
-        for (Row row : rows) {
+        List<Row> sent = rows.subList(0, Math.min(MAX_ROWS, rows.size()));
+        buf.writeVarInt(sent.size());
+        for (Row row : sent) {
             buf.writeUtf(row.name(), 32);
             buf.writeVarInt(row.laps());
             buf.writeLong(row.millis());

@@ -246,15 +246,17 @@ public final class CarGhosts {
             }
             case FINISHED, CLEARED -> resetLap();
             case BEST_CLEARED -> {
+                // 記録を消した次元のフォルダから消す（今いる次元でなくても届く。記録は次元に縛られない）
+                String dimension = packet.clearedDimension();
                 if (packet.raceClass().isEmpty() && packet.overallBest()) {
                     // クラスなしの記録だけ（OP が K の画面から消した）
-                    deleteClassLapGhost(minecraft, packet.course(), "");
+                    deleteClassLapGhost(minecraft, dimension, packet.course(), "");
                 } else if (packet.raceClass().isEmpty()) {
-                    deleteLapGhosts(minecraft, packet.course());
+                    deleteLapGhosts(minecraft, dimension, packet.course());
                 } else if (packet.course().isEmpty()) {
                     deleteClassGhosts(minecraft, packet.raceClass());
                 } else {
-                    deleteClassLapGhost(minecraft, packet.course(), packet.raceClass());
+                    deleteClassLapGhost(minecraft, dimension, packet.course(), packet.raceClass());
                 }
             }
             default -> {
@@ -313,11 +315,12 @@ public final class CarGhosts {
     }
 
     /** 1 つのコースの 1 つのクラス（空ならクラスなし）の記録を消した（OP が K の画面から）。そのゴーストだけ消す。 */
-    private static void deleteClassLapGhost(Minecraft minecraft, String course, String raceClass) {
-        if (playing != null && course.equals(lapCourse) && raceClass.equals(lapClass)) {
+    private static void deleteClassLapGhost(Minecraft minecraft, String dimension, String course, String raceClass) {
+        if (playing != null && dimension.equals(currentDimension(minecraft))
+                && course.equals(lapCourse) && raceClass.equals(lapClass)) {
             stopPlayback();
         }
-        Path file = lapFile(minecraft, course, raceClass);
+        Path file = lapFile(minecraft, dimension, course, raceClass);
         try {
             Files.deleteIfExists(file);
         } catch (IOException e) {
@@ -358,21 +361,22 @@ public final class CarGhosts {
     }
 
     /**
-     * ベストを消したので、そのコース（空なら今の次元の全コース）のゴーストも消す。
-     * 走っている最中なら、いま出ているゴーストも引っ込める。
+     * ベストを消したので、その次元のそのコース（空なら全コース）のゴーストも消す。
+     * その次元で走っている最中なら、いま出ているゴーストも引っ込める。
      */
-    private static void deleteLapGhosts(Minecraft minecraft, String course) {
-        if (playing != null && (course.isEmpty() || course.equals(lapCourse))) {
+    private static void deleteLapGhosts(Minecraft minecraft, String dimension, String course) {
+        if (playing != null && dimension.equals(currentDimension(minecraft))
+                && (course.isEmpty() || course.equals(lapCourse))) {
             stopPlayback();
         }
-        Path world = worldDir(minecraft);
+        Path world = dimDir(minecraft, dimension);
         if (course.isEmpty()) {
             deleteTree(world);
             return;
         }
         // クラスなしと、全クラスのそのコースのぶん
         try {
-            Files.deleteIfExists(lapFile(minecraft, course, ""));
+            Files.deleteIfExists(lapFile(minecraft, dimension, course, ""));
             Path classes = world.resolve(CLASS_DIR);
             if (Files.isDirectory(classes)) {
                 try (var dirs = Files.list(classes)) {
@@ -643,7 +647,15 @@ public final class CarGhosts {
      * ゴーストが、何もない場所を走り出す。シングルはセーブのフォルダ名、マルチは接続先で分ける。</p>
      */
     private static Path lapFile(Minecraft minecraft, String course, String raceClass) {
-        Path base = raceClass == null || raceClass.isEmpty() ? worldDir(minecraft) : classDir(minecraft, raceClass);
+        return lapFile(minecraft, currentDimension(minecraft), course, raceClass);
+    }
+
+    /** 次元を決めて引く（記録を消した知らせは、別の次元のものも届く）。 */
+    private static Path lapFile(Minecraft minecraft, String dimension, String course, String raceClass) {
+        Path base = dimDir(minecraft, dimension);
+        if (raceClass != null && !raceClass.isEmpty()) {
+            base = base.resolve(CLASS_DIR).resolve(fileKey(raceClass));
+        }
         return base.resolve(courseFile(course));
     }
 
@@ -699,9 +711,17 @@ public final class CarGhosts {
      * <p>2.0.0 までの置き場所（{@code config/kurumamod-ghosts/}）は見ない。残っていても使わず、そのままにする。</p>
      */
     private static Path worldDir(Minecraft minecraft) {
-        // 次元の名前（minecraft:the_nether など）も、そのままではファイル名にしない
-        return playerDir(minecraft).resolve(minecraft.level != null
-                ? fileKey(minecraft.level.dimension().location().toString()) : "unknown");
+        return dimDir(minecraft, currentDimension(minecraft));
+    }
+
+    /** その次元のゴーストのフォルダ。次元の名前（minecraft:the_nether など）も、そのままではファイル名にしない。 */
+    private static Path dimDir(Minecraft minecraft, String dimension) {
+        return playerDir(minecraft).resolve(dimension != null ? fileKey(dimension) : "unknown");
+    }
+
+    /** いまいる次元の名前。ワールドに入っていなければ null。 */
+    static String currentDimension(Minecraft minecraft) {
+        return minecraft.level != null ? minecraft.level.dimension().location().toString() : null;
     }
 
     /** そのワールド（サーバー）の、いま入っているプレイヤーのフォルダ（次元のフォルダはこの下）。 */
@@ -717,11 +737,6 @@ public final class CarGhosts {
         // <b>プレイヤーごとに分ける。</b>分けないと、同じ PC から別のアカウントで入った人が相手のゴーストを読み、
         // 自分のベストと合わないので消してしまった
         return world.resolve(minecraft.player != null ? minecraft.player.getUUID().toString() : "unknown");
-    }
-
-    /** そのクラスのゴーストのフォルダ（{@link #fileKey}）。 */
-    private static Path classDir(Minecraft minecraft, String raceClass) {
-        return worldDir(minecraft).resolve(CLASS_DIR).resolve(fileKey(raceClass));
     }
 
     /** いま入っているワールド（サーバー）の名前。シングルはセーブのフォルダ名、マルチは接続先。 */

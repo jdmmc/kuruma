@@ -309,7 +309,12 @@ public final class RaceHud {
                 boolean courseGone = packet.raceClass().isEmpty()
                         && (packet.course().isEmpty() || packet.course().equals(courseName))
                         && (!packet.overallBest() || lapClass.isEmpty());
-                if (totalLaps == 0 && (classGone || courseGone)) {
+                // 記録を消した次元が今いる次元のときだけ（空ならすべての次元。クラスの記録）。別の次元の
+                // 同じ名前のコースの記録が消えても、今走っているコースの BEST は残っている
+                String dimension = packet.clearedDimension();
+                boolean here = dimension.isEmpty()
+                        || dimension.equals(CarGhosts.currentDimension(Minecraft.getInstance()));
+                if (totalLaps == 0 && here && (classGone || courseGone)) {
                     bestMillis = 0L;
                 }
                 TimeAttackScreen.recordsChanged();

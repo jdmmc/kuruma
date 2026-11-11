@@ -816,7 +816,7 @@ public final class RaceManager {
             removed += RaceData.get(level).clearClassBests(name);
         }
         for (ServerPlayer online : server.getPlayerList().getPlayers()) {
-            send(online, RaceEventPacket.bestCleared("", name));
+            send(online, RaceEventPacket.bestCleared("", "", name));
             if (deleted && name.equals(DECLARED.get(online.getUUID()))) {
                 DECLARED.remove(online.getUUID());
                 online.sendSystemMessage(Component.translatable("race.kurumamod.class_gone", name)
@@ -1049,26 +1049,23 @@ public final class RaceManager {
     }
 
     /**
-     * ベストを消したことを本人に知らせる。タイムアタックのゴーストはクライアントが持っているので、
-     * 知らせないと<b>消したはずのベストの走りがゴーストとして走り続ける</b>。
+     * そのコースの全員のベストを消したことを、<b>サーバーの全員</b>に知らせる（ゴースト・HUD の BEST・K の画面）。
      *
-     * @param course 消したコース。空なら全コース
-     */
-    /**
-     * そのコースの全員のベストを消したことを、<b>その次元にいる人だけ</b>に知らせる（ゴーストと HUD の BEST を消させる）。
-     *
-     * <p>ゴーストはクライアントの次元ごとのフォルダにある。別の次元にいる人へ送ると、その人がいる次元の
-     * 同じ名前のコースのゴーストを消してしまう。ほかの次元にいる人と落ちている人のものは、次にそのコースを
-     * 走り出したとき、サーバーのベストと周が合わずに消える（{@code CarGhosts}）。</p>
+     * <p>タイムアタックのゴーストはクライアントが持っているので、知らせないと<b>消したはずのベストの走りが
+     * ゴーストとして走り続ける</b>。記録はレースと違って次元に縛られないので、別の次元にいる人にも送る。
+     * 知らせには次元を載せ、ゴーストはその次元のフォルダから消させる（戻ってきたときに残っていない）。
+     * 落ちている人のものは、次にそのコースを走り出したとき、サーバーのベストと周が合わずに消える（{@code CarGhosts}）。</p>
      */
     public static void notifyCourseBestsCleared(ServerLevel level, String course) {
-        for (ServerPlayer online : level.players()) {
-            notifyBestCleared(online, course);
+        RaceEventPacket packet = RaceEventPacket.bestCleared(dimensionId(level), course);
+        for (ServerPlayer online : level.getServer().getPlayerList().getPlayers()) {
+            send(online, packet);
         }
     }
 
-    public static void notifyBestCleared(ServerPlayer player, String course) {
-        send(player, RaceEventPacket.bestCleared(course));
+    /** 次元の名前（{@code minecraft:the_nether} など）。記録を消した知らせに載せる。 */
+    private static String dimensionId(Level level) {
+        return level.dimension().location().toString();
     }
 
     private static void send(ServerPlayer player, RaceEventPacket packet) {
@@ -1348,32 +1345,27 @@ public final class RaceManager {
         return list;
     }
 
-    /** 参加者 1 人の行と、その人の UUID（受け取る人ごとに「自分か」を付け替えるため）。 */
-    private record Listed(UUID id, RaceLobbyPacket.Entrant entrant) {
+    /** 参加者の一覧と、行ごとの UUID（同じ順）。受け取る人が何行目かを引くため。 */
+    private record Roster(List<UUID> ids, List<RaceLobbyPacket.Entrant> entrants) {
     }
 
     /**
-     * 受け取る人ごとにレースの様子を組む。
+     * 受け取る人ごとにレースの様子を組む。<b>参加者の一覧はそのまま渡し、「自分が何行目か」だけを人ごとに付ける</b>
+     * （{@link RaceLobbyPacket#self}）。
      *
-     * @param listed 参加者の一覧（{@link #listEntrants}）。null なら組む
+     * @param roster 参加者の一覧（{@link #listEntrants}）。null なら組む
      */
     private static RaceLobbyPacket lobbyFor(ServerLevel level, Session session, ServerPlayer viewer,
-                                            List<RaceLobbyPacket.CourseInfo> courses, List<Listed> listed) {
+                                            List<RaceLobbyPacket.CourseInfo> courses, Roster roster) {
         if (session == null) {
             return RaceLobbyPacket.none(courses, isOp(viewer),
                     declaredName(viewer));
         }
-        if (listed == null) {
-            listed = listEntrants(level, session);
+        if (roster == null) {
+            roster = listEntrants(level, session);
         }
-        // 受け取る人で変わるのは「自分か」だけ
-        List<RaceLobbyPacket.Entrant> list = new ArrayList<>(listed.size());
-        for (Listed row : listed) {
-            RaceLobbyPacket.Entrant e = row.entrant();
-            list.add(row.id().equals(viewer.getUUID())
-                    ? new RaceLobbyPacket.Entrant(e.name(), e.carId(), e.verdict(), e.violations(), e.values(), true)
-                    : e);
-        }
+        List<RaceLobbyPacket.Entrant> list = roster.entrants();
+        int self = roster.ids().indexOf(viewer.getUUID());
         RaceData data = RaceData.get(level);
         int checkpoints = data.course(session.course).map(Course::checkpointCount).orElse(0);
         long best = data.bestLap(viewer.getUUID(), session.course);
@@ -1383,15 +1375,16 @@ public final class RaceManager {
                 session.spectators.contains(viewer.getUUID()),
                 canManage(viewer), Math.max(0L, best),
                 session.regulation.toArray(), list, courses,
-                isOp(viewer), declaredName(viewer));
+                isOp(viewer), declaredName(viewer), self);
     }
 
     /**
      * 参加者の一覧（決まりの判定つき）。<b>受け取る人で変わらないので、配るときに 1 回だけ組む。</b>
      * 受け取る人ごとに組むと、その次元の人数 × 参加者数の回数だけ決まりを判定していた。
      */
-    private static List<Listed> listEntrants(ServerLevel level, Session session) {
-        List<Listed> list = new ArrayList<>();
+    private static Roster listEntrants(ServerLevel level, Session session) {
+        List<UUID> ids = new ArrayList<>();
+        List<RaceLobbyPacket.Entrant> list = new ArrayList<>();
         for (UUID id : session.entrants) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
             if (player == null || session.retired.contains(id)) {
@@ -1403,10 +1396,11 @@ public final class RaceManager {
             double[] values = violations != null ? RaceLobbyPacket.valuesOf(car.getSpec()) : new double[0];
             RaceLobbyPacket.Verdict verdict = violations == null ? RaceLobbyPacket.Verdict.NO_CAR
                     : violations.isEmpty() ? RaceLobbyPacket.Verdict.OK : RaceLobbyPacket.Verdict.VIOLATION;
-            list.add(new Listed(id, new RaceLobbyPacket.Entrant(player.getGameProfile().getName(), carId, verdict,
-                    violations == null ? List.of() : violations, values, false)));
+            ids.add(id);
+            list.add(new RaceLobbyPacket.Entrant(player.getGameProfile().getName(), carId, verdict,
+                    violations == null ? List.of() : violations, values, false));
         }
-        return list;
+        return new Roster(ids, list);
     }
 
     private static String declaredName(ServerPlayer player) {
@@ -1417,10 +1411,10 @@ public final class RaceManager {
     /** そのワールドの全員へ、受け取る人ごとに組んで配る。 */
     private static void broadcastLobby(ServerLevel level, Session session) {
         List<RaceLobbyPacket.CourseInfo> courses = courseInfos(level);
-        List<Listed> listed = session == null ? null : listEntrants(level, session);
+        Roster roster = session == null ? null : listEntrants(level, session);
         for (ServerPlayer player : level.players()) {
             KurumaNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                    lobbyFor(level, session, player, courses, listed));
+                    lobbyFor(level, session, player, courses, roster));
         }
     }
 
@@ -1445,19 +1439,13 @@ public final class RaceManager {
     }
 
     /**
-     * コースが消された（{@code /kuruma-admin course remove}）。<b>そのコースのレースは中止し（リザルトも出さない）、
-     * 測っていたタイムアタックを止め、記録とゴーストも消す。</b>
+     * コースが消された（{@code /kuruma-admin course remove}）。<b>測っていたタイムアタックを止め、記録とゴーストも消す。</b>
+     * そのコースでレースをしている間は、消すこと自体を断っている（{@code RaceCommands}）。
      *
-     * <p>放っておくと、ラインを判定できないまま画面の時計とゴーストが回り続け、レースは誰もゴールできずに
-     * 終わらなかった。記録はサーバーに残り、K の画面には出ないのにクラスの記録の件数には数えられていた。</p>
+     * <p>放っておくと、ラインを判定できないまま画面の時計とゴーストが回り続けた。記録はサーバーに残り、
+     * K の画面には出ないのにクラスの記録の件数には数えられていた。</p>
      */
     public static void onCourseRemoved(ServerLevel level, String name) {
-        Session session = SESSIONS.get(level.dimension());
-        if (session != null && session.course.equals(name)) {
-            cleanup(level, session);
-            broadcast(level, Component.translatable("race.kurumamod.course_removed_race", name)
-                    .withStyle(ChatFormatting.GRAY));
-        }
         Map<UUID, LapState> states = states(level);
         for (ServerPlayer player : level.players()) {
             LapState state = states.get(player.getUUID());
@@ -1748,13 +1736,11 @@ public final class RaceManager {
                 .withStyle(ChatFormatting.GRAY));
         ServerPlayer owner = server.getPlayerList().getPlayer(id);
         if (owner != null) {
-            // 持ち主のゴーストと、HUD の比べる相手を消させる（消した 1 つだけ）。<b>別の次元にいるなら送らない</b>——
-            // ゴーストは次元ごとのフォルダにあり、その人のいる次元の同じ名前のコースのものを消してしまう。
-            // 戻って走り出したとき、サーバーのベストと周が合わずに消える
-            if (owner.level() == player.level()) {
-                send(owner, raceClass.isEmpty() ? RaceEventPacket.noClassCleared(course)
-                        : RaceEventPacket.bestCleared(course, raceClass));
-            }
+            // 持ち主のゴーストと、HUD の比べる相手を消させる（消した 1 つだけ）。持ち主が別の次元にいても送る。
+            // ゴーストは知らせに載せた次元のフォルダから消し、HUD は今いる次元のときだけ変える
+            String dimension = dimensionId(player.level());
+            send(owner, raceClass.isEmpty() ? RaceEventPacket.noClassCleared(dimension, course)
+                    : RaceEventPacket.bestCleared(dimension, course, raceClass));
             if (owner != player) {
                 owner.sendSystemMessage(Component.translatable("race.kurumamod.record_deleted_owner",
                         course, board, player.getGameProfile().getName()).withStyle(ChatFormatting.GRAY));

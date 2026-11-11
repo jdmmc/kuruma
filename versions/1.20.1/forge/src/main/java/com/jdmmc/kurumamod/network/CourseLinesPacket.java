@@ -41,10 +41,11 @@ public record CourseLinesPacket(List<Gate> gates) {
     }
 
     /**
-     * ゲートの数の上限。<b>書く側も同じ数で切る</b>（読む側だけで切ると、残りのバイトを読み違えて切断される）。
+     * ゲートの数の上限（コースの数 × (チェックポイント + スタート)）。<b>書く側も同じ数で切る</b>（読む側だけで切ると、残りのバイトを読み違えて切断される）。
      * 届いた数をそのまま配列の大きさにすると、壊れた数で巨大な配列を作ろうとして落ちる。
      */
-    private static final int MAX_GATES = 4096;
+    private static final int MAX_GATES = com.jdmmc.kurumamod.race.RaceData.MAX_COURSES
+            * (com.jdmmc.kurumamod.race.Course.MAX_CHECKPOINTS + 1);
 
     private static List<Gate> readGates(FriendlyByteBuf buf) {
         int count = buf.readVarInt();

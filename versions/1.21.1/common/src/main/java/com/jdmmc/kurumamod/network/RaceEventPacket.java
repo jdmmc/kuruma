@@ -38,7 +38,8 @@ import net.minecraft.network.FriendlyByteBuf;
  * @param raceClass   クラスの名前（空ならクラスなし）。{@link Type#LAP_STARTED}・{@link Type#LAP_COMPLETED} は
  *                    <b>これから走る周</b>の比べる相手（ゴーストもこれで選ぶ）、{@link Type#BEST_CLEARED} は
  *                    記録を消したクラス
- * @param countedClass 終えた周を記録したクラス（{@link Type#LAP_COMPLETED}）。宣言していない・決まりに外れていたら空
+ * @param countedClass 終えた周を記録したクラス（{@link Type#LAP_COMPLETED}）。宣言していない・決まりに外れていたら空。
+ *                    {@link Type#BEST_CLEARED} のときは<b>記録を消した次元</b>（{@link #clearedDimension}）
  * @param classBest   終えた周で {@code countedClass} のベストを更新したか
  * @param overallBest 終えた周でクラスなしのベストを更新したか。{@code best} は比べた相手（宣言したクラスかクラスなし）の方
  * @param targetBest  これから走る周の比べる相手（{@code raceClass}）の自己ベスト [ms]。無ければ 0。
@@ -151,27 +152,41 @@ public record RaceEventPacket(Type kind, int lights, boolean frozen, int lap, in
                 0, 0, delta, hasDelta, total, "", "", "", false, false, 0L);
     }
 
-    /** @param course 消したコース。空なら全コース */
-    public static RaceEventPacket bestCleared(String course) {
-        return bestCleared(course, "");
+    /**
+     * そのコースの全員の記録（クラスなしも全クラスも）を消した。
+     *
+     * @param dimension 記録を消した次元（コースは次元ごとにある）
+     */
+    public static RaceEventPacket bestCleared(String dimension, String course) {
+        return bestCleared(dimension, course, "");
     }
 
     /**
+     * <b>記録はレースと違って次元に縛られないので、知らせは全員へ送る。</b>ゴーストは次元ごとのフォルダにあるので、
+     * 受け取った側は {@code dimension} のフォルダから消す（今いる次元でなくても）。HUD の BEST は、今いる次元の
+     * ときだけ消す。
+     *
+     * @param dimension 記録を消した次元。空ならすべての次元（クラスの記録）
      * @param course    消したコース。空なら全コース
      * @param raceClass 消したクラス。空ならそのコースのクラスなしも全クラスも
      */
-    public static RaceEventPacket bestCleared(String course, String raceClass) {
+    public static RaceEventPacket bestCleared(String dimension, String course, String raceClass) {
         return new RaceEventPacket(Type.BEST_CLEARED, 0, false, 0, 0, 0, 0, false, 0,
-                0, 0, 0, false, 0, course, raceClass, "", false, false, 0L);
+                0, 0, 0, false, 0, course, raceClass, dimension, false, false, 0L);
+    }
+
+    /** {@link Type#BEST_CLEARED} の、記録を消した次元。空ならすべての次元。 */
+    public String clearedDimension() {
+        return countedClass;
     }
 
     /**
      * そのコースの<b>クラスなしの記録だけ</b>を消した（OP が K の画面から）。クラスが空の {@link #bestCleared} は
      * 「そのコースの全部」なので、{@code overallBest} を立てて見分ける。
      */
-    public static RaceEventPacket noClassCleared(String course) {
+    public static RaceEventPacket noClassCleared(String dimension, String course) {
         return new RaceEventPacket(Type.BEST_CLEARED, 0, false, 0, 0, 0, 0, false, 0,
-                0, 0, 0, false, 0, course, "", "", false, true, 0L);
+                0, 0, 0, false, 0, course, "", dimension, false, true, 0L);
     }
 
     /** タイムアタックのウォームアップが始まった。 */

@@ -21,6 +21,9 @@ public final class Course {
     /** コース名の長さの上限。作るときに断る（{@code /kuruma-admin course create}）。 */
     public static final int MAX_NAME_LENGTH = 32;
 
+    /** 1 つのコースに置けるチェックポイントの数。足すときに断る（ゲートのパケットの大きさを抑えるため）。 */
+    public static final int MAX_CHECKPOINTS = 32;
+
     /** 短すぎるラップを弾く。線の上で前後して周回数を稼ぐのを防ぐ最後の砦。 */
     public static final long MIN_LAP_MILLIS = 3000L;
 
