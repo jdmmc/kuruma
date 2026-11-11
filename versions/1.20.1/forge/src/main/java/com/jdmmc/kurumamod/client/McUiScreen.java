@@ -6,6 +6,7 @@ import com.jdmmc.kurumamod.client.ui.UiGraphics;
 import com.jdmmc.kurumamod.client.ui.UiKey;
 import com.jdmmc.kurumamod.client.ui.UiPressable;
 import com.jdmmc.kurumamod.client.ui.UiScreen;
+import com.jdmmc.kurumamod.client.ui.UiSlider;
 import com.jdmmc.kurumamod.client.ui.UiWidget;
 import com.jdmmc.kurumamod.race.RaceText;
 import com.jdmmc.kurumamod.race.RaceTexts;
@@ -13,6 +14,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -45,6 +47,11 @@ public final class McUiScreen extends Screen {
 
     public UiScreen model() {
         return model;
+    }
+
+    /** core の画面ならその中身、そうでなければ画面そのもの（{@code instanceof} で見分けるため）。 */
+    public static Object unwrap(Object screen) {
+        return screen instanceof McUiScreen ui ? ui.model() : screen;
     }
 
     @Override
@@ -100,6 +107,18 @@ public final class McUiScreen extends Screen {
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        sync();
+        boolean used = model.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        sync();
+        return used;
+    }
+
+    private boolean superMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
     public void onClose() {
         model.onClose();
     }
@@ -127,13 +146,16 @@ public final class McUiScreen extends Screen {
             peer.visible = widget.visible;
             if (peer instanceof Linked linked) {
                 linked.state().apply(widget, peer);
+                linked.pull();
             }
         }
     }
 
     private AbstractWidget peerOf(UiWidget widget) {
         AbstractWidget peer;
-        if (widget instanceof UiButton button) {
+        if (widget instanceof UiSlider slider) {
+            peer = new WidgetSlider(slider);
+        } else if (widget instanceof UiButton button) {
             peer = new WidgetButton(button);
         } else if (widget instanceof UiPressable pressable) {
             peer = new WidgetPressable(pressable);
@@ -151,6 +173,7 @@ public final class McUiScreen extends Screen {
             edit.setHint(RaceTexts.of(box.hint()));
         }
         edit.setMaxLength(box.maxLength());
+        edit.setFilter(box.filter());
         edit.setValue(box.getValue());
         edit.setResponder(box::changed);
         box.attach(new UiEditBox.Peer() {
@@ -196,6 +219,52 @@ public final class McUiScreen extends Screen {
 
     private interface Linked {
         PeerState state();
+
+        /** core の側で変わった値（スライダーの位置）を写す。 */
+        default void pull() {
+        }
+    }
+
+    /** つまみを動かすスライダー。動かしたら core の {@link UiSlider#moved} を呼ぶ。 */
+    private static final class WidgetSlider extends AbstractSliderButton implements Linked {
+
+        private final UiSlider widget;
+        private final PeerState state = new PeerState();
+
+        WidgetSlider(UiSlider widget) {
+            super(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), Component.empty(), widget.value());
+            this.widget = widget;
+        }
+
+        @Override
+        public PeerState state() {
+            return state;
+        }
+
+        @Override
+        public void pull() {
+            if (value != widget.value()) {
+                value = widget.value();
+            }
+        }
+
+        @Override
+        protected void updateMessage() {
+            // 文字は core が決め、sync が写す
+        }
+
+        @Override
+        protected void applyValue() {
+            widget.moved(value);
+            state.apply(widget, this);
+        }
+
+        @Override
+        public void onRelease(double mouseX, double mouseY) {
+            super.onRelease(mouseX, mouseY);
+            widget.onRelease(mouseX, mouseY);
+        }
+
     }
 
     /** バニラの見た目のボタン。文字だけ core が描くこともある（ドロップダウンの「▼」）。 */
@@ -251,6 +320,22 @@ public final class McUiScreen extends Screen {
         public void onPress() {
             widget.onPress();
         }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            widget.onClick(mouseX, mouseY);
+        }
+
+        @Override
+        public void onRelease(double mouseX, double mouseY) {
+            widget.onRelease(mouseX, mouseY);
+        }
+
+        @Override
+        protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
+            widget.onDrag(mouseX, mouseY, dragX, dragY);
+        }
+
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -350,6 +435,32 @@ public final class McUiScreen extends Screen {
         @Override
         public void close() {
             superClose();
+        }
+
+        @Override
+        public void rebuild() {
+            rebuildWidgets();
+        }
+
+        @Override
+        public void renderTransparentBackground(UiGraphics graphics) {
+            // 1.20.1 の renderBackground はワールドの中なら半透明の暗幕
+            McUiScreen.super.renderBackground(((McUiGraphics) graphics).graphics);
+        }
+
+        @Override
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+            return superMouseDragged(mouseX, mouseY, button, dragX, dragY);
+        }
+
+        @Override
+        public boolean isDragging() {
+            return McUiScreen.this.isDragging();
+        }
+
+        @Override
+        public boolean inWorld() {
+            return minecraft != null && minecraft.level != null;
         }
 
         @Override

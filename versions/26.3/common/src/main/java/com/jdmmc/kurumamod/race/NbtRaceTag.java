@@ -104,4 +104,33 @@ public final class NbtRaceTag implements RaceTag {
         }
         return out;
     }
+    @Override
+    public java.util.Set<String> keys() {
+        return tag.keySet();
+    }
+
+    @Override
+    public boolean contains(String key) {
+        return tag.contains(key);
+    }
+
+    @Override
+    public boolean isString(String key) {
+        return tag.get(key) instanceof net.minecraft.nbt.StringTag;
+    }
+
+    @Override
+    public boolean isCompound(String key) {
+        return tag.get(key) instanceof CompoundTag;
+    }
+
+    @Override
+    public RaceTag getCompound(String key) {
+        return new NbtRaceTag(tag.getCompoundOrEmpty(key));
+    }
+
+    @Override
+    public void put(String key, RaceTag value) {
+        tag.put(key, ((NbtRaceTag) value).tag());
+    }
 }

@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
@@ -12,7 +14,6 @@ import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartSlot;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
@@ -46,10 +47,10 @@ public record CarPartTypesPacket(List<CarPart> parts) {
         int count = buf.readVarInt();
         List<CarPart> parts = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            var id = buf.readResourceLocation();
+            var id = McIds.read(buf);
             String name = buf.readUtf();
             int order = buf.readVarInt();
-            Set<ResourceLocation> cars = buf.readCollection(HashSet::new, FriendlyByteBuf::readResourceLocation);
+            Set<CarId> cars = buf.readCollection(HashSet::new, McIds::read);
             Turbo turbo = buf.readBoolean()
                     ? new Turbo(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
                     : null;
@@ -72,10 +73,10 @@ public record CarPartTypesPacket(List<CarPart> parts) {
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(parts.size());
         for (CarPart part : parts) {
-            buf.writeResourceLocation(part.id());
+            McIds.write(buf, part.id());
             buf.writeUtf(part.slot().getSerializedName());
             buf.writeVarInt(part.order());
-            buf.writeCollection(part.cars(), FriendlyByteBuf::writeResourceLocation);
+            buf.writeCollection(part.cars(), McIds::write);
             // ターボの性能。物理が使うので、クライアントも同じ値を持っていなければならない
             // （運転しているのはクライアント）
             Turbo turbo = part.turbo();

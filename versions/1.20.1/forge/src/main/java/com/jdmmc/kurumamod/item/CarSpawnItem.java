@@ -1,5 +1,9 @@
 package com.jdmmc.kurumamod.item;
 
+import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.tuning.CarSpecNbt;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;
@@ -11,7 +15,6 @@ import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -31,7 +34,7 @@ import java.util.function.Consumer;
  * <p><b>アイテムは 1 種類のまま、どの車を出すかは NBT に持つ。</b>車種はデータパックから
  * 来るので、車種ごとに {@code Item} を登録することはできない——<b>データパックが読まれる
  * 時点でレジストリは既に凍結されている</b>ため。クリエイティブタブには
- * {@link #stackFor(ResourceLocation)} で作った「車種ぶんの ItemStack」を並べるので、
+ * {@link #stackFor(CarId)} で作った「車種ぶんの ItemStack」を並べるので、
  * 遊ぶ側からは車種ごとにアイテムがあるように見える。</p>
  */
 public class CarSpawnItem extends Item {
@@ -51,7 +54,7 @@ public class CarSpawnItem extends Item {
     }
 
     /** その車種を出すアイテム。クリエイティブタブと {@code getPickResult} が使う。 */
-    public static ItemStack stackFor(ResourceLocation carId) {
+    public static ItemStack stackFor(CarId carId) {
         ItemStack stack = new ItemStack(Kurumamod.CAR_ITEM.get());
         if (!carId.equals(CarTypes.DEFAULT_ID)) {
             // 既定の車には書かない。NBT の付いていないアイテムと同じ物として重なる
@@ -69,10 +72,10 @@ public class CarSpawnItem extends Item {
      */
     public static ItemStack stackFor(CarEntity car) {
         ItemStack stack = stackFor(car.getCarId());
-        stack.getOrCreateTag().put(SPEC, CarSpecCodec.save(car.getSpec()));
+        stack.getOrCreateTag().put(SPEC, CarSpecNbt.save(car.getSpec()));
         PartFitment parts = car.getFitment();
         if (!parts.isEmpty()) {
-            stack.getOrCreateTag().put(PARTS, parts.save());
+            stack.getOrCreateTag().put(PARTS, PartFitments.save(parts));
         }
         return stack;
     }
@@ -91,10 +94,10 @@ public class CarSpawnItem extends Item {
             return;
         }
         if (tag.contains(SPEC)) {
-            car.setSpec(CarSpecCodec.load(tag.getCompound(SPEC)));
+            car.setSpec(CarSpecNbt.load(tag.getCompound(SPEC)));
         }
         if (tag.contains(PARTS)) {
-            car.setFitment(PartFitment.load(tag.getCompound(PARTS)));
+            car.setFitment(PartFitments.load(tag.getCompound(PARTS)));
         }
     }
 
@@ -110,7 +113,7 @@ public class CarSpawnItem extends Item {
         if (tag == null || !tag.contains(CAR_ID)) {
             return CarTypes.get(CarTypes.DEFAULT_ID);
         }
-        ResourceLocation id = ResourceLocation.tryParse(tag.getString(CAR_ID));
+        CarId id = CarId.parse(tag.getString(CAR_ID));
         return id != null ? CarTypes.get(id) : CarTypes.get(CarTypes.DEFAULT_ID);
     }
 
@@ -122,7 +125,7 @@ public class CarSpawnItem extends Item {
      */
     @Override
     public Component getName(ItemStack stack) {
-        return carTypeOf(stack).displayName();
+        return RaceTexts.of(carTypeOf(stack).displayName());
     }
 
     /**

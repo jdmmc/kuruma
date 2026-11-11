@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
 import com.jdmmc.kurumamod.client.hook.FrameRender;
 
 import com.jdmmc.kurumamod.Kurumamod;
@@ -181,7 +182,7 @@ public final class CarIcons {
      */
     @Nullable
     private static Identifier providedIcon(ItemStack stack) {
-        Identifier icon = CarModel.get(CarSpawnItem.carTypeOf(stack).id()).icon();
+        Identifier icon = McIds.mc(CarModel.get(CarSpawnItem.carTypeOf(stack).id()).icon());
         if (icon == null) {
             return null;
         }

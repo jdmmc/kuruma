@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client.hook;
 
+import com.jdmmc.kurumamod.client.CarSoundEvents;
 import com.jdmmc.kurumamod.client.CarCamera;
 import com.jdmmc.kurumamod.client.CarChaseCamera;
 import com.jdmmc.kurumamod.client.CarClientDriver;
@@ -195,7 +196,7 @@ public final class ClientHooks {
     public static void resourcesReloaded() {
         ObjModel.clearCache();
         CarModel.clearCache();
-        CarSoundSet.clearReports();
+        CarSoundEvents.clearReports();
         CarPartModel.clearCache();
         CarPresets.clearCache();
         CarIcons.clearCache();

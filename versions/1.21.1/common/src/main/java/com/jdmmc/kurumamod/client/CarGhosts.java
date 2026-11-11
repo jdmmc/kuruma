@@ -1,5 +1,9 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.Platform;
@@ -53,7 +57,7 @@ public final class CarGhosts implements GhostClient {
     }
 
     /** 記録の見た目（車種・諸元・装着）。 */
-    private record Look(ResourceLocation carId, CarSpec spec, PartFitment parts) {
+    private record Look(CarId carId, CarSpec spec, PartFitment parts) {
     }
 
     // ------------------------------------------------------------------
@@ -116,8 +120,8 @@ public final class CarGhosts implements GhostClient {
     private static CompoundTag lookTag(Look look) {
         CompoundTag tag = new CompoundTag();
         tag.putString("Car", look.carId().toString());
-        tag.put("Spec", CarSpecCodec.save(look.spec()));
-        tag.put("Parts", look.parts().save());
+        tag.put("Spec", CarSpecNbt.save(look.spec()));
+        tag.put("Parts", PartFitments.save(look.parts()));
         return tag;
     }
 
@@ -236,15 +240,15 @@ public final class CarGhosts implements GhostClient {
     @Override
     public Ghost spawnFromRideLook(Object rideLook, int entityId, GhostFrame first) {
         CompoundTag tag = (CompoundTag) rideLook;
-        ResourceLocation carId = ResourceLocation.tryParse(tag.getString("Car"));
+        CarId carId = CarId.parse(tag.getString("Car"));
         if (carId == null) {
             return null;
         }
         ClientLevel level = mc().level;
         CarEntity entity = new CarEntity(Kurumamod.CAR.get(), level);
         try {
-            entity.becomeGhost(carId, CarSpecCodec.load(tag.getCompound("Spec")),
-                    PartFitment.load(tag.getCompound("Parts")));
+            entity.becomeGhost(carId, CarSpecNbt.load(tag.getCompound("Spec")),
+                    PartFitments.load(tag.getCompound("Parts")));
         } catch (RuntimeException e) {
             LOGGER.warn("同乗のゴーストの見た目を読めないので出しません", e);
             return null;
@@ -308,8 +312,8 @@ public final class CarGhosts implements GhostClient {
         CompoundTag tag = new CompoundTag();
         tag.putInt("Version", GhostEngine.fileVersion());
         tag.putString("Car", car.carId().toString());
-        tag.put("Spec", CarSpecCodec.save(car.spec()));
-        tag.put("Parts", car.parts().save());
+        tag.put("Spec", CarSpecNbt.save(car.spec()));
+        tag.put("Parts", PartFitments.save(car.parts()));
         tag.putString("Dimension", dimension);
         tag.putLong("LapMillis", lapMillis);
         tag.putInt("Frames", frames);
@@ -332,8 +336,8 @@ public final class CarGhosts implements GhostClient {
                 return new Stored(null, "", 0L, 0, new byte[0], tag.getInt("Version"));
             }
             ResourceLocation car = ResourceLocation.tryParse(tag.getString("Car"));
-            Look look = new Look(car != null ? car : ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "car"),
-                    CarSpecCodec.load(tag.getCompound("Spec")), PartFitment.load(tag.getCompound("Parts")));
+            Look look = new Look(car != null ? McIds.of(car) : com.jdmmc.kurumamod.car.CarTypes.DEFAULT_ID,
+                    CarSpecNbt.load(tag.getCompound("Spec")), PartFitments.load(tag.getCompound("Parts")));
             return new Stored(look, tag.getString("Dimension"), tag.getLong("LapMillis"), tag.getInt("Frames"),
                     tag.getByteArray("Data"), tag.getInt("Version"));
         }

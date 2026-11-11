@@ -36,7 +36,21 @@ public abstract class UiScreen {
 
         boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY);
 
+        boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY);
+
         boolean keyPressed(UiKey key);
+
+        /** 部品を全部消して {@code init} をやり直す（バニラの {@code rebuildWidgets}）。 */
+        void rebuild();
+
+        /** ワールドの中か（背景を描き分ける）。 */
+        boolean inWorld();
+
+        /** 半透明の暗幕（ぼかし無し。1.20.1 の {@code renderBackground} と同じ）。 */
+        void renderTransparentBackground(UiGraphics graphics);
+
+        /** いま押したまま動かしているか（バニラの {@code isDragging}）。 */
+        boolean isDragging();
     }
 
     protected final RaceText title;
@@ -91,6 +105,11 @@ public abstract class UiScreen {
         return host.keyPressed(key);
     }
 
+    /** 押したまま動かした（既定は部品へ渡す）。 */
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return host.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
     public void onClose() {
         host.close();
     }
@@ -122,5 +141,24 @@ public abstract class UiScreen {
 
     protected void setInitialFocus(UiWidget widget) {
         host.setInitialFocus(widget);
+    }
+
+    /** 部品を作り直す。<b>クリックの伝播中には呼ばないこと</b>（部品の一覧を入れ替えることになる）。 */
+    protected void rebuildWidgets() {
+        host.rebuild();
+    }
+
+    protected boolean isDragging() {
+        return host.isDragging();
+    }
+
+    /** 半透明の暗幕（ぼかし無し）。走りながら見る画面で、後ろのゲームを見せたまま文字を読めるように。 */
+    protected void renderTransparentBackground(UiGraphics graphics) {
+        host.renderTransparentBackground(graphics);
+    }
+
+    /** ワールドの中か。外（タイトル画面から開いた）なら後ろに何も無いので、ふつうの背景を描く。 */
+    protected boolean inWorld() {
+        return host.inWorld();
     }
 }

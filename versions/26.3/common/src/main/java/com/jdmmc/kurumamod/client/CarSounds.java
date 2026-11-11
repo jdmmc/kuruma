@@ -63,7 +63,7 @@ public final class CarSounds {
 
     private static void play(CarEntity car) {
         CarSoundSet sounds = CarSound.soundsOf(car);
-        for (CarSound.Role role : CarSound.Role.values()) {
+        for (CarSoundVoice.Role role : CarSoundVoice.Role.values()) {
             if (CarSound.isUsed(role, sounds)) {
                 Minecraft.getInstance().getSoundManager().play(new CarSound(car, role));
             }
@@ -92,7 +92,7 @@ public final class CarSounds {
             if (!now.sameSources(before)) {
                 EXHAUST_SOUNDS.put(car, now);
                 // 合成したエンジン音とパックの排気音が入れ替わることもあるので、鳴らす方を選び直す
-                for (CarSound.Role role : CarSound.Role.values()) {
+                for (CarSoundVoice.Role role : CarSoundVoice.Role.values()) {
                     if (CarSound.isExhaust(role) && CarSound.isUsed(role, now)) {
                         Minecraft.getInstance().getSoundManager().play(new CarSound(car, role));
                     }

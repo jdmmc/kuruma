@@ -67,7 +67,7 @@ public final class CarClientDriver {
         // 画面を開いていても読む。割り当て画面が今の入力を出せるように
         ControllerInput.poll();
         while (KurumaKeys.OPEN_MENU.consumeClick()) {
-            minecraft.setScreen(new KurumaMenuScreen(null));
+            minecraft.setScreen(new McUiScreen(new KurumaMenuScreen(null)));
         }
         // レース。車に乗っていなくても開ける（歩いて集まってから参加・主催することもある）
         while (KurumaKeys.OPEN_RACE.consumeClick()) {
@@ -75,7 +75,7 @@ public final class CarClientDriver {
         }
         while (KurumaKeys.OPEN_HEADLIGHT_SETTINGS.consumeClick()) {
             if (minecraft.screen == null) {
-                minecraft.setScreen(new HeadlightScreen());
+                minecraft.setScreen(new McUiScreen(new HeadlightScreen()));
             }
         }
         while (KurumaKeys.OPEN_SEAT_DEBUG.consumeClick()) {
@@ -86,7 +86,7 @@ public final class CarClientDriver {
                     minecraft.player.displayClientMessage(Component.translatable("message.kurumamod.need_car"), true);
                 }
             } else if (minecraft.screen == null) {
-                minecraft.setScreen(new SeatScreen(riding.getCarId()));
+                minecraft.setScreen(new McUiScreen(new SeatScreen(riding.getCarId())));
             }
         }
         while (KurumaKeys.OPEN_SOUND_DEBUG.consumeClick()) {
@@ -97,7 +97,7 @@ public final class CarClientDriver {
                     minecraft.player.displayClientMessage(Component.translatable("message.kurumamod.need_car"), true);
                 }
             } else if (minecraft.screen == null) {
-                minecraft.setScreen(KurumaMenuScreen.soundDebug());
+                minecraft.setScreen(new McUiScreen(KurumaMenuScreen.soundDebug()));
             }
         }
         while (KurumaKeys.TOGGLE_CAMERA.consumeClick()) {
@@ -248,7 +248,9 @@ public final class CarClientDriver {
      * <p><b>入力欄（{@code EditBox}）のある画面を足してはいけない。</b>運転に使うキーを画面が握りつぶすので、
      * W・A・S・D とスペースが打てなくなる（プリセットの名前を付ける画面がそう）。</p>
      */
-    public static boolean isDrivableScreen(Screen screen) {
+    public static boolean isDrivableScreen(Screen raw) {
+        // core の画面（McUiScreen）は中身で見分ける
+        Object screen = McUiScreen.unwrap(raw);
         // ナンバーの字を打っている間は運転しない。W・A・S・D を打つたびに車が動いてしまう
         if (screen instanceof CarPartScreen parts && parts.isTyping()) {
             return false;
@@ -373,7 +375,7 @@ public final class CarClientDriver {
                 if (car.getControllingPassenger() != minecraft.player) {
                     viewPassengerCar(car);
                 }
-                minecraft.setScreen(new CarTuningScreen());
+                minecraft.setScreen(new McUiScreen(new CarTuningScreen()));
             }
         }
     }

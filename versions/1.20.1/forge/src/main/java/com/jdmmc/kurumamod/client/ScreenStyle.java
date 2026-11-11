@@ -56,7 +56,7 @@ final class ScreenStyle {
      * </ul>
      */
     static boolean isCarScreen() {
-        Screen screen = Minecraft.getInstance().screen;
+        Object screen = McUiScreen.unwrap(Minecraft.getInstance().screen);
         return screen instanceof CarPartScreen || screen instanceof CarTuningScreen
                 || screen instanceof SeatScreen;
     }

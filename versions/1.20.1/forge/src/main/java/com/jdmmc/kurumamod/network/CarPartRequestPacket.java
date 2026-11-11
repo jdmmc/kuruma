@@ -1,12 +1,13 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.network.NetworkEvent;
@@ -35,13 +36,13 @@ import java.util.function.Supplier;
 public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Setting setting) {
 
     public CarPartRequestPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), PartSlot.byName(buf.readUtf()), PartFitment.readSetting(buf));
+        this(buf.readVarInt(), PartSlot.byName(buf.readUtf()), PartFitments.readSetting(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
         buf.writeUtf(slot.getSerializedName());
-        PartFitment.writeSetting(buf, setting);
+        PartFitments.writeSetting(buf, setting);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
@@ -58,7 +59,7 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
             }
 
             PartFitment.Setting wanted = setting;
-            ResourceLocation partId = wanted.partId();
+            CarId partId = wanted.partId();
             // 「なし」は初期装備のある場所でだけ意味を持つ。外せない初期装備は外させない
             if (PartFitment.isNone(partId)) {
                 var defaults = com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).defaultPart(slot);

@@ -61,7 +61,7 @@ public final class CarImpact {
         CarSoundSet sounds = CarSoundSet.of(car.getCarId());
         CarSoundSet.Tuning tuning = sounds.tuningOf(CarSoundSet.CRASH);
         car.level().playLocalSound(car.getX(), car.getY(), car.getZ(),
-                sounds.crash(), SoundSource.NEUTRAL,
+                CarSoundEvents.crash(sounds), SoundSource.NEUTRAL,
                 CarSound.volume(0.35F + 0.65F * power, ClientConfig.soundCrash),
                 pitch * (float) tuning.pitch(), false);
 

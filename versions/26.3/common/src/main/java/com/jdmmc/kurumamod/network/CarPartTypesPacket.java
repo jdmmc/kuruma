@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
 import com.jdmmc.kurumamod.Kurumamod;
@@ -57,13 +59,13 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
         int count = buf.readVarInt();
         List<CarPart> parts = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            var id = buf.readIdentifier();
+            var id = McIds.read(buf);
             String name = buf.readUtf();
             int order = buf.readVarInt();
             // 26.3 の FriendlyByteBuf には readCollection が無いので、同じ形（個数 → 中身）を手で読む
-            Set<Identifier> cars = new HashSet<>();
+            Set<CarId> cars = new HashSet<>();
             for (int n = buf.readVarInt(); n > 0; n--) {
-                cars.add(buf.readIdentifier());
+                cars.add(McIds.read(buf));
             }
             Turbo turbo = buf.readBoolean()
                     ? new Turbo(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
@@ -87,12 +89,12 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(parts.size());
         for (CarPart part : parts) {
-            buf.writeIdentifier(part.id());
+            McIds.write(buf, part.id());
             buf.writeUtf(part.slot().getSerializedName());
             buf.writeVarInt(part.order());
             buf.writeVarInt(part.cars().size());
-            for (Identifier car : part.cars()) {
-                buf.writeIdentifier(car);
+            for (CarId car : part.cars()) {
+                McIds.write(buf, car);
             }
             // ターボの性能。物理が使うので、クライアントも同じ値を持っていなければならない
             // （運転しているのはクライアント）

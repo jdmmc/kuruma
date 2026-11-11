@@ -104,4 +104,33 @@ public final class NbtRaceTag implements RaceTag {
         }
         return out;
     }
+    @Override
+    public java.util.Set<String> keys() {
+        return tag.getAllKeys();
+    }
+
+    @Override
+    public boolean contains(String key) {
+        return tag.contains(key);
+    }
+
+    @Override
+    public boolean isString(String key) {
+        return tag.getTagType(key) == Tag.TAG_STRING;
+    }
+
+    @Override
+    public boolean isCompound(String key) {
+        return tag.getTagType(key) == Tag.TAG_COMPOUND;
+    }
+
+    @Override
+    public RaceTag getCompound(String key) {
+        return new NbtRaceTag(tag.getCompound(key));
+    }
+
+    @Override
+    public void put(String key, RaceTag value) {
+        tag.put(key, ((NbtRaceTag) value).tag());
+    }
 }

@@ -199,7 +199,7 @@ public class Kurumamod {
          */
         static void registerConfigScreen(ModContainer modContainer) {
             modContainer.registerExtensionPoint(IConfigScreenFactory.class,
-                    (container, parent) -> new KurumaMenuScreen(parent));
+                    (container, parent) -> new com.jdmmc.kurumamod.client.McUiScreen(new KurumaMenuScreen(parent)));
         }
 
         /**

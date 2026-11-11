@@ -6,6 +6,7 @@ import com.jdmmc.kurumamod.client.ui.UiGraphics;
 import com.jdmmc.kurumamod.client.ui.UiKey;
 import com.jdmmc.kurumamod.client.ui.UiPressable;
 import com.jdmmc.kurumamod.client.ui.UiScreen;
+import com.jdmmc.kurumamod.client.ui.UiSlider;
 import com.jdmmc.kurumamod.client.ui.UiWidget;
 import com.jdmmc.kurumamod.race.RaceText;
 import com.jdmmc.kurumamod.race.RaceTexts;
@@ -16,6 +17,7 @@ import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -52,6 +54,11 @@ public final class McUiScreen extends Screen {
 
     public UiScreen model() {
         return model;
+    }
+
+    /** core の画面ならその中身、そうでなければ画面そのもの（{@code instanceof} で見分けるため）。 */
+    public static Object unwrap(Object screen) {
+        return screen instanceof McUiScreen ui ? ui.model() : screen;
     }
 
     @Override
@@ -118,6 +125,23 @@ public final class McUiScreen extends Screen {
     }
 
     @Override
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dragX, double dragY) {
+        sync();
+        dragEvent = event;
+        int button = event.button() == InputConstants.MOUSE_BUTTON_LEFT ? 0
+                : event.button() == InputConstants.MOUSE_BUTTON_RIGHT ? 1 : 2;
+        boolean used = model.mouseDragged(event.x(), event.y(), button, dragX, dragY);
+        sync();
+        return used;
+    }
+
+    private net.minecraft.client.input.MouseButtonEvent dragEvent;
+
+    private boolean superMouseDragged(double dragX, double dragY) {
+        return dragEvent != null && super.mouseDragged(dragEvent, dragX, dragY);
+    }
+
+    @Override
     public void onClose() {
         model.onClose();
     }
@@ -145,13 +169,16 @@ public final class McUiScreen extends Screen {
             peer.visible = widget.visible;
             if (peer instanceof Linked linked) {
                 linked.state().apply(widget, peer);
+                linked.pull();
             }
         }
     }
 
     private AbstractWidget peerOf(UiWidget widget) {
         AbstractWidget peer;
-        if (widget instanceof UiButton button) {
+        if (widget instanceof UiSlider slider) {
+            peer = new WidgetSlider(slider);
+        } else if (widget instanceof UiButton button) {
             peer = new WidgetButton(button);
         } else if (widget instanceof UiPressable pressable) {
             peer = new WidgetPressable(pressable);
@@ -214,6 +241,52 @@ public final class McUiScreen extends Screen {
 
     private interface Linked {
         PeerState state();
+
+        /** core の側で変わった値（スライダーの位置）を写す。 */
+        default void pull() {
+        }
+    }
+
+    /** つまみを動かすスライダー。動かしたら core の {@link UiSlider#moved} を呼ぶ。 */
+    private static final class WidgetSlider extends AbstractSliderButton implements Linked {
+
+        private final UiSlider widget;
+        private final PeerState state = new PeerState();
+
+        WidgetSlider(UiSlider widget) {
+            super(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), Component.empty(), widget.value());
+            this.widget = widget;
+        }
+
+        @Override
+        public PeerState state() {
+            return state;
+        }
+
+        @Override
+        public void pull() {
+            if (value != widget.value()) {
+                value = widget.value();
+            }
+        }
+
+        @Override
+        protected void updateMessage() {
+            // 文字は core が決め、sync が写す
+        }
+
+        @Override
+        protected void applyValue() {
+            widget.moved(value);
+            state.apply(widget, this);
+        }
+
+        @Override
+        public void onRelease(net.minecraft.client.input.MouseButtonEvent event) {
+            super.onRelease(event);
+            widget.onRelease(event.x(), event.y());
+        }
+
     }
 
     /** バニラの見た目のボタン。文字だけ core が描くこともある（ドロップダウンの「▼」）。 */
@@ -267,6 +340,22 @@ public final class McUiScreen extends Screen {
         }
 
         @Override
+        public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+            widget.onClick(event.x(), event.y());
+        }
+
+        @Override
+        public void onRelease(net.minecraft.client.input.MouseButtonEvent event) {
+            widget.onRelease(event.x(), event.y());
+        }
+
+        @Override
+        protected void onDrag(net.minecraft.client.input.MouseButtonEvent event, double dragX, double dragY) {
+            widget.onDrag(event.x(), event.y(), dragX, dragY);
+        }
+
+
+        @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             widget.setHovered(isHovered());
             widget.renderWidget(new McUiGraphics(graphics, this), mouseX, mouseY, partialTick);
@@ -278,13 +367,60 @@ public final class McUiScreen extends Screen {
         }
     }
 
+    /**
+     * core の入力欄。<b>26.3 の {@link EditBox} には {@code setFilter} が無い</b>ので、文字を入れたあとで照らし、
+     * 通らなければ入れる前へ戻す（戻すあいだは応答を止める。弾いた文字で一度ナンバーを組み直さないように）。
+     */
     private static final class LinkedEditBox extends EditBox implements Linked {
 
         private final PeerState state = new PeerState();
+        private final java.util.function.Predicate<String> filter;
+        private java.util.function.Consumer<String> responder = text -> {
+        };
+        private boolean quiet;
 
         LinkedEditBox(Font font, UiEditBox box) {
             super(font, box.getX(), box.getY(), box.getWidth(), box.getHeight(),
                     box.getMessage() == null ? Component.empty() : RaceTexts.of(box.getMessage()));
+            this.filter = box.filter();
+            super.setResponder(text -> {
+                if (!quiet) {
+                    responder.accept(text);
+                }
+            });
+        }
+
+        @Override
+        public void setResponder(java.util.function.Consumer<String> responder) {
+            this.responder = responder;
+        }
+
+        @Override
+        public void setValue(String value) {
+            if (filter.test(value)) {
+                super.setValue(value);
+            }
+        }
+
+        @Override
+        public void insertText(String input) {
+            String before = getValue();
+            int cursor = getCursorPosition();
+            quiet = true;
+            super.insertText(input);
+            quiet = false;
+            String after = getValue();
+            if (filter.test(after)) {
+                if (!after.equals(before)) {
+                    responder.accept(after);
+                }
+                return;
+            }
+            quiet = true;
+            super.setValue(before);
+            setCursorPosition(cursor);
+            setHighlightPos(cursor);
+            quiet = false;
         }
 
         @Override
@@ -370,6 +506,35 @@ public final class McUiScreen extends Screen {
         @Override
         public void close() {
             superClose();
+        }
+
+        @Override
+        public void rebuild() {
+            rebuildWidgets();
+        }
+
+        @Override
+        public void renderTransparentBackground(UiGraphics graphics) {
+            // 26.3 では画面を開いているあいだの字幕を背景の段で描く。止めると字幕が消える
+            if (minecraft != null) {
+                minecraft.gui.hud.extractDeferredSubtitles();
+            }
+            extractTransparentBackground(((McUiGraphics) graphics).graphics);
+        }
+
+        @Override
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+            return superMouseDragged(dragX, dragY);
+        }
+
+        @Override
+        public boolean isDragging() {
+            return McUiScreen.this.isDragging();
+        }
+
+        @Override
+        public boolean inWorld() {
+            return minecraft != null && minecraft.level != null;
         }
 
         @Override

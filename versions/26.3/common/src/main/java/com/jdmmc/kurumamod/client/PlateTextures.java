@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.plate.PlateFormat;
 import com.jdmmc.kurumamod.plate.PlateLook;
@@ -46,7 +48,7 @@ public final class PlateTextures {
     private static final Identifier JAPANESE_FONT =
             Identifier.fromNamespaceAndPath(Kurumamod.MODID, "plate_fonts/kurumaplate_jp.ttf");
 
-    private record Key(Identifier partId, boolean front, Map<String, String> text) {
+    private record Key(CarId partId, boolean front, Map<String, String> text) {
     }
 
     /** 古い順に並ぶ（アクセス順）。あふれたものはテクスチャを解放して捨てる。 */
@@ -62,11 +64,11 @@ public final class PlateTextures {
      *
      * @param mesh 字の枠（{@code text_<欄>}）を持つプレートのメッシュ
      */
-    public static Identifier get(Identifier partId, PlateModel model, ObjModel mesh, PlateRules rules,
+    public static Identifier get(CarId partId, PlateModel model, ObjModel mesh, PlateRules rules,
                                        PlateLook look, boolean front) {
         Map<String, ObjModel.TextFrame> frames = mesh.textFrames();
         if (frames.isEmpty()) {
-            return model.texture(front);
+            return McIds.mc(model.texture(front));
         }
         Map<String, String> shown = new LinkedHashMap<>();
         for (String field : frames.keySet()) {
@@ -85,7 +87,7 @@ public final class PlateTextures {
 
     private static Identifier bake(PlateModel model, ObjModel mesh, Map<String, ObjModel.TextFrame> frames,
                                          Map<String, String> shown, boolean front) {
-        BufferedImage base = readImage(model.texture(front));
+        BufferedImage base = readImage(McIds.mc(model.texture(front)));
         double[] box = mesh.bounds();
         double width = box[3] - box[0];
         double height = box[4] - box[1];
@@ -95,7 +97,7 @@ public final class PlateTextures {
         for (Map.Entry<String, ObjModel.TextFrame> entry : frames.entrySet()) {
             ObjModel.TextFrame frame = entry.getValue();
             PlateModel.FieldLook look = model.field(entry.getKey());
-            Font font = font(look.font());
+            Font font = font(McIds.mc(look.font()));
             // 表の UV は正面から見て左が 0。正面から見た右はエンティティの -X なので、X の大きい側が u = 0
             fields.add(new PlatePainter.Field(shown.get(entry.getKey()), font, font == japanese ? system : japanese,
                     look.argb(), look.fit(), look.emboss(), look.mono(),

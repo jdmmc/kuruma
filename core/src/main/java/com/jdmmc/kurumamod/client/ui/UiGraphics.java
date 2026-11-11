@@ -1,6 +1,9 @@
 package com.jdmmc.kurumamod.client.ui;
 
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.race.RaceText;
+
+import java.util.List;
 
 /**
  * 画面に描く道具。バニラの {@code GuiGraphics}（26.3 は {@code GuiGraphicsExtractor}）の代わり。
@@ -67,4 +70,21 @@ public abstract class UiGraphics {
      */
     public abstract void renderScrollingString(UiFont font, RaceText text, int left, int top, int right, int bottom,
                                                int color);
+
+    /**
+     * 四隅を指定する四角形（小数で置ける）。並びは {@link #fill} と同じ（左下→右下→右上→左上）。
+     * 溜めてからまとめて描くので、<b>文字を重ねる前に {@link #flush} を呼ぶこと</b>（呼ばないと後から積んだ図形が文字を覆う）。
+     */
+    public abstract void fillQuad(int color, float x0, float y0, float x1, float y1,
+                                  float x2, float y2, float x3, float y3);
+
+    /** 溜めた図形を描く。 */
+    public abstract void flush();
+
+    /** テクスチャを貼る（バニラの {@code blit} と同じ引数の並び）。 */
+    public abstract void blit(CarId texture, int x, int y, int width, int height, float u, float v,
+                              int uWidth, int vHeight, int textureWidth, int textureHeight);
+
+    /** 説明の吹き出し（1 行ずつ。折り返しは {@link UiFont#split}）。 */
+    public abstract void renderTooltip(UiFont font, List<RaceText> lines, int mouseX, int mouseY);
 }

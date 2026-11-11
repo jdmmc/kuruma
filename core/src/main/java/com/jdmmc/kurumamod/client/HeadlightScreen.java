@@ -1,0 +1,338 @@
+package com.jdmmc.kurumamod.client;
+
+import com.jdmmc.kurumamod.HeadlightColor;
+import com.jdmmc.kurumamod.client.ui.UiButton;
+import com.jdmmc.kurumamod.client.ui.UiCycleButton;
+import com.jdmmc.kurumamod.client.ui.UiGraphics;
+import com.jdmmc.kurumamod.client.ui.UiScreen;
+import com.jdmmc.kurumamod.client.ui.UiSlider;
+import com.jdmmc.kurumamod.client.ui.UiWidget;
+import com.jdmmc.kurumamod.race.RaceText;
+import com.jdmmc.kurumamod.util.Mth;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * ヘッドライトの調整画面。Ctrl+L（{@code KurumaKeys#OPEN_HEADLIGHT_SETTINGS}）で開く。
+ *
+ * <p>光の見え方は走らせて見ないと決められないので、<b>ゲームは止めず、背景も暗くしない</b>
+ * （{@code CarTuningScreen} と同じ）。値は {@code ClientConfig} に入り、動かすたびに
+ * {@link ClientOptions#refresh()} で効かせ、ファイルへ書くのは閉じるときだけ
+ * （{@code KurumaMenuScreen} と同じ流儀）。</p>
+ *
+ * <p>車の諸元ではなく<b>画面の好み</b>なので、サーバーへは送らない。他の人から見た
+ * 自分のライトも、その人の設定で描かれる。</p>
+ */
+public final class HeadlightScreen extends UiScreen {
+
+    /** 1 行ぶん。表示の範囲・刻み・書式と、読み書きする設定（{@code ClientConfig} の項目の名前）。 */
+    private record Row(String key, double step, String format, String option) {
+
+        private ClientOptions.Number value() {
+            return ClientOptions.get().number(option);
+        }
+
+        double min() {
+            return value().min();
+        }
+
+        double max() {
+            return value().max();
+        }
+
+        double get() {
+            return value().get();
+        }
+
+        double defaultValue() {
+            return value().getDefault();
+        }
+
+        void set(double v) {
+            value().set(Mth.clamp(v, min(), max()));
+            ClientOptions.get().refresh();
+        }
+    }
+
+    private static final Row[] ROWS = {
+            new Row("aim", 0.05, "%.2f°", "HEADLIGHT_AIM"),
+            new Row("leveling", 0.05, "%.2f", "HEADLIGHT_LEVELING"),
+            new Row("fog", 0.0025, "%.4f", "HEADLIGHT_FOG"),
+            new Row("brightness", 0.05, "%.2f", "HEADLIGHT_BRIGHTNESS"),
+            new Row("smoke", 0.25, "%.2f", "HEADLIGHT_SMOKE"),
+            new Row("cars", 1.0, "%.0f", "HEADLIGHT_CARS"),
+            new Row("range", 1.0, "%.0f m", "HEADLIGHT_RANGE"),
+    };
+
+    /** シェーダーパック使用中だけ効く行（仮置き）。幅があれば右の列、無ければ下に並べる。 */
+    private static final Row[] PACK_ROWS = {
+            new Row("pack_contrast", 0.05, "%.2f", "HEADLIGHT_PACK_CONTRAST"),
+            new Row("pack_tint", 0.05, "%.2f", "HEADLIGHT_PACK_TINT"),
+            new Row("pack_add", 0.02, "%.2f", "HEADLIGHT_PACK_ADD"),
+    };
+    private static final int COLUMN_GAP = 16;
+
+    private static final int ROW_HEIGHT = 24;
+    private static final int TOP = 40;
+    private static final int SLIDER_WIDTH = 200;
+    private static final int LABEL_WIDTH = 130;
+    private static final int RESET_WIDTH = 20;
+
+    /**
+     * 「全部戻す」でスライダーを作り直すための旗。<b>クリックの伝播中に
+     * {@code rebuildWidgets()} を呼んではいけない</b>（ウィジェット一覧を入れ替えることになる）。
+     */
+    private boolean rebuildPending;
+
+    /** シェーダーパックの列の部品。パックを使っていない間は押せなくする（動かしても何も変わらないため）。 */
+    private final List<UiWidget> packWidgets = new ArrayList<>();
+
+    public HeadlightScreen() {
+        super(RaceText.translatable("screen.kurumamod.headlight.title"));
+    }
+
+    private static final int COLUMN_WIDTH = LABEL_WIDTH + SLIDER_WIDTH + 4 + RESET_WIDTH;
+
+    private static ClientOptions.Value<Boolean> withShaderPacks() {
+        return ClientOptions.get().bool("HEADLIGHT_WITH_SHADER_PACKS");
+    }
+
+    private static ClientOptions.Value<Boolean> packPreComposite() {
+        return ClientOptions.get().bool("HEADLIGHT_PACK_PRE_COMPOSITE");
+    }
+
+    private static ClientOptions.Value<HeadlightColor> color() {
+        return ClientOptions.get().choice("HEADLIGHT_COLOR", HeadlightColor.class);
+    }
+
+    /**
+     * シェーダーパックの列を出すか。「シェーダーパック使用中も光を描く」が入っているときだけ
+     * （切っていればパック使用中は光を描かないので、どれを動かしても何も変わらない）。
+     */
+    private static boolean packVisible() {
+        return withShaderPacks().get();
+    }
+
+    /** 2 列に並べるか（パックの列を出していて、並べられる幅があるとき）。 */
+    private boolean twoColumns() {
+        return packVisible() && width >= COLUMN_WIDTH * 2 + COLUMN_GAP + 16;
+    }
+
+    private int left() {
+        return twoColumns() ? (width - (COLUMN_WIDTH * 2 + COLUMN_GAP)) / 2 : (width - COLUMN_WIDTH) / 2;
+    }
+
+    /** シェーダーパックの列の左端。 */
+    private int packLeft() {
+        return twoColumns() ? left() + COLUMN_WIDTH + COLUMN_GAP : left();
+    }
+
+    /** シェーダーパックの列の行番号の始まり（見出しの 1 行ぶん下げる）。 */
+    private int packFirstRow() {
+        return twoColumns() ? 1 : ROWS.length + 3;
+    }
+
+    /** 下のボタンの行番号。 */
+    private int bottomRow() {
+        if (!packVisible()) {
+            return ROWS.length + 2;
+        }
+        // パックの列は、スライダーの下に「ライトの描き方」の切り替えが 1 行ある
+        return Math.max(ROWS.length + 2, packFirstRow() + PACK_ROWS.length + 1);
+    }
+
+    private void addRow(Row row, int x, int y, List<UiWidget> group) {
+        Slider slider = new Slider(x + LABEL_WIDTH, y, SLIDER_WIDTH, 20, row);
+        addRenderableWidget(slider);
+        UiButton reset = addRenderableWidget(UiButton.builder(RaceText.literal("R"), button -> {
+                    row.set(row.defaultValue());
+                    slider.sync();
+                })
+                .bounds(x + LABEL_WIDTH + SLIDER_WIDTH + 4, y, RESET_WIDTH, 20)
+                .build());
+        if (group != null) {
+            group.add(slider);
+            group.add(reset);
+        }
+    }
+
+    private static int rowY(int index) {
+        return TOP + index * ROW_HEIGHT;
+    }
+
+    @Override
+    protected void init() {
+        packWidgets.clear();
+        int left = left();
+        for (int i = 0; i < ROWS.length; i++) {
+            addRow(ROWS[i], left, rowY(i), null);
+        }
+        if (packVisible()) {
+            for (int i = 0; i < PACK_ROWS.length; i++) {
+                addRow(PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i), packWidgets);
+            }
+        }
+        // シェーダーパック使用中も光を描くか。パックが無ければ何も変わらない
+        addRenderableWidget(UiCycleButton.onOffBuilder(withShaderPacks().get())
+                .displayOnlyValue()
+                .create(left + LABEL_WIDTH, rowY(ROWS.length), SLIDER_WIDTH, 20, RaceText.empty(),
+                        (button, value) -> {
+                            withShaderPacks().set(value);
+                            ClientOptions.get().refresh();
+                            // パックの列を出し入れするので並べ直す（クリックの伝播中には作り直さない）
+                            rebuildPending = true;
+                        }));
+        // 照らす光の色
+        addRenderableWidget(UiCycleButton.<HeadlightColor>builder(c -> RaceText.translatable(c.translationKey()))
+                .withValues(HeadlightColor.values())
+                .withInitialValue(color().get())
+                .displayOnlyValue()
+                .create(left + LABEL_WIDTH, rowY(ROWS.length + 1), SLIDER_WIDTH, 20, RaceText.empty(),
+                        (button, value) -> {
+                            color().set(value);
+                            ClientOptions.get().refresh();
+                        }));
+        // ライトの描き方。シェーダーになじませる（パックの仕上げの前に路面の光を入れる）か、
+        // シェーダーの上から重ねるか。パックによっては重ねないと光が見えない（Bliss など）
+        if (packVisible()) {
+            packWidgets.add(addRenderableWidget(UiCycleButton.booleanBuilder(
+                            RaceText.translatable("screen.kurumamod.headlight.pack_pre_composite.blend"),
+                            RaceText.translatable("screen.kurumamod.headlight.pack_pre_composite.overlay"))
+                    .withInitialValue(packPreComposite().get())
+                    .displayOnlyValue()
+                    .create(packLeft() + LABEL_WIDTH, rowY(packFirstRow() + PACK_ROWS.length), SLIDER_WIDTH, 20,
+                            RaceText.empty(), (button, value) -> {
+                                packPreComposite().set(value);
+                                ClientOptions.get().refresh();
+                            })));
+        }
+        int bottom = rowY(bottomRow()) + 8;
+        addRenderableWidget(UiButton.builder(RaceText.translatable("screen.kurumamod.headlight.reset_all"), button -> {
+                    for (Row row : ROWS) {
+                        row.set(row.defaultValue());
+                    }
+                    for (Row row : PACK_ROWS) {
+                        row.set(row.defaultValue());
+                    }
+                    withShaderPacks().set(true);
+                    color().set(HeadlightColor.HALOGEN);
+                    packPreComposite().set(true);
+                    ClientOptions.get().refresh();
+                    rebuildPending = true;
+                })
+                .bounds(width / 2 - 104, bottom, 100, 20).build());
+        addRenderableWidget(UiButton.builder(RaceText.translatable("gui.done"), button -> onClose())
+                .bounds(width / 2 + 4, bottom, 100, 20).build());
+    }
+
+    /**
+     * 背景は描かない（ワールドの外でだけふつうの背景）。光を見ながら動かす画面なので、暗くもぼかしもしない。
+     */
+    @Override
+    public void renderBackground(UiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (!inWorld()) {
+            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+        }
+    }
+
+    @Override
+    public void render(UiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (rebuildPending) {
+            rebuildPending = false;
+            rebuildWidgets();
+        }
+        graphics.drawCenteredString(font, title, width / 2, 16, 0xFFFFFF);
+        int left = left();
+        for (int i = 0; i < ROWS.length; i++) {
+            drawLabel(graphics, ROWS[i], left, rowY(i));
+        }
+        if (packVisible()) {
+            // パックを使っていない間は、列ごと押せなくして文字も灰色にする（動かしても何も変わらない）。
+            // 画面を開いたままパックを切り替えることもあるので毎フレーム見る
+            boolean packOn = CarClient.get().shaderPackInUse();
+            for (UiWidget widget : packWidgets) {
+                widget.active = packOn;
+            }
+            int dim = 0x888888;
+            graphics.drawString(font, RaceText.translatable("screen.kurumamod.headlight.pack_header"),
+                    packLeft(), rowY(packFirstRow() - 1) + 6, packOn ? 0xFFFFFF : dim);
+            for (int i = 0; i < PACK_ROWS.length; i++) {
+                if (packOn) {
+                    drawLabel(graphics, PACK_ROWS[i], packLeft(), rowY(packFirstRow() + i));
+                } else {
+                    graphics.drawString(font, RaceText.translatable("screen.kurumamod.headlight." + PACK_ROWS[i].key()),
+                            packLeft(), rowY(packFirstRow() + i) + 6, dim);
+                }
+            }
+            graphics.drawString(font, RaceText.translatable("screen.kurumamod.headlight.pack_pre_composite"),
+                    packLeft(), rowY(packFirstRow() + PACK_ROWS.length) + 6,
+                    !packOn ? dim : packPreComposite().get() ? 0xFFFFFF : 0xFFFF55);
+        }
+        graphics.drawString(font, RaceText.translatable("screen.kurumamod.headlight.with_shader_packs"),
+                left, rowY(ROWS.length) + 6, withShaderPacks().get() ? 0xFFFFFF : 0xFFFF55);
+        graphics.drawString(font, RaceText.translatable("screen.kurumamod.headlight.color"),
+                left, rowY(ROWS.length + 1) + 6, color().get() == HeadlightColor.HALOGEN ? 0xFFFFFF : 0xFFFF55);
+        if (CarClient.get().headlightSuppressedByShaderPack()) {
+            // パックの間は光の効果を描かないので、スライダーを動かしても何も変わらない
+            graphics.drawCenteredString(font, RaceText.translatable("screen.kurumamod.headlight.shader_pack"),
+                    width / 2, rowY(bottomRow()) + 36, 0xFFAA55);
+        }
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    private void drawLabel(UiGraphics graphics, Row row, int x, int y) {
+        // 既定から変えた項目は黄色（調整画面と同じ）
+        boolean changed = Math.abs(row.get() - row.defaultValue()) > row.step() * 0.5;
+        graphics.drawString(font, RaceText.translatable("screen.kurumamod.headlight." + row.key()),
+                x, y + 6, changed ? 0xFFFF55 : 0xFFFFFF);
+    }
+
+    @Override
+    public void onClose() {
+        // ファイルへ書くのは閉じるときだけ。値は動かすたびに refresh で効いている
+        ClientOptions.get().save();
+        super.onClose();
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
+    private static final class Slider extends UiSlider {
+        private final Row row;
+
+        Slider(int x, int y, int width, int height, Row row) {
+            super(x, y, width, height, RaceText.empty(), toSlider(row, row.get()));
+            this.row = row;
+            updateMessage();
+        }
+
+        private static double toSlider(Row row, double v) {
+            return Mth.clamp((v - row.min()) / (row.max() - row.min()), 0.0, 1.0);
+        }
+
+        void sync() {
+            value = toSlider(row, row.get());
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            // 台数の右端は「無制限」
+            if (row.key().equals("cars") && row.get() >= CarClient.UNLIMITED_HEADLIGHT_CARS) {
+                setMessage(RaceText.translatable("screen.kurumamod.headlight.cars.unlimited"));
+                return;
+            }
+            setMessage(RaceText.literal(String.format(Locale.ROOT, row.format(), row.get())));
+        }
+
+        @Override
+        protected void applyValue() {
+            double raw = row.min() + value * (row.max() - row.min());
+            row.set(Math.round(raw / row.step()) * row.step());
+        }
+    }
+}

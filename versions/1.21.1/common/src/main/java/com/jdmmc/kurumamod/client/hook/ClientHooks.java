@@ -15,6 +15,7 @@ import com.jdmmc.kurumamod.client.CarMeshes;
 import com.jdmmc.kurumamod.client.CarModel;
 import com.jdmmc.kurumamod.client.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
+import com.jdmmc.kurumamod.client.CarSoundEvents;
 import com.jdmmc.kurumamod.client.CarSoundSet;
 import com.jdmmc.kurumamod.client.ObjModel;
 import com.jdmmc.kurumamod.client.PlateModel;
@@ -192,7 +193,7 @@ public final class ClientHooks {
     public static void resourcesReloaded() {
         ObjModel.clearCache();
         CarModel.clearCache();
-        CarSoundSet.clearReports();
+        CarSoundEvents.clearReports();
         CarPartModel.clearCache();
         CarPresets.clearCache();
         CarIcons.clearCache();

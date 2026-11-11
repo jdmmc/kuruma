@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -171,7 +172,7 @@ public final class CarIcons {
      */
     @Nullable
     private static ResourceLocation providedIcon(ItemStack stack) {
-        ResourceLocation icon = CarModel.get(CarSpawnItem.carTypeOf(stack).id()).icon();
+        ResourceLocation icon = McIds.mc(CarModel.get(CarSpawnItem.carTypeOf(stack).id()).icon());
         if (icon == null) {
             return null;
         }

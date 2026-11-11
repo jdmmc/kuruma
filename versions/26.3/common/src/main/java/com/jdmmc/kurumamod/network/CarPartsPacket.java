@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.part.PartFitments;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
@@ -36,12 +37,12 @@ public record CarPartsPacket(int entityId, PartFitment parts) implements CustomP
 
 
     public CarPartsPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), PartFitment.read(buf));
+        this(buf.readVarInt(), PartFitments.read(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
-        parts.write(buf);
+        PartFitments.write(buf, parts);
     }
 
     public void handle(PacketContext context) {

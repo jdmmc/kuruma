@@ -2,9 +2,12 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.client.ui.UiFont;
 import com.jdmmc.kurumamod.client.ui.UiGraphics;
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.race.RaceText;
 import com.jdmmc.kurumamod.race.RaceTexts;
 import net.minecraft.client.gui.GuiGraphics;
+import java.util.List;
 import org.joml.Matrix4f;
 
 /** core の {@link UiGraphics} を Minecraft の {@link GuiGraphics} で描く。 */
@@ -76,5 +79,27 @@ public final class McUiGraphics extends UiGraphics {
     @Override
     public void renderScrollingString(UiFont font, RaceText text, int left, int top, int right, int bottom, int color) {
         McUiScreen.WidgetButton.scrolling(graphics, RaceTexts.of(text), left, top, right, bottom, color);
+    }
+
+    @Override
+    public void fillQuad(int color, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) {
+        GaugePainter.quad(graphics, color, x0, y0, x1, y1, x2, y2, x3, y3);
+    }
+
+    @Override
+    public void flush() {
+        GaugePainter.flush(graphics);
+    }
+
+    @Override
+    public void blit(CarId texture, int x, int y, int width, int height, float u, float v,
+                     int uWidth, int vHeight, int textureWidth, int textureHeight) {
+        graphics.blit(McIds.mc(texture), x, y, width, height, u, v, uWidth, vHeight, textureWidth, textureHeight);
+    }
+
+    @Override
+    public void renderTooltip(UiFont font, List<RaceText> lines, int mouseX, int mouseY) {
+        graphics.renderTooltip(McUiFont.font(),
+                lines.stream().map(line -> RaceTexts.of(line).getVisualOrderText()).toList(), mouseX, mouseY);
     }
 }

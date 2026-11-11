@@ -1,30 +1,17 @@
 package com.jdmmc.kurumamod.part;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.jdmmc.kurumamod.physics.Aero;
-import com.jdmmc.kurumamod.physics.Tire;
-import com.jdmmc.kurumamod.physics.Turbo;
-import com.jdmmc.kurumamod.plate.PlateChars;
-import com.jdmmc.kurumamod.plate.PlateField;
-import com.jdmmc.kurumamod.plate.PlateLook;
-import com.jdmmc.kurumamod.plate.PlateRules;
-import com.mojang.logging.LogUtils;
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.ExtraCodecs;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
-import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * データパックから部品を読む。<b>サーバー側だけで動く。</b>
@@ -54,261 +41,20 @@ import java.util.Set;
  */
 public final class CarPartLoader extends SimpleJsonResourceReloadListener<JsonElement> {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     /** {@code data/<ns>/car_parts/} 以下を読む。 */
-    public static final String DIRECTORY = "car_parts";
+    public static final String DIRECTORY = CarPartJson.DIRECTORY;
 
     public CarPartLoader() {
-        // 26.3 は Codec で読む形になった。中身は今までどおり自分で解くので、JSON をそのまま受け取る
+        // 26.3 は Codec で読む形になった。中身は今までどおり core が解くので、JSON をそのまま受け取る
         super(ExtraCodecs.JSON, FileToIdConverter.json(DIRECTORY));
     }
 
+    /** 中身の読み方は core の {@link CarPartJson}。ここは Minecraft の id を core の id に直して渡すだけ。 */
     @Override
     protected void apply(Map<Identifier, JsonElement> found, ResourceManager resources,
                          ProfilerFiller profiler) {
-        List<CarPart> loaded = new ArrayList<>();
-        for (Map.Entry<Identifier, JsonElement> entry : found.entrySet()) {
-            Identifier id = entry.getKey();
-            try {
-                CarPart part = parse(id, GsonHelper.convertToJsonObject(entry.getValue(), "car_part"));
-                if (part == null) {
-                    continue;
-                }
-                loaded.add(part);
-            } catch (RuntimeException e) {
-                LOGGER.error("部品の読み込みに失敗しました（この部品だけ捨てます）: {}", id, e);
-            }
-        }
-        CarParts.replaceAll(loaded);
-        LOGGER.info("部品を {} 件読み込みました: {}", CarParts.all().size(),
-                CarParts.all().stream().map(part -> part.id().toString()).toList());
-    }
-
-    /** 付ける場所が分からなければ null（この部品だけ捨てる）。 */
-    private static CarPart parse(Identifier id, JsonObject root) {
-        if (!root.has("slot")) {
-            LOGGER.error("部品に slot が書かれていません（この部品だけ捨てます）: {}", id);
-            return null;
-        }
-        String name = root.get("slot").getAsString();
-        PartSlot slot = PartSlot.byName(name);
-        if (slot == null) {
-            LOGGER.error("知らない slot です（この部品だけ捨てます）: {} の \"{}\"", id, name);
-            return null;
-        }
-        int order = root.has("order") ? root.get("order").getAsInt() : CarPart.DEFAULT_ORDER;
-
-        Set<Identifier> cars = new HashSet<>();
-        if (root.has("cars")) {
-            for (JsonElement element : GsonHelper.getAsJsonArray(root, "cars")) {
-                Identifier car = Identifier.tryParse(element.getAsString());
-                if (car == null) {
-                    LOGGER.error("cars に車種として読めない値があります（その値だけ無視します）: {} の \"{}\"",
-                            id, element.getAsString());
-                    continue;
-                }
-                cars.add(car);
-            }
-            // 1 つも読めなかったのを「どの車種にも付く」と取り違えてはいけない。絞りたかったはずなので捨てる
-            if (cars.isEmpty()) {
-                LOGGER.error("cars に車種が 1 つもありません（この部品だけ捨てます）: {}", id);
-                return null;
-            }
-        }
-        Turbo turbo = null;
-        if (root.has("turbo")) {
-            if (slot != PartSlot.TURBO) {
-                LOGGER.warn("turbo はターボの部品（slot \"turbo\"）にしか書けません（無視します）: {}", id);
-            } else {
-                turbo = parseTurbo(GsonHelper.getAsJsonObject(root, "turbo"));
-            }
-        } else if (slot == PartSlot.TURBO) {
-            LOGGER.warn("ターボの部品に turbo が書かれていません（既定の性能にします）: {}", id);
-            turbo = parseTurbo(new JsonObject());
-        }
-        Tire tire = null;
-        if (root.has("tire")) {
-            if (slot != PartSlot.TIRE) {
-                LOGGER.warn("tire はタイヤの部品（slot \"tire\"）にしか書けません（無視します）: {}", id);
-            } else {
-                tire = parseTire(id, GsonHelper.getAsJsonObject(root, "tire"));
-            }
-        } else if (slot == PartSlot.TIRE) {
-            LOGGER.warn("タイヤの部品に tire が書かれていません（ノーマルと同じ性能にします）: {}", id);
-            tire = Tire.NORMAL;
-        }
-        // 空力の性能は車体の部品（バンパー・スカート・フェンダー・ウイング・ディフューザー）なら書ける。
-        // 書かなければ見た目だけの部品（フェンダーなど）
-        Aero aero = null;
-        if (root.has("aero")) {
-            if (!slot.isBodyPart()) {
-                LOGGER.warn("aero は車体の部品（front_bumper / side_skirt / fender / rear_wing / rear_diffuser）"
-                        + "にしか書けません（無視します）: {}", id);
-            } else {
-                aero = parseAero(id, GsonHelper.getAsJsonObject(root, "aero"));
-            }
-        }
-        // ナンバーの欄の決まり。ナンバーの部品なら書かなくても持つ（欄の無い飾りのプレート）
-        PlateRules plate = null;
-        if (root.has("plate")) {
-            if (slot != PartSlot.PLATE) {
-                LOGGER.warn("plate はナンバーの部品（slot \"plate\"）にしか書けません（無視します）: {}", id);
-            } else {
-                plate = parsePlate(id, GsonHelper.getAsJsonObject(root, "plate"));
-            }
-        } else if (slot == PartSlot.PLATE) {
-            plate = PlateRules.NONE;
-        }
-        return new CarPart(id, slot, order, cars, turbo, tire, aero, plate);
-    }
-
-    /**
-     * ナンバーの欄の決まり。<b>並べた順がそのまま換装画面の入力欄の順になる。</b>
-     *
-     * <pre>
-     * "plate": {
-     *   "fields": {
-     *     "region": { "max": 4, "default": "品川" },
-     *     "kana":   { "max": 1, "chars": ["hiragana"], "default": "さ" },
-     *     "number": { "max": 4, "chars": ["0-9"], "default": "1234" }
-     *   }
-     * }
-     * </pre>
-     *
-     * <p>欄の名前はプレートのメッシュの {@code text_<名前>} と揃える。名前の形は小文字・数字・{@code _ -}。</p>
-     */
-    private static PlateRules parsePlate(Identifier id, JsonObject json) {
-        List<PlateField> fields = new ArrayList<>();
-        if (json.has("fields")) {
-            for (Map.Entry<String, JsonElement> entry : GsonHelper.getAsJsonObject(json, "fields").entrySet()) {
-                String name = entry.getKey();
-                if (name.startsWith("_")) {
-                    continue;
-                }
-                if (!PlateLook.isValidId(name, PlateLook.FIELD_ID_MAX_LENGTH)) {
-                    LOGGER.warn("ナンバーの欄の名前は小文字・数字・_ - で書いてください（この欄だけ無視します）: {} の \"{}\"",
-                            id, name);
-                    continue;
-                }
-                if (fields.size() >= PlateRules.MAX_FIELDS) {
-                    LOGGER.warn("ナンバーの欄は {} 個までです（残りは無視します）: {}", PlateRules.MAX_FIELDS, id);
-                    break;
-                }
-                JsonObject field = GsonHelper.convertToJsonObject(entry.getValue(), name);
-                List<String> items = new ArrayList<>();
-                if (field.has("chars")) {
-                    for (JsonElement element : GsonHelper.getAsJsonArray(field, "chars")) {
-                        items.add(element.getAsString());
-                    }
-                }
-                List<String> unreadable = new ArrayList<>();
-                PlateChars chars = PlateChars.parse(items, unreadable);
-                if (!unreadable.isEmpty()) {
-                    LOGGER.warn("ナンバーの欄 {} の chars に読めない項目があります（その項目だけ無視します）: {} の {}",
-                            name, id, unreadable);
-                }
-                fields.add(new PlateField(name, GsonHelper.getAsInt(field, "max", PlateRules.FIELD_MAX_LENGTH),
-                        chars, GsonHelper.getAsString(field, "default", "")));
-            }
-        }
-        return new PlateRules(fields);
-    }
-
-    /**
-     * 空力部品の性能。値はダウンフォースの面積 −Cl×面積 [m²] を軸ごとに。
-     *
-     * <pre>
-     * "aero": {
-     *   "front": 0.2,          // 数字 1 つなら固定（角度の無い部品）
-     *   "rear": [0.6, 1.6],    // [最小, 最大] なら換装画面の角度で、その範囲を動かせる
-     *   "angle": 0.4           // 調整していないときの角度（0〜1）。省略で 0.5
-     * }
-     * </pre>
-     *
-     * <p><b>空気抵抗は書けない。</b>ダウンフォースから決まる（{@code CarSpec#DOWNFORCE_PER_DRAG}）。
-     * 範囲の外（0〜3）は {@link Aero} が丸める。</p>
-     */
-    private static Aero parseAero(Identifier id, JsonObject json) {
-        double[] front = aeroRange(id, json, "front");
-        double[] rear = aeroRange(id, json, "rear");
-        return new Aero(front[0], front[1], rear[0], rear[1], GsonHelper.getAsDouble(json, "angle", 0.5));
-    }
-
-    private static double[] aeroRange(Identifier id, JsonObject json, String key) {
-        if (!json.has(key)) {
-            return new double[]{0.0, 0.0};
-        }
-        JsonElement element = json.get(key);
-        if (element.isJsonArray() && element.getAsJsonArray().size() == 2) {
-            double min = element.getAsJsonArray().get(0).getAsDouble();
-            double max = element.getAsJsonArray().get(1).getAsDouble();
-            return new double[]{min, max};
-        }
-        if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
-            double value = element.getAsDouble();
-            return new double[]{value, value};
-        }
-        LOGGER.warn("aero.{} は数字か [最小, 最大] で書いてください（0 にします）: {}", key, id);
-        return new double[]{0.0, 0.0};
-    }
-
-    /** 路面の名前。{@code RoadSurface#surfaceName} と同じ並び。知らない名前はログに残して捨てる。 */
-    private static final Set<String> SURFACES = Set.of("paved", "dirt", "gravel", "sand", "snow", "ice");
-
-    /**
-     * タイヤの性能。倍率はすべてノーマルタイヤに対する比で、書かなかったものは 1。
-     * 範囲の外は {@link Tire} が丸める。
-     *
-     * <pre>
-     * "tire": {
-     *   "stiffness": 0.85,                          // 横・縦の剛性の倍率（よれやすさ）
-     *   "grip":    { "paved": 0.88, "gravel": 1.3 }, // 路面ごとのグリップの倍率
-     *   "rolling": { "sand": 0.7 }                   // 路面ごとの転がり抵抗の倍率
-     * }
-     * </pre>
-     */
-    private static Tire parseTire(Identifier id, JsonObject json) {
-        return new Tire(GsonHelper.getAsDouble(json, "stiffness", 1.0),
-                surfaceScales(id, json, "grip"), surfaceScales(id, json, "rolling"));
-    }
-
-    private static Map<String, Double> surfaceScales(Identifier id, JsonObject json, String key) {
-        Map<String, Double> scales = new HashMap<>();
-        if (!json.has(key)) {
-            return scales;
-        }
-        for (Map.Entry<String, JsonElement> entry : GsonHelper.getAsJsonObject(json, key).entrySet()) {
-            if (entry.getKey().startsWith("_")) {
-                continue;
-            }
-            if (!SURFACES.contains(entry.getKey())) {
-                LOGGER.warn("知らない路面です（その値だけ無視します）: {} の tire.{}.{}（使えるのは {}）",
-                        id, key, entry.getKey(), SURFACES);
-                continue;
-            }
-            scales.put(entry.getKey(), entry.getValue().getAsDouble());
-        }
-        return scales;
-    }
-
-    /**
-     * ターボの性能。書かなかった項目は純正タービンくらいの値。範囲の外は {@link Turbo} が丸める。
-     *
-     * <pre>
-     * "turbo": {
-     *   "boost": 0.35,        // ブーストいっぱいでトルクを何割増やすか
-     *   "spool_from": 0.25,   // 過給が立ち上がり始める回転の割合（アイドル 0 〜 レブ 1）
-     *   "spool_full": 0.60,   // 過給がいっぱいになる回転の割合
-     *   "spool_rate": 3.0     // 立ち上がる速さ [1/s]。小さいほどターボラグが長い
-     * }
-     * </pre>
-     */
-    private static Turbo parseTurbo(JsonObject json) {
-        return new Turbo(
-                GsonHelper.getAsDouble(json, "boost", 0.35),
-                GsonHelper.getAsDouble(json, "spool_from", 0.25),
-                GsonHelper.getAsDouble(json, "spool_full", 0.60),
-                GsonHelper.getAsDouble(json, "spool_rate", 3.0));
+        Map<CarId, JsonElement> byId = new LinkedHashMap<>();
+        found.forEach((id, json) -> byId.put(McIds.of(id), json));
+        CarPartJson.apply(byId);
     }
 }

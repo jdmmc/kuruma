@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
@@ -64,7 +65,7 @@ public final class PlateRenderer {
     public static void render(CarEntity car, CarModel model, CarSpec spec, PoseStack pose, MultiBufferSource buffer,
                               int packedLight, Function<ResourceLocation, RenderType> solid, boolean shadowPass) {
         PartFitment fitment = car.getEffectiveFitment();
-        ResourceLocation partId = fitment.getPart(PartSlot.PLATE);
+        CarId partId = fitment.getPart(PartSlot.PLATE);
         if (partId == null) {
             return;
         }
@@ -186,7 +187,7 @@ public final class PlateRenderer {
     @Nullable
     static org.joml.Vector3f[] rearLamp(CarEntity car, float partialTick) {
         PartFitment fitment = car.getEffectiveFitment();
-        ResourceLocation partId = fitment.getPart(PartSlot.PLATE);
+        CarId partId = fitment.getPart(PartSlot.PLATE);
         if (partId == null) {
             return null;
         }
