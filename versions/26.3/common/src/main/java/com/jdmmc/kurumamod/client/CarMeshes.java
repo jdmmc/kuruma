@@ -133,13 +133,14 @@ public final class CarMeshes {
             // 鏡は頂点を積む（鏡の描き先はパックの gbuffer の外）
             return !MirrorRenderer.isRendering();
         }
+        // <b>毎回引き直す。</b>資源の読み直し（F3+T）で Minecraft はパイプラインを全部作り直して古いものを捨てるので、
+        // 握ったままだと捨てられたシェーダーで描き、車体が崩れる（実際に崩れた。GL は Program handle を返していた）。
+        // コンパイル済みのものは Minecraft の置き場が覚えているので、引き直しは軽い
+        pipeline = RenderSystem.getCompiledPipelineNullable(PIPELINE);
         if (pipeline == null) {
-            pipeline = RenderSystem.getCompiledPipelineNullable(PIPELINE);
-            if (pipeline == null) {
-                failed = true;
-                LOGGER.error("車のメッシュのパイプラインを作れなかった（直前のシェーダーのログを参照）。頂点を積む描き方で描く");
-                return false;
-            }
+            failed = true;
+            LOGGER.error("車のメッシュのパイプラインを作れなかった（直前のシェーダーのログを参照）。頂点を積む描き方で描く");
+            return false;
         }
         return true;
     }

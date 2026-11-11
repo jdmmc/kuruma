@@ -53,13 +53,16 @@ public final class CourseRenderer {
     private static final float PLANE_ALPHA = 0.16F;
     private static final float POST_ALPHA = 0.65F;
 
-    private static List<CourseLinesPacket.Gate> gates = List.of();
-
-    /** 配られてきたゲート。ゴーストが「いつスタートラインを跨いだか」を割り出すのに使う。 */
-    public static List<CourseLinesPacket.Gate> gates() {
-        return gates;
+    /** どのコースのゲートを描くか（{@link CourseGates#focus}）。運転席だけを「車に乗っている」とみなす。 */
+    private static String focus(Minecraft minecraft) {
+        boolean driving = minecraft.player.getVehicle() instanceof CarEntity car
+                && car.getControllingPassenger() == minecraft.player;
+        return CourseGates.focus(driving);
     }
-    private static boolean raceActive;
+
+    private static boolean shows(String focus, CourseLinesPacket.Gate gate) {
+        return CourseGates.shows(focus, gate);
+    }
 
     /**
      * シェーダーパック使用中に、仕上げの直前で描くゲートの頂点。x, y, z, r, g, b, a の 7 個ずつで、
@@ -73,9 +76,9 @@ public final class CourseRenderer {
     private CourseRenderer() {
     }
 
+    /** 線を受け取った。持つのは core の {@link CourseGates}（ゴーストも読む）。 */
     public static void accept(CourseLinesPacket packet) {
-        gates = packet.gates();
-        raceActive = packet.raceActive();
+        CourseGates.accept(packet);
     }
 
     /**
@@ -96,8 +99,7 @@ public final class CourseRenderer {
     }
 
     private static void reset() {
-        gates = List.of();
-        raceActive = false;
+        CourseGates.reset();
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -118,17 +120,14 @@ public final class CourseRenderer {
         }
         GateDisplay display = ClientConfig.gateDisplay;
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS
-                || gates.isEmpty() || display == GateDisplay.HIDDEN) {
+                || CourseGates.gates().isEmpty() || display == GateDisplay.HIDDEN) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
             return;
         }
-        // レース中は全員に見せる。そうでなければ運転している人だけ
-        if (!raceActive && !(minecraft.player.getVehicle() instanceof CarEntity)) {
-            return;
-        }
+        String focus = focus(minecraft);
         boolean useDeferred = HeadlightVolume.ShaderPacks.inUse() && DeferredGlows.shaderReady();
         if (useDeferred && MirrorRenderer.isRendering()) {
             return;
@@ -155,7 +154,10 @@ public final class CourseRenderer {
         }
         Sink sink = new Sink(consumer, view, eye);
 
-        for (CourseLinesPacket.Gate gate : gates) {
+        for (CourseLinesPacket.Gate gate : CourseGates.gates()) {
+            if (!shows(focus, gate)) {
+                continue;
+            }
             double midX = (gate.ax() + gate.bx()) / 2.0;
             double midZ = (gate.az() + gate.bz()) / 2.0;
             if (Math.hypot(midX - eye.x, midZ - eye.z) > VIEW_DISTANCE) {

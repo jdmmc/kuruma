@@ -1032,6 +1032,22 @@ public record CarSpec(
         return best;
     }
 
+    /**
+     * 全開で回したときの最高出力 [W]。<b>ターボはブーストが乗りきった先で数える</b>。
+     *
+     * <p>{@link #actualPeakPower()} はエンジン単体（ブースト無し）の値。レースの
+     * レギュレーションで比べるのは、実際に路面へ出せる力なのでこちら。</p>
+     */
+    public double peakPowerWithBoost() {
+        // 刻みは 10rpm の倍数に固定する。アイドルから数えると、アイドルを動かすだけで刻みがずれて
+        // 値が細かく揺れ、上限の際で「アイドル回転数で出力が変わる」ように見えてしまう
+        double best = fullThrottleTorque(redlineRpm) * redlineRpm * 2.0 * Math.PI / 60.0;
+        for (double rpm = Math.ceil(idleRpm / 10.0) * 10.0; rpm <= redlineRpm; rpm += 10.0) {
+            best = Math.max(best, fullThrottleTorque(rpm) * rpm * 2.0 * Math.PI / 60.0);
+        }
+        return best;
+    }
+
     /** 全開で回転を保ったときのトルク [N*m]。ターボはブーストが落ち着いた先で数える。 */
     private double fullThrottleTorque(double rpm) {
         double torque = engineTorque(rpm);

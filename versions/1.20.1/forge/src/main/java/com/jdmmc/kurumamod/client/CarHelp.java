@@ -60,7 +60,7 @@ public final class CarHelp {
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
-        if (!ClientConfig.showHelp) {
+        if (!ClientConfig.showHelp || RaceHud.isShowingResults()) {
             return;
         }
         // 換装・セッティング画面が開いている間は引っ込める（メーターと同じ理由）
@@ -82,7 +82,8 @@ public final class CarHelp {
     }
 
     /** 中身。運転しているときにしか出さないので、運転の操作だけを並べる。 */
-    private static List<Line> lines(Minecraft minecraft) {
+    /** 操作の一覧。右下の一覧と、H メニューの「操作説明」のページ（{@code KurumaMenuScreen}）が使う。 */
+    static List<Line> lines(Minecraft minecraft) {
         List<Line> lines = new ArrayList<>();
         lines.add(new Line(key(minecraft.options.keyUp) + "/" + key(minecraft.options.keyDown),
                 "help.kurumamod.pedals"));
@@ -94,6 +95,7 @@ public final class CarHelp {
         lines.add(new Line(key(minecraft.options.keyShift), "help.kurumamod.dismount"));
         lines.add(new Line(key(KurumaKeys.OPEN_TUNING), "help.kurumamod.tuning"));
         lines.add(new Line(key(KurumaKeys.OPEN_MENU), "help.kurumamod.menu"));
+        lines.add(new Line(key(KurumaKeys.OPEN_RACE), "help.kurumamod.race"));
         lines.add(new Line(key(KurumaKeys.TOGGLE_HEADLIGHTS), "help.kurumamod.headlights"));
         lines.add(new Line(key(KurumaKeys.OPEN_HEADLIGHT_SETTINGS), "help.kurumamod.headlight_settings"));
         lines.add(new Line(key(KurumaKeys.TOGGLE_CAMERA), "help.kurumamod.camera"));
@@ -123,11 +125,10 @@ public final class CarHelp {
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
-        // 速度計の上へ。テレメトリを消しているときは速度計も出ないので、下まで下ろす
+        // 画面の右下の角に固定する。メーターと重なってもずらさない（2026-11-10、ユーザーの指示）。
+        // ホットバーとだけは重ねない（横に重なるときは、ホットバーの上まで持ち上げる）
         int left = screenWidth - MARGIN - panelWidth;
-        // メーターに重なるときだけ上へ逃がす。画面が広くて横に並べられるなら下端のままでよい
-        int bottom = screenHeight - MARGIN
-                - (left < CarGaugeHud.gaugeRightEdge() ? CarGaugeHud.reservedBottomHeight() : 0);
+        int bottom = screenHeight - MARGIN - HotbarClearance.lift(left, left + panelWidth, screenWidth);
         int top = bottom - panelHeight;
 
         graphics.fill(left, top, left + panelWidth, bottom, COLOR_BACKGROUND);
@@ -153,6 +154,6 @@ public final class CarHelp {
     }
 
     /** 一覧の 1 行。 */
-    private record Line(String key, String descriptionKey) {
+    record Line(String key, String descriptionKey) {
     }
 }

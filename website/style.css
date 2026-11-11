@@ -90,7 +90,7 @@ section { padding-block: clamp(64px, 9vw, 128px); }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 40px 0 28px; }
 .filters button { border: 1px solid var(--line); background: var(--white); border-radius: 4px; padding: 8px 18px; font-size: 14px; cursor: pointer; }
 .filters button[aria-pressed="true"] { background: var(--black); border-color: var(--black); color: var(--white); }
-.models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
 @media (max-width: 1000px) { .models { grid-template-columns: 1fr; } }
 .model { background: var(--mist); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
 .model[hidden] { display: none; }

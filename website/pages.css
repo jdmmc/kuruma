@@ -37,7 +37,10 @@
 
 /* カーパック・ダウンロード */
 .packs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
-@media (max-width: 900px) { .packs { grid-template-columns: 1fr; } }
+/* 4 枚並べる段。広い画面は 1 列に 4 枚、中くらいは 2×2 */
+.packs.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .packs.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .packs, .packs.four { grid-template-columns: 1fr; } }
 .pack { background: var(--mist); border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 8px; transition: background .2s; }
 .mist .pack { background: var(--white); }
 a.pack:hover { background: var(--line); }
@@ -167,20 +170,6 @@ code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-siz
 .keys .key { flex: 0 0 auto; }
 .keys .desc { color: #b0b2b7; }
 .keys .key { color: var(--white); }
-
-/* 比較表 */
-/* 車種の列は同じ幅にする（中身の長さで幅が変わると、写真の大きさが揃わない） */
-table.compare.cars { table-layout: fixed; }
-table.compare.cars thead th:first-child { width: 25%; }
-table.compare thead .thumb { display: block; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--black); margin-bottom: 12px; position: relative; }
-table.compare thead .thumb img, table.compare thead .thumb .plate { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-table.compare thead .thumb .plate span { font-size: 56px; -webkit-text-stroke-width: 1px; }
-table.compare thead a:hover { text-decoration: underline; text-underline-offset: 4px; }
-.best { display: inline-block; font-size: 10px; letter-spacing: .06em; background: var(--black); color: var(--white); border-radius: 3px; padding: 1px 6px; margin-left: 8px; vertical-align: 2px; font-family: var(--f-ja); font-weight: 500; }
-.toggle { display: inline-flex; gap: 10px; align-items: center; font-size: 14px; margin-top: 24px; cursor: pointer; }
-.toggle input { width: 18px; height: 18px; accent-color: var(--black); }
-tr.same { display: none; }
-.show-same tr.same { display: table-row; }
 
 /* 日本語の見出しを文節で折り返す */
 :root[data-lang="ja"] :is(h1, h2, h3, .lead) { word-break: auto-phrase; }

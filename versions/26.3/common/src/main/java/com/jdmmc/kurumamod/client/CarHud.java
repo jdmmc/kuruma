@@ -83,10 +83,11 @@ public final class CarHud {
     /** 左下。テレメトリの数字と、その上にタイヤの図。 */
     private static void renderTelemetry(GuiGraphicsExtractor graphics, Minecraft minecraft, CarEntity car,
                                         int screenHeight) {
+        // 画面の左下の角に固定する。メーターと重なってもずらさない（2026-11-10、ユーザーの指示）。
+        // ホットバーとだけは重ねない（横に重なるときは、ホットバーの上まで持ち上げる）
         int left = MARGIN;
-        // メーターに重なるときだけ上へ逃がす。画面が広くて横に並べられるなら下端のままでよい
-        int bottom = screenHeight - MARGIN
-                - (left + PANEL_WIDTH > CarGaugeHud.gaugeLeftEdge() ? CarGaugeHud.reservedBottomHeight() : 0);
+        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+        int bottom = screenHeight - MARGIN - HotbarClearance.lift(left, left + PANEL_WIDTH, screenWidth);
         int panelHeight = LINE_HEIGHT * 6 + 8;
         int top = bottom - panelHeight;
         graphics.fill(left, top, left + PANEL_WIDTH, bottom, COLOR_BACKGROUND);

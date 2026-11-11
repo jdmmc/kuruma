@@ -43,6 +43,21 @@ public final class CarClientPackets {
         CourseRenderer.accept(packet);
     }
 
+    /** レースの様子（受付中か・決まり・参加者と判定）を受け取る。 */
+    public static void applyRaceLobby(com.jdmmc.kurumamod.network.RaceLobbyPacket packet) {
+        RaceLobby.accept(packet);
+    }
+
+    /** サーバーに保存してあるクラスの一覧を受け取る。 */
+    public static void applyRaceClasses(com.jdmmc.kurumamod.network.RaceClassesPacket packet) {
+        RaceLobby.acceptClasses(packet.classes());
+    }
+
+    /** タイムアタックの記録を受け取る。開いている K の画面へ渡す。 */
+    public static void applyTimeAttackRecords(com.jdmmc.kurumamod.network.TimeAttackRecordsPacket packet) {
+        TimeAttackScreen.acceptRecords(packet);
+    }
+
     /** ラップ計測とスタート信号の合図を受け取る。 */
     public static void applyRaceEvent(RaceEventPacket packet) {
         RaceHud.accept(packet);

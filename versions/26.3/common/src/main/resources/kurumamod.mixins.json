@@ -13,6 +13,7 @@
     "KeyMappingAccessor",
     "LevelRendererStagesMixin",
     "MirrorCameraAccessor", "MirrorGameRendererAccessor", "MirrorGameRendererMixin", "MirrorSectionTrackerMixin", "MirrorSectionsMixin", "MirrorSkyRendererMixin", "MirrorViewAreaMixin",
+    "OverlayMessageMixin",
     "PlayerModelMixin",
     "RiderExtractMixin",
     "RiderRenderMixin"

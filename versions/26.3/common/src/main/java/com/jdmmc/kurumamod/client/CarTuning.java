@@ -55,19 +55,75 @@ public final class CarTuning {
         return revision;
     }
 
+    /**
+     * レース中に、決まり（レギュレーション）の外へ出る変更を通さない。
+     *
+     * <p><b>入口をここ 1 か所にしてある</b>——スライダー・項目ごとの R・すべて戻す・プリセットの
+     * どれから来ても同じ判定に掛かる。通さなかったときはアクションバーで知らせる。</p>
+     */
+    private static boolean admit(CarSpec candidate) {
+        if (RaceLobby.allowsTuning(spec, candidate)) {
+            return true;
+        }
+        net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+        if (minecraft.player != null) {
+            minecraft.player.sendOverlayMessage(
+                    net.minecraft.network.chat.Component.translatable("race.kurumamod.tuning_blocked"));
+        }
+        return false;
+    }
+
     /** 1 項目を表示単位の値で設定する。 */
     public static void set(TunableParameter parameter, double displayValue) {
         CarSpec.Builder builder = spec.toBuilder();
         parameter.applyDisplay(builder, displayValue);
-        spec = builder.build();
+        CarSpec next = builder.build();
+        if (!admit(next)) {
+            return;
+        }
+        spec = next;
         revision++;
+    }
+
+    /** 2 項目を一緒に設定する（鍵でつないだ行）。<b>判定は 2 つを動かしたあとの姿で 1 回だけ。</b> */
+    public static void setPair(TunableParameter first, double firstValue,
+                               TunableParameter second, double secondValue) {
+        CarSpec.Builder builder = spec.toBuilder();
+        first.applyDisplay(builder, firstValue);
+        second.applyDisplay(builder, secondValue);
+        CarSpec next = builder.build();
+        if (!admit(next)) {
+            return;
+        }
+        spec = next;
+        revision++;
+    }
+
+    /** 1 項目を表示単位の値にしたときの諸元（設定はしない）。G 画面が決まりの範囲を測るのに使う。 */
+    public static CarSpec preview(TunableParameter parameter, double displayValue) {
+        CarSpec.Builder builder = spec.toBuilder();
+        parameter.applyDisplay(builder, displayValue);
+        return builder.build();
+    }
+
+    /**
+     * 戻す（項目ごとの R・すべて戻す）は、<b>スタート前なら決まりの外になっても通す</b>。
+     * 車種の値そのものが決まりを超えていることがあり、そのとき戻せないのでは困る。
+     * 外れたら判定が違反になるので、本人が直す。スタート後は失格になるので止める。
+     */
+    private static boolean admitReset(CarSpec candidate) {
+        return RaceLobby.allowsReset() || admit(candidate);
     }
 
     /** 1 項目だけ、いま乗っている車種の値に戻す。 */
     public static void resetParameter(TunableParameter parameter) {
         CarSpec.Builder builder = spec.toBuilder();
         parameter.applyInternal(builder, parameter.internalValue(base));
-        spec = builder.build();
+        CarSpec next = builder.build();
+        if (!admitReset(next)) {
+            return;
+        }
+        spec = next;
         revision++;
     }
 
@@ -77,12 +133,18 @@ public final class CarTuning {
      * <p>運転中なら次のティックで {@link CarClientDriver} が車へ流し込み、サーバーへも送る。</p>
      */
     public static void apply(CarSpec loaded) {
+        if (!admit(loaded)) {
+            return;
+        }
         spec = loaded;
         revision++;
     }
 
     /** 全項目を、いま乗っている車種の値に戻す。 */
     public static void reset() {
+        if (!admitReset(base)) {
+            return;
+        }
         spec = base;
         revision++;
     }

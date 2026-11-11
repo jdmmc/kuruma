@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Racing | KurumaMod</title>
+<!-- Google tag (gtag.js)。本番（kuruma.jdm-mc.com）でだけ読み込む -->
+<script>
+if (location.hostname === 'kuruma.jdm-mc.com') {
+  var ga = document.createElement('script');
+  ga.async = true;
+  ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-4NCQ47HCMC';
+  document.head.appendChild(ga);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4NCQ47HCMC');
+}
+</script>
+<meta name="description" content="Host and join races with one key. Set a regulation for power, weight, grip and more, and race with broadcast-style graphics.">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="img/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="canonical" href="https://kuruma.jdm-mc.com/race.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="KurumaMod">
+<meta property="og:title" content="Racing | KurumaMod">
+<meta property="og:description" content="Host and join races with one key. Set a regulation for power, weight, grip and more, and race with broadcast-style graphics.">
+<meta property="og:url" content="https://kuruma.jdm-mc.com/race.html">
+<meta property="og:image" content="https://kuruma.jdm-mc.com/img/race.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@kurumamod">
+<script>
+// 描く前に言語を決める（英語が既定。?lang=ja か前回の選択で日本語）
+(function () {
+  var lang = 'en';
+  try { lang = localStorage.getItem('kuruma-lang') || lang; } catch (e) {}
+  var q = /[?&]lang=(en|ja)/.exec(location.search);
+  if (q) lang = q[1];
+  document.documentElement.setAttribute('data-lang', lang);
+  document.documentElement.lang = lang;
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pages.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body data-title-en="Racing | KurumaMod" data-title-ja="レース | KurumaMod">
+<header class="bar">
+  <div class="wrap">
+    <nav class="menu" aria-label="Main">
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu-links" aria-label="Menu / メニュー"><span></span></button>
+      <div class="menu-links" id="menu-links">
+        <a href="index.html"><span data-l="en">Home</span><span data-l="ja">トップ</span></a>
+        <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
+        <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
+        <a href="race.html"><span data-l="en">Racing</span><span data-l="ja">レース</span></a>
+        <a href="shaders.html"><span data-l="en">Shaders</span><span data-l="ja">シェーダー</span></a>
+        <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
+      </div>
+    </nav>
+    <a class="wordmark" href="index.html" aria-label="KurumaMod">KURUMA</a>
+    <div class="tools">
+      <button class="lang" type="button" id="lang-toggle" aria-label="Switch language / 言語を切り替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9s1.3-6.4 3.9-9z"/></svg>
+        <span class="lang-t" data-l="en">日本語</span><span class="lang-t" data-l="ja">English</span>
+      </button>
+      <a class="dl" href="start.html#download" aria-label="Download / ダウンロード"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="dl-t"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></span></a>
+    </div>
+  </div>
+</header>
+
+<section class="hero page" style="padding:0">
+  <img src="img/race.jpg" alt="Start lights on a race track" data-alt-ja="スタートシグナルの点いたコース">
+  <div class="copy">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">KurumaMod</a> / <span data-l="en">Racing</span><span data-l="ja">レース</span></div>
+      <h1>Racing</h1>
+      <p><span data-l="en">Host and join with one key. Set a regulation, line up, and go.</span><span data-l="ja">主催も参加も、キー 1 つで。レギュレーションを決めて、並んで、スタート。</span></p>
+    </div>
+  </div>
+</section>
+
+<div class="subnav">
+  <div class="wrap">
+    <span class="name">Racing</span>
+    <nav aria-label="On this page">
+      <a href="#flow"><span data-l="en">How it works</span><span data-l="ja">レースの流れ</span></a>
+      <a href="#regulation"><span data-l="en">Regulation</span><span data-l="ja">レギュレーション</span></a>
+      <a href="#setup"><span data-l="en">Setup limits</span><span data-l="ja">セッティングの制限</span></a>
+      <a href="#hud"><span data-l="en">On track</span><span data-l="ja">走行中</span></a>
+      <a href="#timeattack"><span data-l="en">Time attack</span><span data-l="ja">タイムアタック</span></a>
+    </nav>
+    <a class="btn" href="start.html#download"><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></a>
+  </div>
+</div>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">How it works</span><span data-l="ja">レースの流れ</span></div>
+    <h2 class="title"><span data-l="en">Set up a course and hold a race.</span><span data-l="ja">コースを設定して、レースを開催しよう。</span></h2>
+    <p class="lead"><span data-l="en">Build a course once, then open and run races from the K screen.</span><span data-l="ja">コースを作れば、あとは K の画面からレースを開いて走れます。</span></p>
+    <ol class="steps">
+      <li><h3><span data-l="en">Build a course</span><span data-l="ja">コースを作る</span></h3><p><span data-l="en">Place a start line and checkpoints anywhere in your world.</span><span data-l="ja">ワールドのどこにでも、スタートラインとチェックポイントを置けます。</span></p></li>
+      <li><h3><span data-l="en">Open a race</span><span data-l="ja">レースを開く</span></h3><p><span data-l="en">Choose the track, laps and regulation.</span><span data-l="ja">トラック・周回・レギュレーションを決めて開きます。</span></p></li>
+      <li><h3><span data-l="en">Join</span><span data-l="ja">参加する</span></h3><p><span data-l="en">Everyone in the world gets an invite and joins from K.</span><span data-l="ja">ワールドの全員に案内が届き、K から参加できます。</span></p></li>
+      <li><h3><span data-l="en">Start</span><span data-l="ja">スタート</span></h3><p><span data-l="en">Start lights, then everyone goes on GO.</span><span data-l="ja">スタートシグナルが消えたら、一斉にスタート。</span></p></li>
+    </ol>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-invite.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">Driving with the race invite or the ENTERED panel at the right edge</span><span data-l="ja">走行中、右端に参加の案内か ENTERED の欄が出ているところ</span></div></div></div>
+  </div>
+</section>
+
+<section class="mist" id="regulation">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Regulation</span><span data-l="ja">レギュレーション</span></div>
+    <h2 class="title"><span data-l="en">Same rules. Pure driving.</span><span data-l="ja">同じ条件で、腕を競おう。</span></h2>
+    <p class="lead"><span data-l="en">Even out the cars with limits on power, weight, grip and more.</span><span data-l="ja">出力・車重・グリップなどの条件で、車の性能をそろえます。</span></p>
+    <div class="compare-wrap">
+      <table class="compare fit">
+        <thead><tr><th scope="col"><span data-l="en">Rule</span><span data-l="ja">条件</span></th><th scope="col"><span data-l="en">What it measures</span><span data-l="ja">何を測るか</span></th></tr></thead>
+        <tbody><tr><th scope="row"><span data-l="en">Base traits</span><span data-l="ja">車の素性</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Locks the settings that only make a car faster when changed (size, tyre traits, drag and so on) to the car's stock values.</span><span data-l="ja">変えると車がただ速くなるだけの項目（車の大きさ、タイヤの性質、空気抵抗など）を、車種の決まった値に固定できます。</span></td></tr><tr><th scope="row"><span data-l="en">Max power</span><span data-l="ja">最高出力の上限</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Peak power in PS, including turbo and parts.</span><span data-l="ja">車の最高出力（PS）。ターボやパーツの分も含みます。</span></td></tr><tr><th scope="row"><span data-l="en">Min weight</span><span data-l="ja">車重の下限</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Car weight in kg.</span><span data-l="ja">車重（kg）。</span></td></tr><tr><th scope="row"><span data-l="en">Min power-to-weight</span><span data-l="ja">パワーウエイトレシオの下限</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Weight ÷ power (kg/PS). Lower is quicker.</span><span data-l="ja">車重 ÷ 最高出力（kg/PS）。小さいほど速い車です。</span></td></tr><tr><th scope="row"><span data-l="en">Max grip</span><span data-l="ja">グリップの上限</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Tyre grip, including tyre parts.</span><span data-l="ja">タイヤのグリップ。タイヤのパーツの分も含みます。</span></td></tr><tr><th scope="row"><span data-l="en">Max downforce</span><span data-l="ja">ダウンフォースの上限</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Downforce at 200 km/h, including aero parts.</span><span data-l="ja">200 km/h でのダウンフォース。空力パーツの分も含みます。</span></td></tr><tr><th scope="row"><span data-l="en">Drivetrain</span><span data-l="ja">駆動方式</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Which of FF, FR and 4WD may race.</span><span data-l="ja">FF・FR・4WD のどれで出られるか。</span></td></tr><tr><th scope="row"><span data-l="en">Forced induction</span><span data-l="ja">過給機</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Whether a turbo may be fitted.</span><span data-l="ja">ターボを付けてよいか。</span></td></tr><tr><th scope="row"><span data-l="en">Driving aids</span><span data-l="ja">運転補助</span></th><td data-en="What it measures" data-ja="何を測るか"><span data-l="en">Whether TCS and ABS are allowed.</span><span data-l="ja">TCS と ABS を使ってよいか。</span></td></tr></tbody>
+      </table>
+    </div>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-host.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">Host screen: regulation on the left, entrants with blue OK and red breaches on the right</span><span data-l="ja">主催者画面。左に決まり、右に参加者と判定（適合は青、違反は赤）</span></div></div></div>
+    <div class="packs">
+      <div class="pack static"><small><span data-l="en">Check</span><span data-l="ja">判定</span></small><h3><span data-l="en">Blue OK, red breach</span><span data-l="ja">青が適合、赤が違反</span></h3><p><span data-l="en">Every entrant's car is checked automatically.</span><span data-l="ja">参加者全員の車を自動で判定します。</span></p></div>
+      <div class="pack static"><small><span data-l="en">At the start</span><span data-l="ja">スタート</span></small><h3><span data-l="en">Breach means spectating</span><span data-l="ja">違反なら観戦</span></h3><p><span data-l="en">Cars outside the rules watch instead of racing.</span><span data-l="ja">条件を外れた車は観戦に回ります。</span></p></div>
+      <div class="pack static"><small><span data-l="en">Classes</span><span data-l="ja">クラス</span></small><h3><span data-l="en">Saved on the server</span><span data-l="ja">サーバーに保存</span></h3><p><span data-l="en">Save your favourite rules as named classes for races and time attack.</span><span data-l="ja">よく使う条件をクラスとして保存し、レースにもタイムアタックにも使えます。</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Setup limits</span><span data-l="ja">セッティングの制限</span></div>
+    <h2 class="title"><span data-l="en">G knows the rules.</span><span data-l="ja">G 画面もレギュレーションに従います。</span></h2>
+    <p class="lead"><span data-l="en">In a race or a class, the setup screen only lets you tune within the rules.</span><span data-l="ja">レース中もクラスで走るときも、セッティング画面は条件の範囲内でしか動かせません。</span></p>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-setup.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">Setup screen (G): out-of-range parts hatched in orange, breaching items and tab in red</span><span data-l="ja">セッティング画面（G）。範囲外が橙の斜線、違反の項目とタブが赤</span></div></div></div>
+  </div>
+</section>
+
+<section class="mist" id="hud">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">On track</span><span data-l="ja">走行中</span></div>
+    <h2 class="title"><span data-l="en">Graphics like a real racing game.</span><span data-l="ja">本格的なレーシングゲームのような画面。</span></h2>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-hud.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">Mid-race with other cars: tower top left, clock and CLASS top right, checkpoint delta top centre</span><span data-l="ja">ほかの車もいるレース中。左上に順位の塔、右上に時計と CLASS、上の真ん中にチェックポイントの差</span></div></div></div>
+    <div class="packs">
+      <div class="pack static"><small><span data-l="en">Top left</span><span data-l="ja">左上</span></small><h3><span data-l="en">The tower</span><span data-l="ja">順位表</span></h3><p><span data-l="en">Everyone's position and gap to the leader, live.</span><span data-l="ja">全員の順位とトップとの差をリアルタイムで。</span></p></div>
+      <div class="pack static"><small><span data-l="en">Top right</span><span data-l="ja">右上</span></small><h3><span data-l="en">Your clock</span><span data-l="ja">ラップタイム</span></h3><p><span data-l="en">Lap time and your gap to your best.</span><span data-l="ja">ラップタイムと、自己ベストとの差。</span></p></div>
+      <div class="pack static"><small><span data-l="en">Top centre</span><span data-l="ja">上の真ん中</span></small><h3><span data-l="en">Call-outs</span><span data-l="ja">通知</span></h3><p><span data-l="en">Checkpoint deltas, personal bests and the final lap.</span><span data-l="ja">チェックポイントの差、自己ベスト更新、ファイナルラップ。</span></p></div>
+    </div>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-results.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">Results after the finish (a retired row makes it even better)</span><span data-l="ja">ゴール後のリザルト（リタイアの行があるとなお良い）</span></div></div></div>
+  </div>
+</section>
+
+<section id="timeattack">
+  <div class="wrap">
+    <div class="eyebrow"><span data-l="en">Time attack</span><span data-l="ja">タイムアタック</span></div>
+    <h2 class="title"><span data-l="en">Just drive across the line.</span><span data-l="ja">スタートラインを越えるだけ。</span></h2>
+    <p class="lead"><span data-l="en">Cross a start line and timing begins. Sector times, your gap to your best, and your best lap as a ghost.</span><span data-l="ja">スタートラインを越えれば計測開始。区間タイム、自己ベストとの差、ベストの走りをゴーストで。</span></p>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-ghost.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">Time attack beside the ghost: sector tower top left, CLASS and BEST top right</span><span data-l="ja">ゴーストと並んで走るタイムアタック。左上に区間の塔、右上に CLASS と BEST</span></div></div></div>
+    <dl class="news-list wide">
+      <div><dt><span data-l="en">Run in a class</span><span data-l="ja">クラスで走る</span></dt><dd><span data-l="en">Pick a class with K and set laps against drivers in the same class.</span><span data-l="ja">K でクラスを選べば、同じクラスの車どうしでタイムを競えます。</span></dd></div>
+      <div><dt><span data-l="en">Records and rankings</span><span data-l="ja">記録とランキング</span></dt><dd><span data-l="en">Rankings for each class and for no class on every track, right on the K screen.</span><span data-l="ja">トラックごとに、クラスなしとクラス別のランキングを K の画面で。</span></dd></div>
+    </dl>
+    <div class="media" style="margin-top:32px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px"><div><div style="font:600 15px/1.4 monospace">img/race-timeattack.jpg</div><div style="margin-top:6px;font-size:14px"><span data-l="en">K, Time attack tab: class dropdown on the left, no-class and class rankings on the right (your row highlighted)</span><span data-l="ja">K のタイムアタックのタブ。左にクラスのドロップダウン、右にクラスなしとクラスのランキング（自分の行が光っている）</span></div></div></div>
+  </div>
+</section>
+
+
+<section class="dark cta-band">
+  <div class="wrap">
+    <div>
+      <h2 class="title"><span data-l="en">Looking for people to race?</span><span data-l="ja">一緒に走る仲間を探すなら。</span></h2>
+      <p class="lead"><span data-l="en">Find races and share regulations on Discord.</span><span data-l="ja">Discord でレースの告知やレギュレーションを共有できます。</span></p>
+    </div>
+    <div class="acts"><a class="btn light arrow" href="https://discord.gg/q3YNqaveRd" target="_blank" rel="noopener">Discord</a></div>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <a class="wordmark" href="index.html">KURUMA</a>
+    <div class="cols">
+      <div><h4>KurumaMod</h4><ul><li><a href="index.html"><span data-l="en">Home</span><span data-l="ja">トップ</span></a></li><li><a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a></li><li><a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a></li><li><a href="race.html"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li><li><a href="shaders.html"><span data-l="en">Shaders</span><span data-l="ja">シェーダー</span></a></li></ul></div>
+      <div><h4><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></h4><ul><li><a href="guide.html"><span data-l="en">Overview</span><span data-l="ja">はじめに</span></a></li><li><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a></li><li><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a></li><li><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a></li><li><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a></li><li><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a></li><li><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma" target="_blank" rel="noopener">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma" target="_blank" rel="noopener">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener">Basic Car Pack</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">Example Car Pack</a></li></ul></div>
+      <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/kurumamod" target="_blank" rel="noopener">X @kurumamod</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <p><span data-l="en">KurumaMod is a free Minecraft mod licensed under GPL-3.0-only. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</span><span data-l="ja">KurumaMod は GPL-3.0-only の無料の Minecraft MOD です。Minecraft 公式の製品ではなく、Mojang・Microsoft の承認を受けたものでも、関係するものでもありません。</span></p>
+      <p><span data-l="en">Car names refer to the in-game models. This site is not affiliated with any car manufacturer.</span><span data-l="ja">車名はゲーム内の車種名です。このサイトは自動車メーカーとは関係ありません。</span></p>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

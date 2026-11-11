@@ -56,6 +56,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.core.BlockPos;
@@ -109,6 +110,14 @@ public class CarEntity extends CarEntityBase {
      */
     private static final EntityDataAccessor<Float> DATA_YAW =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
+    /**
+     * 運転席に座っている乗員のエンティティ ID。空いていれば -1。<b>サーバーが決めて配る。</b>
+     *
+     * <p>乗員の並び順で席を決めると、運転者が降りたとたんに助手席の人が先頭へ繰り上がり、
+     * 運転席へ移って運転を始めてしまう。席は乗ったときに決め、降りるまで変えない。</p>
+     */
+    private static final EntityDataAccessor<Integer> DATA_DRIVER =
+            SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.INT);
     /** ピッチ角 [rad]。正で鼻上げ。 */
     private static final EntityDataAccessor<Float> DATA_PITCH =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
@@ -659,6 +668,7 @@ public class CarEntity extends CarEntityBase {
         builder.define(DATA_LIGHTS, (byte) 0);
         builder.define(DATA_BOOST, 0.0F);
         builder.define(DATA_YAW, 0.0F);
+        builder.define(DATA_DRIVER, -1);
     }
 
     /** 停車時のシャシー基準面の地上高 [m]。スポーンさせるときにこの高さぶん持ち上げる。 */
@@ -1327,10 +1337,61 @@ public class CarEntity extends CarEntityBase {
                 blockField.add(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
             }
         }
+        addWorldBorder(area, x, z);
         // 範囲の外は、聞かれたときにワールドを引く（見えない壁の端の角を、壁に沿って探すため）
         outsideShapes.clear();
         blockField.setOutside(new double[]{area.minX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ},
                 this::solidOutside);
+    }
+
+    /**
+     * 車を止めるワールドボーダーの内側 {minX, minZ, maxX, maxZ}。止めないときは null。
+     * {@link #fillBlockField} が 1 ティックに 1 回決める。
+     */
+    @Nullable
+    private double[] border;
+
+    /**
+     * ワールドボーダーを壁として {@link #blockField} に足す。
+     *
+     * <p>{@code getBlockCollisions} はボーダーを返さない（バニラは {@code Entity#collide} で
+     * 別に足している）ので、車の物理はボーダーを素通りしていた。引っかかって見えたのは、
+     * サーバーの {@code handleMoveVehicle} が「ボーダーに食い込んだ」として位置を差し戻していたから。
+     * 速いと 1 ティックで車の箱ごとボーダーの外へ出てしまい、差し戻す判定（ボーダーの内側に
+     * いる箱だけを止める）を抜けて、アクセルを踏み続けると突破できた。物理の側で壁にして止める。</p>
+     *
+     * <p>バニラと同じく、中心がボーダーの内側にある車だけを止める。外にいる車（ボーダーが
+     * 縮んだ・外で出した）を壁の中に閉じ込めないため。</p>
+     */
+    private void addWorldBorder(AABB area, double x, double z) {
+        WorldBorder worldBorder = level().getWorldBorder();
+        border = null;
+        if (!worldBorder.isWithinBounds(x, z)) {
+            return;
+        }
+        double minX = worldBorder.getMinX();
+        double minZ = worldBorder.getMinZ();
+        double maxX = worldBorder.getMaxX();
+        double maxZ = worldBorder.getMaxZ();
+        border = new double[]{minX, minZ, maxX, maxZ};
+        // 壁は集める範囲に収まるぶんだけ（ボーダーは無限に高く長い）
+        if (area.minX < minX) {
+            blockField.add(area.minX, area.minY, area.minZ, minX, area.maxY, area.maxZ);
+        }
+        if (area.maxX > maxX) {
+            blockField.add(maxX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ);
+        }
+        if (area.minZ < minZ) {
+            blockField.add(area.minX, area.minY, area.minZ, area.maxX, area.maxY, minZ);
+        }
+        if (area.maxZ > maxZ) {
+            blockField.add(area.minX, area.minY, maxZ, area.maxX, area.maxY, area.maxZ);
+        }
+    }
+
+    /** 点が車を止めるワールドボーダーの外か。範囲の外を聞かれたときも、壁が途切れないように答える。 */
+    private boolean outsideBorder(double x, double z) {
+        return border != null && (x < border[0] || z < border[1] || x > border[2] || z > border[3]);
     }
 
     /** {@link #blockField} の範囲の外を引いたブロックの形。1 ティックの間だけ覚えておく。 */
@@ -1338,6 +1399,9 @@ public class CarEntity extends CarEntityBase {
 
     /** 点がブロックの当たり判定の中か。{@link #blockField} の範囲の外を聞かれたときに使う。 */
     private boolean solidOutside(double x, double y, double z) {
+        if (outsideBorder(x, z)) {
+            return true;
+        }
         BlockPos pos = BlockPos.containing(x, y, z);
         VoxelShape shape = outsideShapes.computeIfAbsent(pos.asLong(),
                 key -> level().getBlockState(pos).getCollisionShape(level(), pos));
@@ -2837,19 +2901,46 @@ public class CarEntity extends CarEntityBase {
     @Nullable
     @Override
     public LivingEntity getControllingPassenger() {
-        return getFirstPassenger() instanceof LivingEntity living ? living : null;
+        int driver = entityData.get(DATA_DRIVER);
+        if (driver < 0) {
+            return null;
+        }
+        for (Entity passenger : getPassengers()) {
+            if (passenger.getId() == driver) {
+                return passenger instanceof LivingEntity living ? living : null;
+            }
+        }
+        return null;
     }
 
     /**
      * 運転席と助手席の 2 人まで。
      *
-     * <p><b>先に乗った方が運転する。</b> 運転者かどうかの判定はすべて
-     * {@link #getControllingPassenger()}（＝先頭の乗員）を通っているので、
+     * <p><b>運転席が空いていれば運転席、埋まっていれば助手席に乗る。</b> 席は降りるまで変わらない
+     * （{@link #DATA_DRIVER}）。運転者かどうかの判定はすべて {@link #getControllingPassenger()} を通っているので、
      * 助手席の人は入力も送らないし、パケットも受け付けられないし、レースの計測にも乗らない。</p>
      */
     @Override
     protected boolean canAddPassenger(Entity passenger) {
         return getPassengers().size() < 2;
+    }
+
+    @Override
+    protected void addPassenger(Entity passenger) {
+        super.addPassenger(passenger);
+        // 運転席が空いていれば、乗った人が運転席へ。埋まっていれば助手席のまま
+        if (!level().isClientSide && getControllingPassenger() == null && passenger instanceof LivingEntity) {
+            entityData.set(DATA_DRIVER, passenger.getId());
+        }
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        // 運転者が降りたら運転席は空ける。<b>助手席の人を繰り上げない</b>（運転したければ乗り直す）
+        if (!level().isClientSide && passenger.getId() == entityData.get(DATA_DRIVER)) {
+            entityData.set(DATA_DRIVER, -1);
+        }
     }
 
     @Override
@@ -2939,7 +3030,7 @@ public class CarEntity extends CarEntityBase {
      * 各クライアントが自分で計算する</b>ので、サーバー側の値はどこにも見えない。</p>
      */
     private Vec3 seatOffset(Entity passenger) {
-        boolean passengerSeat = getPassengers().indexOf(passenger) == 1;
+        boolean passengerSeat = passenger.getId() != entityData.get(DATA_DRIVER);
         Vec3 seat = null;
         if (level().isClientSide) {
             // クライアントの側でしか通らない（isClientSide）ので、クライアント専用のクラスを直接呼んでよい
@@ -3009,7 +3100,9 @@ public class CarEntity extends CarEntityBase {
      *
      * <p>素の殴りは何も残さずに消す。設定を残したいときはシフトを押しながら殴る。</p>
      *
-     * <p>乗っている人がいる車はどちらもさせない。座っている人ごと消えることになるため。</p>
+     * <p>運転席に人がいる車はどちらもさせない。走っている車を外から消せてしまうため。
+     * <b>助手席にだけ人がいる車は壊せる</b>（同乗者は降ろされる）。残った同乗者が車を守ってしまわないように。
+     * 乗っている本人は自分の車を壊せない。</p>
      */
     @Override
     public boolean hurt(DamageSource source, float amount) {
@@ -3019,7 +3112,8 @@ public class CarEntity extends CarEntityBase {
         if (level().isClientSide || isRemoved()) {
             return true;
         }
-        if (!(source.getEntity() instanceof Player player) || !getPassengers().isEmpty()) {
+        if (!(source.getEntity() instanceof Player player)
+                || getControllingPassenger() != null || player.getVehicle() == this) {
             return false;
         }
         if (!player.isShiftKeyDown()) {

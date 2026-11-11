@@ -23,6 +23,8 @@ ICON_MR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.252.004a11.7
 CF_BASIC = "https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack"
 MR_BASIC = "https://modrinth.com/mod/kurumabasiccarpack"
 CF_EXAMPLE = "https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack"
+# コミュニティのカーパック（トップの「車を追加する」に載せる）
+CF_DREAM_DRIFT = "https://www.curseforge.com/minecraft/mc-mods/dream-drift-pack"
 GUIDE = "guide.html"
 DISCORD = "https://discord.gg/q3YNqaveRd"
 X = "https://x.com/kurumamod"
@@ -40,6 +42,24 @@ def T(en, ja=None):
 
 def ALT(en, ja):
     return f'alt="{en}" data-alt-ja="{ja}"'
+
+
+def SHOT(name, alt, note, top=32):
+    """スクリーンショットを差し込む。img/<name>.jpg があれば出し、<name>-ja.jpg もあれば言語で切り替える。
+    <b>まだ無ければプレースホルダー</b>（点線の枠に、置くファイル名と写すもの）。撮って置けば、作り直すだけで入れ替わる。"""
+    style = f'margin-top:{top}px'
+    en = HERE / "img" / f"{name}.jpg"
+    ja = HERE / "img" / f"{name}-ja.jpg"
+    if en.exists():
+        if ja.exists():
+            body = T(f'<img src="img/{name}.jpg" alt="{alt[0]}">', f'<img src="img/{name}-ja.jpg" alt="{alt[1]}">')
+        else:
+            body = f'<img src="img/{name}.jpg" {ALT(*alt)}>'
+        return f'<div class="media" style="{style}">{body}</div>'
+    return (f'<div class="media" style="{style};aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;'
+            f'border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px">'
+            f'<div><div style="font:600 15px/1.4 monospace">img/{name}.jpg</div>'
+            f'<div style="margin-top:6px;font-size:14px">{T(*note)}</div></div></div>')
 
 
 HEAD = """<!doctype html>
@@ -78,7 +98,7 @@ HEADER = f"""<header class="bar">
         <a href="index.html">{T("Home", "トップ")}</a>
         <a href="start.html">{T("Get started", "はじめかた")}</a>
         <a href="features.html">{T("Features", "特徴")}</a>
-        <a href="compare.html">{T("Compare", "比較")}</a>
+        <a href="race.html">{T("Racing", "レース")}</a>
         <a href="shaders.html">{T("Shaders", "シェーダー")}</a>
         <a href="guide.html">{T("Car Pack Guide", "作成ガイド")}</a>
       </div>
@@ -99,9 +119,9 @@ FOOTER = f"""<footer>
   <div class="wrap">
     <a class="wordmark" href="index.html">KURUMA</a>
     <div class="cols">
-      <div><h4>{T("Cars", "車種")}</h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html">{T("Compare cars", "車種を比較")}</a></li></ul></div>
-      <div><h4>{T("Features", "特徴")}</h4><ul><li><a href="features.html#physics">{T("Physics", "物理演算")}</a></li><li><a href="features.html#setup">{T("Setup", "セッティング")}</a></li><li><a href="features.html#lighting">{T("Headlights", "ヘッドライト")}</a></li><li><a href="features.html#racing">{T("Racing", "レース")}</a></li></ul></div>
-      <div><h4>{T("Download", "ダウンロード")}</h4><ul><li><a href="{CF}">CurseForge</a></li><li><a href="{MR}">Modrinth</a></li><li><a href="{CF_BASIC}">Basic Car Pack</a></li><li><a href="{GUIDE}">{T("Car pack guide", "カーパック作成ガイド")}</a></li></ul></div>
+      <div><h4>KurumaMod</h4><ul><li><a href="index.html">{T("Home", "トップ")}</a></li><li><a href="start.html">{T("Get started", "はじめかた")}</a></li><li><a href="features.html">{T("Features", "特徴")}</a></li><li><a href="race.html">{T("Racing", "レース")}</a></li><li><a href="shaders.html">{T("Shaders", "シェーダー")}</a></li></ul></div>
+      <div><h4>{T("Car Pack Guide", "作成ガイド")}</h4><ul><li><a href="guide.html">{T("Overview", "はじめに")}</a></li><li><a href="guide-prep.html">{T("Setup", "準備")}</a></li><li><a href="guide-car.html">{T("Car", "車")}</a></li><li><a href="guide-parts.html">{T("Parts", "パーツ")}</a></li><li><a href="guide-wheel.html">{T("Wheel", "ホイール")}</a></li><li><a href="guide-tire.html">{T("Tyre", "タイヤ")}</a></li><li><a href="guide-ship.html">{T("Shipping", "配布")}</a></li></ul></div>
+      <div><h4>{T("Download", "ダウンロード")}</h4><ul><li><a href="{CF}">CurseForge</a></li><li><a href="{MR}">Modrinth</a></li><li><a href="{CF_BASIC}">Basic Car Pack</a></li><li><a href="{CF_EXAMPLE}">Example Car Pack</a></li></ul></div>
       <div><h4>{T("Community", "コミュニティ")}</h4><ul><li><a href="{DISCORD}">Discord</a></li><li><a href="{X}">X @kurumamod</a></li></ul></div>
     </div>
     <div class="legal">
@@ -138,7 +158,7 @@ if (location.hostname === '{GA_HOST}') {{
 </script>"""
 
 # トップページの紹介動画
-YOUTUBE_ID = "3Hfrvz-qgxc"
+YOUTUBE_ID = "JU7b6dO_U5s"
 
 
 def youtube(video_id):
@@ -344,179 +364,8 @@ MODELS = {
     ),
 }
 
-MEASURED = ("Measured with KurumaMod's own physics on flat tarmac, default setup, no parts, full throttle. Max power is calculated from the torque curve. Sizes are in Minecraft blocks (1 block = 1 m), about 1.2× a real car.",
-            "性能は KurumaMod の物理演算で、平坦な舗装路・初期セッティング・パーツ無し・全開で測った値です。最高出力はトルク曲線から計算しています。寸法は 1 ブロック = 1m で、実車の約 1.2 倍の大きさです。")
-
-
-# ---------- 車種ページ ----------
-def model_page(key):
-    m = MODELS[key]
-    if m.get("hero"):
-        hero_visual = f'<img src="img/{m["hero"]}" {ALT(*m["hero_alt"])}>'
-    else:
-        hero_visual = f'<div class="plate"><span>{m["plate"]}</span></div>'
-    if m.get("chassis_img"):
-        chassis_media = f'<div class="media"><img src="img/{m["chassis_img"]}" {ALT(*m["chassis_alt"])}></div>'
-    elif m.get("chassis_plate"):
-        chassis_media = f'<div class="media"><div class="plate"><span>{m["chassis_plate"]}</span></div></div>'
-    else:
-        chassis_media = f'<div class="media">{visual(m)}</div>'
-    parts = ""
-    for c, n, d, vl, v in m["parts"]:
-        val = f"<b>{v}</b>" if v else ""
-        parts += (f'<div class="part"><small>{T(*c)}</small><h3>{T(*n)}</h3><p>{T(*d)}</p>'
-                  f'<div class="val">{T(*vl)}{val}</div></div>')
-    parts_media = ""
-    if m.get("parts_img"):
-        parts_media = f'<div class="media" style="margin-top:40px;aspect-ratio:21/9"><img src="img/{m["parts_img"]}" {ALT(*m["parts_alt"])}></div>'
-    specs = ""
-    for cap, rows in m["specs"]:
-        specs += f'<table class="specs"><caption>{T(*cap)}</caption>'
-        specs += "".join(f"<tr><th>{T(*k)}</th><td>{v}</td></tr>" for k, v in rows) + "</table>"
-    others = ""
-    for k, o in MODELS.items():
-        if k == key:
-            continue
-        others += (f'<a class="other" href="{o["file"]}">{visual(o)}<div class="in"><div><small>{T(*o["kind"])}</small>'
-                   f'<h3>{o["name"]}</h3></div><span class="btn light arrow" style="min-height:44px">{T("Explore", "詳しく見る")}</span></div></a>')
-    facts = "".join(f"<div><dt>{T(*k)}</dt><dd>{v}</dd></div>" for k, v in m["facts"])
-    rear = 100 - m["front"]
-    front = m["front"]
-    if m["pack"] == "core":
-        get = T("Comes with KurumaMod. Install it and the car is in the creative tab.", "KurumaMod に入っています。入れればクリエイティブタブに並びます。")
-    else:
-        get = T("Install KurumaMod and the Basic Car Pack. Both are free, and the pack is a single jar.", "KurumaMod と Basic Car Pack を入れるだけ。どちらも無料で、カーパックは jar 1 つです。")
-    name = m["name"]
-    if m.get("photo"):
-        overview_media = f'<img src="img/{m["photo"]}" {ALT(*m["photo_alt"])}>'
-    else:
-        overview_media = visual(m)
-
-    body = f"""
-<section class="hero page" style="padding:0">
-  {hero_visual}
-  <div class="copy">
-    <div class="wrap">
-      <div class="crumb"><a href="index.html#cars">{T("Cars", "車種")}</a> / {T(*m["maker"])}</div>
-      <h1>{name}</h1>
-      <p>{T(*m["catch"])}</p>
-      <div class="cta">{dl_buttons(m, light=True)}</div>
-    </div>
-  </div>
-</section>
-
-<div class="subnav">
-  <div class="wrap">
-    <span class="name">{name}</span>
-    <nav aria-label="On this page">
-      <a href="#overview">{T("Overview", "概要")}</a>
-      <a href="#performance">{T("Performance", "パフォーマンス")}</a>
-      <a href="#engine">{T("Engine", "エンジン")}</a>
-      <a href="#chassis">{T("Chassis", "シャシー")}</a>
-      <a href="#parts">{T("Parts", "パーツ")}</a>
-      <a href="#specs">{T("Specs", "主要諸元")}</a>
-    </nav>
-    <a class="btn" href="#get">{T("Get it", "入手する")}</a>
-  </div>
-</div>
-
-<section id="overview">
-  <div class="wrap">
-    {figs(m["figs"], light=True)}
-    <div class="split" style="margin-top:clamp(56px,8vw,112px)">
-      <div>
-        <div class="eyebrow">{T(*m["kind"])} · {T(*m["source"])}</div>
-        <h2 class="title">{T(*m["catch"])}</h2>
-        <p>{T(*m["intro"])}</p>
-      </div>
-      <div class="media">{overview_media}</div>
-    </div>
-  </div>
-</section>
-
-<section class="dark" id="performance">
-  <div class="wrap">
-    <div class="eyebrow">{T("Performance", "パフォーマンス")}</div>
-    <h2 class="title">{T("We didn't copy these numbers. We drove them.", "数字は、走らせて測りました。")}</h2>
-    <p class="lead">{T("Every figure below comes from running KurumaMod's own physics: flat tarmac, default setup, full throttle.", "下の数字はすべて、KurumaMod の物理演算で平坦な舗装路を初期セッティングのまま全開で走らせた結果です。")}</p>
-    {figs(m["perf"])}
-  </div>
-</section>
-
-<section class="mist" id="engine">
-  <div class="wrap">
-    <div class="split rev">
-      <div>
-        <div class="eyebrow">{T("Engine", "エンジン")}</div>
-        <h2 class="title">{m["tq"]} N·m / {m["rt"]:,} rpm</h2>
-        <p>{T(*m["engine"])}</p>
-      </div>
-      <div class="chart" data-tq="{m["tq"]}" data-rt="{m["rt"]}" data-rp="{m["rp"]}" data-red="{m["red"]}">
-        <div class="legend"><span><i></i>{T("Torque (N·m)", "トルク（N·m）")}</span><span><i class="pw"></i>{T("Power (PS)", "出力（PS）")}</span></div>
-        <svg viewBox="0 0 720 380" role="img" aria-label="{name} torque and power curves"></svg>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="dark" id="chassis">
-  <div class="wrap">
-    <div class="split">
-      <div>
-        <div class="eyebrow">{T("Chassis", "シャシー")}</div>
-        <h2 class="title">{T(f"Front {front} : Rear {rear}", f"前 {front} ： 後 {rear}")}</h2>
-        <p>{T(*m["chassis"])}</p>
-        <div class="wd">
-          <div class="wdbar"><div class="f" style="width:{front}%">{front}%</div><div class="r">{rear}%</div></div>
-          <div class="cap"><span>{T("Front axle", "前軸")}</span><span>{T(*m["layout"])}</span><span>{T("Rear axle", "後軸")}</span></div>
-        </div>
-        <dl class="facts">{facts}</dl>
-      </div>
-      {chassis_media}
-    </div>
-  </div>
-</section>
-
-<section class="mist" id="parts">
-  <div class="wrap">
-    <div class="eyebrow">{T("Parts", "パーツ")}</div>
-    <h2 class="title">{T("Swap parts and see them on your car.", "換装画面で、付けたまま見比べる。")}</h2>
-    <p class="lead">{T("Parts change while you sit in the car. Turbos, tyres and aero change how it drives; mufflers and blow-off valves only change the sound.", "パーツは車に乗ったまま付け替えられます。走りが変わるのはタービン・タイヤ・エアロで、マフラーとブローオフは音だけが変わります。")}</p>
-    {parts_media}
-    <div class="parts">{parts}</div>
-  </div>
-</section>
-
-<section id="specs">
-  <div class="wrap">
-    <h2 class="title">{T("Specifications", "主要諸元")}</h2>
-    <div class="specs-grid">{specs}</div>
-    <p class="note">{T(*MEASURED)} {T("Change the setup with G and these values change too.", "G キーのセッティングで変えると、これらの値も変わります。")}</p>
-  </div>
-</section>
-
-<section class="mist cta-band" id="get">
-  <div class="wrap">
-    <div>
-      <h2 class="title">{T(f"Drive the {name}", f"{name} に乗る")}</h2>
-      <p class="lead">{get}</p>
-    </div>
-    <div class="acts">{dl_buttons(m)}</div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2 class="title">{T("More cars", "他の車種")}</h2>
-    <div class="others">{others}</div>
-  </div>
-</section>
-"""
-    page(m["file"], f"{name} | KurumaMod", f"{name} | KurumaMod", body, desc=m["catch"][0], image="img/" + m["img"])
-
-
-for k in MODELS:
-    model_page(k)
+MEASURED = ("Figures are calculated with KurumaMod's own physics.",
+            "性能は KurumaMod の物理演算で計算しています。")
 
 
 # ---------- トップ ----------
@@ -530,10 +379,6 @@ def model_card(m):
           <h3 class="latin">{m["name"]}</h3>
           <dl>{dl}</dl>
           <div class="price">{T(*m["source"])}</div>
-          <div class="acts">
-            <a class="btn" href="{m["file"]}">{T("Explore", "詳しく見る")}</a>
-            <a class="btn outline" href="compare.html">{T("Compare", "比較する")}</a>
-          </div>
         </div>
       </article>"""
 
@@ -608,7 +453,8 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
 
 <section class="mist" id="features">
   <div class="wrap">
-    <h2 class="title">{T("More than a car-shaped block", "車の形をしたブロックではありません")}</h2>
+    <h2 class="title">{T("More than just looks.", "見た目だけの車じゃない。")}</h2>
+    <p class="lead">{T("Get in and feel how it moves for yourself.", "車の動きを、実際に乗って体感してください。")}</p>
     <div class="tiles">
       {tile("wide", "physics", "hud.jpg", ("Silvia S15 with gauges on screen", "回転計と速度計を表示して走る S15"), ("Physics", "物理演算"), T("You feel the limit before you reach it.", "限界の手前が、手に伝わる。"), ("Steering follows the slide, so there's always enough opposite lock to catch it.", "ハンドルは滑りに合わせて切れるので、流れた分だけカウンターを当てられます。"))}
       {tile("two", "lighting", "eyecatch.jpg", ("Headlights on a night track", "夜のサーキットをヘッドライトで照らして走る"), ("Lighting", "ライティング"), key_l + T("Headlights that really light the road", "路面を本当に照らすヘッドライト"), ("A proper low beam, shadows from trees and walls, beams in fog and rain. Works with shader packs.", "カットオフの付いたロービーム、木や壁の影、霧や雨の中の光の筋。シェーダーパックにも対応。"))}
@@ -624,6 +470,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <h2 class="title">{T("Cars included", "収録車種")}</h2>
     <p class="lead">{T("The S15 comes with KurumaMod; the 911 and the Prado come with the free Basic Car Pack. All three run on the same physics, so weight, balance and drivetrain are what make them drive differently.", "S15 は KurumaMod に、911 とプラドは無料の Basic Car Pack に入っています。3 台とも同じ物理で走るので、重さ、重心の位置、駆動方式の違いが、そのまま走りの違いになります。")}</p>
     <div class="models">{cards}</div>
+    <p class="note">{T(*MEASURED)}</p>
   </div>
 </section>
 
@@ -636,7 +483,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
       <li><h3>{T("Put it in mods/", "mods に入れる")}</h3><p>{T("Add the Basic Car Pack too if you want the 911 and the Prado.", "911 とプラドに乗るなら、Basic Car Pack も一緒に。")}</p></li>
       <li><h3>{T("Place a car and get in", "車を置いて、乗る")}</h3><p>{T("Take a car from the KurumaMod creative tab, right-click the ground to place it, then right-click the car.", "クリエイティブの KurumaMod タブから車を取り、地面を右クリックで置いて、車を右クリックで乗ります。")}</p></li>
     </ol>
-    <div class="cta-row"><a class="btn arrow" href="start.html">{T("Controls and FAQ", "操作とよくある質問")}</a></div>
+    <div class="cta-row"><a class="btn arrow" href="start.html#download">{T("Download", "ダウンロード")}</a></div>
   </div>
 </section>
 
@@ -644,8 +491,9 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
   <div class="wrap">
     <h2 class="title">{T("Add more cars", "車を追加する")}</h2>
     <p class="lead">{T("A car pack is a single jar. Put it in mods/ and the cars are there.", "カーパックは jar ひとつ。mods に入れるだけで車が増えます。")}</p>
-    <div class="packs">
+    <div class="packs four">
       <a class="pack" href="{CF_BASIC}"><small>{T("Official", "公式")}</small><h3>Basic Car Pack</h3><p>{T("Adds the Porsche 911 and the Toyota Land Cruiser Prado.", "ポルシェ 911 とトヨタ ランドクルーザー プラドを追加します。")}</p><span class="go">CurseForge</span></a>
+      <a class="pack" href="start.html#carpacks"><small>{T("Community", "コミュニティ")}</small><h3>{T("Community car packs", "コミュニティのカーパック")}</h3><p>{T("Car packs made by players.", "プレイヤーが作ったカーパック。")}</p><span class="go">{T("See car packs", "カーパックを見る")}</span></a>
       <a class="pack" href="{GUIDE}"><small>{T("Create", "作る")}</small><h3>{T("Car pack guide", "カーパック作成ガイド")}</h3><p>{T("Build your own car in Blender. No coding, and no Blender experience needed.", "Blender で自分の車を作る。コードは不要、Blender 未経験でも大丈夫。")}</p><span class="go">{T("Read the guide", "ガイドを読む")}</span></a>
       <a class="pack" href="{CF_EXAMPLE}"><small>{T("Template", "ひな型")}</small><h3>Example Car Pack</h3><p>{T("A sample car and wheels to copy as your starting point. No credit required.", "土台にできるサンプルの車とホイール。クレジット表記も不要です。")}</p><span class="go">CurseForge</span></a>
     </div>
@@ -708,6 +556,7 @@ KEYS = [
     ("PgUp / PgDn", ("Camera distance", "カメラの距離")),
     ("L", ("Headlights", "ヘッドライト")),
     ("Ctrl+L", ("Headlight settings", "ヘッドライトの調整")),
+    ("K", ("Race: join, host, race info", "レース（参加・主催・レースの画面）")),
     ("J", ("Controller setup", "コントローラ設定")),
 ]
 
@@ -804,8 +653,8 @@ page("features.html", "Features | KurumaMod", "特徴 | KurumaMod", f"""
          ("Set camber, offset and wheel width until it sits just right: flush, poke, or full oni-kyan. Bolt on bumpers, side skirts, fenders, a rear wing and a diffuser. Wings and diffusers make real downforce. Mufflers change the exhaust note, and everyone nearby hears it. Gauges come in 90s JDM factory or modern style.",
           "キャンバー・オフセット・ホイールの太さで、好きな姿に。ツライチも、ハミタイも、鬼キャンも。バンパー、サイドスカート、フェンダー、リアウイング、ディフューザーも付けられ、ウイングとディフューザーは本当にダウンフォースを生みます。マフラーで排気音が変わり、周りの人にも同じ音で聞こえます。メーターは 90 年代の国産純正風とモダンの 2 種類。"))}
 {feature("racing", "", True, "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends.", "友だちとレースを。"),
-         ("Place a start line and checkpoints anywhere in your world and hold a proper race: start lights, live standings, and your gap to your best lap at every checkpoint. Multiplayer, timed to the millisecond. Cars can collide with each other, and servers can turn that off.",
-          "ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的なレースを開けます。スタートシグナル、リアルタイムの順位、チェックポイントごとのベストラップとの差。マルチプレイ対応、計測はミリ秒単位。車同士の接触もあります（サーバー側で切れます）。"))}
+         ("Place a start line and checkpoints anywhere in your world and hold a proper race. Host and join with one key, set a regulation for power, weight and grip, and race with start lights, a live tower and your gap to your best lap at every checkpoint. Multiplayer, timed to the millisecond. <a href='race.html'>More about racing</a>",
+          "ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的なレースを開けます。主催も参加もキー 1 つ。出力・車重・グリップなどのレギュレーションを決めて、スタートシグナル、リアルタイムの順位、チェックポイントごとのベストラップとの差。マルチプレイ対応、計測はミリ秒単位。<a href='race.html'>レースについて詳しく</a>"))}
 {feature("offroad", "mist", False, "offroad.jpg", ("Land Cruiser Prado climbing a rocky trail", "山道の段差を登るランドクルーザー プラド"), ("Off-road", "オフロード"), T("Head for the hills.", "土煙を上げて、山へ。"),
          ("Load the Off-road preset for four-wheel drive, a locking diff, long suspension travel and big tyres. Climb one-block ledges, let the diff pull you out of a ditch with a wheel in the air, and head into the hills with dust trailing behind you.",
           "オフロードプリセットを読み込めば、四駆・ロックするデフ・長いストローク・大径タイヤの仕様に。1 ブロックの段差をよじ登り、片輪が浮いた溝もデフの力で抜け出して、土煙を上げながら山へ。"))}
@@ -817,98 +666,6 @@ page("features.html", "Features | KurumaMod", "特徴 | KurumaMod", f"""
     <p class="lead">{T("Throttle, brake, steering and handbrake are all fully analog. Plug in a controller, press J, and move the axis you want to assign. Every key can be changed in Options → Controls.",
                        "アクセル・ブレーキ・ステアリング・サイドブレーキはすべてアナログ対応。つないで J を押し、割り当てたい軸を動かすだけ。キーはすべて「設定 → 操作設定」で変更できます。")}</p>
     <div class="keys">{keys_html()}</div>
-  </div>
-</section>
-""")
-
-
-# ---------- 比較 ----------
-ROWS = [
-    (("Performance", "性能"), None),
-    (("0-100 km/h", "0-100 km/h"), ("5.01 s", "5.25 s", "9.89 s"), "min"),
-    (("0-400 m", "0-400 m"), ("13.15 s", "13.27 s", "17.07 s"), "min"),
-    (("Top speed", "最高速度"), ("255 km/h", "276 km/h", "147 km/h"), "max"),
-    (("Power-to-weight", "パワーウエイトレシオ"), ("4.27 kg/PS", "4.33 kg/PS", "10.5 kg/PS"), "min"),
-    (("Engine", "エンジン"), None),
-    (("Max power", "最高出力"), ("281 PS / 6,680 rpm", "335 PS / 6,500 rpm", "200 PS / 3,630 rpm"), "max"),
-    (("Max torque", "最大トルク"), ("350 N·m / 4,200 rpm", "420 N·m / 4,400 rpm", "453 N·m / 2,400 rpm"), None),
-    (("Rev limit", "レブリミット"), ("7,000 rpm", "7,400 rpm", "4,600 rpm"), None),
-    (("Idle", "アイドル回転数"), ("800 rpm", "800 rpm", "800 rpm"), None),
-    (("Drivetrain", "駆動系"), None),
-    (("Layout", "駆動方式"), (T("AWD", "4WD"), T("RWD, rear engine", "RR"), T("AWD", "4WD")), None),
-    (("Gearbox", "変速機"), (T("5-speed AT / MT", "5 速 AT／MT"),) * 3, None),
-    (("Final drive", "最終減速比"), ("4.37", "4.92", "5.03"), None),
-    (("Body and chassis", "ボディ・足まわり"), None),
-    (("Weight", "車両重量"), ("1,200 kg", "1,450 kg", "2,100 kg"), None),
-    (("Weight distribution F : R", "前後重量配分"), ("56 : 44", "40 : 60", "54 : 46"), None),
-    (("Wheelbase", "ホイールベース"), ("3.15 m", "3.13 m", "3.00 m"), None),
-    (("Track", "トレッド"), ("1.90 m", "2.00 m", "1.90 m"), None),
-    (("Suspension F / R", "サス形式 前／後"), (T("Independent / independent", "独立／独立"), T("Independent / independent", "独立／独立"), T("Independent / solid axle", "独立／リジッド")), None),
-    (("Suspension travel", "サスペンションストローク"), ("30 cm", "30 cm", "60 cm"), None),
-    (("Tyre diameter", "タイヤ外径"), ("80 cm", "90 cm", "92 cm"), None),
-    (("Max steering angle", "最大切れ角"), ("35°", "35°", "32°"), None),
-    (("Drag area (CdA)", "空気抵抗（CdA）"), ("0.78 m²", "0.72 m²", "2.74 m²"), "min"),
-    (("Get it", "入手"), None),
-    (("Included in", "収録"), ("KurumaMod", "Basic Car Pack", "Basic Car Pack"), None),
-]
-
-
-def num(s):
-    return float(re.match(r"[\d,.]+", s).group().replace(",", ""))
-
-
-rows_html = ""
-for row in ROWS:
-    label, vals = row[0], row[1]
-    if vals is None:
-        rows_html += f'<tr class="sec"><th colspan="4">{T(*label)}</th></tr>'
-        continue
-    best = row[2]
-    pick = None
-    if best:
-        ns = [num(v) for v in vals]
-        pick = ns.index(min(ns) if best == "min" else max(ns))
-    badge = '<span class="best">BEST</span>'
-    cells = "".join(f"<td>{v}{badge if i == pick else ''}</td>" for i, v in enumerate(vals))
-    tr = '<tr class="same">' if len(set(vals)) == 1 else "<tr>"
-    rows_html += f"{tr}<th>{T(*label)}</th>{cells}</tr>"
-
-heads = "".join(f'<th scope="col"><a href="{m["file"]}"><span class="thumb">{visual(m)}</span>{m["name"]}</a></th>' for m in MODELS.values())
-
-page("compare.html", "Compare cars | KurumaMod", "車種を比較 | KurumaMod", f"""
-<section class="hero page" style="padding:0">
-  <img src="img/race.jpg" {ALT("Start lights on a race track", "スタートシグナルの点いたコース")}>
-  <div class="copy">
-    <div class="wrap">
-      <div class="crumb"><a href="index.html">KurumaMod</a> / {T("Compare", "比較")}</div>
-      <h1>Compare</h1>
-      <p>{T("Three cars, one set of physics, measured the same way.", "同じ物理で走る 3 台を、同じ条件で測りました。")}</p>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2 class="title">{T("Compare cars", "車種を比較")}</h2>
-    <p class="lead">{T("BEST marks the strongest of the three.", "BEST は 3 台の中でいちばん良い値です。")}</p>
-    <label class="toggle" for="show-same"><input type="checkbox" id="show-same"> {T("Show rows that are the same for all three", "3 台とも同じ項目も表示する")}</label>
-    <div class="compare-wrap">
-      <table class="compare cars">
-        <thead><tr><th scope="col"></th>{heads}</tr></thead>
-        <tbody>{rows_html}</tbody>
-      </table>
-    </div>
-    <p class="note">{T(*MEASURED)}</p>
-  </div>
-</section>
-
-<section class="mist cta-band">
-  <div class="wrap">
-    <div>
-      <h2 class="title">{T("Can't decide? Drive all three.", "迷ったら、全部乗る。")}</h2>
-      <p class="lead">{T("KurumaMod and the Basic Car Pack are both free.", "KurumaMod も Basic Car Pack も無料です。")}</p>
-    </div>
-    <div class="acts"><a class="btn arrow" href="start.html#download">{T("Download", "ダウンロード")}</a></div>
   </div>
 </section>
 """)
@@ -987,6 +744,146 @@ page("shaders.html", "Shader packs | KurumaMod", "シェーダーパック | Kur
 </section>
 """, desc="KurumaMod is built for shader packs: cars stay smooth, and light, shadows and smoke blend into the pack.")
 
+RACE_RULES = [
+    (("Base traits", "車の素性"),
+     ("Locks the settings that only make a car faster when changed (size, tyre traits, drag and so on) to the car's stock values.",
+      "変えると車がただ速くなるだけの項目（車の大きさ、タイヤの性質、空気抵抗など）を、車種の決まった値に固定できます。")),
+    (("Max power", "最高出力の上限"),
+     ("Peak power in PS, including turbo and parts.",
+      "車の最高出力（PS）。ターボやパーツの分も含みます。")),
+    (("Min weight", "車重の下限"),
+     ("Car weight in kg.", "車重（kg）。")),
+    (("Min power-to-weight", "パワーウエイトレシオの下限"),
+     ("Weight ÷ power (kg/PS). Lower is quicker.",
+      "車重 ÷ 最高出力（kg/PS）。小さいほど速い車です。")),
+    (("Max grip", "グリップの上限"),
+     ("Tyre grip, including tyre parts.", "タイヤのグリップ。タイヤのパーツの分も含みます。")),
+    (("Max downforce", "ダウンフォースの上限"),
+     ("Downforce at 200 km/h, including aero parts.",
+      "200 km/h でのダウンフォース。空力パーツの分も含みます。")),
+    (("Drivetrain", "駆動方式"), ("Which of FF, FR and 4WD may race.", "FF・FR・4WD のどれで出られるか。")),
+    (("Forced induction", "過給機"), ("Whether a turbo may be fitted.", "ターボを付けてよいか。")),
+    (("Driving aids", "運転補助"), ("Whether TCS and ABS are allowed.", "TCS と ABS を使ってよいか。")),
+]
+race_rules = "".join(f"<tr><th scope=\"row\">{T(*n)}</th><td>{T(*d)}</td></tr>" for n, d in RACE_RULES)
+
+page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
+<section class="hero page" style="padding:0">
+  <img src="img/race.jpg" {ALT("Start lights on a race track", "スタートシグナルの点いたコース")}>
+  <div class="copy">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">KurumaMod</a> / {T("Racing", "レース")}</div>
+      <h1>Racing</h1>
+      <p>{T("Host and join with one key. Set a regulation, line up, and go.", "主催も参加も、キー 1 つで。レギュレーションを決めて、並んで、スタート。")}</p>
+    </div>
+  </div>
+</section>
+
+<div class="subnav">
+  <div class="wrap">
+    <span class="name">Racing</span>
+    <nav aria-label="On this page">
+      <a href="#flow">{T("How it works", "レースの流れ")}</a>
+      <a href="#regulation">{T("Regulation", "レギュレーション")}</a>
+      <a href="#setup">{T("Setup limits", "セッティングの制限")}</a>
+      <a href="#hud">{T("On track", "走行中")}</a>
+      <a href="#timeattack">{T("Time attack", "タイムアタック")}</a>
+    </nav>
+    <a class="btn" href="start.html#download">{T("Download", "ダウンロード")}</a>
+  </div>
+</div>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="eyebrow">{T("How it works", "レースの流れ")}</div>
+    <h2 class="title">{T("Set up a course and hold a race.", "コースを設定して、レースを開催しよう。")}</h2>
+    <p class="lead">{T("Build a course once, then open and run races from the K screen.", "コースを作れば、あとは K の画面からレースを開いて走れます。")}</p>
+    <ol class="steps">
+      <li><h3>{T("Build a course", "コースを作る")}</h3><p>{T("Place a start line and checkpoints anywhere in your world.", "ワールドのどこにでも、スタートラインとチェックポイントを置けます。")}</p></li>
+      <li><h3>{T("Open a race", "レースを開く")}</h3><p>{T("Choose the track, laps and regulation.", "トラック・周回・レギュレーションを決めて開きます。")}</p></li>
+      <li><h3>{T("Join", "参加する")}</h3><p>{T("Everyone in the world gets an invite and joins from K.", "ワールドの全員に案内が届き、K から参加できます。")}</p></li>
+      <li><h3>{T("Start", "スタート")}</h3><p>{T("Start lights, then everyone goes on GO.", "スタートシグナルが消えたら、一斉にスタート。")}</p></li>
+    </ol>
+    {SHOT("race-invite", ("The race invite at the right edge while driving", "走行中に右端に出た参加の案内"),
+          ("Driving with the race invite or the ENTERED panel at the right edge", "走行中、右端に参加の案内か ENTERED の欄が出ているところ"))}
+  </div>
+</section>
+
+<section class="mist" id="regulation">
+  <div class="wrap">
+    <div class="eyebrow">{T("Regulation", "レギュレーション")}</div>
+    <h2 class="title">{T("Same rules. Pure driving.", "同じ条件で、腕を競おう。")}</h2>
+    <p class="lead">{T("Even out the cars with limits on power, weight, grip and more.", "出力・車重・グリップなどの条件で、車の性能をそろえます。")}</p>
+    <div class="compare-wrap">
+      <table class="compare fit">
+        <thead><tr><th scope="col">{T("Rule", "条件")}</th><th scope="col">{T("What it measures", "何を測るか")}</th></tr></thead>
+        <tbody>{race_rules}</tbody>
+      </table>
+    </div>
+    {SHOT("race-host", ("The host screen with the regulation and each entrant's check", "決まりと参加者の判定が並ぶ主催者画面"),
+          ("Host screen: regulation on the left, entrants with blue OK and red breaches on the right", "主催者画面。左に決まり、右に参加者と判定（適合は青、違反は赤）"))}
+    <div class="packs">
+      <div class="pack static"><small>{T("Check", "判定")}</small><h3>{T("Blue OK, red breach", "青が適合、赤が違反")}</h3><p>{T("Every entrant's car is checked automatically.", "参加者全員の車を自動で判定します。")}</p></div>
+      <div class="pack static"><small>{T("At the start", "スタート")}</small><h3>{T("Breach means spectating", "違反なら観戦")}</h3><p>{T("Cars outside the rules watch instead of racing.", "条件を外れた車は観戦に回ります。")}</p></div>
+      <div class="pack static"><small>{T("Classes", "クラス")}</small><h3>{T("Saved on the server", "サーバーに保存")}</h3><p>{T("Save your favourite rules as named classes for races and time attack.", "よく使う条件をクラスとして保存し、レースにもタイムアタックにも使えます。")}</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap">
+    <div class="eyebrow">{T("Setup limits", "セッティングの制限")}</div>
+    <h2 class="title">{T("G knows the rules.", "G 画面もレギュレーションに従います。")}</h2>
+    <p class="lead">{T("In a race or a class, the setup screen only lets you tune within the rules.", "レース中もクラスで走るときも、セッティング画面は条件の範囲内でしか動かせません。")}</p>
+    {SHOT("race-setup", ("The setup screen with hatched out-of-range areas", "範囲外が斜線になったセッティング画面"),
+          ("Setup screen (G): out-of-range parts hatched in orange, breaching items and tab in red", "セッティング画面（G）。範囲外が橙の斜線、違反の項目とタブが赤"))}
+  </div>
+</section>
+
+<section class="mist" id="hud">
+  <div class="wrap">
+    <div class="eyebrow">{T("On track", "走行中")}</div>
+    <h2 class="title">{T("Graphics like a real racing game.", "本格的なレーシングゲームのような画面。")}</h2>
+    {SHOT("race-hud", ("A race in progress with the tower, clock and checkpoint delta", "順位の塔・時計・チェックポイントの差が出ているレース中の画面"),
+          ("Mid-race with other cars: tower top left, clock and CLASS top right, checkpoint delta top centre", "ほかの車もいるレース中。左上に順位の塔、右上に時計と CLASS、上の真ん中にチェックポイントの差"))}
+    <div class="packs">
+      <div class="pack static"><small>{T("Top left", "左上")}</small><h3>{T("The tower", "順位表")}</h3><p>{T("Everyone's position and gap to the leader, live.", "全員の順位とトップとの差をリアルタイムで。")}</p></div>
+      <div class="pack static"><small>{T("Top right", "右上")}</small><h3>{T("Your clock", "ラップタイム")}</h3><p>{T("Lap time and your gap to your best.", "ラップタイムと、自己ベストとの差。")}</p></div>
+      <div class="pack static"><small>{T("Top centre", "上の真ん中")}</small><h3>{T("Call-outs", "通知")}</h3><p>{T("Checkpoint deltas, personal bests and the final lap.", "チェックポイントの差、自己ベスト更新、ファイナルラップ。")}</p></div>
+    </div>
+    {SHOT("race-results", ("The results after the finish", "ゴール後のリザルト"),
+          ("Results after the finish (a retired row makes it even better)", "ゴール後のリザルト（リタイアの行があるとなお良い）"))}
+  </div>
+</section>
+
+<section id="timeattack">
+  <div class="wrap">
+    <div class="eyebrow">{T("Time attack", "タイムアタック")}</div>
+    <h2 class="title">{T("Just drive across the line.", "スタートラインを越えるだけ。")}</h2>
+    <p class="lead">{T("Cross a start line and timing begins. Sector times, your gap to your best, and your best lap as a ghost.", "スタートラインを越えれば計測開始。区間タイム、自己ベストとの差、ベストの走りをゴーストで。")}</p>
+    {SHOT("race-ghost", ("Time attack beside your ghost", "ゴーストと並んで走るタイムアタック"),
+          ("Time attack beside the ghost: sector tower top left, CLASS and BEST top right", "ゴーストと並んで走るタイムアタック。左上に区間の塔、右上に CLASS と BEST"))}
+    <dl class="news-list wide">
+      <div><dt>{T("Run in a class", "クラスで走る")}</dt><dd>{T("Pick a class with K and set laps against drivers in the same class.", "K でクラスを選べば、同じクラスの車どうしでタイムを競えます。")}</dd></div>
+      <div><dt>{T("Records and rankings", "記録とランキング")}</dt><dd>{T("Rankings for each class and for no class on every track, right on the K screen.", "トラックごとに、クラスなしとクラス別のランキングを K の画面で。")}</dd></div>
+    </dl>
+    {SHOT("race-timeattack", ("The time attack screen with classes and rankings", "クラスとランキングが並ぶタイムアタックの画面"),
+          ("K, Time attack tab: class dropdown on the left, no-class and class rankings on the right (your row highlighted)", "K のタイムアタックのタブ。左にクラスのドロップダウン、右にクラスなしとクラスのランキング（自分の行が光っている）"))}
+  </div>
+</section>
+
+
+<section class="dark cta-band">
+  <div class="wrap">
+    <div>
+      <h2 class="title">{T("Looking for people to race?", "一緒に走る仲間を探すなら。")}</h2>
+      <p class="lead">{T("Find races and share regulations on Discord.", "Discord でレースの告知やレギュレーションを共有できます。")}</p>
+    </div>
+    <div class="acts"><a class="btn light arrow" href="{DISCORD}">Discord</a></div>
+  </div>
+</section>
+""", desc="Host and join races with one key. Set a regulation for power, weight, grip and more, and race with broadcast-style graphics.", image="img/race.jpg")
+
 page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f"""
 <section class="hero page" style="padding:0">
   <img src="img/hud.jpg" {ALT("Silvia S15 on the start line", "スタートラインに止まる S15")}>
@@ -1023,7 +920,7 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
   </div>
 </section>
 
-<section>
+<section id="carpacks">
   <div class="wrap">
     <div class="eyebrow">{T("Car packs", "カーパック")}</div>
     <h2 class="title">{T("Add car packs.", "カーパックを追加する。")}</h2>
@@ -1040,6 +937,11 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
     <div class="cta-row">
       <a class="btn outline" href="{CF_BASIC}" target="_blank" rel="noopener">{ICON_CF}Basic Car Pack</a>
       <a class="btn outline" href="{CF_EXAMPLE}" target="_blank" rel="noopener">{ICON_CF}Example Car Pack</a>
+    </div>
+    <h3 class="sub-title" style="margin-top:56px;font-size:24px;font-weight:500">{T("Community car packs", "コミュニティのカーパック")}</h3>
+    <p class="lead">{T("Car packs made by players. Check each page for supported versions.", "プレイヤーが作ったカーパックです。対応する版は、それぞれのページで確かめてください。")}</p>
+    <div class="packs" style="margin-top:24px">
+      <a class="pack" href="{CF_DREAM_DRIFT}" target="_blank" rel="noopener"><small>{T("By LexusIS300", "作者 LexusIS300")}</small><h3>Dream Drift Pack</h3><p>{T("Adds the Mitsubishi Lancer, with bumpers, spoilers and exhausts to swap.", "三菱 ランサーを追加。バンパー、スポイラー、マフラーを換装できます。")}</p><span class="go">CurseForge</span></a>
     </div>
   </div>
 </section>
@@ -1076,10 +978,10 @@ page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f""
       <dl class="news-list">
         <div><dt>{T("Build a course (OP)", "コースを作る（OP）")}</dt><dd>{T("Mark both ends of each line with <code>/kuruma-admin point</code>. Face the racing direction and run <code>/kuruma-admin course create &lt;name&gt;</code>, then add checkpoints in order with <code>/kuruma-admin course checkpoint &lt;name&gt;</code>.",
                                                                      "各ラインの両端を <code>/kuruma-admin point</code> で指定し、走る向きを向いて <code>/kuruma-admin course create &lt;名前&gt;</code>。続けてチェックポイントを通る順に <code>/kuruma-admin course checkpoint &lt;名前&gt;</code>。")}</dd></div>
-        <div><dt>{T("Time attack", "タイムアタック")}</dt><dd>{T("Just drive across a start line.", "スタートラインを通過するだけ。")}</dd></div>
-        <div><dt>{T("Race", "レース")}</dt><dd>{T("<code>/kuruma race open &lt;course&gt; [laps]</code>, then others <code>/kuruma race join</code>, line up behind the start line, and <code>/kuruma race start</code>.",
-                                                   "<code>/kuruma race open &lt;コース&gt; [周回数]</code> → 参加者は <code>/kuruma race join</code> → ラインの手前に並んで <code>/kuruma race start</code>。")}</dd></div>
-        <div><dt>{T("Records", "記録")}</dt><dd><code>/kuruma best</code>, <code>/kuruma best top &lt;course&gt;</code></dd></div>
+        <div><dt>{T("Time attack", "タイムアタック")}</dt><dd>{T("Drive across a start line for a warm-up lap. Timing starts the next time you cross it. Pick a class with K if you like.", "スタートラインを越えるとウォームアップの 1 周、次に越えたところから計測。クラスで走るなら K で選びます。")}</dd></div>
+        <div><dt>{T("Race", "レース")}</dt><dd>{T("Press K and open a race from the Host a race tab. Others press K when the invite appears and press Join. The host presses Start. <a href='race.html'>How racing works</a>",
+                                                   "K の「レースを開く」のタブでレースを開く → 参加の案内が出たら参加者も K を押して「参加する」 → 主催者が「スタート」。<a href='race.html'>レースの詳しい説明</a>")}</dd></div>
+        <div><dt>{T("Records", "記録")}</dt><dd>{T("Press K. The Time attack tab shows the rankings for each track.", "K のタイムアタックのタブで、トラックごとのランキングを見られます。")}</dd></div>
       </dl>
     </div>
   </div>

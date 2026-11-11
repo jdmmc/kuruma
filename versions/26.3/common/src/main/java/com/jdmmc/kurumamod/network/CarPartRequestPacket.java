@@ -95,7 +95,19 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
             // 部品と違って「無い値」というものが無いので、弾くのではなく丸めるのが正しい
 
             // setFitment がそのまま周囲のクライアントへ配る
-            car.setFitment(car.getFitment().with(slot, wanted));
+            PartFitment before = car.getFitment();
+            com.jdmmc.kurumamod.physics.CarSpec specBefore = car.getSpec();
+            car.setFitment(before.with(slot, wanted));
+            // レース中は決まりの外へ出る部品を履かせない（ターボ禁止・グリップの上限など）。
+            // 部品の効き方は車へ付けてみないと分からないので、付けてから測って戻す
+            com.jdmmc.kurumamod.tuning.Regulation regulation =
+                    com.jdmmc.kurumamod.race.RaceManager.restrictionFor(sender);
+            if (regulation != null && !regulation.allowsChange(specBefore, car.getSpec(),
+                    com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).spec())) {
+                car.setFitment(before);
+                sender.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(
+                        "race.kurumamod.part_blocked"));
+            }
         });
     }
 }

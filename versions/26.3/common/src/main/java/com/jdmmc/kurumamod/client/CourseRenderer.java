@@ -39,20 +39,23 @@ public final class CourseRenderer {
     private static final float PLANE_ALPHA = 0.16F;
     private static final float POST_ALPHA = 0.65F;
 
-    private static List<CourseLinesPacket.Gate> gates = List.of();
-
-    /** 配られてきたゲート。ゴーストが「いつスタートラインを跨いだか」を割り出すのに使う。 */
-    public static List<CourseLinesPacket.Gate> gates() {
-        return gates;
+    /** どのコースのゲートを描くか（{@link CourseGates#focus}）。運転席だけを「車に乗っている」とみなす。 */
+    private static String focus(Minecraft minecraft) {
+        boolean driving = minecraft.player.getVehicle() instanceof CarEntity car
+                && car.getControllingPassenger() == minecraft.player;
+        return CourseGates.focus(driving);
     }
-    private static boolean raceActive;
+
+    private static boolean shows(String focus, CourseLinesPacket.Gate gate) {
+        return CourseGates.shows(focus, gate);
+    }
 
     private CourseRenderer() {
     }
 
+    /** 線を受け取った。持つのは core の {@link CourseGates}（ゴーストも読む）。 */
     public static void accept(CourseLinesPacket packet) {
-        gates = packet.gates();
-        raceActive = packet.raceActive();
+        CourseGates.accept(packet);
     }
 
     /**
@@ -71,8 +74,7 @@ public final class CourseRenderer {
     }
 
     private static void reset() {
-        gates = List.of();
-        raceActive = false;
+        CourseGates.reset();
     }
 
     /**
@@ -81,18 +83,15 @@ public final class CourseRenderer {
      */
     public static void submit(SubmitNodeCollector collector, Vec3 eye) {
         GateDisplay display = ClientConfig.gateDisplay;
-        if (gates.isEmpty() || display == GateDisplay.HIDDEN) {
+        if (CourseGates.gates().isEmpty() || display == GateDisplay.HIDDEN) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
             return;
         }
-        // レース中は全員に見せる。そうでなければ運転している人だけ
-        if (!raceActive && !(minecraft.player.getVehicle() instanceof CarEntity)) {
-            return;
-        }
-        List<CourseLinesPacket.Gate> shown = gates;
+        String focus = focus(minecraft);
+        List<CourseLinesPacket.Gate> shown = CourseGates.gates().stream().filter(gate -> shows(focus, gate)).toList();
         // 頂点は描く直前（同じフレームのうち）に積まれる。設定はここで読んだ値を使う
         if (DeferredGlows.active()) {
             // シェーダーパック使用中は記録だけして、パックの仕上げの直前（ヘッドライトの後）に半透明で重ねる
