@@ -170,33 +170,63 @@ public final class RaceCommands {
                     Course.MAX_NAME_LENGTH));
             return 0;
         }
-        RaceData data = RaceData.get((ServerLevel) player.level());
+        ServerLevel level = (ServerLevel) player.level();
+        RaceData data = RaceData.get(level);
+        if (refuseWhileRacing(ctx, level, name)) {
+            return 0;
+        }
         Course course = data.course(name).orElseGet(() -> data.createCourse(name));
         course.setStart(line);
         course.clearCheckpoints();
         data.setDirty();
+        RaceManager.onCourseChanged(level, name);
         RaceSync.sendToAll(ctx.getSource().getServer());
         ctx.getSource().sendSuccess(() -> Component.translatable("race.kurumamod.course_created",
                         name, String.format("%.1f", line.length()), facing(player))
                 .withStyle(ChatFormatting.GREEN), true);
-        // 線が動けば過去のタイムは比較できない。消すかどうかは本人に決めてもらう
-        if (data.clearCourseBests(name) > 0) {
-            notifyCourseBestsCleared(ctx.getSource().getServer(), name);
-            // クラスの記録も消えたので、一覧の記録の件数を配り直す
+        invalidateBests(ctx, level, name);
+        return 1;
+    }
+
+    /**
+     * 線が変わったので、そのコースの記録を消す（過去のタイムとは比べられない）。消した記録があれば、その次元の
+     * 全員のゴーストも消させ、クラスの一覧の記録の件数も配り直す。
+     *
+     * <p>チェックポイントを足したときも消す。消さないと、チェックポイントが無かった頃の近道し放題のタイムが、
+     * 新しい線の記録と同じランキングに並んだ。</p>
+     */
+    private static void invalidateBests(CommandContext<CommandSourceStack> ctx, ServerLevel level, String name) {
+        if (RaceData.get(level).clearCourseBests(name) > 0) {
+            RaceManager.notifyCourseBestsCleared(level, name);
             RaceManager.classesToAll(ctx.getSource().getServer());
             ctx.getSource().sendSuccess(() -> Component.translatable(
                     "race.kurumamod.bests_invalidated", name).withStyle(ChatFormatting.YELLOW), false);
         }
-        return 1;
+    }
+
+    /**
+     * そのコースでレースを受け付けている・走っている間は、線を変えさせない。変えると、走っている人の周が
+     * 無効になったり、古い線のまま測られたりする。タイムアタックは止めて変える（{@link RaceManager#onCourseChanged}）。
+     */
+    private static boolean refuseWhileRacing(CommandContext<CommandSourceStack> ctx, ServerLevel level, String name) {
+        if (!RaceManager.raceOnCourse(level, name)) {
+            return false;
+        }
+        ctx.getSource().sendFailure(Component.translatable("race.kurumamod.course_in_use", name));
+        return true;
     }
 
     private static int addCheckpoint(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         String name = StringArgumentType.getString(ctx, "name");
-        RaceData data = RaceData.get((ServerLevel) player.level());
+        ServerLevel level = (ServerLevel) player.level();
+        RaceData data = RaceData.get(level);
         Course course = data.course(name).orElse(null);
         if (course == null) {
             return failNoCourse(ctx, name);
+        }
+        if (refuseWhileRacing(ctx, level, name)) {
+            return 0;
         }
         CourseLine line = takeLine(ctx, player);
         if (line == null) {
@@ -204,10 +234,12 @@ public final class RaceCommands {
         }
         course.addCheckpoint(line);
         data.setDirty();
+        RaceManager.onCourseChanged(level, name);
         RaceSync.sendToAll(ctx.getSource().getServer());
         int index = course.checkpointCount();
         ctx.getSource().sendSuccess(() -> Component.translatable(
                 "race.kurumamod.checkpoint_added", name, index).withStyle(ChatFormatting.GREEN), true);
+        invalidateBests(ctx, level, name);
         return 1;
     }
 
@@ -215,16 +247,23 @@ public final class RaceCommands {
     private static int setDirection(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         String name = StringArgumentType.getString(ctx, "name");
-        RaceData data = RaceData.get((ServerLevel) player.level());
+        ServerLevel level = (ServerLevel) player.level();
+        RaceData data = RaceData.get(level);
         Course course = data.course(name).orElse(null);
         if (course == null || course.start() == null) {
             return failNoCourse(ctx, name);
         }
+        if (refuseWhileRacing(ctx, level, name)) {
+            return 0;
+        }
         course.setStart(course.start().withDirection(player.getYRot()));
         data.setDirty();
+        RaceManager.onCourseChanged(level, name);
         RaceSync.sendToAll(ctx.getSource().getServer());
         ctx.getSource().sendSuccess(() -> Component.translatable(
                 "race.kurumamod.direction_set", name, facing(player)), true);
+        // 向きが変われば逆回りのコースになる。前の向きのタイムとは比べられない
+        invalidateBests(ctx, level, name);
         return 1;
     }
 
@@ -272,16 +311,6 @@ public final class RaceCommands {
                     course.name(), course.laps(), course.checkpointCount()), false);
         }
         return data.courses().size();
-    }
-
-    /**
-     * そのコースの全員のベストを消したことを、いま入っている全員に知らせる。
-     * 落ちている人のゴーストは残るが、次にベストを出した周で上書きされる。
-     */
-    private static void notifyCourseBestsCleared(net.minecraft.server.MinecraftServer server, String name) {
-        for (ServerPlayer online : server.getPlayerList().getPlayers()) {
-            RaceManager.notifyBestCleared(online, name);
-        }
     }
 
     // ------------------------------------------------------------------

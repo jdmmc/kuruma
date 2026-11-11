@@ -70,7 +70,7 @@ public record RaceActionPacket(Action action, String course, int laps, double[] 
         RECORDS,
         /** クラスを並びの中で 1 つ動かす。{@code course} に名前、{@code laps} に向き（-1 で前、1 で後ろ）。 */
         MOVE_CLASS,
-        /** 計測中のタイムアタックをやめる（{@code /kuruma timeattack reset} と同じ）。 */
+        /** 計測中のタイムアタックをやめる（K の「計測をやめる」）。 */
         RESET_TIME_ATTACK,
         /**
          * タイムアタックの記録を 1 つ消す（OP だけ）。{@code course} にコース、{@code extra} に

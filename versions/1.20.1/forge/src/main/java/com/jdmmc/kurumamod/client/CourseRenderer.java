@@ -59,7 +59,37 @@ public final class CourseRenderer {
     public static List<CourseLinesPacket.Gate> gates() {
         return gates;
     }
-    private static boolean raceActive;
+
+    /**
+     * どのコースのゲートを描くか（null なら全部のコースのスタートラインだけ）。<b>見せ方はクライアントが自分の状態で決める</b>——サーバーは
+     * コースの形を送るだけで、レースのことは何も載せない（{@link CourseLinesPacket}）。
+     *
+     * <ul>
+     *   <li><b>レースに加わっている（エントリー・観戦）なら、そのレースのコースだけ</b>（歩いていても車に乗っていても。
+     *       チェックポイントも）。観戦中と号砲までのエントリー中はタイムアタックを測らない（サーバーの
+     *       {@code RaceManager#trackCar}）ので、ほかのコースは要らない</li>
+     *   <li>運転してコースを走っている（計測中・ウォームアップ中）なら、そのコースだけ。関係ないコースの線が
+     *       視界に入ると走りにくい</li>
+     *   <li>どれでもなければ<b>全部のコースのスタートラインだけ</b>（車に乗っていても歩いていても）。どこから
+     *       走り出せるかが分かれば足り、チェックポイントまで並べると門だらけになる</li>
+     * </ul>
+     */
+    private static String focus(Minecraft minecraft) {
+        String followed = RaceLobby.followedCourse();
+        if (followed != null) {
+            return followed;
+        }
+        // 運転席だけを「車に乗っている」とみなす。助手席は歩いているのと同じ（人の車で走っているわけではない）
+        if (!(minecraft.player.getVehicle() instanceof CarEntity car) || car.getControllingPassenger() != minecraft.player) {
+            return null;
+        }
+        return RaceHud.runningCourse();
+    }
+
+    /** そのゲートを描くか。 */
+    private static boolean shows(String focus, CourseLinesPacket.Gate gate) {
+        return focus == null ? gate.start() : focus.equals(gate.course());
+    }
 
     /**
      * シェーダーパック使用中に、仕上げの直前で描くゲートの頂点。x, y, z, r, g, b, a の 7 個ずつで、
@@ -75,7 +105,6 @@ public final class CourseRenderer {
 
     public static void accept(CourseLinesPacket packet) {
         gates = packet.gates();
-        raceActive = packet.raceActive();
     }
 
     /**
@@ -97,7 +126,6 @@ public final class CourseRenderer {
 
     private static void reset() {
         gates = List.of();
-        raceActive = false;
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -125,10 +153,7 @@ public final class CourseRenderer {
         if (minecraft.player == null) {
             return;
         }
-        // レース中は全員に見せる。そうでなければ運転している人だけ
-        if (!raceActive && !(minecraft.player.getVehicle() instanceof CarEntity)) {
-            return;
-        }
+        String focus = focus(minecraft);
         boolean useDeferred = HeadlightVolume.ShaderPacks.inUse() && DeferredGlows.shaderReady();
         if (useDeferred && MirrorRenderer.isRendering()) {
             return;
@@ -156,6 +181,9 @@ public final class CourseRenderer {
         Sink sink = new Sink(consumer, view, eye);
 
         for (CourseLinesPacket.Gate gate : gates) {
+            if (!shows(focus, gate)) {
+                continue;
+            }
             double midX = (gate.ax() + gate.bx()) / 2.0;
             double midZ = (gate.az() + gate.bz()) / 2.0;
             if (Math.hypot(midX - eye.x, midZ - eye.z) > VIEW_DISTANCE) {

@@ -151,8 +151,26 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
                 buf.readUtf(256));
     }
 
+    /**
+     * 件数の上限。<b>書く側も同じ数で切る。</b>読む側だけで切ると、上限を超えたときに残りのバイトを読み違え、
+     * その次元の全員が定期便のたびに切断された（コースの数には上限が無い）。
+     */
+    private static final int MAX_DOUBLES = 64;
+    private static final int MAX_ENTRANTS = 256;
+    private static final int MAX_LIST = 16;
+    private static final int MAX_COURSES = 256;
+
+    /** 件数を読む。上限を超えていたら、読み違える前に止める。 */
+    private static int readCount(FriendlyByteBuf buf, int max) {
+        int count = buf.readVarInt();
+        if (count < 0 || count > max) {
+            throw new io.netty.handler.codec.DecoderException("レースの様子の件数が範囲外です: " + count);
+        }
+        return count;
+    }
+
     private static double[] readDoubles(FriendlyByteBuf buf) {
-        int count = Math.min(64, buf.readVarInt());
+        int count = readCount(buf, MAX_DOUBLES);
         double[] values = new double[count];
         for (int i = 0; i < count; i++) {
             values[i] = buf.readDouble();
@@ -161,18 +179,18 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
     }
 
     private static List<Entrant> readEntrants(FriendlyByteBuf buf) {
-        int count = Math.min(256, buf.readVarInt());
+        int count = readCount(buf, MAX_ENTRANTS);
         List<Entrant> list = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             String name = buf.readUtf(32);
             String carId = buf.readUtf(128);
             Verdict verdict = VERDICTS[buf.readByte()];
-            int violationCount = Math.min(16, buf.readVarInt());
+            int violationCount = readCount(buf, MAX_LIST);
             List<Regulation.Violation> violations = new ArrayList<>(violationCount);
             for (int j = 0; j < violationCount; j++) {
                 violations.add(new Regulation.Violation(KINDS[buf.readByte()], buf.readDouble(), buf.readDouble()));
             }
-            int valueCount = Math.min(16, buf.readVarInt());
+            int valueCount = readCount(buf, MAX_LIST);
             double[] values = new double[valueCount];
             for (int j = 0; j < valueCount; j++) {
                 values[j] = buf.readDouble();
@@ -183,7 +201,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
     }
 
     private static List<CourseInfo> readCourses(FriendlyByteBuf buf) {
-        int count = Math.min(256, buf.readVarInt());
+        int count = readCount(buf, MAX_COURSES);
         List<CourseInfo> list = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             list.add(new CourseInfo(buf.readUtf(256), buf.readVarInt(), buf.readVarInt()));
@@ -202,35 +220,41 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
         buf.writeBoolean(spectating);
         buf.writeBoolean(canManage);
         buf.writeLong(bestMillis);
-        buf.writeVarInt(regulation.length);
-        for (double value : regulation) {
-            buf.writeDouble(value);
-        }
-        buf.writeVarInt(entrants.size());
-        for (Entrant entrant : entrants) {
+        writeDoubles(buf, regulation, MAX_DOUBLES);
+        List<Entrant> sentEntrants = entrants.subList(0, Math.min(MAX_ENTRANTS, entrants.size()));
+        buf.writeVarInt(sentEntrants.size());
+        for (Entrant entrant : sentEntrants) {
             buf.writeUtf(entrant.name(), 32);
             buf.writeUtf(entrant.carId(), 128);
             buf.writeByte(entrant.verdict().ordinal());
-            buf.writeVarInt(entrant.violations().size());
-            for (Regulation.Violation violation : entrant.violations()) {
+            List<Regulation.Violation> violations =
+                    entrant.violations().subList(0, Math.min(MAX_LIST, entrant.violations().size()));
+            buf.writeVarInt(violations.size());
+            for (Regulation.Violation violation : violations) {
                 buf.writeByte(violation.kind().ordinal());
                 buf.writeDouble(violation.actual());
                 buf.writeDouble(violation.limit());
             }
-            buf.writeVarInt(entrant.values().length);
-            for (double value : entrant.values()) {
-                buf.writeDouble(value);
-            }
+            writeDoubles(buf, entrant.values(), MAX_LIST);
             buf.writeBoolean(entrant.you());
         }
-        buf.writeVarInt(courses.size());
-        for (CourseInfo info : courses) {
+        List<CourseInfo> sentCourses = courses.subList(0, Math.min(MAX_COURSES, courses.size()));
+        buf.writeVarInt(sentCourses.size());
+        for (CourseInfo info : sentCourses) {
             buf.writeUtf(info.name(), 256);
             buf.writeVarInt(info.laps());
             buf.writeVarInt(info.checkpoints());
         }
         buf.writeBoolean(classAdmin);
         buf.writeUtf(declaredClass, 256);
+    }
+
+    private static void writeDoubles(FriendlyByteBuf buf, double[] values, int max) {
+        int count = Math.min(max, values.length);
+        buf.writeVarInt(count);
+        for (int i = 0; i < count; i++) {
+            buf.writeDouble(values[i]);
+        }
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {

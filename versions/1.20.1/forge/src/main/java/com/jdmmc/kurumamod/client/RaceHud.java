@@ -235,10 +235,9 @@ public final class RaceHud {
                 totalLaps = packet.totalLaps();
                 courseName = packet.course();
                 lapClass = packet.raceClass();
-                if (totalLaps == 0) {
-                    // BEST は、この周の比べる相手（宣言したクラスかクラスなし）のベスト
-                    bestMillis = packet.targetBest();
-                }
+                // BEST は、この周の比べる相手のベスト（タイムアタックは宣言したクラスかクラスなし、レースはクラスなし）。
+                // レースでも入れ替える。入れ替えないと、1 周目に直前のタイムアタックのベストが残った
+                bestMillis = packet.targetBest();
                 lapTicks = 0;
                 place = 0;
                 finishMillis = 0L;
@@ -308,7 +307,7 @@ public final class RaceHud {
             }
             case CLEARED -> clear();
             case BEST_CLEARED -> {
-                // 記録が消された（クラスの書き換え・削除、コースの引き直し、/kuruma best clear）。
+                // 記録が消された（クラスの書き換え・削除、コースの引き直し、OP が K の画面から消した）。
                 // 今の周の比べる相手が消えたなら、周の終わりを待たずに BEST を消す
                 // コースが付いていれば（OP が 1 つの記録を消した）、そのコースのときだけ
                 boolean classGone = !packet.raceClass().isEmpty() && packet.raceClass().equals(lapClass)
@@ -350,6 +349,17 @@ public final class RaceHud {
         previousSplit = elapsed;
         previousDelta = delta;
         previousHasDelta = hasDelta;
+    }
+
+    /** いま走っているコース（計測中か、ウォームアップ中）。走っていなければ null。ゲートの見せ方に使う。 */
+    static String runningCourse() {
+        if (timing && !courseName.isEmpty()) {
+            return courseName;
+        }
+        if (warmingUp && !warmUpCourse.isEmpty()) {
+            return warmUpCourse;
+        }
+        return null;
     }
 
     /** 走行中の表示を消す。サーバーが周回状態を捨てたときの合図。 */

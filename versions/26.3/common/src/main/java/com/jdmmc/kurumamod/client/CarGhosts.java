@@ -50,8 +50,8 @@ import java.util.regex.Pattern;
  * （{@link CarEntity#playGhostFrame}）。物理は解き直さない。</p>
  *
  * <p>ゴーストは<b>サーバーに存在しない</b>。ぶつからず、殴れず、音・煙・タイヤ痕も出さない。
- * 記録は手元に置き、誰にも送らない（シングルはワールドのセーブの {@code kurumamod/ghosts/<UUID>/}、マルチは
- * {@code config/kurumamod/ghosts/<アドレス>/<UUID>/}。{@link #worldDir}）。</p>
+ * 記録は手元に置き、誰にも送らない（シングルはワールドのセーブの {@code kurumamod/ghosts/<UUID>/<次元>/}、マルチは
+ * {@code config/kurumamod/ghosts/<アドレス>/<UUID>/<次元>/}。{@link #worldDir}）。</p>
  *
  * <p><b>タイムアタックでは何もしなくても動く</b>（{@link ClientConfig#timeAttackGhost}）。運転中は
  * 常に走りを書き溜めておき、サーバーから「周回完了」がベスト更新として届いたら、その周を
@@ -263,7 +263,7 @@ public final class CarGhosts {
     }
 
     private static void beginLap(Minecraft minecraft, String course, String raceClass, long targetBest) {
-        trail.subList(0, crossingIndex()).clear();
+        trail.subList(0, crossingIndex(course)).clear();
         lapCourse = course;
         lapClass = raceClass;
         startLapGhost(minecraft, course, raceClass, targetBest);
@@ -277,7 +277,7 @@ public final class CarGhosts {
     private static void completeLap(Minecraft minecraft, RaceEventPacket packet) {
         String course = packet.course();
         long millis = packet.millis();
-        int at = crossingIndex();
+        int at = crossingIndex(course);
         if (course.equals(lapCourse) && at > 0 && trailCar != null) {
             Ghost ghost = null;
             // 入るのはクラスなしか、記録したクラスのどちらか 1 か所（念のため両方を見る。知らせは 1 回だけ）
@@ -330,7 +330,18 @@ public final class CarGhosts {
         if (playing != null && raceClass.equals(lapClass)) {
             stopPlayback();
         }
-        deleteTree(classDir(minecraft, raceClass));
+        // クラスはサーバーに 1 組。記録は全部の次元から消えたので、ゴーストも全部の次元のフォルダから消す
+        Path player = playerDir(minecraft);
+        if (!Files.isDirectory(player)) {
+            return;
+        }
+        try (var dims = Files.list(player)) {
+            for (Path dim : dims.toList()) {
+                deleteTree(dim.resolve(CLASS_DIR).resolve(fileKey(raceClass)));
+            }
+        } catch (IOException e) {
+            LOGGER.warn("タイムアタックのゴーストを消せませんでした: {}", player, e);
+        }
     }
 
     private static void deleteTree(Path root) {
@@ -347,7 +358,7 @@ public final class CarGhosts {
     }
 
     /**
-     * ベストを消したので、そのコース（空なら今のワールドの全コース）のゴーストも消す。
+     * ベストを消したので、そのコース（空なら今の次元の全コース）のゴーストも消す。
      * 走っている最中なら、いま出ているゴーストも引っ込める。
      */
     private static void deleteLapGhosts(Minecraft minecraft, String course) {
@@ -391,6 +402,10 @@ public final class CarGhosts {
         if (ClientConfig.timeAttackGhost && minecraft.level != null) {
             Path file = lapFile(minecraft, course, raceClass);
             ghost = load(file);
+            // 別の次元で取ったゴーストは使わない（消しもしない）。フォルダを次元で分けてあるので、ふつうは起きない
+            if (ghost != null && !minecraft.level.dimension().identifier().toString().equals(ghost.dimension())) {
+                ghost = null;
+            }
             // <b>サーバーのベストと同じ周でなければ捨てる。</b>ゴーストは手元にしか無いので、落ちている間に
             // 記録が消された（クラスの上書き・削除、コースの引き直し）ことは、ここでしか分からない
             if (ghost != null && ghost.lapMillis() != targetBest) {
@@ -400,9 +415,6 @@ public final class CarGhosts {
                 } catch (IOException e) {
                     LOGGER.warn("古いゴーストを消せませんでした: {}", file, e);
                 }
-            }
-            if (ghost != null && !minecraft.level.dimension().identifier().toString().equals(ghost.dimension())) {
-                ghost = null;
             }
         }
         if (ghost == null) {
@@ -415,11 +427,11 @@ public final class CarGhosts {
     /**
      * 直近の記録の中で、スタートゲートを跨いだ 1 ティックの位置（跨いだ<b>後</b>の記録の番号）。
      *
-     * <p>どのゲートがどのコースのものかはクライアントには分からないが、合図が届く直前に
-     * 跨いだスタートゲートは 1 本しかないので、いちばん新しい跨ぎを取れば足りる。
-     * 見つからなければ（ゲートがまだ届いていない等）、いちばん新しい記録で区切る。</p>
+     * <p><b>そのコースのスタートゲートだけを見る</b>（ゲートにはコースの名前が付いている）。ほかのコースの
+     * スタートの線が近くにあっても取り違えない。見つからなければ（ゲートがまだ届いていない等）、
+     * いちばん新しい記録で区切る。</p>
      */
-    private static int crossingIndex() {
+    private static int crossingIndex(String course) {
         int last = trail.size() - 1;
         if (last <= 0) {
             return Math.max(last, 0);
@@ -429,7 +441,7 @@ public final class CarGhosts {
             Frame from = trail.get(i - 1);
             Frame to = trail.get(i);
             for (CourseLinesPacket.Gate gate : CourseRenderer.gates()) {
-                if (gate.start() && crosses(from.x(), from.z(), to.x(), to.z(),
+                if (gate.start() && course.equals(gate.course()) && crosses(from.x(), from.z(), to.x(), to.z(),
                         gate.ax(), gate.az(), gate.bx(), gate.bz())) {
                     return i;
                 }
@@ -569,8 +581,16 @@ public final class CarGhosts {
                         return;
                     }
                     CarEntity entity = new CarEntity(Kurumamod.CAR.get(), level);
-                    entity.becomeGhost(carId, CarSpecCodec.load(rideLook.getCompoundOrEmpty("Spec")),
-                            PartFitment.load(rideLook.getCompoundOrEmpty("Parts")));
+                    try {
+                        entity.becomeGhost(carId, CarSpecCodec.load(rideLook.getCompoundOrEmpty("Spec")),
+                                PartFitment.load(rideLook.getCompoundOrEmpty("Parts")));
+                    } catch (RuntimeException e) {
+                        // <b>運転者のクライアントから届いたもので、サーバーは中身を見ていない。</b>壊れていても
+                        // 同乗者の画面を落とさない。次の見た目が届くまで出さない
+                        LOGGER.warn("同乗のゴーストの見た目を読めないので出しません", e);
+                        rideLook = null;
+                        return;
+                    }
                     entity.setId(RIDE_GHOST_ENTITY_ID);
                     entity.snapTo(packet.x(), packet.y(), packet.z(), packet.state().yaw(), 0.0F);
                     level.addEntity(entity);
@@ -669,12 +689,23 @@ public final class CarGhosts {
      *   <li>マルチプレイは {@code config/kurumamod/ghosts/<アドレス>/}（{@link #serverKey}）</li>
      * </ul>
      *
-     * <p>その下を<b>プレイヤーの UUID で分ける</b>（{@code <UUID>/}）。そこから下の形はどちらも同じ
-     * （コースのファイルと {@code class/<クラス>/}）。</p>
+     * <p>その下を<b>プレイヤーの UUID</b>（{@link #playerDir}）と<b>次元</b>で分ける（{@code <UUID>/<次元>/}）。
+     * そこから下の形はどちらも同じ（コースのファイルと {@code class/<クラス>/}）。</p>
+     *
+     * <p><b>次元で分けるのは、コースが次元ごとにあるから</b>（オーバーワールドとネザーに同じ名前のコースを作れる）。
+     * 分けていなかった頃は、ネザーで走り出すとオーバーワールドのゴーストを読み、タイムがネザーのベストと合わないので
+     * 消していた。</p>
      *
      * <p>2.0.0 までの置き場所（{@code config/kurumamod-ghosts/}）は見ない。残っていても使わず、そのままにする。</p>
      */
     private static Path worldDir(Minecraft minecraft) {
+        // 次元の名前（minecraft:the_nether など）も、そのままではファイル名にしない
+        return playerDir(minecraft).resolve(minecraft.level != null
+                ? fileKey(minecraft.level.dimension().identifier().toString()) : "unknown");
+    }
+
+    /** そのワールド（サーバー）の、いま入っているプレイヤーのフォルダ（次元のフォルダはこの下）。 */
+    private static Path playerDir(Minecraft minecraft) {
         Path world;
         if (minecraft.getSingleplayerServer() != null) {
             world = minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).normalize()

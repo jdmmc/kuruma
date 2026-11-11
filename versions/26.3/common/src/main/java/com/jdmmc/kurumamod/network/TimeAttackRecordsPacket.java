@@ -53,13 +53,27 @@ public record TimeAttackRecordsPacket(String course, List<Board> boards) impleme
         this(buf.readUtf(256), readBoards(buf));
     }
 
+    /**
+     * ランキングの数の上限。<b>書く側も同じ数で切る</b>（読む側だけで切ると、上限を超えたときに残りのバイトを
+     * 読み違えて切断された）。
+     */
+    private static final int MAX_BOARDS = 128;
+
+    private static int readCount(FriendlyByteBuf buf, int max) {
+        int count = buf.readVarInt();
+        if (count < 0 || count > max) {
+            throw new io.netty.handler.codec.DecoderException("タイムアタックの記録の件数が範囲外です: " + count);
+        }
+        return count;
+    }
+
     private static List<Board> readBoards(FriendlyByteBuf buf) {
-        int count = Math.min(128, buf.readVarInt());
+        int count = readCount(buf, MAX_BOARDS);
         List<Board> boards = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             String raceClass = buf.readUtf(256);
             int total = buf.readVarInt();
-            int rowCount = Math.min(TOP + 1, buf.readVarInt());
+            int rowCount = readCount(buf, TOP + 1);
             List<Row> rows = new ArrayList<>(rowCount);
             for (int j = 0; j < rowCount; j++) {
                 rows.add(new Row(buf.readVarInt(), buf.readUtf(64), buf.readLong(), buf.readBoolean(), buf.readUUID()));
@@ -71,12 +85,14 @@ public record TimeAttackRecordsPacket(String course, List<Board> boards) impleme
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(course, 256);
-        buf.writeVarInt(boards.size());
-        for (Board board : boards) {
+        List<Board> sentBoards = boards.subList(0, Math.min(MAX_BOARDS, boards.size()));
+        buf.writeVarInt(sentBoards.size());
+        for (Board board : sentBoards) {
             buf.writeUtf(board.raceClass(), 256);
             buf.writeVarInt(board.total());
-            buf.writeVarInt(board.rows().size());
-            for (Row row : board.rows()) {
+            List<Row> rows = board.rows().subList(0, Math.min(TOP + 1, board.rows().size()));
+            buf.writeVarInt(rows.size());
+            for (Row row : rows) {
                 buf.writeVarInt(row.place());
                 buf.writeUtf(row.name(), 64);
                 buf.writeLong(row.millis());

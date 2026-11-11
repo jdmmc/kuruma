@@ -139,7 +139,7 @@ public final class RaceManager {
         // 主催者が別の次元へ移ったら、落ちたときと同じ（受付中は中止、走行中は続ける）。元のレースを操作できなくなるため
         cancelIfHost(player, from);
         // 捨てたことは<b>必ず伝える</b>。伝えないと画面の時計だけが回り続け、
-        // サーバーには周回状態が無いので /kuruma timeattack reset が
+        // サーバーには周回状態が無いので、K の「計測をやめる」が
         // 「計測していません」を返す——画面とサーバーが食い違う
         if (player instanceof ServerPlayer serverPlayer) {
             send(serverPlayer, RaceEventPacket.cleared());
@@ -243,8 +243,9 @@ public final class RaceManager {
         }
 
         for (ServerPlayer player : level.players()) {
-            if (player.getVehicle() instanceof CarEntity car && car.getControllingPassenger() == player) {
-                trackCar(level, session, states, player, car);
+            CarEntity driven = drivenCar(player);
+            if (driven != null) {
+                trackCar(level, session, states, player, driven);
             } else {
                 dismount(session, states, player);
             }
@@ -288,7 +289,7 @@ public final class RaceManager {
             session.awayTicks.remove(id);
             return;
         }
-        if (player.getVehicle() instanceof CarEntity car && car.getControllingPassenger() == player) {
+        if (drivenCar(player) != null) {
             session.awayTicks.remove(id);
             return;
         }
@@ -422,14 +423,15 @@ public final class RaceManager {
             }
             LapState state = new LapState(session.course);
             state.gridStart = true;
-            if (player.getVehicle() instanceof CarEntity car) {
+            CarEntity car = drivenCar(player);
+            if (car != null) {
                 state.lastX = car.getX();
                 state.lastZ = car.getZ();
                 state.hasLast = true;
             }
             states.put(id, state);
             beginLap(player, session, course, state, now);
-            if (player.getVehicle() instanceof CarEntity car) {
+            if (car != null) {
                 // ラインの手前に並んだときだけ、号砲の直後の通過を見逃す。先に並んだなら、次の通過が 1 周目の終わり。
                 // どちらとも言えない（線の幅の外）ときは、ふつうの並び方（手前）とみなす。
                 // CP のあるコースは、最初の CP を通るまで見逃す（通ったところで下ろす）
@@ -1042,6 +1044,19 @@ public final class RaceManager {
      *
      * @param course 消したコース。空なら全コース
      */
+    /**
+     * そのコースの全員のベストを消したことを、<b>その次元にいる人だけ</b>に知らせる（ゴーストと HUD の BEST を消させる）。
+     *
+     * <p>ゴーストはクライアントの次元ごとのフォルダにある。別の次元にいる人へ送ると、その人がいる次元の
+     * 同じ名前のコースのゴーストを消してしまう。ほかの次元にいる人と落ちている人のものは、次にそのコースを
+     * 走り出したとき、サーバーのベストと周が合わずに消える（{@code CarGhosts}）。</p>
+     */
+    public static void notifyCourseBestsCleared(ServerLevel level, String course) {
+        for (ServerPlayer online : level.players()) {
+            notifyBestCleared(online, course);
+        }
+    }
+
     public static void notifyBestCleared(ServerPlayer player, String course) {
         send(player, RaceEventPacket.bestCleared(course));
     }
@@ -1216,12 +1231,23 @@ public final class RaceManager {
     // ------------------------------------------------------------------
 
     /**
+     * その人が<b>運転席に座っている</b>車。助手席・後ろの席や、車以外に乗っているなら null。
+     *
+     * <p><b>レースでは運転していない人は「車に乗っていない」とみなす。</b>人の車の助手席に乗っても、その車で
+     * 走っていることにはならない（計測しない・決まりで判定しない・グリッドの位置にも使わない・一覧に車種を出さない）。</p>
+     */
+    private static CarEntity drivenCar(ServerPlayer player) {
+        return player.getVehicle() instanceof CarEntity car && car.getControllingPassenger() == player ? car : null;
+    }
+
+    /**
      * 乗っている車を決まりで判定する。<b>運転していなければ null</b>（判定できない）。
      *
      * <p>比べるのは実際に走る諸元（{@link CarEntity#getSpec}、部品込み）と、その車種の素の諸元。</p>
      */
     private static List<Regulation.Violation> violations(ServerPlayer player, Regulation regulation) {
-        if (!(player.getVehicle() instanceof CarEntity car) || car.getControllingPassenger() != player) {
+        CarEntity car = drivenCar(player);
+        if (car == null) {
             return null;
         }
         return regulation.check(car.getSpec(), CarTypes.get(car.getCarId()).spec());
@@ -1312,27 +1338,31 @@ public final class RaceManager {
         return list;
     }
 
-    /** 受け取る人ごとにレースの様子を組む。 */
+    /** 参加者 1 人の行と、その人の UUID（受け取る人ごとに「自分か」を付け替えるため）。 */
+    private record Listed(UUID id, RaceLobbyPacket.Entrant entrant) {
+    }
+
+    /**
+     * 受け取る人ごとにレースの様子を組む。
+     *
+     * @param listed 参加者の一覧（{@link #listEntrants}）。null なら組む
+     */
     private static RaceLobbyPacket lobbyFor(ServerLevel level, Session session, ServerPlayer viewer,
-                                            List<RaceLobbyPacket.CourseInfo> courses) {
+                                            List<RaceLobbyPacket.CourseInfo> courses, List<Listed> listed) {
         if (session == null) {
             return RaceLobbyPacket.none(courses, isOp(viewer),
                     declaredName(viewer));
         }
-        List<RaceLobbyPacket.Entrant> list = new ArrayList<>();
-        for (UUID id : session.entrants) {
-            ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-            if (player == null || session.retired.contains(id)) {
-                continue;
-            }
-            List<Regulation.Violation> violations = violations(player, session.regulation);
-            CarEntity car = player.getVehicle() instanceof CarEntity riding ? riding : null;
-            String carId = car != null ? car.getCarId().toString() : "";
-            double[] values = violations != null ? RaceLobbyPacket.valuesOf(car.getSpec()) : new double[0];
-            RaceLobbyPacket.Verdict verdict = violations == null ? RaceLobbyPacket.Verdict.NO_CAR
-                    : violations.isEmpty() ? RaceLobbyPacket.Verdict.OK : RaceLobbyPacket.Verdict.VIOLATION;
-            list.add(new RaceLobbyPacket.Entrant(player.getGameProfile().getName(), carId, verdict,
-                    violations == null ? List.of() : violations, values, player == viewer));
+        if (listed == null) {
+            listed = listEntrants(level, session);
+        }
+        // 受け取る人で変わるのは「自分か」だけ
+        List<RaceLobbyPacket.Entrant> list = new ArrayList<>(listed.size());
+        for (Listed row : listed) {
+            RaceLobbyPacket.Entrant e = row.entrant();
+            list.add(row.id().equals(viewer.getUUID())
+                    ? new RaceLobbyPacket.Entrant(e.name(), e.carId(), e.verdict(), e.violations(), e.values(), true)
+                    : e);
         }
         RaceData data = RaceData.get(level);
         int checkpoints = data.course(session.course).map(Course::checkpointCount).orElse(0);
@@ -1346,6 +1376,29 @@ public final class RaceManager {
                 isOp(viewer), declaredName(viewer));
     }
 
+    /**
+     * 参加者の一覧（決まりの判定つき）。<b>受け取る人で変わらないので、配るときに 1 回だけ組む。</b>
+     * 受け取る人ごとに組むと、その次元の人数 × 参加者数の回数だけ決まりを判定していた。
+     */
+    private static List<Listed> listEntrants(ServerLevel level, Session session) {
+        List<Listed> list = new ArrayList<>();
+        for (UUID id : session.entrants) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
+            if (player == null || session.retired.contains(id)) {
+                continue;
+            }
+            List<Regulation.Violation> violations = violations(player, session.regulation);
+            CarEntity car = drivenCar(player);
+            String carId = car != null ? car.getCarId().toString() : "";
+            double[] values = violations != null ? RaceLobbyPacket.valuesOf(car.getSpec()) : new double[0];
+            RaceLobbyPacket.Verdict verdict = violations == null ? RaceLobbyPacket.Verdict.NO_CAR
+                    : violations.isEmpty() ? RaceLobbyPacket.Verdict.OK : RaceLobbyPacket.Verdict.VIOLATION;
+            list.add(new Listed(id, new RaceLobbyPacket.Entrant(player.getGameProfile().getName(), carId, verdict,
+                    violations == null ? List.of() : violations, values, false)));
+        }
+        return list;
+    }
+
     private static String declaredName(ServerPlayer player) {
         String name = declaredClass(player);
         return name == null ? "" : name;
@@ -1354,8 +1407,9 @@ public final class RaceManager {
     /** そのワールドの全員へ、受け取る人ごとに組んで配る。 */
     private static void broadcastLobby(ServerLevel level, Session session) {
         List<RaceLobbyPacket.CourseInfo> courses = courseInfos(level);
+        List<Listed> listed = session == null ? null : listEntrants(level, session);
         for (ServerPlayer player : level.players()) {
-            KurumaNetwork.sendToPlayer(player, lobbyFor(level, session, player, courses));
+            KurumaNetwork.sendToPlayer(player, lobbyFor(level, session, player, courses, listed));
         }
     }
 
@@ -1401,12 +1455,8 @@ public final class RaceManager {
                 send(player, RaceEventPacket.cleared());
             }
         }
-        // ゴーストはクライアントにあるので、入っている全員に消させる（入っていない人のものは、次に走り出したとき
-        // サーバーのベストと周が合わずに消える）
         if (RaceData.get(level).clearCourseBests(name) > 0) {
-            for (ServerPlayer online : level.getServer().getPlayerList().getPlayers()) {
-                notifyBestCleared(online, name);
-            }
+            notifyCourseBestsCleared(level, name);
         }
         classesToAll(level.getServer());
     }
@@ -1415,7 +1465,7 @@ public final class RaceManager {
     public static void sendLobby(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
         KurumaNetwork.sendToPlayer(player,
-                lobbyFor(level, SESSIONS.get(level.dimension()), player, courseInfos(level)));
+                lobbyFor(level, SESSIONS.get(level.dimension()), player, courseInfos(level), null));
     }
 
     /**
@@ -1450,7 +1500,7 @@ public final class RaceManager {
                     sendLobby(player);
                 } else {
                     // 主催者は自分も走ることが多い。開いた人はそのまま参加しておく（抜けるのも画面から）
-                    join(player, null);
+                    join(player);
                 }
             }
             case UPDATE -> {
@@ -1467,7 +1517,7 @@ public final class RaceManager {
                 }
             }
             case JOIN -> {
-                switch (join(player, null)) {
+                switch (join(player)) {
                     case NO_RACE -> tell(player, Component.translatable("race.kurumamod.no_entry"));
                     case ALREADY_STARTED -> tell(player,
                             Component.translatable("race.kurumamod.already_started", racingCourse(level)));
@@ -1528,8 +1578,14 @@ public final class RaceManager {
                     announceClassRecordsCleared(player, packet.course(),
                             clearClassRecords(level.getServer(), packet.course(), true));
                 }
-                // 断ったときも本人には送り直す（画面を今の一覧に戻す）
-                lobbyToAll(level.getServer());
+                if (allowed) {
+                    lobbyToAll(level.getServer());
+                } else {
+                    // 断ったら本人にだけ送り直す（画面を今の一覧に戻す）。全員へ配り直すと、権限の無い人が
+                    // 連打するだけで、記録の数え直しとサーバー全員への配信を何度でも起こせた
+                    sendClasses(player);
+                    sendLobby(player);
+                }
             }
             case DECLARE_CLASS -> declare(player, packet.course());
             case RECORDS -> sendRecords(player, packet.course());
@@ -1548,10 +1604,12 @@ public final class RaceManager {
             case MOVE_CLASS -> {
                 if (!isOp(player)) {
                     tell(player, Component.translatable("race.kurumamod.class_denied"));
+                    sendClasses(player);
+                    sendLobby(player);
                 } else {
                     RaceClasses.move(level.getServer(), packet.course(), packet.laps());
+                    lobbyToAll(level.getServer());
                 }
-                lobbyToAll(level.getServer());
             }
             case SPECTATE -> {
                 if (spectate(player)) {
@@ -1679,9 +1737,13 @@ public final class RaceManager {
                 .withStyle(ChatFormatting.GRAY));
         ServerPlayer owner = server.getPlayerList().getPlayer(id);
         if (owner != null) {
-            // 持ち主のゴーストと、HUD の比べる相手を消させる（消した 1 つだけ）
-            send(owner, raceClass.isEmpty() ? RaceEventPacket.noClassCleared(course)
-                    : RaceEventPacket.bestCleared(course, raceClass));
+            // 持ち主のゴーストと、HUD の比べる相手を消させる（消した 1 つだけ）。<b>別の次元にいるなら送らない</b>——
+            // ゴーストは次元ごとのフォルダにあり、その人のいる次元の同じ名前のコースのものを消してしまう。
+            // 戻って走り出したとき、サーバーのベストと周が合わずに消える
+            if (owner.level() == player.level()) {
+                send(owner, raceClass.isEmpty() ? RaceEventPacket.noClassCleared(course)
+                        : RaceEventPacket.bestCleared(course, raceClass));
+            }
             if (owner != player) {
                 owner.sendSystemMessage(Component.translatable("race.kurumamod.record_deleted_owner",
                         course, board, player.getGameProfile().getName()).withStyle(ChatFormatting.GRAY));
@@ -1761,11 +1823,6 @@ public final class RaceManager {
      *
      * @return すでにそのワールドで開催中なら false
      */
-    public static boolean openRace(ServerLevel level, Course course, int laps, ServerPlayer host) {
-        return openRace(level, course, laps, host, Regulation.DEFAULT);
-    }
-
-    /** 決まりを付けて開く（主催者画面から）。 */
     public static boolean openRace(ServerLevel level, Course course, int laps, ServerPlayer host,
                                    Regulation regulation) {
         if (SESSIONS.containsKey(level.dimension())) {
@@ -1815,20 +1872,14 @@ public final class RaceManager {
         NO_RACE,
         /** もう始まっている。次のレースを待つしかない。 */
         ALREADY_STARTED,
-        /** 受付中なのは別のコース。 */
-        WRONG_COURSE,
         /** すでに入っている。 */
         ALREADY_JOINED,
         /** 入れた。 */
         JOINED
     }
 
-    /**
-     * エントリーする。
-     *
-     * @param course 確かめたいコース名。null なら受付中のものへそのまま入る
-     */
-    public static JoinResult join(ServerPlayer player, String course) {
+    /** 受付中のレースにエントリーする。 */
+    public static JoinResult join(ServerPlayer player) {
         Session session = SESSIONS.get(player.level().dimension());
         if (session == null) {
             return JoinResult.NO_RACE;
@@ -1836,9 +1887,6 @@ public final class RaceManager {
         // 途中参加は不可。信号が点いた時点で締め切る（点いてから入ると、決まりの判定を通らずに走れてしまう）
         if (session.started || session.countdown >= 0) {
             return JoinResult.ALREADY_STARTED;
-        }
-        if (course != null && !session.course.equals(course)) {
-            return JoinResult.WRONG_COURSE;
         }
         if (!session.entrants.add(player.getUUID())) {
             return JoinResult.ALREADY_JOINED;
@@ -1950,20 +1998,6 @@ public final class RaceManager {
         return LeaveResult.RETIRED;
     }
 
-    /** エントリーしている人の名前。 */
-    public static List<String> entrants(ServerLevel level) {
-        Session session = SESSIONS.get(level.dimension());
-        List<String> names = new ArrayList<>();
-        if (session == null) {
-            return names;
-        }
-        for (UUID id : session.entrants) {
-            ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
-            names.add(player != null ? player.getGameProfile().getName() : id.toString());
-        }
-        return names;
-    }
-
     /** {@link #beginCountdown} の結果。 */
     public enum StartResult {
         /** 受付中のレースが無い。 */
@@ -2022,17 +2056,6 @@ public final class RaceManager {
                 session.course, session.laps).withStyle(ChatFormatting.YELLOW));
         broadcastLobby(level, session);
         return StartResult.STARTED;
-    }
-
-    /** 開催した人の名前。レースが無ければ空文字。 */
-    public static String hostName(ServerLevel level) {
-        Session session = SESSIONS.get(level.dimension());
-        return session == null ? "" : session.hostName;
-    }
-
-    /** 受付中のレースがあるか。 */
-    public static boolean hasSession(ServerLevel level) {
-        return SESSIONS.containsKey(level.dimension());
     }
 
     /**
@@ -2104,6 +2127,31 @@ public final class RaceManager {
     /** そのワールドでレースが進行中か。 */
     public static boolean isRacing(ServerLevel level) {
         return SESSIONS.containsKey(level.dimension());
+    }
+
+    /** そのコースでレースを受け付けているか、走っているか。線を引き直させない（{@code RaceCommands}）。 */
+    public static boolean raceOnCourse(ServerLevel level, String course) {
+        Session session = SESSIONS.get(level.dimension());
+        return session != null && session.course.equals(course);
+    }
+
+    /**
+     * そのコースの線が変わった（引き直し・チェックポイントの追加・向きの変更）。<b>測っていた人の計測を止める。</b>
+     *
+     * <p>止めないと、走りかけの周が古い線の続きとして測られる。チェックポイントを足したときは、
+     * 走っている全員の周が「取りこぼし」で無効になり、1 周余計に走らされた。</p>
+     */
+    public static void onCourseChanged(ServerLevel level, String course) {
+        Map<UUID, LapState> states = states(level);
+        for (ServerPlayer player : level.players()) {
+            LapState state = states.get(player.getUUID());
+            if (state != null && course.equals(state.course)) {
+                states.remove(player.getUUID());
+                send(player, RaceEventPacket.cleared());
+                player.sendSystemMessage(Component.translatable("race.kurumamod.course_changed_timing", course)
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        }
     }
 
     /** 表示用に mm:ss.SSS へ整える。 */

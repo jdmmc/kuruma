@@ -264,6 +264,12 @@ public final class RaceLobby {
      * <p>レースがあればそのレースの画面（主催していれば主催者画面）、レースが無ければタイムアタックの画面。
      * どの画面も上のタブで行き来できる。</p>
      */
+    /** エントリーか観戦をしているレースのコース。どちらでもなければ null。ゲートの見せ方に使う。 */
+    static String followedCourse() {
+        return lobby != null && (lobby.joined() || lobby.spectating()) && !lobby.course().isEmpty()
+                ? lobby.course() : null;
+    }
+
     /** 観戦しているか。観戦者は信号の間も車を止めない。 */
     public static boolean spectating() {
         return lobby != null && lobby.spectating();
