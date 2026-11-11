@@ -22,7 +22,14 @@ def localPropsFile = rootProject.file('gradle-local.properties')
 if (localPropsFile.exists()) {
     def localProps = new Properties()
     localPropsFile.withReader('UTF-8') { localProps.load(it) }
-    localProps.each { key, value -> project.ext.set(key.toString(), value.toString()) }
+    // コマンドラインの -P は上書きしない（-Pextra_mods=... で、そのときだけ MOD を差し替えられる。
+    // 専用サーバーは Oculus などのクライアント専用の MOD を読むと起動で落ちる）
+    def given = gradle.startParameter.projectProperties
+    localProps.each { key, value ->
+        if (!given.containsKey(key.toString())) {
+            project.ext.set(key.toString(), value.toString())
+        }
+    }
 }
 
 group = mod_group_id
