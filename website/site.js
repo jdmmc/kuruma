@@ -73,9 +73,6 @@ document.querySelectorAll('.filters button').forEach(b => b.addEventListener('cl
   document.querySelectorAll('.model').forEach(m => { m.hidden = f !== 'all' && !m.dataset.kind.split(' ').includes(f); });
 }));
 
-// 比較表：同じ値の行を出すか
-const same = document.getElementById('show-same');
-if (same) same.addEventListener('change', () => document.querySelector('.compare').classList.toggle('show-same', same.checked));
 
 
 applyLang(ja() ? 'ja' : 'en');

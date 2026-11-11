@@ -58,7 +58,6 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
         <a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a>
         <a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a>
         <a href="race.html"><span data-l="en">Racing</span><span data-l="ja">レース</span></a>
-        <a href="compare.html"><span data-l="en">Compare</span><span data-l="ja">比較</span></a>
         <a href="shaders.html"><span data-l="en">Shaders</span><span data-l="ja">シェーダー</span></a>
         <a href="guide.html"><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></a>
       </div>
@@ -109,7 +108,7 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   </div>
 </section>
 
-<section>
+<section id="carpacks">
   <div class="wrap">
     <div class="eyebrow"><span data-l="en">Car packs</span><span data-l="ja">カーパック</span></div>
     <h2 class="title"><span data-l="en">Add car packs.</span><span data-l="ja">カーパックを追加する。</span></h2>
@@ -126,6 +125,11 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
     <div class="cta-row">
       <a class="btn outline" href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg>Basic Car Pack</a>
       <a class="btn outline" href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg>Example Car Pack</a>
+    </div>
+    <h3 class="sub-title" style="margin-top:56px;font-size:24px;font-weight:500"><span data-l="en">Community car packs</span><span data-l="ja">コミュニティのカーパック</span></h3>
+    <p class="lead"><span data-l="en">Car packs made by players. Check each page for supported versions.</span><span data-l="ja">プレイヤーが作ったカーパックです。対応する版は、それぞれのページで確かめてください。</span></p>
+    <div class="packs" style="margin-top:24px">
+      <a class="pack" href="https://www.curseforge.com/minecraft/mc-mods/dream-drift-pack" target="_blank" rel="noopener"><small><span data-l="en">By LexusIS300</span><span data-l="ja">作者 LexusIS300</span></small><h3>Dream Drift Pack</h3><p><span data-l="en">Adds the Mitsubishi Lancer, with bumpers, spoilers and exhausts to swap.</span><span data-l="ja">三菱 ランサーを追加。バンパー、スポイラー、マフラーを換装できます。</span></p><span class="go">CurseForge</span></a>
     </div>
   </div>
 </section>
@@ -161,9 +165,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
       </div>
       <dl class="news-list">
         <div><dt><span data-l="en">Build a course (OP)</span><span data-l="ja">コースを作る（OP）</span></dt><dd><span data-l="en">Mark both ends of each line with <code>/kuruma-admin point</code>. Face the racing direction and run <code>/kuruma-admin course create &lt;name&gt;</code>, then add checkpoints in order with <code>/kuruma-admin course checkpoint &lt;name&gt;</code>.</span><span data-l="ja">各ラインの両端を <code>/kuruma-admin point</code> で指定し、走る向きを向いて <code>/kuruma-admin course create &lt;名前&gt;</code>。続けてチェックポイントを通る順に <code>/kuruma-admin course checkpoint &lt;名前&gt;</code>。</span></dd></div>
-        <div><dt><span data-l="en">Time attack</span><span data-l="ja">タイムアタック</span></dt><dd><span data-l="en">Just drive across a start line.</span><span data-l="ja">スタートラインを通過するだけ。</span></dd></div>
-        <div><dt><span data-l="en">Race</span><span data-l="ja">レース</span></dt><dd><span data-l="en">Press K to open a race and set the regulation. Others press K when the invite appears. The host presses Start. <a href='race.html'>How racing works</a></span><span data-l="ja">K でレースを開いてレギュレーションを決める → 参加の案内が出たら参加者も K → 主催者が「スタート」。<a href='race.html'>レースの詳しい説明</a></span></dd></div>
-        <div><dt><span data-l="en">Records</span><span data-l="ja">記録</span></dt><dd><code>/kuruma best</code>, <code>/kuruma best top &lt;course&gt;</code></dd></div>
+        <div><dt><span data-l="en">Time attack</span><span data-l="ja">タイムアタック</span></dt><dd><span data-l="en">Drive across a start line for a warm-up lap. Timing starts the next time you cross it. Pick a class with K if you like.</span><span data-l="ja">スタートラインを越えるとウォームアップの 1 周、次に越えたところから計測。クラスで走るなら K で選びます。</span></dd></div>
+        <div><dt><span data-l="en">Race</span><span data-l="ja">レース</span></dt><dd><span data-l="en">Press K and open a race from the Host a race tab. Others press K when the invite appears and press Join. The host presses Start. <a href='race.html'>How racing works</a></span><span data-l="ja">K の「レースを開く」のタブでレースを開く → 参加の案内が出たら参加者も K を押して「参加する」 → 主催者が「スタート」。<a href='race.html'>レースの詳しい説明</a></span></dd></div>
+        <div><dt><span data-l="en">Records</span><span data-l="ja">記録</span></dt><dd><span data-l="en">Press K. The Time attack tab shows the rankings for each track.</span><span data-l="ja">K のタイムアタックのタブで、トラックごとのランキングを見られます。</span></dd></div>
       </dl>
     </div>
   </div>
@@ -195,9 +199,9 @@ if (location.hostname === 'kuruma.jdm-mc.com') {
   <div class="wrap">
     <a class="wordmark" href="index.html">KURUMA</a>
     <div class="cols">
-      <div><h4><span data-l="en">Cars</span><span data-l="ja">車種</span></h4><ul><li><a href="s15.html">Silvia S15</a></li><li><a href="911.html">911</a></li><li><a href="prado.html">Land Cruiser Prado</a></li><li><a href="compare.html"><span data-l="en">Compare cars</span><span data-l="ja">車種を比較</span></a></li></ul></div>
-      <div><h4><span data-l="en">Features</span><span data-l="ja">特徴</span></h4><ul><li><a href="features.html#physics"><span data-l="en">Physics</span><span data-l="ja">物理演算</span></a></li><li><a href="features.html#setup"><span data-l="en">Setup</span><span data-l="ja">セッティング</span></a></li><li><a href="features.html#lighting"><span data-l="en">Headlights</span><span data-l="ja">ヘッドライト</span></a></li><li><a href="race.html"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li></ul></div>
-      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma" target="_blank" rel="noopener">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma" target="_blank" rel="noopener">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener">Basic Car Pack</a></li><li><a href="guide.html"><span data-l="en">Car pack guide</span><span data-l="ja">カーパック作成ガイド</span></a></li></ul></div>
+      <div><h4>KurumaMod</h4><ul><li><a href="index.html"><span data-l="en">Home</span><span data-l="ja">トップ</span></a></li><li><a href="start.html"><span data-l="en">Get started</span><span data-l="ja">はじめかた</span></a></li><li><a href="features.html"><span data-l="en">Features</span><span data-l="ja">特徴</span></a></li><li><a href="race.html"><span data-l="en">Racing</span><span data-l="ja">レース</span></a></li><li><a href="shaders.html"><span data-l="en">Shaders</span><span data-l="ja">シェーダー</span></a></li></ul></div>
+      <div><h4><span data-l="en">Car Pack Guide</span><span data-l="ja">作成ガイド</span></h4><ul><li><a href="guide.html"><span data-l="en">Overview</span><span data-l="ja">はじめに</span></a></li><li><a href="guide-prep.html"><span data-l="en">Setup</span><span data-l="ja">準備</span></a></li><li><a href="guide-car.html"><span data-l="en">Car</span><span data-l="ja">車</span></a></li><li><a href="guide-parts.html"><span data-l="en">Parts</span><span data-l="ja">パーツ</span></a></li><li><a href="guide-wheel.html"><span data-l="en">Wheel</span><span data-l="ja">ホイール</span></a></li><li><a href="guide-tire.html"><span data-l="en">Tyre</span><span data-l="ja">タイヤ</span></a></li><li><a href="guide-ship.html"><span data-l="en">Shipping</span><span data-l="ja">配布</span></a></li></ul></div>
+      <div><h4><span data-l="en">Download</span><span data-l="ja">ダウンロード</span></h4><ul><li><a href="https://www.curseforge.com/minecraft/mc-mods/kuruma" target="_blank" rel="noopener">CurseForge</a></li><li><a href="https://modrinth.com/mod/kuruma" target="_blank" rel="noopener">Modrinth</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumabasiccarpack" target="_blank" rel="noopener">Basic Car Pack</a></li><li><a href="https://www.curseforge.com/minecraft/mc-mods/kurumaexamplecarpack" target="_blank" rel="noopener">Example Car Pack</a></li></ul></div>
       <div><h4><span data-l="en">Community</span><span data-l="ja">コミュニティ</span></h4><ul><li><a href="https://discord.gg/q3YNqaveRd" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/kurumamod" target="_blank" rel="noopener">X @kurumamod</a></li></ul></div>
     </div>
     <div class="legal">
