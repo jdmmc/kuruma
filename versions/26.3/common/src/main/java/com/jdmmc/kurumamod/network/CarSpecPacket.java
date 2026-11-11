@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
@@ -37,12 +38,12 @@ public record CarSpecPacket(int entityId, CarSpec spec) implements CustomPacketP
 
 
     public CarSpecPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), CarSpecCodec.read(buf));
+        this(buf.readVarInt(), CarSpecNbt.read(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
-        CarSpecCodec.write(buf, spec);
+        CarSpecNbt.write(buf, spec);
     }
 
     public void handle(PacketContext context) {

@@ -51,7 +51,7 @@ public final class KurumaSounds {
      * 一緒に動いて作り物っぽくなるから。隣どうしの比は 1.8 倍以内で、ピッチの壁（0.5〜2.0）の
      * 内側で入れ替えられる。</p>
      */
-    public static final int[] ENGINE_BANDS = {900, 1600, 2800, 4500, 7000};
+    public static final int[] ENGINE_BANDS = com.jdmmc.kurumamod.sound.EngineTypes.ENGINE_BANDS;
     /**
      * 合成したエンジン音の種類（{@code tools/make_engine.py} の {@code ENGINES}）。カーパックが
      * {@code sounds.engine.type} で選ぶ。
@@ -59,9 +59,9 @@ public final class KurumaSounds {
      * <p>i4_turbo 直 4 ターボ（SR20DET を手本）、i4 直 4 NA、i6 直 6 ターボ、flat6 水平対向 6 NA、
      * v8 クロスプレーン V8、diesel4 直 4 ディーゼルターボ。</p>
      */
-    public static final String[] ENGINE_TYPES = {"i4_turbo", "i4", "i6", "flat6", "v8", "diesel4"};
+    public static final String[] ENGINE_TYPES = com.jdmmc.kurumamod.sound.EngineTypes.ENGINE_TYPES;
     /** 種類を書いていない車の音。 */
-    public static final String DEFAULT_ENGINE_TYPE = "i4_turbo";
+    public static final String DEFAULT_ENGINE_TYPE = com.jdmmc.kurumamod.sound.EngineTypes.DEFAULT_ENGINE_TYPE;
     /**
      * 合成したエンジン音。{@link #ENGINE_TYPES} ごとに、{@link #ENGINE_BANDS} の順に、抜いているとき・
      * 踏んでいるときの 2 本ずつ（{@link #engine}）。カーパックが {@code exhaust} を書いていない車はこちらを鳴らす。

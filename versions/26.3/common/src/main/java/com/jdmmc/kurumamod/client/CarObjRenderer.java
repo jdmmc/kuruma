@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Wheel;
@@ -151,7 +152,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         PlateRenderer.render(car, model, spec, pose, collector, packedLight, this::solid,
                 HeadlightVolume.ShaderPacks.renderingShadowPass());
         // 見た目の調整画面（Ctrl+G）を開いている間だけ、Blender のゲージを車体に重ねる
-        if (SeatScreen.showsGauge(car)) {
+        if (McUiScreen.unwrap(Minecraft.getInstance().gui.screen()) instanceof SeatScreen
+                && Minecraft.getInstance().player != null && Minecraft.getInstance().player.getVehicle() == car) {
             renderGauge(model, spec, pose, collector);
         }
         // 一人称では自分の体が描かれないので、ハンドルを握る腕だけ車体の中に描き足す
@@ -360,7 +362,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
         // 塗装で変わる。灯火・鏡・ガラスも同じテクスチャから色を取る
-        Identifier texture = model.bodyTexture(car.getFitment());
+        Identifier texture = McIds.mc(model.bodyTexture(car.getFitment()));
 
         // ここでは不透明な面だけ。ガラスは renderGlass が描く。
         // 遠ければ間引いた版。灯火・鏡・ガラスは元のメッシュのまま（数が少なく、位置を測るのにも使うため）
@@ -425,7 +427,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         }
         pose.pushPose();
         applyBodyTransform(model, spec, pose);
-        RenderType type = clear(model.bodyTexture(car.getFitment()));
+        RenderType type = clear(McIds.mc(model.bodyTexture(car.getFitment())));
         // 乗っている車を一人称で見ているときは、ガラスを薄くする（INSIDE_GLASS_ALPHA）。
         // ゴーストの濃さが入っていることもあるので、上書きせずに掛けて戻す。
         // 濃さは ObjModel.submit が預けた時点の値を覚えておいて、描くときに戻す
@@ -605,7 +607,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         CarPartModel.Tire chosen = CarPartModel.tireOf(car.getEffectiveFitment());
         ObjModel tireMesh = ObjModel.fittedTire(chosen.model(), chosen.innerRadius(), chosen.outerRadius(),
                 beadRadius(look, wheelMesh), look.designRadius()).lod(lod);
-        Identifier tireTexture = chosen.texture();
+        Identifier tireTexture = McIds.mc(chosen.texture());
         // 寸法を測り終えてから間引いた版へ（ビードの半径などは元のメッシュで測る）
         ObjModel wheelDrawn = wheelMesh.lod(lod);
 
@@ -676,7 +678,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
             // メッシュに掛かるので、左右のタイヤは同じ向きへ切れる（鏡像に切れたりはしない）。
             // ホイールの表裏が逆に見えるときはこの条件を反転させる
             if (!shadowPass) {
-                drawRim(wheelDrawn, look.texture(), pose, buffer, packedLight, !wheel.isLeft());
+                drawRim(wheelDrawn, McIds.mc(look.texture()), pose, buffer, packedLight, !wheel.isLeft());
             }
             drawMesh(tireMesh, tireTexture, pose, buffer, packedLight, !wheel.isLeft());
             pose.popPose();

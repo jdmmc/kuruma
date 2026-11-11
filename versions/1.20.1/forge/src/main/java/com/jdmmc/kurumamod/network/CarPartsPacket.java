@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.part.PartFitment;
 import net.minecraft.network.FriendlyByteBuf;
@@ -24,12 +25,12 @@ import java.util.function.Supplier;
 public record CarPartsPacket(int entityId, PartFitment parts) {
 
     public CarPartsPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), PartFitment.read(buf));
+        this(buf.readVarInt(), PartFitments.read(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
-        parts.write(buf);
+        PartFitments.write(buf, parts);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {

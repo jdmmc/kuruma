@@ -48,4 +48,24 @@ public interface RaceTag {
 
     /** 入れ物の並び。無ければ空。 */
     List<RaceTag> getList(String key);
+
+    // ----- 入れ子（部品の装着状態など。2026-11-12 に足した） -----
+
+    /** 鍵の一覧。 */
+    java.util.Set<String> keys();
+
+    /** その鍵があるか（型を問わない）。 */
+    boolean contains(String key);
+
+    /** その鍵が文字列か。 */
+    boolean isString(String key);
+
+    /** その鍵が入れ子（compound）か。 */
+    boolean isCompound(String key);
+
+    /** 入れ子を読む。無い・入れ子でなければ空のもの（書き込んでも元には残らない）。 */
+    RaceTag getCompound(String key);
+
+    /** 入れ子を書く（{@link #child()} で作ったもの）。 */
+    void put(String key, RaceTag value);
 }

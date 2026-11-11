@@ -3,6 +3,7 @@ package com.jdmmc.kurumamod.client.ui;
 import com.jdmmc.kurumamod.race.RaceText;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * 文字の入力欄。バニラの {@code EditBox} の代わり。
@@ -61,6 +62,17 @@ public class UiEditBox extends UiWidget {
 
     public void setHint(RaceText hint) {
         this.hint = hint;
+    }
+
+    private Predicate<String> filter = text -> true;
+
+    /** 打てる文字列の決まり（バニラの {@code setFilter}）。つなぐ前に置くこと。 */
+    public void setFilter(Predicate<String> filter) {
+        this.filter = filter;
+    }
+
+    public Predicate<String> filter() {
+        return filter;
     }
 
     public void setResponder(Consumer<String> responder) {

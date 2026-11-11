@@ -2,10 +2,13 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.client.ui.UiFont;
 import com.jdmmc.kurumamod.client.ui.UiGraphics;
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.race.RaceText;
 import com.jdmmc.kurumamod.race.RaceTexts;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+import java.util.List;
 import org.joml.Matrix3x2f;
 
 /**
@@ -33,14 +36,22 @@ public final class McUiGraphics extends UiGraphics {
         graphics.fill(x0, y0, x1, y1, color);
     }
 
+    /**
+     * 不透明度の無い色（{@code 0xFFFFFF}）を不透明にする。1.21.1 までの {@code Font} は自分でそうしていたが、
+     * 26.3 はそのまま描くので見えなくなる。core の画面は 1.21.1 の書き方のまま。
+     */
+    private static int opaque(int color) {
+        return (color & 0xFC000000) == 0 ? color | 0xFF000000 : color;
+    }
+
     @Override
     public void drawString(UiFont font, String text, int x, int y, int color, boolean shadow) {
-        graphics.text(McUiFont.font(), text, x, y, color, shadow);
+        graphics.text(McUiFont.font(), text, x, y, opaque(color), shadow);
     }
 
     @Override
     public void drawString(UiFont font, RaceText text, int x, int y, int color, boolean shadow) {
-        graphics.text(McUiFont.font(), RaceTexts.of(text), x, y, color, shadow);
+        graphics.text(McUiFont.font(), RaceTexts.of(text), x, y, opaque(color), shadow);
     }
 
     @Override
@@ -93,5 +104,28 @@ public final class McUiGraphics extends UiGraphics {
         // 26.3 は字を流す口が部品に付いている（色は部品の状態で決まる）
         graphics.textRendererForWidget(widget, GuiGraphicsExtractor.HoveredTextEffects.NONE)
                 .acceptScrollingWithDefaultCenter(RaceTexts.of(text), left, right, top, bottom);
+    }
+
+    @Override
+    public void fillQuad(int color, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) {
+        GaugePainter.quad(graphics, color, x0, y0, x1, y1, x2, y2, x3, y3);
+    }
+
+    @Override
+    public void flush() {
+        GaugePainter.flush(graphics);
+    }
+
+    @Override
+    public void blit(CarId texture, int x, int y, int width, int height, float u, float v,
+                     int uWidth, int vHeight, int textureWidth, int textureHeight) {
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, McIds.mc(texture), x, y, u, v,
+                width, height, uWidth, vHeight, textureWidth, textureHeight);
+    }
+
+    @Override
+    public void renderTooltip(UiFont font, List<RaceText> lines, int mouseX, int mouseY) {
+        graphics.setTooltipForNextFrame(McUiFont.font(),
+                lines.stream().map(line -> RaceTexts.of(line).getVisualOrderText()).toList(), mouseX, mouseY);
     }
 }

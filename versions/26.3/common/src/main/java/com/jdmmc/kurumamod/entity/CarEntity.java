@@ -1,5 +1,10 @@
 package com.jdmmc.kurumamod.entity;
 
+import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.tuning.CarSpecNbt;
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
 
 import com.jdmmc.kurumamod.CarRules;
@@ -40,7 +45,6 @@ import com.jdmmc.kurumamod.surface.SurfaceLookup;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -404,7 +408,7 @@ public class CarEntity extends CarEntityBase {
      * 見た目（{@code assets/<ns>/vehicles/<path>.json}）を引くのも、名前を出すのも、
      * 調整画面の「戻す」でどこへ戻すかも、すべてこの id が決める。</p>
      */
-    private Identifier carId = CarTypes.DEFAULT_ID;
+    private CarId carId = CarTypes.DEFAULT_ID;
     /** 車両諸元。調整画面から差し替えられる。 */
     private CarSpec spec = CarSpec.DEFAULT;
     /**
@@ -741,14 +745,14 @@ public class CarEntity extends CarEntityBase {
 
     /** 装着しているターボの性能。付いていない・知らない部品なら無し。 */
     private static Turbo turboOf(PartFitment parts) {
-        Identifier id = parts.getPart(PartSlot.TURBO);
+        CarId id = parts.getPart(PartSlot.TURBO);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.turbo() == null ? Turbo.NONE : part.turbo();
     }
 
     /** 履いているタイヤの性能。付いていない・知らない部品ならノーマル。 */
     private static Tire tireOf(PartFitment parts) {
-        Identifier id = parts.getPart(PartSlot.TIRE);
+        CarId id = parts.getPart(PartSlot.TIRE);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.tire() == null ? Tire.NORMAL : part.tire();
     }
@@ -770,7 +774,7 @@ public class CarEntity extends CarEntityBase {
      * <p>角度は装着状態の上書き、無ければ部品の既定。範囲は部品が持ち、角度はその中の位置。</p>
      */
     private static PartAero aeroOf(PartFitment parts, PartSlot slot) {
-        Identifier id = parts.getPart(slot);
+        CarId id = parts.getPart(slot);
         CarPart part = id == null ? null : CarParts.get(id);
         if (part == null || part.aero() == null) {
             return PartAero.NONE;
@@ -789,7 +793,7 @@ public class CarEntity extends CarEntityBase {
      * 知らない部品（カーパックを外した）なら付いていないものとする。
      */
     public boolean hasBlowoff() {
-        Identifier id = getEffectiveFitment().getPart(PartSlot.BLOWOFF);
+        CarId id = getEffectiveFitment().getPart(PartSlot.BLOWOFF);
         return id != null && CarParts.get(id) != null && hasTurbo();
     }
 
@@ -805,7 +809,7 @@ public class CarEntity extends CarEntityBase {
      * 配らないと他人の車だけ既定の寸法で描かれる。</p>
      */
     /** 車種の id。見た目の定義を引くのと、名前を出すのに使う。 */
-    public Identifier getCarId() {
+    public CarId getCarId() {
         return carId;
     }
 
@@ -2461,7 +2465,7 @@ public class CarEntity extends CarEntityBase {
      * <p>車種・諸元・装着は記録したときのもの。いま乗っている車とは関係なく、
      * 記録した車の姿で走る。</p>
      */
-    public void becomeGhost(Identifier carId, CarSpec spec, PartFitment parts) {
+    public void becomeGhost(CarId carId, CarSpec spec, PartFitment parts) {
         this.ghost = true;
         this.carId = carId;
         this.spec = spec;
@@ -3093,7 +3097,8 @@ public class CarEntity extends CarEntityBase {
         Vec3 seat = null;
         if (level().isClientSide()) {
             // クライアントの側でしか通らない（isClientSide()）ので、クライアント専用のクラスを直接呼んでよい
-            seat = CarSeat.seatOffset(carId, passengerSeat);
+            var offset = CarSeat.seatOffset(carId, passengerSeat);
+            seat = new Vec3(offset.x(), offset.y(), offset.z());
         }
         if (seat == null) {
             seat = passengerSeat ? PASSENGER_SEAT_OFFSET : DRIVER_SEAT_OFFSET;
@@ -3202,7 +3207,7 @@ public class CarEntity extends CarEntityBase {
 
     @Override
     public Component getName() {
-        return CarTypes.get(carId).displayName();
+        return RaceTexts.of(CarTypes.get(carId).displayName());
     }
 
     @Override
@@ -3212,11 +3217,11 @@ public class CarEntity extends CarEntityBase {
         //
         // 車種を外していても落ちないこと。知らない id は CarTypes 側で既定の車に落ちるが、
         // id 自体は覚えておく（カーパックを入れ直せばまた元の車に戻る）
-        input.getString("CarId").map(Identifier::tryParse).ifPresent(parsed -> carId = parsed);
+        input.getString("CarId").map(CarId::parse).ifPresent(parsed -> carId = parsed);
         // ここは saveWithoutId 経由なので配信はしない（まだ誰も追跡していない）
-        input.read("Spec", CompoundTag.CODEC).ifPresent(tag -> spec = CarSpecCodec.load(tag));
+        input.read("Spec", CompoundTag.CODEC).ifPresent(tag -> spec = CarSpecNbt.load(tag));
         // 装着している部品。知らない id もそのまま覚えておく（カーパックを入れ直せば戻る）
-        input.read("Parts", CompoundTag.CODEC).ifPresent(tag -> parts = PartFitment.load(tag));
+        input.read("Parts", CompoundTag.CODEC).ifPresent(tag -> parts = PartFitments.load(tag));
         // 姿勢。物理を引き継ぐときに takeOverPhysics がここから読む。
         // 保存しないと、ひっくり返ったまま放置した車がチャンクの読み直しで水平に戻る。
         // 単位はラジアン（/summon で横転した車を出すのにも使う）
@@ -3230,10 +3235,10 @@ public class CarEntity extends CarEntityBase {
     protected void addAdditionalSaveData(ValueOutput output) {
         output.putString("CarId", carId.toString());
         // 諸元を保存しないと、リログやチャンクの読み直しで調整が消えて車高が変わる
-        output.store("Spec", CompoundTag.CODEC, CarSpecCodec.save(spec));
+        output.store("Spec", CompoundTag.CODEC, CarSpecNbt.save(spec));
         // 保存しないと、リログやチャンクの読み直しで換装が消えて既定の見た目に戻る
         if (!parts.isEmpty()) {
-            output.store("Parts", CompoundTag.CODEC, parts.save());
+            output.store("Parts", CompoundTag.CODEC, PartFitments.save(parts));
         }
         output.putFloat("Pitch", entityData.get(DATA_PITCH));
         output.putFloat("Roll", entityData.get(DATA_ROLL));
@@ -3249,17 +3254,17 @@ public class CarEntity extends CarEntityBase {
     @Override
     public void writeSpawnData(RegistryFriendlyByteBuf buf) {
         // 車種も一緒に。これが無いと、他人の車が全部既定の見た目で描かれる
-        buf.writeIdentifier(carId);
-        CarSpecCodec.write(buf, spec);
+        McIds.write(buf, carId);
+        CarSpecNbt.write(buf, spec);
         // 装着した部品も。これが無いと、後から見た人には既定のホイールで見える
-        parts.write(buf);
+        PartFitments.write(buf, parts);
     }
 
     @Override
     public void readSpawnData(RegistryFriendlyByteBuf buf) {
-        carId = buf.readIdentifier();
-        spec = CarSpecCodec.read(buf);
-        parts = PartFitment.read(buf);
+        carId = McIds.read(buf);
+        spec = CarSpecNbt.read(buf);
+        parts = PartFitments.read(buf);
     }
 
 }

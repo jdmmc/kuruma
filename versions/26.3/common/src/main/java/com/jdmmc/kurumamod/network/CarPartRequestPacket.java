@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.car.CarId;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
 import com.jdmmc.kurumamod.Kurumamod;
@@ -48,13 +50,13 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
 
 
     public CarPartRequestPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), PartSlot.byName(buf.readUtf()), PartFitment.readSetting(buf));
+        this(buf.readVarInt(), PartSlot.byName(buf.readUtf()), PartFitments.readSetting(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
         buf.writeUtf(slot.getSerializedName());
-        PartFitment.writeSetting(buf, setting);
+        PartFitments.writeSetting(buf, setting);
     }
 
     public void handle(PacketContext context) {
@@ -70,7 +72,7 @@ public record CarPartRequestPacket(int entityId, PartSlot slot, PartFitment.Sett
             }
 
             PartFitment.Setting wanted = setting;
-            Identifier partId = wanted.partId();
+            CarId partId = wanted.partId();
             // 「なし」は初期装備のある場所でだけ意味を持つ。外せない初期装備は外させない
             if (PartFitment.isNone(partId)) {
                 var defaults = com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).defaultPart(slot);

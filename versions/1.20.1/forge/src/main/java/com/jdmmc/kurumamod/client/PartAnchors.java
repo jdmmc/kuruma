@@ -78,7 +78,7 @@ public final class PartAnchors {
         paint = null;
         center = null;
         Minecraft minecraft = Minecraft.getInstance();
-        if (!(minecraft.screen instanceof CarPartScreen)) {
+        if (!(McUiScreen.unwrap(minecraft.screen) instanceof CarPartScreen)) {
             return;
         }
         CarEntity car = CarClientDriver.driving();

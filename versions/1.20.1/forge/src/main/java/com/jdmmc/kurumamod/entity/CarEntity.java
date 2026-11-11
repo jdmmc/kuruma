@@ -1,5 +1,10 @@
 package com.jdmmc.kurumamod.entity;
 
+import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.tuning.CarSpecNbt;
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.CarRules;
 import com.jdmmc.kurumamod.Config;
 import com.jdmmc.kurumamod.car.CarType;
@@ -39,7 +44,6 @@ import com.jdmmc.kurumamod.surface.SurfaceLookup;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -403,7 +407,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 見た目（{@code assets/<ns>/vehicles/<path>.json}）を引くのも、名前を出すのも、
      * 調整画面の「戻す」でどこへ戻すかも、すべてこの id が決める。</p>
      */
-    private ResourceLocation carId = CarTypes.DEFAULT_ID;
+    private CarId carId = CarTypes.DEFAULT_ID;
     /** 車両諸元。調整画面から差し替えられる。 */
     private CarSpec spec = CarSpec.DEFAULT;
     /**
@@ -735,14 +739,14 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
 
     /** 装着しているターボの性能。付いていない・知らない部品なら無し。 */
     private static Turbo turboOf(PartFitment parts) {
-        ResourceLocation id = parts.getPart(PartSlot.TURBO);
+        CarId id = parts.getPart(PartSlot.TURBO);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.turbo() == null ? Turbo.NONE : part.turbo();
     }
 
     /** 履いているタイヤの性能。付いていない・知らない部品ならノーマル。 */
     private static Tire tireOf(PartFitment parts) {
-        ResourceLocation id = parts.getPart(PartSlot.TIRE);
+        CarId id = parts.getPart(PartSlot.TIRE);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.tire() == null ? Tire.NORMAL : part.tire();
     }
@@ -764,7 +768,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * <p>角度は装着状態の上書き、無ければ部品の既定。範囲は部品が持ち、角度はその中の位置。</p>
      */
     private static PartAero aeroOf(PartFitment parts, PartSlot slot) {
-        ResourceLocation id = parts.getPart(slot);
+        CarId id = parts.getPart(slot);
         CarPart part = id == null ? null : CarParts.get(id);
         if (part == null || part.aero() == null) {
             return PartAero.NONE;
@@ -783,7 +787,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 知らない部品（カーパックを外した）なら付いていないものとする。
      */
     public boolean hasBlowoff() {
-        ResourceLocation id = getEffectiveFitment().getPart(PartSlot.BLOWOFF);
+        CarId id = getEffectiveFitment().getPart(PartSlot.BLOWOFF);
         return id != null && CarParts.get(id) != null && hasTurbo();
     }
 
@@ -799,7 +803,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * 配らないと他人の車だけ既定の寸法で描かれる。</p>
      */
     /** 車種の id。見た目の定義を引くのと、名前を出すのに使う。 */
-    public ResourceLocation getCarId() {
+    public CarId getCarId() {
         return carId;
     }
 
@@ -2409,7 +2413,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
      * <p>車種・諸元・装着は記録したときのもの。いま乗っている車とは関係なく、
      * 記録した車の姿で走る。</p>
      */
-    public void becomeGhost(ResourceLocation carId, CarSpec spec, PartFitment parts) {
+    public void becomeGhost(CarId carId, CarSpec spec, PartFitment parts) {
         this.ghost = true;
         this.carId = carId;
         this.spec = spec;
@@ -3022,7 +3026,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         Vec3 seat = null;
         if (level().isClientSide) {
             seat = DistExecutor.unsafeCallWhenOn(Dist.CLIENT,
-                    () -> () -> CarSeat.seatOffset(carId, passengerSeat));
+                    () -> () -> {
+                        var offset = CarSeat.seatOffset(carId, passengerSeat);
+                        return new Vec3(offset.x(), offset.y(), offset.z());
+                    });
         }
         if (seat == null) {
             seat = passengerSeat ? PASSENGER_SEAT_OFFSET : DRIVER_SEAT_OFFSET;
@@ -3125,7 +3132,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
 
     @Override
     public Component getName() {
-        return CarTypes.get(carId).displayName();
+        return RaceTexts.of(CarTypes.get(carId).displayName());
     }
 
     @Override
@@ -3133,18 +3140,18 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
         // 車種を外していても落ちないこと。知らない id は CarTypes 側で既定の車に落ちるが、
         // id 自体は覚えておく（カーパックを入れ直せばまた元の車に戻る）
         if (tag.contains("CarId")) {
-            ResourceLocation parsed = ResourceLocation.tryParse(tag.getString("CarId"));
+            CarId parsed = CarId.parse(tag.getString("CarId"));
             if (parsed != null) {
                 carId = parsed;
             }
         }
         if (tag.contains("Spec")) {
             // ここは saveWithoutId 経由なので配信はしない（まだ誰も追跡していない）
-            spec = CarSpecCodec.load(tag.getCompound("Spec"));
+            spec = CarSpecNbt.load(tag.getCompound("Spec"));
         }
         // 装着している部品。知らない id もそのまま覚えておく（カーパックを入れ直せば戻る）
         if (tag.contains("Parts")) {
-            parts = PartFitment.load(tag.getCompound("Parts"));
+            parts = PartFitments.load(tag.getCompound("Parts"));
         }
         // 姿勢。物理を引き継ぐときに takeOverPhysics がここから読む。
         // 保存しないと、ひっくり返ったまま放置した車がチャンクの読み直しで水平に戻る。
@@ -3159,10 +3166,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     protected void addAdditionalSaveData(CompoundTag tag) {
         tag.putString("CarId", carId.toString());
         // 諸元を保存しないと、リログやチャンクの読み直しで調整が消えて車高が変わる
-        tag.put("Spec", CarSpecCodec.save(spec));
+        tag.put("Spec", CarSpecNbt.save(spec));
         // 保存しないと、リログやチャンクの読み直しで換装が消えて既定の見た目に戻る
         if (!parts.isEmpty()) {
-            tag.put("Parts", parts.save());
+            tag.put("Parts", PartFitments.save(parts));
         }
         tag.putFloat("Pitch", entityData.get(DATA_PITCH));
         tag.putFloat("Roll", entityData.get(DATA_ROLL));
@@ -3178,17 +3185,17 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData {
     @Override
     public void writeSpawnData(FriendlyByteBuf buf) {
         // 車種も一緒に。これが無いと、他人の車が全部既定の見た目で描かれる
-        buf.writeResourceLocation(carId);
-        CarSpecCodec.write(buf, spec);
+        McIds.write(buf, carId);
+        CarSpecNbt.write(buf, spec);
         // 装着した部品も。これが無いと、後から見た人には既定のホイールで見える
-        parts.write(buf);
+        PartFitments.write(buf, parts);
     }
 
     @Override
     public void readSpawnData(FriendlyByteBuf buf) {
-        carId = buf.readResourceLocation();
-        spec = CarSpecCodec.read(buf);
-        parts = PartFitment.read(buf);
+        carId = McIds.read(buf);
+        spec = CarSpecNbt.read(buf);
+        parts = PartFitments.read(buf);
     }
 
     @Override

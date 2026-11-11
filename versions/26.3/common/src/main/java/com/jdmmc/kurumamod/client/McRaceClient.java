@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
 import com.jdmmc.kurumamod.Platform;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.client.ui.UiFont;
@@ -40,6 +41,12 @@ public final class McRaceClient implements RaceClient {
         }
         installed = true;
         RaceClient.set(new McRaceClient());
+        // 車の見た目の定義（core）がリソースパックとメッシュを引く口
+        Assets.set(new McAssets());
+        MeshShape.set(ObjModel::get);
+        // 車まわりの画面（core）が設定と版の状態を引く口
+        ClientOptions.set(new McClientOptions());
+        CarClient.set(new McCarClient());
         CarGhosts.install();
         RaceText.setResolver(text -> RaceTexts.of(text).getString());
     }
@@ -139,7 +146,7 @@ public final class McRaceClient implements RaceClient {
     @Override
     public RaceText carTypeName(String carId) {
         Identifier id = Identifier.tryParse(carId);
-        return id == null ? RaceText.literal(carId) : RaceText.ofNative(CarTypes.get(id).displayName());
+        return id == null ? RaceText.literal(carId) : CarTypes.get(McIds.of(id)).displayName();
     }
 
     @Override

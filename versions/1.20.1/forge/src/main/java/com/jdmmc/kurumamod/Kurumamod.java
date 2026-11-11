@@ -220,7 +220,7 @@ public class Kurumamod {
             ModLoadingContext.get().registerExtensionPoint(
                     ConfigScreenHandler.ConfigScreenFactory.class,
                     () -> new ConfigScreenHandler.ConfigScreenFactory(
-                            (minecraft, parent) -> new KurumaMenuScreen(parent)));
+                            (minecraft, parent) -> new com.jdmmc.kurumamod.client.McUiScreen(new KurumaMenuScreen(parent))));
         }
 
         /**
@@ -234,7 +234,7 @@ public class Kurumamod {
             event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
                 ObjModel.clearCache();
                 CarModel.clearCache();
-                CarSoundSet.clearReports();
+                com.jdmmc.kurumamod.client.CarSoundEvents.clearReports();
                 CarPartModel.clearCache();
                 CarPresets.clearCache();
                 CarIcons.clearCache();

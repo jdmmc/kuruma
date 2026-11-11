@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.car.CarId;
+import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.CarPart;
@@ -57,12 +59,12 @@ public record CarPlateRequestPacket(int entityId, PlateLook plate) implements Cu
     }
 
     public CarPlateRequestPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), PartFitment.readPlate(buf));
+        this(buf.readVarInt(), PartFitments.readPlate(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
-        PartFitment.writePlate(buf, plate);
+        PartFitments.writePlate(buf, plate);
     }
 
     public void handle(PacketContext context) {
@@ -95,7 +97,7 @@ public record CarPlateRequestPacket(int entityId, PlateLook plate) implements Cu
 
     /** 付けているプレートの欄の決まり。付けていない・知らない部品なら決まり無し（最低限の検査だけ）。 */
     private static PlateRules rulesOf(CarEntity car) {
-        ResourceLocation id = car.getEffectiveFitment().getPart(PartSlot.PLATE);
+        CarId id = car.getEffectiveFitment().getPart(PartSlot.PLATE);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.plate() == null ? PlateRules.NONE : part.plate();
     }

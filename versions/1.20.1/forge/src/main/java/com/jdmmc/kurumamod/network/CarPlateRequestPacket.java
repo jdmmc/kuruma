@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.part.PartFitments;
+import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
@@ -8,7 +10,6 @@ import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.plate.PlateLook;
 import com.jdmmc.kurumamod.plate.PlateRules;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.FilteredText;
 import net.minecraft.world.entity.Entity;
@@ -45,12 +46,12 @@ import java.util.function.Supplier;
 public record CarPlateRequestPacket(int entityId, PlateLook plate) {
 
     public CarPlateRequestPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), PartFitment.readPlate(buf));
+        this(buf.readVarInt(), PartFitments.readPlate(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
-        PartFitment.writePlate(buf, plate);
+        PartFitments.writePlate(buf, plate);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
@@ -85,7 +86,7 @@ public record CarPlateRequestPacket(int entityId, PlateLook plate) {
 
     /** 付けているプレートの欄の決まり。付けていない・知らない部品なら決まり無し（最低限の検査だけ）。 */
     private static PlateRules rulesOf(CarEntity car) {
-        ResourceLocation id = car.getEffectiveFitment().getPart(PartSlot.PLATE);
+        CarId id = car.getEffectiveFitment().getPart(PartSlot.PLATE);
         CarPart part = id == null ? null : CarParts.get(id);
         return part == null || part.plate() == null ? PlateRules.NONE : part.plate();
     }

@@ -1,25 +1,17 @@
 package com.jdmmc.kurumamod.car;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.jdmmc.kurumamod.physics.CarSpec;
-import com.jdmmc.kurumamod.tuning.CarSpecCodec;
-import com.jdmmc.kurumamod.tuning.TunableParameter;
-import com.jdmmc.kurumamod.tuning.Tunables;
-import com.mojang.logging.LogUtils;
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.ExtraCodecs;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
-import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * データパックから車種の諸元を読む。<b>サーバー側だけで動く。</b>
@@ -59,133 +51,20 @@ import java.util.TreeMap;
  */
 public final class CarTypeLoader extends SimpleJsonResourceReloadListener<JsonElement> {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     /** {@code data/<ns>/cars/} 以下を読む。 */
-    public static final String DIRECTORY = "cars";
+    public static final String DIRECTORY = CarTypeJson.DIRECTORY;
 
     public CarTypeLoader() {
-        // 26.3 は Codec で読む形になった。中身は今までどおり自分で解くので、JSON をそのまま受け取る
+        // 26.3 は Codec で読む形になった。中身は今までどおり core が解くので、JSON をそのまま受け取る
         super(ExtraCodecs.JSON, FileToIdConverter.json(DIRECTORY));
     }
 
+    /** 中身の読み方は core の {@link CarTypeJson}。ここは Minecraft の id を core の id に直して渡すだけ。 */
     @Override
     protected void apply(Map<Identifier, JsonElement> found, ResourceManager resources,
                          ProfilerFiller profiler) {
-        List<CarType> loaded = new ArrayList<>();
-        for (Map.Entry<Identifier, JsonElement> entry : found.entrySet()) {
-            Identifier id = entry.getKey();
-            try {
-                loaded.add(parse(id, GsonHelper.convertToJsonObject(entry.getValue(), "car")));
-            } catch (RuntimeException e) {
-                LOGGER.error("車種の読み込みに失敗しました（この車種だけ捨てます）: {}", id, e);
-            }
-        }
-        CarTypes.replaceAll(loaded);
-        LOGGER.info("車種を {} 件読み込みました: {}", CarTypes.all().size(),
-                CarTypes.all().stream().map(type -> type.id().toString()).toList());
-    }
-
-    /**
-     * {@code values} が無ければ根をそのまま値の並びとして読む（プリセットと同じ扱い）。
-     *
-     * <p><b>{@code _} で始まるキーは読み飛ばす。</b>JSON にコメントは書けないが、
-     * カーパックの諸元は<b>手で書かれるもの</b>なので「なぜこの値なのか」を残せる道が要る。
-     * 用意しておかないと {@code "_comment": "..."} を書いた人のファイルが
-     * 「数値として読めない」で丸ごと捨てられる。</p>
-     */
-    private static CarType parse(Identifier id, JsonObject root) {
-        int order = root.has("order") ? root.get("order").getAsInt() : CarType.DEFAULT_ORDER;
-        JsonObject values = root.has("values") ? root.getAsJsonObject("values") : root;
-
-        Map<String, Double> parsed = new TreeMap<>();
-        for (String key : values.keySet()) {
-            if (key.startsWith("_")) {
-                continue;
-            }
-            // order と default_parts を values と同じ階層に書ける形にしてあるので、値として拾わないよう避ける
-            if (values == root && (key.equals("order") || key.equals("default_parts"))) {
-                continue;
-            }
-            Double value = inRange(id, key, values.get(key).getAsDouble());
-            if (value != null) {
-                parsed.put(key, value);
-            }
-        }
-        CarSpec spec = CarSpecCodec.fromMap(parsed);
-        return new CarType(id, spec, order, parseDefaultParts(id, root));
-    }
-
-    /**
-     * 初期装備。場所 → 部品 id。外せないものは {@code {"part": ..., "removable": false}} で書く。
-     *
-     * <pre>
-     * "default_parts": {
-     *   "rear_wing": "mypack:s15_spoiler",
-     *   "front_bumper": { "part": "mypack:s15_bumper", "removable": false }
-     * }
-     * </pre>
-     *
-     * <p>部品があるかはここでは見ない（部品の読み込みとどちらが先か決まっていない）。
-     * 知らない部品なら、その場所は何も付いていないのと同じに描かれる。</p>
-     */
-    private static java.util.Map<com.jdmmc.kurumamod.part.PartSlot, CarType.DefaultPart> parseDefaultParts(
-            Identifier id, JsonObject root) {
-        java.util.Map<com.jdmmc.kurumamod.part.PartSlot, CarType.DefaultPart> result =
-                new java.util.EnumMap<>(com.jdmmc.kurumamod.part.PartSlot.class);
-        if (!root.has("default_parts") || !root.get("default_parts").isJsonObject()) {
-            return result;
-        }
-        JsonObject json = root.getAsJsonObject("default_parts");
-        for (String key : json.keySet()) {
-            var slot = com.jdmmc.kurumamod.part.PartSlot.byName(key);
-            if (slot == null) {
-                LOGGER.warn("default_parts に知らない場所があります（無視します）: {} の \"{}\"", id, key);
-                continue;
-            }
-            var element = json.get(key);
-            String part;
-            boolean removable = true;
-            if (element.isJsonPrimitive()) {
-                part = element.getAsString();
-            } else if (element.isJsonObject() && element.getAsJsonObject().has("part")) {
-                part = element.getAsJsonObject().get("part").getAsString();
-                removable = GsonHelper.getAsBoolean(element.getAsJsonObject(), "removable", true);
-            } else {
-                LOGGER.warn("default_parts.{} は部品の id か {{\"part\": ..., \"removable\": ...}} で書いてください（無視します）: {}",
-                        key, id);
-                continue;
-            }
-            Identifier partId = Identifier.tryParse(part);
-            if (partId == null) {
-                LOGGER.warn("default_parts.{} の部品の id を読めません（無視します）: {} の \"{}\"", key, id, part);
-                continue;
-            }
-            result.put(slot, new CarType.DefaultPart(partId, removable));
-        }
-        return result;
-    }
-
-    /**
-     * 範囲の端へ丸める。<b>知らない名前はそのまま返す</b>（{@code torque_falloff} のような
-     * 昔の項目は {@code Tunables#migrateLegacy} が読むので、ここで捨ててはいけない）。
-     *
-     * @return 丸めた値。数として読めなければ null（＝書かなかったのと同じ）
-     */
-    private static Double inRange(Identifier id, String key, double value) {
-        if (!Double.isFinite(value)) {
-            LOGGER.warn("車種 {} の {} は数として読めないので既定値を使います: {}", id, key, value);
-            return null;
-        }
-        TunableParameter parameter = Tunables.byName(key);
-        if (parameter == null) {
-            return value;
-        }
-        double clamped = parameter.clampInternal(value);
-        if (clamped != value) {
-            LOGGER.warn("車種 {} の {} = {} は範囲（{} 〜 {}）の外なので {} に丸めました",
-                    id, key, value, parameter.minInternal(), parameter.maxInternal(), clamped);
-        }
-        return clamped;
+        Map<CarId, JsonElement> byId = new LinkedHashMap<>();
+        found.forEach((id, json) -> byId.put(McIds.of(id), json));
+        CarTypeJson.apply(byId);
     }
 }

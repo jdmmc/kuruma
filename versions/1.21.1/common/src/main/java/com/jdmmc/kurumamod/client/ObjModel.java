@@ -1,5 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.car.CarId;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -10,7 +12,6 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.joml.Matrix3f;
@@ -81,7 +82,7 @@ import net.minecraft.world.phys.Vec3;
  * <p>{@link #LIGHT_PREFIX} と違い、<b>知らない {@code glass*} を足しても穴は開かない</b>。
  * 車体のパスから外れたぶんは必ず半透明のパスが拾うので、描かれなくなることがない。</p>
  */
-public final class ObjModel {
+public final class ObjModel implements MeshShape {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -137,7 +138,7 @@ public final class ObjModel {
     private static final String GAUGE_PREFIX = "gauge_";
 
     /** 読み込んだモデルの置き場。リソースの再読み込み（F3+T）で捨てる。 */
-    private static final Map<ResourceLocation, ObjModel> CACHE = new HashMap<>();
+    private static final Map<CarId, ObjModel> CACHE = new HashMap<>();
 
     /** 面を持たない、描いても何も起きないモデル。読み込みに失敗したときに返す。 */
     private static final ObjModel EMPTY = new ObjModel(new float[0], List.of());
@@ -195,7 +196,7 @@ public final class ObjModel {
      * <p><b>純正の形（純正スポイラーなど）も部品として作る。</b>車の諸元側の {@code default_parts} で
      * 初期装備にしておけば、何も付けていないときに出て、別の部品に付け替えると消える。</p>
      */
-    public static final String PART_PREFIX = "part_";
+    public static final String PART_PREFIX = MeshShape.PART_PREFIX;
 
     /**
      * ナンバーの字の枠（{@code text_<欄>}）。<b>描かない。</b>位置と大きさだけ読み（{@link #textFrames}）、
@@ -562,6 +563,7 @@ public final class ObjModel {
     }
 
     /** このモデルが持っている、部品の形の名前（{@link #PART_PREFIX}）。 */
+    @Override
     public java.util.Set<String> optionalNames() {
         return optionalFaces.keySet();
     }
@@ -668,6 +670,7 @@ public final class ObjModel {
      * ハンドルのコラムの角度 [度]。水平から、運転者へ向かって上がる向きが正（傾ける前）。
      * {@code steering.column} と同じ向き。軸が取れていなければ NaN。
      */
+    @Override
     public double steeringColumnAngle(double column) {
         SteeringWheelAxis.Result axis = steeringAxis(column);
         return axis == null ? Double.NaN : Math.toDegrees(Math.asin(axis.axis()[1]));
@@ -745,6 +748,7 @@ public final class ObjModel {
      * メッシュ全体を囲む箱 {minX, minY, minZ, maxX, maxY, maxZ}（メッシュの座標のまま）。
      * 面が無ければすべて 0。アイテムのアイコンで車を枠へ収めるのに使う。
      */
+    @Override
     public double[] bounds() {
         if (bounds == null) {
             double[] box = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
@@ -820,6 +824,7 @@ public final class ObjModel {
      * @return {z, 法線 x, 法線 y, 法線 z}（法線は外向き）。当たらなければ null
      */
     @Nullable
+    @Override
     public double[] surfaceAlongZ(double x, double y, boolean front) {
         double bestZ = front ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
         double[] best = null;
@@ -934,7 +939,7 @@ public final class ObjModel {
     /** 合わせ直したタイヤ。リソースの再読み込みで捨てる。 */
     private static final Map<FitKey, ObjModel> FITTED = new HashMap<>();
 
-    private record FitKey(ResourceLocation location, double fromInner, double fromOuter,
+    private record FitKey(CarId location, double fromInner, double fromOuter,
                           double toInner, double toOuter, double xScale) {
     }
 
@@ -947,7 +952,7 @@ public final class ObjModel {
      * @param fromInner メッシュのタイヤの内径。null なら測った値
      * @param fromOuter メッシュのタイヤの外径。null なら測った値
      */
-    public static ObjModel fittedTire(ResourceLocation location,
+    public static ObjModel fittedTire(CarId location,
                                       @org.jetbrains.annotations.Nullable Double fromInner,
                                       @org.jetbrains.annotations.Nullable Double fromOuter,
                                       double toInner, double toOuter) {
@@ -1265,7 +1270,7 @@ public final class ObjModel {
      * <p>読み込みに失敗しても例外は投げず、空のモデルを返してログに残す。
      * モデルが 1 つ壊れているだけでゲームが落ちるより、車が消えて見える方がましなため。</p>
      */
-    public static ObjModel get(ResourceLocation location) {
+    public static ObjModel get(CarId location) {
         return CACHE.computeIfAbsent(location, ObjModel::load);
     }
 
@@ -1461,6 +1466,7 @@ public final class ObjModel {
         }
     }
 
+    @Override
     public boolean isEmpty() {
         return faceCount == 0;
     }
@@ -1683,9 +1689,9 @@ public final class ObjModel {
     // 読み込み
     // ------------------------------------------------------------------
 
-    private static ObjModel load(ResourceLocation location) {
+    private static ObjModel load(CarId location) {
         ResourceManager resources = Minecraft.getInstance().getResourceManager();
-        Optional<Resource> resource = resources.getResource(location);
+        Optional<Resource> resource = resources.getResource(McIds.mc(location));
         if (resource.isEmpty()) {
             LOGGER.error("OBJ モデルが見つかりません: {}", location);
             return EMPTY;
@@ -1701,7 +1707,7 @@ public final class ObjModel {
         }
     }
 
-    private static ObjModel parse(BufferedReader reader, ResourceLocation location, ResourceManager resources)
+    private static ObjModel parse(BufferedReader reader, CarId location, ResourceManager resources)
             throws IOException {
         // OBJ のインデックスは 1 始まりでファイル全体に通し番号。オブジェクトが分かれていても連番になる
         List<float[]> positions = new ArrayList<>();
@@ -1942,12 +1948,12 @@ public final class ObjModel {
      * マテリアルの <b>Alpha</b> がそのまま {@code d} として書き出されるので、ガラスの濃さは
      * Blender 側で決められる（コードもテクスチャも触らずに済む）。</p>
      */
-    private static Map<String, float[]> loadMaterials(ResourceLocation objLocation, String fileName,
+    private static Map<String, float[]> loadMaterials(CarId objLocation, String fileName,
                                                       ResourceManager resources) {
         String directory = objLocation.getPath().substring(0, objLocation.getPath().lastIndexOf('/') + 1);
-        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(objLocation.getNamespace(), directory + fileName);
+        CarId location = CarId.of(objLocation.getNamespace(), directory + fileName);
 
-        Optional<Resource> resource = resources.getResource(location);
+        Optional<Resource> resource = resources.getResource(McIds.mc(location));
         if (resource.isEmpty()) {
             LOGGER.warn("MTL が見つかりません（色は白になります）: {}", location);
             return Map.of();

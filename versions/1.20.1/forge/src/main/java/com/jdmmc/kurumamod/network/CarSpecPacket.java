@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
@@ -25,12 +26,12 @@ import java.util.function.Supplier;
 public record CarSpecPacket(int entityId, CarSpec spec) {
 
     public CarSpecPacket(FriendlyByteBuf buf) {
-        this(buf.readVarInt(), CarSpecCodec.read(buf));
+        this(buf.readVarInt(), CarSpecNbt.read(buf));
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeVarInt(entityId);
-        CarSpecCodec.write(buf, spec);
+        CarSpecNbt.write(buf, spec);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {

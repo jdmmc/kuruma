@@ -53,7 +53,7 @@ public final class ForgeClientEvents {
 
         // Mod 一覧の「Config」ボタンから H キーと同じ設定画面を開く（設定の置き場所は 1 つに保つ）
         context.registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class,
-                () -> new ConfigScreenHandler.ConfigScreenFactory(parent -> new KurumaMenuScreen(parent)));
+                () -> new ConfigScreenHandler.ConfigScreenFactory(parent -> new McUiScreen(new KurumaMenuScreen(parent))));
 
         EntityRenderersEvent.RegisterRenderers.BUS.addListener(event ->
                 event.registerEntityRenderer(Kurumamod.CAR.get(), CarObjRenderer::new));
