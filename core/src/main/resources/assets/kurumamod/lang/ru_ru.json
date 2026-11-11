@@ -378,6 +378,7 @@
   "race.kurumamod.away_retired_self": "Вы были вне машины 60 секунд и сошли с гонки",
   "race.kurumamod.away_retired": "%s был вне машины 60 секунд и сошёл с гонки",
   "race.kurumamod.host_left_running": "Организатор %s вышел. Гонка продолжается",
+  "race.kurumamod.host_left_dimension": "Организатор %s ушёл в другое измерение, поэтому гонка завершена",
   "race.kurumamod.not_timing": "Заезд на время сейчас не идёт",
   "race.kurumamod.reset_while_racing": "Во время гонки сброс недоступен (выйти из гонки можно на экране гонки, K)",
   "race.kurumamod.timeattack_reset": "Заезд на время отменён. Отсчёт начнётся при следующем пересечении стартовой линии",

@@ -138,7 +138,7 @@ public final class RaceManager {
     public static void onChangedDimension(Player player, ResourceKey<Level> from) {
         dropOut(player, from);
         // 主催者が別の次元へ移ったら、落ちたときと同じ（受付中は中止、走行中は続ける）。元のレースを操作できなくなるため
-        cancelIfHost(player, from);
+        cancelIfHost(player, from, true);
         // 捨てたことは<b>必ず伝える</b>。伝えないと画面の時計だけが回り続け、
         // サーバーには周回状態が無いので、K の「計測をやめる」が
         // 「計測していません」を返す——画面とサーバーが食い違う
@@ -150,17 +150,23 @@ public final class RaceManager {
     public static void onLogout(Player player) {
         DECLARED.remove(player.getUUID());
         dropOut(player, player.level().dimension());
-        cancelIfHost(player, player.level().dimension());
+        cancelIfHost(player, player.level().dimension(), false);
     }
 
     /**
-     * 主催者が落ちたら、受付中のレースは中止する（リザルトも出さない）。走行中は続ける。
+     * 主催者が落ちた・別の次元へ移ったら、受付中のレースは中止する（リザルトも出さない）。
      *
-     * <p>主催者のいないレースを残すと、誰が畳むのか・誰がスタートを押すのかの取り回しが面倒になる。
-     * <b>ただし走行中は中止しない</b>（ほかの人が走っている途中で打ち切らない）。全員がゴールすれば締まり、
-     * OP と参加者が「終える」を押せる。抜けたのが主催者でなければ何もしない。</p>
+     * <p>主催者のいないレースを残すと、誰が畳むのか・誰がスタートを押すのかの取り回しが面倒になる。</p>
+     *
+     * <p><b>走行中に別の次元へ移ったら、レースを終える</b>（「終える」と同じ。ゴールした人の順位が残るよう、
+     * リザルトは出す）。移った主催者はレースの画面からそのレースを操作できない。<b>落ちたときは続ける</b>——回線が
+     * 一瞬切れただけで、ほかの人が走っている途中で打ち切らない。全員がゴールすれば締まり、OP と参加者が「終える」を
+     * 押せる。抜けたのが主催者でなければ何もしない。</p>
+     *
+     * @param changedDimension 別の次元へ移った（false なら落ちた）
      */
-    private static void cancelIfHost(net.minecraft.world.entity.player.Player player, ResourceKey<Level> from) {
+    private static void cancelIfHost(net.minecraft.world.entity.player.Player player, ResourceKey<Level> from,
+                                     boolean changedDimension) {
         Session session = SESSIONS.get(from);
         if (session == null || !player.getUUID().equals(session.host) || player.level().getServer() == null) {
             return;
@@ -169,8 +175,14 @@ public final class RaceManager {
         if (level == null) {
             return;
         }
+        if (session.started && !session.showingResult && changedDimension) {
+            broadcast(level, Component.translatable("race.kurumamod.host_left_dimension", session.hostName)
+                    .withStyle(ChatFormatting.GOLD));
+            stopRace(level);
+            return;
+        }
         if (session.started && !session.showingResult) {
-            // <b>走行中は続ける。</b>ほかの人が走っている途中で打ち切らない。全員がゴールすれば締まり、
+            // <b>落ちたときは続ける。</b>ほかの人が走っている途中で打ち切らない。全員がゴールすれば締まり、
             // OP と（主催者がいない間は）参加者が「終える」を押せる（canManage）
             broadcast(level, Component.translatable("race.kurumamod.host_left_running", session.hostName)
                     .withStyle(ChatFormatting.GRAY));

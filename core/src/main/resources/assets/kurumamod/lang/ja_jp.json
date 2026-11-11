@@ -974,6 +974,7 @@
   "race.kurumamod.invite.detail_class": "%s · %s · %s 周 · %s 人",
   "race.kurumamod.host_left": "主催者の %s さんが抜けたため、レースを中止しました",
   "race.kurumamod.host_left_running": "主催者の %s さんが抜けました。レースはそのまま続きます",
+  "race.kurumamod.host_left_dimension": "主催者の %s が別の次元へ移ったので、レースを終えました",
   "screen.kurumamod.race_info.spectate": "観戦する",
   "screen.kurumamod.race_info.unspectate": "観戦をやめる",
   "race.kurumamod.spectate_on": "観戦に切り替えました（エントリーはしていません）",

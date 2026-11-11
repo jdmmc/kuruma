@@ -378,6 +378,7 @@
   "race.kurumamod.away_retired_self": "你离开车辆已 60 秒，已退赛",
   "race.kurumamod.away_retired": "%s 离开车辆已 60 秒，已退赛",
   "race.kurumamod.host_left_running": "主办者 %s 已离开。比赛继续进行",
+  "race.kurumamod.host_left_dimension": "主办者 %s 去了其他维度，比赛已结束",
   "race.kurumamod.not_timing": "未在计时赛计时",
   "race.kurumamod.reset_while_racing": "比赛中无法取消（退出请在比赛界面（K）操作）",
   "race.kurumamod.timeattack_reset": "已取消计时赛。下次通过起跑线时重新计时",

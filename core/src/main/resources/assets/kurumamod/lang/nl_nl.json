@@ -378,6 +378,7 @@
   "race.kurumamod.away_retired_self": "Je was 60 seconden uit je auto en ligt uit de race",
   "race.kurumamod.away_retired": "%s was 60 seconden uit de auto en ligt uit de race",
   "race.kurumamod.host_left_running": "Host %s is vertrokken. De race gaat door",
+  "race.kurumamod.host_left_dimension": "Organisator %s is naar een andere dimensie gegaan, daarom is de race beëindigd",
   "race.kurumamod.not_timing": "Er wordt geen tijdrit getimed",
   "race.kurumamod.reset_while_racing": "Je kunt niet resetten tijdens een race (verlaat de race via het racescherm, K)",
   "race.kurumamod.timeattack_reset": "Tijdrit afgebroken. De tijd loopt opnieuw vanaf je volgende passage over de start-/finishlijn",

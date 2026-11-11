@@ -378,6 +378,7 @@
   "race.kurumamod.away_retired_self": "Du warst 60 Sekunden nicht im Auto und bist ausgeschieden",
   "race.kurumamod.away_retired": "%s war 60 Sekunden nicht im Auto und ist ausgeschieden",
   "race.kurumamod.host_left_running": "Gastgeber %s hat das Spiel verlassen. Das Rennen läuft weiter",
+  "race.kurumamod.host_left_dimension": "Der Veranstalter %s hat die Dimension gewechselt, daher wurde das Rennen beendet",
   "race.kurumamod.not_timing": "Es läuft keine Zeitfahrt-Messung",
   "race.kurumamod.reset_while_racing": "Zurücksetzen während eines Rennens nicht möglich (aussteigen über den Rennbildschirm, K)",
   "race.kurumamod.timeattack_reset": "Zeitfahren abgebrochen. Die Zeitmessung beginnt beim nächsten Überqueren der Startlinie",

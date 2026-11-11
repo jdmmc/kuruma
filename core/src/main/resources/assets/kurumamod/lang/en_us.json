@@ -974,6 +974,7 @@
   "race.kurumamod.invite.detail_class": "%s · %s · %s laps · %s in",
   "race.kurumamod.host_left": "The race was cancelled because the host, %s, left",
   "race.kurumamod.host_left_running": "Host %s left. The race carries on",
+  "race.kurumamod.host_left_dimension": "%s, the host, went to another dimension, so the race was ended",
   "screen.kurumamod.race_info.spectate": "Spectate",
   "screen.kurumamod.race_info.unspectate": "Stop watching",
   "race.kurumamod.spectate_on": "You are now spectating (not entered)",
