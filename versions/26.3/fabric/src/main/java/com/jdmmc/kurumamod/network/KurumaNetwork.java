@@ -37,13 +37,13 @@ public final class KurumaNetwork {
         toServer(CarStatePacket.TYPE, CarStatePacket.STREAM_CODEC, p -> p::handle);
         toServer(CarTuningPacket.TYPE, CarTuningPacket.STREAM_CODEC, p -> p::handle);
         toClient(CarSpecPacket.TYPE, CarSpecPacket.STREAM_CODEC);
-        toClient(RaceEventPacket.TYPE, RaceEventPacket.STREAM_CODEC);
-        toClient(CourseLinesPacket.TYPE, CourseLinesPacket.STREAM_CODEC);
+        toClient(CorePackets.RACE_EVENT.type(), CorePackets.RACE_EVENT.codec());
+        toClient(CorePackets.COURSE_LINES.type(), CorePackets.COURSE_LINES.codec());
         // 衝突だけは行きも帰りもある（運転者 → サーバー → 周りのクライアント）
         both(CarImpactPacket.TYPE, CarImpactPacket.STREAM_CODEC, p -> p::handle);
         // 車体が壁と擦れている合図（火花）。衝突と同じ道
         both(CarScrapePacket.TYPE, CarScrapePacket.STREAM_CODEC, p -> p::handle);
-        toClient(RaceStandingsPacket.TYPE, RaceStandingsPacket.STREAM_CODEC);
+        toClient(CorePackets.RACE_STANDINGS.type(), CorePackets.RACE_STANDINGS.codec());
         toClient(CarTypesPacket.TYPE, CarTypesPacket.STREAM_CODEC);
         toClient(CarRulesPacket.TYPE, CarRulesPacket.STREAM_CODEC);
         both(CarPushPacket.TYPE, CarPushPacket.STREAM_CODEC, p -> p::handle);
@@ -52,10 +52,10 @@ public final class KurumaNetwork {
         toServer(CarPartRequestPacket.TYPE, CarPartRequestPacket.STREAM_CODEC, p -> p::handle);
         toServer(CarPaintRequestPacket.TYPE, CarPaintRequestPacket.STREAM_CODEC, p -> p::handle);
         toServer(CarPlateRequestPacket.TYPE, CarPlateRequestPacket.STREAM_CODEC, p -> p::handle);
-        toClient(RaceLobbyPacket.TYPE, RaceLobbyPacket.STREAM_CODEC);
-        toClient(RaceClassesPacket.TYPE, RaceClassesPacket.STREAM_CODEC);
-        toClient(TimeAttackRecordsPacket.TYPE, TimeAttackRecordsPacket.STREAM_CODEC);
-        toServer(RaceActionPacket.TYPE, RaceActionPacket.STREAM_CODEC, p -> p::handle);
+        toClient(CorePackets.RACE_LOBBY.type(), CorePackets.RACE_LOBBY.codec());
+        toClient(CorePackets.RACE_CLASSES.type(), CorePackets.RACE_CLASSES.codec());
+        toClient(CorePackets.TIME_ATTACK_RECORDS.type(), CorePackets.TIME_ATTACK_RECORDS.codec());
+        toServer(CorePackets.RACE_ACTION.type(), CorePackets.RACE_ACTION.codec(), p -> p::handle);
         both(GhostRidePacket.TYPE, GhostRidePacket.STREAM_CODEC, p -> p::handle);
         // Fabric 版だけ。車が現れるときに一緒に運ぶデータ（NeoForge では IEntityWithComplexSpawn が運ぶ）
         toClient(CarSpawnDataPacket.TYPE, CarSpawnDataPacket.STREAM_CODEC);
@@ -128,5 +128,25 @@ public final class KurumaNetwork {
         for (ServerPlayer player : PlayerLookup.all(server)) {
             ServerPlayNetworking.send(player, payload);
         }
+    }
+
+    // ------------------------------------------------------------------
+    // core に置いたパケット（RacePayload）。包みは CorePackets が付ける
+    // ------------------------------------------------------------------
+
+    public static void sendToServer(RacePayload payload) {
+        sendToServer(CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayer(ServerPlayer player, RacePayload payload) {
+        sendToPlayer(player, CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayersInDimension(ServerLevel level, RacePayload payload) {
+        sendToPlayersInDimension(level, CorePackets.wrap(payload));
+    }
+
+    public static void sendToAllPlayers(RacePayload payload) {
+        sendToAllPlayers(CorePackets.wrap(payload));
     }
 }

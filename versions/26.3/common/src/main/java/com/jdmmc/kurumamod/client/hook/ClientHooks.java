@@ -5,6 +5,8 @@ import com.jdmmc.kurumamod.client.CarChaseCamera;
 import com.jdmmc.kurumamod.client.CarClientDriver;
 import com.jdmmc.kurumamod.client.CarCockpitCamera;
 import com.jdmmc.kurumamod.client.CarDust;
+import com.jdmmc.kurumamod.client.McRaceClient;
+import com.jdmmc.kurumamod.client.McUiGraphics;
 import com.jdmmc.kurumamod.client.CarGaugeHud;
 import com.jdmmc.kurumamod.client.CarGhosts;
 import com.jdmmc.kurumamod.client.CarHelp;
@@ -59,6 +61,11 @@ import java.util.function.BiConsumer;
  * ここではクラス名の順にしてある。</p>
  */
 public final class ClientHooks {
+
+    static {
+        // レースのクライアント側（core）が Minecraft に触る口を置く。最初のティックより前に読み込まれる
+        McRaceClient.install();
+    }
 
     private ClientHooks() {
     }
@@ -163,8 +170,9 @@ public final class ClientHooks {
 
     /** ホットバーの層を描き終えた直後（チャットなどより下）。 */
     public static void renderHotbarPost(GuiRender event) {
-        RaceHud.onRenderOverlay(event);
-        RaceLobby.onRenderOverlay(event);
+        McUiGraphics graphics = new McUiGraphics(event.getGuiGraphics());
+        RaceHud.onRenderOverlay(graphics, event.getPartialTick().getGameTimeDeltaPartialTick(true));
+        RaceLobby.onRenderOverlay(graphics);
     }
 
     /** 一人称の手を 1 本描く前。 */

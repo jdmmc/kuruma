@@ -43,13 +43,13 @@ public final class KurumaNetwork {
         registrar.playToServer(CarStatePacket.TYPE, CarStatePacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         registrar.playToServer(CarTuningPacket.TYPE, CarTuningPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         registrar.playToClient(CarSpecPacket.TYPE, CarSpecPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
-        registrar.playToClient(RaceEventPacket.TYPE, RaceEventPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
-        registrar.playToClient(CourseLinesPacket.TYPE, CourseLinesPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(CorePackets.RACE_EVENT.type(), CorePackets.RACE_EVENT.codec(), (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(CorePackets.COURSE_LINES.type(), CorePackets.COURSE_LINES.codec(), (packet, context) -> packet.handle(wrap(context)));
         // 衝突だけは行きも帰りもある（運転者 → サーバー → 周りのクライアント）
         registrar.playBidirectional(CarImpactPacket.TYPE, CarImpactPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // 車体が壁と擦れている合図（火花）。衝突と同じ道
         registrar.playBidirectional(CarScrapePacket.TYPE, CarScrapePacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
-        registrar.playToClient(RaceStandingsPacket.TYPE, RaceStandingsPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(CorePackets.RACE_STANDINGS.type(), CorePackets.RACE_STANDINGS.codec(), (packet, context) -> packet.handle(wrap(context)));
         // カーパックが足した車種。ログイン時と /reload 時に丸ごと配る
         registrar.playToClient(CarTypesPacket.TYPE, CarTypesPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // サーバーが決めた走行のルール（車同士が当たるか）。車種と同じ場面で配る
@@ -68,12 +68,12 @@ public final class KurumaNetwork {
         registrar.playToServer(CarPlateRequestPacket.TYPE, CarPlateRequestPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
         // 運転者の画面で走っているゴーストを、同じ車の助手席の人へ。運転者 → サーバー → ほかの乗員
         // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
-        registrar.playToClient(RaceLobbyPacket.TYPE, RaceLobbyPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
-        registrar.playToClient(RaceClassesPacket.TYPE, RaceClassesPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(CorePackets.RACE_LOBBY.type(), CorePackets.RACE_LOBBY.codec(), (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(CorePackets.RACE_CLASSES.type(), CorePackets.RACE_CLASSES.codec(), (packet, context) -> packet.handle(wrap(context)));
         // タイムアタックの記録（K の画面がコースを選んだとき）
-        registrar.playToClient(TimeAttackRecordsPacket.TYPE, TimeAttackRecordsPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToClient(CorePackets.TIME_ATTACK_RECORDS.type(), CorePackets.TIME_ATTACK_RECORDS.codec(), (packet, context) -> packet.handle(wrap(context)));
         // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
-        registrar.playToServer(RaceActionPacket.TYPE, RaceActionPacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
+        registrar.playToServer(CorePackets.RACE_ACTION.type(), CorePackets.RACE_ACTION.codec(), (packet, context) -> packet.handle(wrap(context)));
         registrar.playBidirectional(GhostRidePacket.TYPE, GhostRidePacket.STREAM_CODEC, (packet, context) -> packet.handle(wrap(context)));
     }
 
@@ -110,5 +110,25 @@ public final class KurumaNetwork {
 
     public static void sendToAllPlayers(CustomPacketPayload payload) {
         PacketDistributor.sendToAllPlayers(payload);
+    }
+
+    // ------------------------------------------------------------------
+    // core に置いたパケット（RacePayload）。包みは CorePackets が付ける
+    // ------------------------------------------------------------------
+
+    public static void sendToServer(RacePayload payload) {
+        sendToServer(CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayer(ServerPlayer player, RacePayload payload) {
+        sendToPlayer(player, CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayersInDimension(ServerLevel level, RacePayload payload) {
+        sendToPlayersInDimension(level, CorePackets.wrap(payload));
+    }
+
+    public static void sendToAllPlayers(RacePayload payload) {
+        sendToAllPlayers(CorePackets.wrap(payload));
     }
 }

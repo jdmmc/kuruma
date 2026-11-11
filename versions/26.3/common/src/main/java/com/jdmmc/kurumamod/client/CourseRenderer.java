@@ -39,49 +39,23 @@ public final class CourseRenderer {
     private static final float PLANE_ALPHA = 0.16F;
     private static final float POST_ALPHA = 0.65F;
 
-    private static List<CourseLinesPacket.Gate> gates = List.of();
-
-    /** 配られてきたゲート。ゴーストが「いつスタートラインを跨いだか」を割り出すのに使う。 */
-    public static List<CourseLinesPacket.Gate> gates() {
-        return gates;
-    }
-
-    /**
-     * どのコースのゲートを描くか（null なら全部のコースのスタートラインだけ）。<b>見せ方はクライアントが自分の状態で決める</b>——サーバーは
-     * コースの形を送るだけで、レースのことは何も載せない（{@link CourseLinesPacket}）。
-     *
-     * <ul>
-     *   <li><b>レースに加わっている（エントリー・観戦）なら、そのレースのコースだけ</b>（歩いていても車に乗っていても。
-     *       チェックポイントも）。観戦中と号砲までのエントリー中はタイムアタックを測らない（サーバーの
-     *       {@code RaceManager#trackCar}）ので、ほかのコースは要らない</li>
-     *   <li>運転してコースを走っている（計測中・ウォームアップ中）なら、そのコースだけ。関係ないコースの線が
-     *       視界に入ると走りにくい</li>
-     *   <li>どれでもなければ<b>全部のコースのスタートラインだけ</b>（車に乗っていても歩いていても）。どこから
-     *       走り出せるかが分かれば足り、チェックポイントまで並べると門だらけになる</li>
-     * </ul>
-     */
+    /** どのコースのゲートを描くか（{@link CourseGates#focus}）。運転席だけを「車に乗っている」とみなす。 */
     private static String focus(Minecraft minecraft) {
-        String followed = RaceLobby.followedCourse();
-        if (followed != null) {
-            return followed;
-        }
-        // 運転席だけを「車に乗っている」とみなす。助手席は歩いているのと同じ（人の車で走っているわけではない）
-        if (!(minecraft.player.getVehicle() instanceof CarEntity car) || car.getControllingPassenger() != minecraft.player) {
-            return null;
-        }
-        return RaceHud.runningCourse();
+        boolean driving = minecraft.player.getVehicle() instanceof CarEntity car
+                && car.getControllingPassenger() == minecraft.player;
+        return CourseGates.focus(driving);
     }
 
-    /** そのゲートを描くか。 */
     private static boolean shows(String focus, CourseLinesPacket.Gate gate) {
-        return focus == null ? gate.start() : focus.equals(gate.course());
+        return CourseGates.shows(focus, gate);
     }
 
     private CourseRenderer() {
     }
 
+    /** 線を受け取った。持つのは core の {@link CourseGates}（ゴーストも読む）。 */
     public static void accept(CourseLinesPacket packet) {
-        gates = packet.gates();
+        CourseGates.accept(packet);
     }
 
     /**
@@ -100,7 +74,7 @@ public final class CourseRenderer {
     }
 
     private static void reset() {
-        gates = List.of();
+        CourseGates.reset();
     }
 
     /**
@@ -109,7 +83,7 @@ public final class CourseRenderer {
      */
     public static void submit(SubmitNodeCollector collector, Vec3 eye) {
         GateDisplay display = ClientConfig.gateDisplay;
-        if (gates.isEmpty() || display == GateDisplay.HIDDEN) {
+        if (CourseGates.gates().isEmpty() || display == GateDisplay.HIDDEN) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -117,7 +91,7 @@ public final class CourseRenderer {
             return;
         }
         String focus = focus(minecraft);
-        List<CourseLinesPacket.Gate> shown = gates.stream().filter(gate -> shows(focus, gate)).toList();
+        List<CourseLinesPacket.Gate> shown = CourseGates.gates().stream().filter(gate -> shows(focus, gate)).toList();
         // 頂点は描く直前（同じフレームのうち）に積まれる。設定はここで読んだ値を使う
         if (DeferredGlows.active()) {
             // シェーダーパック使用中は記録だけして、パックの仕上げの直前（ヘッドライトの後）に半透明で重ねる

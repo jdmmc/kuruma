@@ -72,7 +72,7 @@ public final class CarClientDriver {
         }
         // レース。車に乗っていなくても開ける（歩いて集まってから参加・主催することもある）
         while (KurumaKeys.OPEN_RACE.consumeClick()) {
-            RaceLobby.onKey(minecraft);
+            RaceLobby.onKey();
         }
         while (KurumaKeys.OPEN_HEADLIGHT_SETTINGS.consumeClick()) {
             if (minecraft.gui.screen() == null) {

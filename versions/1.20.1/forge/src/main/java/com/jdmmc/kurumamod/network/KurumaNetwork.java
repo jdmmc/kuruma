@@ -48,14 +48,14 @@ public final class KurumaNetwork {
                 .consumerMainThread(CarSpecPacket::handle)
                 .add();
         CHANNEL.messageBuilder(RaceEventPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(RaceEventPacket::encode)
-                .decoder(RaceEventPacket::new)
-                .consumerMainThread(RaceEventPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new RaceEventPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleRaceEvent)
                 .add();
         CHANNEL.messageBuilder(CourseLinesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(CourseLinesPacket::encode)
-                .decoder(CourseLinesPacket::new)
-                .consumerMainThread(CourseLinesPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CourseLinesPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleCourseLines)
                 .add();
         // 衝突だけは行きも帰りもある（運転者 → サーバー → 周りのクライアント）ので方向を決めない
         CHANNEL.messageBuilder(CarImpactPacket.class, id++)
@@ -64,9 +64,9 @@ public final class KurumaNetwork {
                 .consumerMainThread(CarImpactPacket::handle)
                 .add();
         CHANNEL.messageBuilder(RaceStandingsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(RaceStandingsPacket::encode)
-                .decoder(RaceStandingsPacket::new)
-                .consumerMainThread(RaceStandingsPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new RaceStandingsPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleStandings)
                 .add();
         // カーパックが足した車種。ログイン時と /reload 時に丸ごと配る
         CHANNEL.messageBuilder(CarTypesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
@@ -131,27 +131,27 @@ public final class KurumaNetwork {
                 .add();
         // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
         CHANNEL.messageBuilder(RaceLobbyPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(RaceLobbyPacket::encode)
-                .decoder(RaceLobbyPacket::new)
-                .consumerMainThread(RaceLobbyPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new RaceLobbyPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleRaceLobby)
                 .add();
         // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
         CHANNEL.messageBuilder(RaceActionPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(RaceActionPacket::encode)
-                .decoder(RaceActionPacket::new)
-                .consumerMainThread(RaceActionPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new RaceActionPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleRaceAction)
                 .add();
         // タイムアタックの記録（K の画面がコースを選んだとき）
         CHANNEL.messageBuilder(TimeAttackRecordsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(TimeAttackRecordsPacket::encode)
-                .decoder(TimeAttackRecordsPacket::new)
-                .consumerMainThread(TimeAttackRecordsPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new TimeAttackRecordsPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleTimeAttackRecords)
                 .add();
         // クラスの一覧（変わったときだけ）
         CHANNEL.messageBuilder(RaceClassesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(RaceClassesPacket::encode)
-                .decoder(RaceClassesPacket::new)
-                .consumerMainThread(RaceClassesPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new RaceClassesPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CorePackets::handleRaceClasses)
                 .add();
     }
 }

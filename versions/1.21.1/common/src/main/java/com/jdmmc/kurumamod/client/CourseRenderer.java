@@ -48,42 +48,16 @@ public final class CourseRenderer {
     private static final float PLANE_ALPHA = 0.16F;
     private static final float POST_ALPHA = 0.65F;
 
-    private static List<CourseLinesPacket.Gate> gates = List.of();
 
-    /** 配られてきたゲート。ゴーストが「いつスタートラインを跨いだか」を割り出すのに使う。 */
-    public static List<CourseLinesPacket.Gate> gates() {
-        return gates;
-    }
-
-    /**
-     * どのコースのゲートを描くか（null なら全部のコースのスタートラインだけ）。<b>見せ方はクライアントが自分の状態で決める</b>——サーバーは
-     * コースの形を送るだけで、レースのことは何も載せない（{@link CourseLinesPacket}）。
-     *
-     * <ul>
-     *   <li><b>レースに加わっている（エントリー・観戦）なら、そのレースのコースだけ</b>（歩いていても車に乗っていても。
-     *       チェックポイントも）。観戦中と号砲までのエントリー中はタイムアタックを測らない（サーバーの
-     *       {@code RaceManager#trackCar}）ので、ほかのコースは要らない</li>
-     *   <li>運転してコースを走っている（計測中・ウォームアップ中）なら、そのコースだけ。関係ないコースの線が
-     *       視界に入ると走りにくい</li>
-     *   <li>どれでもなければ<b>全部のコースのスタートラインだけ</b>（車に乗っていても歩いていても）。どこから
-     *       走り出せるかが分かれば足り、チェックポイントまで並べると門だらけになる</li>
-     * </ul>
-     */
+    /** どのコースのゲートを描くか（{@link CourseGates#focus}）。運転席だけを「車に乗っている」とみなす。 */
     private static String focus(Minecraft minecraft) {
-        String followed = RaceLobby.followedCourse();
-        if (followed != null) {
-            return followed;
-        }
-        // 運転席だけを「車に乗っている」とみなす。助手席は歩いているのと同じ（人の車で走っているわけではない）
-        if (!(minecraft.player.getVehicle() instanceof CarEntity car) || car.getControllingPassenger() != minecraft.player) {
-            return null;
-        }
-        return RaceHud.runningCourse();
+        boolean driving = minecraft.player.getVehicle() instanceof CarEntity car
+                && car.getControllingPassenger() == minecraft.player;
+        return CourseGates.focus(driving);
     }
 
-    /** そのゲートを描くか。 */
     private static boolean shows(String focus, CourseLinesPacket.Gate gate) {
-        return focus == null ? gate.start() : focus.equals(gate.course());
+        return CourseGates.shows(focus, gate);
     }
 
     /**
@@ -98,8 +72,9 @@ public final class CourseRenderer {
     private CourseRenderer() {
     }
 
+    /** 線を受け取った。持つのは core の {@link CourseGates}（ゴーストも読む）。 */
     public static void accept(CourseLinesPacket packet) {
-        gates = packet.gates();
+        CourseGates.accept(packet);
     }
 
     /**
@@ -118,7 +93,7 @@ public final class CourseRenderer {
     }
 
     private static void reset() {
-        gates = List.of();
+        CourseGates.reset();
     }
 
     public static void onRenderLevel(LevelRenderStage event) {
@@ -138,7 +113,7 @@ public final class CourseRenderer {
         }
         GateDisplay display = ClientConfig.gateDisplay;
         if (event.getStage() != LevelRenderStage.Stage.AFTER_TRANSLUCENT_BLOCKS
-                || gates.isEmpty() || display == GateDisplay.HIDDEN) {
+                || CourseGates.gates().isEmpty() || display == GateDisplay.HIDDEN) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -172,7 +147,7 @@ public final class CourseRenderer {
         }
         Sink sink = new Sink(consumer, view, eye);
 
-        for (CourseLinesPacket.Gate gate : gates) {
+        for (CourseLinesPacket.Gate gate : CourseGates.gates()) {
             if (!shows(focus, gate)) {
                 continue;
             }

@@ -53,12 +53,12 @@ public final class KurumaNetwork {
                 .addMain(CarPaintRequestPacket.TYPE, codec(CarPaintRequestPacket.STREAM_CODEC), handler(p -> p::handle))
                 .addMain(CarPlateRequestPacket.TYPE, codec(CarPlateRequestPacket.STREAM_CODEC), handler(p -> p::handle))
                 // レースの画面とキー（K）からの操作。コマンドと同じ処理を呼ぶ
-                .addMain(RaceActionPacket.TYPE, codec(RaceActionPacket.STREAM_CODEC), handler(p -> p::handle))
+                .addMain(CorePackets.RACE_ACTION.type(), codec(CorePackets.RACE_ACTION.codec()), handler(p -> p::handle))
                 .clientbound()
                 .addMain(CarSpecPacket.TYPE, codec(CarSpecPacket.STREAM_CODEC), handler(p -> p::handle))
-                .addMain(RaceEventPacket.TYPE, codec(RaceEventPacket.STREAM_CODEC), handler(p -> p::handle))
-                .addMain(CourseLinesPacket.TYPE, codec(CourseLinesPacket.STREAM_CODEC), handler(p -> p::handle))
-                .addMain(RaceStandingsPacket.TYPE, codec(RaceStandingsPacket.STREAM_CODEC), handler(p -> p::handle))
+                .addMain(CorePackets.RACE_EVENT.type(), codec(CorePackets.RACE_EVENT.codec()), handler(p -> p::handle))
+                .addMain(CorePackets.COURSE_LINES.type(), codec(CorePackets.COURSE_LINES.codec()), handler(p -> p::handle))
+                .addMain(CorePackets.RACE_STANDINGS.type(), codec(CorePackets.RACE_STANDINGS.codec()), handler(p -> p::handle))
                 // カーパックが足した車種・部品と、サーバーが決めた走行のルール。ログイン時と /reload 時に配る
                 .addMain(CarTypesPacket.TYPE, codec(CarTypesPacket.STREAM_CODEC), handler(p -> p::handle))
                 .addMain(CarRulesPacket.TYPE, codec(CarRulesPacket.STREAM_CODEC), handler(p -> p::handle))
@@ -66,9 +66,9 @@ public final class KurumaNetwork {
                 // 車 1 台の装着状態。走行中に換装したときだけ飛ぶ（現れるときはスポーンデータが運ぶ）
                 .addMain(CarPartsPacket.TYPE, codec(CarPartsPacket.STREAM_CODEC), handler(p -> p::handle))
                 // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
-                .addMain(RaceLobbyPacket.TYPE, codec(RaceLobbyPacket.STREAM_CODEC), handler(p -> p::handle))
-                .addMain(RaceClassesPacket.TYPE, codec(RaceClassesPacket.STREAM_CODEC), handler(p -> p::handle))
-                .addMain(TimeAttackRecordsPacket.TYPE, codec(TimeAttackRecordsPacket.STREAM_CODEC), handler(p -> p::handle))
+                .addMain(CorePackets.RACE_LOBBY.type(), codec(CorePackets.RACE_LOBBY.codec()), handler(p -> p::handle))
+                .addMain(CorePackets.RACE_CLASSES.type(), codec(CorePackets.RACE_CLASSES.codec()), handler(p -> p::handle))
+                .addMain(CorePackets.TIME_ATTACK_RECORDS.type(), codec(CorePackets.TIME_ATTACK_RECORDS.codec()), handler(p -> p::handle))
                 // 行きも帰りもあるもの（運転者 → サーバー → 周りのクライアント）
                 .bidirectional()
                 .addMain(CarImpactPacket.TYPE, codec(CarImpactPacket.STREAM_CODEC), handler(p -> p::handle))
@@ -128,6 +128,26 @@ public final class KurumaNetwork {
 
     public static void sendToAllPlayers(CustomPacketPayload payload) {
         channel.send(payload, PacketDistributor.ALL.noArg());
+    }
+
+    // ------------------------------------------------------------------
+    // core に置いたパケット（RacePayload）。包みは CorePackets が付ける
+    // ------------------------------------------------------------------
+
+    public static void sendToServer(RacePayload payload) {
+        sendToServer(CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayer(ServerPlayer player, RacePayload payload) {
+        sendToPlayer(player, CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayersInDimension(ServerLevel level, RacePayload payload) {
+        sendToPlayersInDimension(level, CorePackets.wrap(payload));
+    }
+
+    public static void sendToAllPlayers(RacePayload payload) {
+        sendToAllPlayers(CorePackets.wrap(payload));
     }
 
     /** クライアントだけのクラスに触るところ。サーバーでは呼ばれないので読み込まれない。 */
