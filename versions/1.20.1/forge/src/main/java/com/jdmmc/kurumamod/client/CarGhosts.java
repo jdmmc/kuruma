@@ -52,8 +52,8 @@ import java.util.regex.Pattern;
  * （{@link CarEntity#playGhostFrame}）。物理は解き直さない。</p>
  *
  * <p>ゴーストは<b>サーバーに存在しない</b>。ぶつからず、殴れず、音・煙・タイヤ痕も出さない。
- * 記録は手元に置き、誰にも送らない（シングルはワールドのセーブの {@code kurumamod/ghosts/}、マルチは
- * {@code config/kurumamod/ghosts/<アドレス>/}。{@link #worldDir}）。</p>
+ * 記録は手元に置き、誰にも送らない（シングルはワールドのセーブの {@code kurumamod/ghosts/<UUID>/}、マルチは
+ * {@code config/kurumamod/ghosts/<アドレス>/<UUID>/}。{@link #worldDir}）。</p>
  *
  * <p><b>タイムアタックでは何もしなくても動く</b>（{@link ClientConfig#timeAttackGhost}）。運転中は
  * 常に走りを書き溜めておき、サーバーから「周回完了」がベスト更新として届いたら、その周を
@@ -672,17 +672,23 @@ public final class CarGhosts {
      *   <li>マルチプレイは {@code config/kurumamod/ghosts/<アドレス>/}（{@link #serverKey}）</li>
      * </ul>
      *
-     * <p><b>{@code kurumamod/ghosts/} から下の形は、どちらも同じ</b>（コースのファイルと {@code class/<クラス>/}）。</p>
+     * <p>その下を<b>プレイヤーの UUID で分ける</b>（{@code <UUID>/}）。そこから下の形はどちらも同じ
+     * （コースのファイルと {@code class/<クラス>/}）。</p>
      *
      * <p>2.0.0 までの置き場所（{@code config/kurumamod-ghosts/}）は見ない。残っていても使わず、そのままにする。</p>
      */
     private static Path worldDir(Minecraft minecraft) {
+        Path world;
         if (minecraft.getSingleplayerServer() != null) {
-            return minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).normalize()
+            world = minecraft.getSingleplayerServer().getWorldPath(LevelResource.ROOT).normalize()
                     .resolve("kurumamod").resolve("ghosts");
+        } else {
+            String address = minecraft.getCurrentServer() != null ? minecraft.getCurrentServer().ip : null;
+            world = serversDir().resolve(address != null ? safe(serverKey(address)) : "unknown");
         }
-        String address = minecraft.getCurrentServer() != null ? minecraft.getCurrentServer().ip : null;
-        return serversDir().resolve(address != null ? safe(serverKey(address)) : "unknown");
+        // <b>プレイヤーごとに分ける。</b>分けないと、同じ PC から別のアカウントで入った人が相手のゴーストを読み、
+        // 自分のベストと合わないので消してしまった
+        return world.resolve(minecraft.player != null ? minecraft.player.getUUID().toString() : "unknown");
     }
 
     /** そのクラスのゴーストのフォルダ（{@link #fileKey}）。 */
