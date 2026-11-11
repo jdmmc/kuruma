@@ -160,6 +160,9 @@ public final class RaceManager {
      * イベントが飛ばないので、{@link #tickLevel} が {@link #LAST_DIMENSION} との違いで見つける）。
      */
     private static void leftDimension(net.minecraft.world.entity.player.Player player, ResourceKey<Level> from) {
+        // 消す前に、レースか計測に関わっていたかを見る。関わっていない人には知らせを送らない
+        // （サバイバルでネザーで死ぬたびに送っていた）
+        boolean involved = involved(player.getUUID(), from);
         dropOut(player, from);
         // 主催者が別の次元へ移ったら、受付中・信号の最中は中止、走行中は終える（リザルトは出す）。
         // 元のレースを操作できなくなるため
@@ -167,9 +170,20 @@ public final class RaceManager {
         // 捨てたことは<b>必ず伝える</b>。伝えないと画面の時計だけが回り続け、
         // サーバーには周回状態が無いので、K の「計測をやめる」が
         // 「計測していません」を返す——画面とサーバーが食い違う
-        if (player instanceof ServerPlayer serverPlayer) {
+        if (involved && player instanceof ServerPlayer serverPlayer) {
             send(serverPlayer, RaceEventPacket.cleared());
         }
+    }
+
+    /** 計測している（どの次元でも）か、その次元のレースにエントリー・観戦しているか。 */
+    private static boolean involved(UUID id, ResourceKey<Level> dimension) {
+        for (Map<UUID, LapState> byPlayer : STATES.values()) {
+            if (byPlayer.containsKey(id)) {
+                return true;
+            }
+        }
+        Session session = SESSIONS.get(dimension);
+        return session != null && (session.entrants.contains(id) || session.spectators.contains(id));
     }
 
     @SubscribeEvent
@@ -1026,8 +1040,17 @@ public final class RaceManager {
         if (!allFinished(level, session)) {
             return;
         }
+        finish(level, session, states);
+    }
+
+    /**
+     * 走行中のレースを締める。リザルトを出す。
+     *
+     * <p><b>誰もゴールせずに全員が抜けた</b>（リタイア・落ちた・主催者が次元を移ってリタイアした）なら、
+     * リタイアだけを並べても仕方がないのでリザルトは出さずに畳む。</p>
+     */
+    private static void finish(ServerLevel level, Session session, Map<UUID, LapState> states) {
         if (session.finishOrder.isEmpty() && session.retired.containsAll(session.entrants)) {
-            // 誰もゴールせずに全員が抜けた（リタイア・落ちた）。リタイアだけを並べても仕方がないのでリザルトは出さない
             cleanup(level, session);
             broadcast(level, Component.translatable("race.kurumamod.all_retired").withStyle(ChatFormatting.GRAY));
             return;
@@ -2081,16 +2104,7 @@ public final class RaceManager {
         }
         Map<UUID, LapState> states = states(level);
         if (session.started && !session.showingResult) {
-            if (session.finishOrder.isEmpty() && session.retired.containsAll(session.entrants)) {
-                // 誰もゴールせずに全員が抜けた（主催者が次元を移ってリタイアした場合も）。{@link #closeIfDone} と同じく、
-                // リタイアだけを並べても仕方がないのでリザルトは出さない
-                cleanup(level, session);
-                broadcast(level, Component.translatable("race.kurumamod.all_retired").withStyle(ChatFormatting.GRAY));
-                return;
-            }
-            broadcastResult(level, session, states);
-            broadcast(level, raceOver(session)
-                    .withStyle(ChatFormatting.GOLD));
+            finish(level, session, states);
             return;
         }
         cleanup(level, session);

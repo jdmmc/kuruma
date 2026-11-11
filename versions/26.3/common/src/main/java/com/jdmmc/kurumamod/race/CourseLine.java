@@ -47,29 +47,16 @@ public record CourseLine(double ax, double az, double bx, double bz,
         return new CourseLine(ax, az, bx, bz, yMin, yMax, -Math.sin(yaw), Math.cos(yaw));
     }
 
-    /** 線の長さ [ブロック]。 */
     /**
-     * もう 1 本の線との、水平面での近さ [ブロック]（交わっていれば 0）。<b>高さの範囲が重ならなければ無限大</b>
-     * （立体交差の上と下は、真上に重なっていても別の線）。
+     * もう 1 本の線との、水平面での近さ [ブロック]（端の点から相手の線までの距離のうち最小）。
+     * <b>高さの範囲が重ならなければ無限大</b>（立体交差の上と下は、真上に重なっていても別の線）。
      */
     public double distanceTo(CourseLine other) {
         if (yMax < other.yMin || other.yMax < yMin) {
             return Double.POSITIVE_INFINITY;
         }
-        if (segmentsCross(ax, az, bx, bz, other.ax, other.az, other.bx, other.bz)) {
-            return 0.0;
-        }
         return Math.min(Math.min(pointToSegment(ax, az, other), pointToSegment(bx, bz, other)),
                 Math.min(pointToSegment(other.ax, other.az, this), pointToSegment(other.bx, other.bz, this)));
-    }
-
-    private static boolean segmentsCross(double ax, double az, double bx, double bz,
-                                         double cx, double cz, double dx, double dz) {
-        double d1 = (bx - ax) * (cz - az) - (bz - az) * (cx - ax);
-        double d2 = (bx - ax) * (dz - az) - (bz - az) * (dx - ax);
-        double d3 = (dx - cx) * (az - cz) - (dz - cz) * (ax - cx);
-        double d4 = (dx - cx) * (bz - cz) - (dz - cz) * (bx - cx);
-        return d1 * d2 <= 0.0 && d3 * d4 <= 0.0;
     }
 
     private static double pointToSegment(double px, double pz, CourseLine line) {
@@ -81,6 +68,7 @@ public record CourseLine(double ax, double az, double bx, double bz,
         return Math.hypot(px - (line.ax + dx * t), pz - (line.az + dz * t));
     }
 
+    /** 線の長さ [ブロック]。 */
     public double length() {
         return Math.hypot(bx - ax, bz - az);
     }
