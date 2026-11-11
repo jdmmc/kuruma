@@ -355,6 +355,8 @@
   "race.kurumamod.course_in_use": "Op %s staat een race open of is er een bezig. Wijzig het circuit pas na de race",
   "race.kurumamod.too_many_courses": "Een dimensie kan maximaal %s circuits hebben. Verwijder er eerst een",
   "race.kurumamod.too_many_checkpoints": "%s heeft al %s checkpoints, meer kan niet",
+  "race.kurumamod.start_too_close": "Te dicht bij de startlijn van %s (binnen %s blokken). Trek hem iets verder weg",
+  "race.kurumamod.start_overlap": "Startlijnen overlappen hier (%s), het circuit is niet te bepalen. De tijdmeting start niet",
   "race.kurumamod.course_changed_timing": "%s is gewijzigd, daarom is je tijdmeting gestopt. Ga opnieuw over de startlijn",
   "race.kurumamod.opened": "[Race] %s heeft %s (%s ronden) geopend",
   "race.kurumamod.joined": "Je hebt je ingeschreven voor de race",

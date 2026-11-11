@@ -355,6 +355,8 @@
   "race.kurumamod.course_in_use": "A race is open or running on %s. Change the course after the race ends",
   "race.kurumamod.too_many_courses": "A dimension can have up to %s courses. Remove one before creating another",
   "race.kurumamod.too_many_checkpoints": "%s already has %s checkpoints, the most a course can have",
+  "race.kurumamod.start_too_close": "Too close to the start line of %s (within %s blocks). Draw it a little farther away",
+  "race.kurumamod.start_overlap": "Start lines overlap here (%s), so the course can't be told. Timing did not start",
   "race.kurumamod.course_changed_timing": "%s was changed, so your timing stopped. Cross the start line again",
   "race.kurumamod.opened": "[Race] %s opened %s (%s laps)",
   "race.kurumamod.joined": "Entered the race",

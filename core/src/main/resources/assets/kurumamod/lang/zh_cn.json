@@ -355,6 +355,8 @@
   "race.kurumamod.course_in_use": "赛道 %s 正在报名或比赛中。请在比赛结束后再修改赛道",
   "race.kurumamod.too_many_courses": "每个维度最多可以有 %s 条赛道。请先删除一条",
   "race.kurumamod.too_many_checkpoints": "赛道 %s 已有 %s 个检查点，无法再添加",
+  "race.kurumamod.start_too_close": "离赛道 %s 的起点线太近（%s 格以内）。请稍微远一点再画",
+  "race.kurumamod.start_overlap": "此处起点线重叠（%s），无法确定赛道。未开始计时",
   "race.kurumamod.course_changed_timing": "赛道 %s 已变更，计时已停止。请重新越过起点线",
   "race.kurumamod.opened": "【比赛举办】%s 举办了 %s（%s 圈）",
   "race.kurumamod.joined": "已报名",

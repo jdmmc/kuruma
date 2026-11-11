@@ -355,6 +355,8 @@
   "race.kurumamod.course_in_use": "Auf %s ist ein Rennen offen oder läuft. Ändere die Strecke erst nach dem Rennen",
   "race.kurumamod.too_many_courses": "Eine Dimension kann bis zu %s Strecken haben. Entferne zuerst eine",
   "race.kurumamod.too_many_checkpoints": "%s hat bereits %s Checkpoints, mehr sind nicht möglich",
+  "race.kurumamod.start_too_close": "Zu nah an der Startlinie von %s (innerhalb von %s Blöcken). Zieh sie etwas weiter entfernt",
+  "race.kurumamod.start_overlap": "Hier überlappen Startlinien (%s), die Strecke ist nicht eindeutig. Die Zeitmessung startet nicht",
   "race.kurumamod.course_changed_timing": "%s wurde geändert, deine Zeitmessung wurde gestoppt. Überquere die Startlinie erneut",
   "race.kurumamod.opened": "[Rennen] %s hat %s (%s Runden) eröffnet",
   "race.kurumamod.joined": "Zum Rennen angemeldet",

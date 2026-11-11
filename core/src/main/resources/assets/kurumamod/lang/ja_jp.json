@@ -355,6 +355,8 @@
   "race.kurumamod.course_in_use": "%s でレースを受け付け中か走行中です。コースを変えるのはレースが終わってからにしてください",
   "race.kurumamod.too_many_courses": "1 つの次元に作れるコースは %s 個までです。作るなら、先にどれかを消してください",
   "race.kurumamod.too_many_checkpoints": "%s のチェックポイントはもう %s 個あります。これ以上は足せません",
+  "race.kurumamod.start_too_close": "%s のスタートラインと近すぎます（%s ブロック以内）。少し離して引いてください",
+  "race.kurumamod.start_overlap": "スタートラインが重なっていて（%s）、どのコースか決められません。計測は始めません",
   "race.kurumamod.course_changed_timing": "%s の線が変わったので、計測をやめました。スタートラインからやり直してください",
   "race.kurumamod.opened": "【レース開催】%s が %s（%s 周）を開催しました",
   "race.kurumamod.joined": "エントリーしました",

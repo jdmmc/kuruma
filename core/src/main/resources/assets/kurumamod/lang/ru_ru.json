@@ -355,6 +355,8 @@
   "race.kurumamod.course_in_use": "На трассе %s открыта или идёт гонка. Меняйте трассу после окончания гонки",
   "race.kurumamod.too_many_courses": "В одном измерении может быть до %s трасс. Сначала удалите одну",
   "race.kurumamod.too_many_checkpoints": "На трассе %s уже %s контрольных точек — это максимум",
+  "race.kurumamod.start_too_close": "Слишком близко к линии старта трассы %s (ближе %s блоков). Проведите её подальше",
+  "race.kurumamod.start_overlap": "Здесь пересекаются линии старта (%s), трассу не определить. Замер не начат",
   "race.kurumamod.course_changed_timing": "Трасса %s изменилась, поэтому замер остановлен. Пересеките линию старта заново",
   "race.kurumamod.opened": "[Гонка] %s открывает гонку %s (кругов: %s)",
   "race.kurumamod.joined": "Вы записались на гонку",

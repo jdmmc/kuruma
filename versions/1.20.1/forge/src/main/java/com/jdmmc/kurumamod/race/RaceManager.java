@@ -100,6 +100,12 @@ public final class RaceManager {
      * 落ちた人のぶんを捨てる。</p>
      */
     private static final Map<UUID, String> DECLARED = new HashMap<>();
+    /**
+     * 最後に見たときにいた次元。<b>死んで別の次元でリスポーンしても、次元を移ったイベントは飛ばない</b>
+     * （NeoForge・Fabric・Forge のどれも）ので、{@link #tickLevel} で前と違えば移ったものとして扱う。
+     * 見逃すと、主催者がいないままレースが続き（参加者に「終える」が出ない）、元の次元に周回状態が残った。
+     */
+    private static final Map<UUID, ResourceKey<Level>> LAST_DIMENSION = new HashMap<>();
 
     private RaceManager() {
     }
@@ -134,6 +140,7 @@ public final class RaceManager {
         SESSIONS.clear();
         DECLARED.clear();
         RaceClasses.clear();
+        LAST_DIMENSION.clear();
     }
 
     /**
@@ -144,21 +151,31 @@ public final class RaceManager {
      */
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        dropOut(event.getEntity(), event.getFrom());
+        LAST_DIMENSION.put(event.getEntity().getUUID(), event.getTo());
+        leftDimension(event.getEntity(), event.getFrom());
+    }
+
+    /**
+     * 次元を移った。次元を移ったイベントからと、<b>死んで別の次元でリスポーンしたとき</b>（このときは次元を移った
+     * イベントが飛ばないので、{@link #tickLevel} が {@link #LAST_DIMENSION} との違いで見つける）。
+     */
+    private static void leftDimension(net.minecraft.world.entity.player.Player player, ResourceKey<Level> from) {
+        dropOut(player, from);
         // 主催者が別の次元へ移ったら、受付中・信号の最中は中止、走行中は終える（リザルトは出す）。
         // 元のレースを操作できなくなるため
-        cancelIfHost(event.getEntity(), event.getFrom(), true);
+        cancelIfHost(player, from, true);
         // 捨てたことは<b>必ず伝える</b>。伝えないと画面の時計だけが回り続け、
         // サーバーには周回状態が無いので、K の「計測をやめる」が
         // 「計測していません」を返す——画面とサーバーが食い違う
-        if (event.getEntity() instanceof ServerPlayer player) {
-            send(player, RaceEventPacket.cleared());
+        if (player instanceof ServerPlayer serverPlayer) {
+            send(serverPlayer, RaceEventPacket.cleared());
         }
     }
 
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         DECLARED.remove(event.getEntity().getUUID());
+        LAST_DIMENSION.remove(event.getEntity().getUUID());
         dropOut(event.getEntity(), event.getEntity().level().dimension());
         cancelIfHost(event.getEntity(), event.getEntity().level().dimension(), false);
     }
@@ -273,6 +290,11 @@ public final class RaceManager {
         }
 
         for (ServerPlayer player : level.players()) {
+            ResourceKey<Level> previous = LAST_DIMENSION.put(player.getUUID(), level.dimension());
+            if (previous != null && previous != level.dimension()) {
+                // 次元を移ったのにイベントが来ていない（死んで別の次元でリスポーンした）
+                leftDimension(player, previous);
+            }
             CarEntity driven = drivenCar(player);
             if (driven != null) {
                 trackCar(level, session, states, player, driven);
@@ -569,28 +591,29 @@ public final class RaceManager {
         String courseName = state != null ? state.course : null;
         if (courseName == null) {
             List<String> crossed = coursesCrossed(data, car, state);
-            if (crossed.isEmpty()) {
+            if (crossed.size() != 1) {
+                if (crossed.size() > 1) {
+                    startLinesOverlap(player, crossed);
+                }
                 rememberPosition(states, player, car, null);
                 return;
             }
-            startWarmUp(states, player, car, crossed);
+            startWarmUp(states, player, car, crossed.get(0));
             return;
         }
-        // ウォームアップ中（まだ測っていない・レースの参加者ではない）は、トラックを決め直せる
+        // ウォームアップ中（まだ測っていない・レースの参加者ではない）に別のトラックのスタートラインを越えたら、
+        // そちらへ乗り換える。最初に越えたトラックに縛られると、隣のトラックへ移っても降りるか「計測をやめる」まで
+        // 測れなかった。今のトラックのラインも一緒に越えたなら乗り換えない（そのまま計測が始まる）
         if (!state.timing && !state.finished && state.hasLast && !isRacer(session, player, state.course)) {
-            // 1. 別のトラックのスタートラインを越えたら、そちらへ乗り換える。最初に越えたトラックに縛られると、
-            //    隣のトラックへ移っても降りるか「計測をやめる」まで測れなかった
             List<String> crossed = coursesCrossed(data, car, state);
-            crossed.removeAll(state.candidates);
-            crossed.remove(state.course);
-            if (!crossed.isEmpty()) {
-                startWarmUp(states, player, car, crossed);
-                return;
-            }
-            // 2. スタートラインを共有するトラックがいくつかあるなら、通ったチェックポイントで絞る
-            if (state.candidates.size() > 1) {
-                state = narrowCandidates(data, states, player, car, state);
-                courseName = state.course;
+            if (!crossed.isEmpty() && !crossed.contains(state.course)) {
+                if (crossed.size() > 1) {
+                    // 乗り換え先を決められない。今のウォームアップのまま
+                    startLinesOverlap(player, crossed);
+                } else {
+                    startWarmUp(states, player, car, crossed.get(0));
+                    return;
+                }
             }
         }
 
@@ -675,8 +698,12 @@ public final class RaceManager {
     }
 
     /**
-     * 前のティックから今までに越えたスタートラインのトラック（名前順）。<b>スタートラインを共有するトラックは
-     * 全部返す</b>（レイアウト違いなど）。どれを走るかは {@link #narrowCandidates} がチェックポイントで決める。
+     * 前のティックから今までに越えたスタートラインのトラック（名前順）。
+     *
+     * <p><b>2 本以上を同時に越えたら、計測は始めない</b>（{@link #startLinesOverlap}）。スタートラインは近すぎる
+     * ところに引かせない（{@code RaceCommands}）ので、起きるのは、そうなる前に作られたコースが残っているときくらい。
+     * 候補を並べてチェックポイントで絞る仕組みは持たない（以前は持っていたが、候補の一覧を持ち回るせいで、
+     * 計測が始まったあとも別のコースの変更で止まる・ゲートが消えるなどの不具合が出た）。</p>
      */
     private static List<String> coursesCrossed(RaceData data, CarEntity car, LapState state) {
         List<String> out = new ArrayList<>();
@@ -693,56 +720,22 @@ public final class RaceManager {
         return out;
     }
 
-    /**
-     * ウォームアップを始める（越えたスタートラインのトラックで）。候補が 2 つ以上なら、HUD には「A / B」と並べ、
-     * 計測が始まるまでにチェックポイントで絞る。絞り切れなければ名前順で先のトラックで測る。
-     */
+    /** 2 本以上のスタートラインを同時に越えた。どのコースか決められないので、計測を始めずに知らせる。 */
+    private static void startLinesOverlap(ServerPlayer player, List<String> crossed) {
+        tell(player, Component.translatable("race.kurumamod.start_overlap", String.join(", ", crossed))
+                .withStyle(ChatFormatting.RED));
+    }
+
+    /** ウォームアップを始める（越えたスタートラインのトラックで）。 */
     private static void startWarmUp(Map<UUID, LapState> states, ServerPlayer player, CarEntity car,
-                                     List<String> candidates) {
-        LapState state = new LapState(candidates.get(0));
-        state.candidates = List.copyOf(candidates);
+                                     String course) {
+        LapState state = new LapState(course);
         state.lastX = car.getX();
         state.lastZ = car.getZ();
         state.hasLast = true;
         states.put(player.getUUID(), state);
         String declared = declaredClass(player);
-        send(player, RaceEventPacket.warmUp(String.join(" / ", candidates), declared == null ? "" : declared));
-    }
-
-    /**
-     * スタートラインを共有するトラックを、ウォームアップ中に通ったチェックポイントで絞る。通った線を持つ候補だけを
-     * 残し、1 つになったら確定してウォームアップを出し直す。どの候補も持つ線（共有の区間）では絞らない。
-     *
-     * @return 今のトラックの周回状態（絞ったら作り直したもの）
-     */
-    private static LapState narrowCandidates(RaceData data, Map<UUID, LapState> states, ServerPlayer player,
-                                             CarEntity car, LapState state) {
-        List<String> passed = new ArrayList<>();
-        for (String name : state.candidates) {
-            Course candidate = data.course(name).orElse(null);
-            if (candidate == null) {
-                continue;
-            }
-            for (int i = 0; i < candidate.checkpointCount(); i++) {
-                if (candidate.checkpoint(i).crossingFraction(state.lastX, state.lastZ, car.getX(), car.getZ(),
-                        car.getY()) >= 0.0) {
-                    passed.add(name);
-                    break;
-                }
-            }
-        }
-        if (passed.isEmpty() || passed.size() == state.candidates.size()) {
-            return state;
-        }
-        LapState narrowed = new LapState(passed.get(0));
-        narrowed.candidates = List.copyOf(passed);
-        narrowed.lastX = state.lastX;
-        narrowed.lastZ = state.lastZ;
-        narrowed.hasLast = true;
-        states.put(player.getUUID(), narrowed);
-        String declared = declaredClass(player);
-        send(player, RaceEventPacket.warmUp(String.join(" / ", passed), declared == null ? "" : declared));
-        return narrowed;
+        send(player, RaceEventPacket.warmUp(course, declared == null ? "" : declared));
     }
 
     private static void rememberPosition(Map<UUID, LapState> states, ServerPlayer player,
@@ -2088,6 +2081,13 @@ public final class RaceManager {
         }
         Map<UUID, LapState> states = states(level);
         if (session.started && !session.showingResult) {
+            if (session.finishOrder.isEmpty() && session.retired.containsAll(session.entrants)) {
+                // 誰もゴールせずに全員が抜けた（主催者が次元を移ってリタイアした場合も）。{@link #closeIfDone} と同じく、
+                // リタイアだけを並べても仕方がないのでリザルトは出さない
+                cleanup(level, session);
+                broadcast(level, Component.translatable("race.kurumamod.all_retired").withStyle(ChatFormatting.GRAY));
+                return;
+            }
             broadcastResult(level, session, states);
             broadcast(level, raceOver(session)
                     .withStyle(ChatFormatting.GOLD));
@@ -2162,8 +2162,7 @@ public final class RaceManager {
         Map<UUID, LapState> states = states(level);
         for (ServerPlayer player : level.players()) {
             LapState state = states.get(player.getUUID());
-            // ウォームアップ中なら候補のどれか（スタートラインを共有するコースは、チェックポイントで絞るまで候補が並ぶ）
-            if (state != null && (course.equals(state.course) || state.candidates.contains(course))) {
+            if (state != null && course.equals(state.course)) {
                 states.remove(player.getUUID());
                 send(player, RaceEventPacket.cleared());
                 player.sendSystemMessage(Component.translatable("race.kurumamod.course_changed_timing", course)
@@ -2274,11 +2273,6 @@ public final class RaceManager {
          * デルタとベストの比べる相手で、宣言を周の途中で変えても次の周まで変わらない。
          */
         private String raceClass;
-        /**
-         * スタートラインを越えたときの候補のトラック（共有のスタートラインなら 2 つ以上）。ウォームアップ中に
-         * チェックポイントで絞る。{@link #course} は候補の先頭。
-         */
-        private List<String> candidates = List.of();
         /**
          * この周を始めたときのクラスの中身（{@link Regulation#toArray}）。周の終わりに今の中身と比べ、
          * 途中で書き換えられていたらクラスの記録に入れない。

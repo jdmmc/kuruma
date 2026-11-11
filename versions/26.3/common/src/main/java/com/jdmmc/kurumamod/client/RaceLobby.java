@@ -254,17 +254,17 @@ public final class RaceLobby {
                 ? lobby.course() : null;
     }
 
+    /** 観戦しているか。観戦者は信号の間も車を止めない。 */
+    public static boolean spectating() {
+        return lobby != null && lobby.spectating();
+    }
+
     /**
      * K を押した。<b>いまの立場で意味が変わる。</b>
      *
      * <p>レースがあればそのレースの画面（主催していれば主催者画面）、レースが無ければタイムアタックの画面。
      * どの画面も上のタブで行き来できる。</p>
      */
-    /** 観戦しているか。観戦者は信号の間も車を止めない。 */
-    public static boolean spectating() {
-        return lobby != null && lobby.spectating();
-    }
-
     public static void onKey(Minecraft minecraft) {
         if (minecraft.gui.screen() != null || minecraft.player == null) {
             return;

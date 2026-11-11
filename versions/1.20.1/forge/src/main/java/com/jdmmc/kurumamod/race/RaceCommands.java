@@ -66,6 +66,9 @@ public final class RaceCommands {
     /** プレイヤーごとに打ちかけの 2 点を覚えておく。サーバーを立て直せば消える。 */
     private static final Map<UUID, double[]> PENDING = new HashMap<>();
 
+    /** ほかのコースのスタートラインから、少なくともこれだけ離す [ブロック]。 */
+    private static final double START_LINE_SPACING = 5.0;
+
     private RaceCommands() {
     }
 
@@ -184,6 +187,16 @@ public final class RaceCommands {
         RaceData data = RaceData.get(level);
         if (refuseWhileRacing(ctx, level, name)) {
             return 0;
+        }
+        // <b>ほかのコースのスタートラインと近すぎる線は引かせない。</b>1 ティックで 2 本を越えると、どちらのコースを
+        // 走るのか決められない（そのときは計測を始めない。RaceManager）
+        for (Course other : data.courses()) {
+            if (!other.name().equals(name) && other.start() != null
+                    && line.distanceTo(other.start()) < START_LINE_SPACING) {
+                ctx.getSource().sendFailure(Component.translatable("race.kurumamod.start_too_close",
+                        other.name(), (int) START_LINE_SPACING));
+                return 0;
+            }
         }
         if (data.course(name).isEmpty() && data.courses().size() >= RaceData.MAX_COURSES) {
             ctx.getSource().sendFailure(Component.translatable("race.kurumamod.too_many_courses",
