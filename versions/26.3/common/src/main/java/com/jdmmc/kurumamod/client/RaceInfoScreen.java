@@ -195,8 +195,8 @@ public final class RaceInfoScreen extends Screen {
         for (int i = 0; i < lobby.entrants().size(); i++) {
             RaceLobbyPacket.Entrant entrant = lobby.entrants().get(i);
             graphics.fill(rightLeft, y, rightLeft + rightWidth, y + ROW - 1,
-                    entrant.you() ? 0x40FFFFFF : (i & 1) == 0 ? RaceLobby.PANEL : RaceLobby.PANEL_LIGHT);
-            if (entrant.you()) {
+                    lobby.isSelf(i) ? 0x40FFFFFF : (i & 1) == 0 ? RaceLobby.PANEL : RaceLobby.PANEL_LIGHT);
+            if (lobby.isSelf(i)) {
                 graphics.fill(rightLeft, y, rightLeft + 2, y + ROW - 1, RaceLobby.ACCENT);
             }
             Slant.fit(graphics, font, entrant.name(), rightLeft + 7, y + 6, 80, RaceLobby.WHITE);

@@ -406,10 +406,6 @@ public final class CarGhosts {
         if (ClientConfig.timeAttackGhost && minecraft.level != null) {
             Path file = lapFile(minecraft, course, raceClass);
             ghost = load(file);
-            // 別の次元で取ったゴーストは使わない（消しもしない）。フォルダを次元で分けてあるので、ふつうは起きない
-            if (ghost != null && !minecraft.level.dimension().identifier().toString().equals(ghost.dimension())) {
-                ghost = null;
-            }
             // <b>サーバーのベストと同じ周でなければ捨てる。</b>ゴーストは手元にしか無いので、落ちている間に
             // 記録が消された（クラスの上書き・削除、コースの引き直し）ことは、ここでしか分からない
             if (ghost != null && ghost.lapMillis() != targetBest) {

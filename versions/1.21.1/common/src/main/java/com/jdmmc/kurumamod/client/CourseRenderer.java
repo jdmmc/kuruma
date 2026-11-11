@@ -56,7 +56,7 @@ public final class CourseRenderer {
     }
 
     /**
-     * どのコースのゲートを描くか（null なら全部のコースのスタートラインだけ）。<b>見せ方はクライアントが自分の状態で決める</b>——サーバーは
+     * どのコースのゲートを描くか（null なら全部のコースのスタートラインだけ）。2 つ以上なら、そのどれか。<b>見せ方はクライアントが自分の状態で決める</b>——サーバーは
      * コースの形を送るだけで、レースのことは何も載せない（{@link CourseLinesPacket}）。
      *
      * <ul>
@@ -69,21 +69,24 @@ public final class CourseRenderer {
      *       走り出せるかが分かれば足り、チェックポイントまで並べると門だらけになる</li>
      * </ul>
      */
-    private static String focus(Minecraft minecraft) {
+    private static List<String> focus(Minecraft minecraft) {
         String followed = RaceLobby.followedCourse();
         if (followed != null) {
-            return followed;
+            return List.of(followed);
         }
         // 運転席だけを「車に乗っている」とみなす。助手席は歩いているのと同じ（人の車で走っているわけではない）
         if (!(minecraft.player.getVehicle() instanceof CarEntity car) || car.getControllingPassenger() != minecraft.player) {
             return null;
         }
-        return RaceHud.runningCourse();
+        String running = RaceHud.runningCourse();
+        // スタートラインを共有するコースのウォームアップでは、候補が「A / B」と並んで届く（どれを走るかは
+        // チェックポイントで絞る）。候補のどのコースのゲートも描く。コースの名前に空白は入らない（word で受ける）
+        return running == null ? null : List.of(running.split(" / "));
     }
 
     /** そのゲートを描くか。 */
-    private static boolean shows(String focus, CourseLinesPacket.Gate gate) {
-        return focus == null ? gate.start() : focus.equals(gate.course());
+    private static boolean shows(List<String> focus, CourseLinesPacket.Gate gate) {
+        return focus == null ? gate.start() : focus.contains(gate.course());
     }
 
     /**
@@ -145,7 +148,7 @@ public final class CourseRenderer {
         if (minecraft.player == null) {
             return;
         }
-        String focus = focus(minecraft);
+        List<String> focus = focus(minecraft);
         boolean useDeferred = HeadlightVolume.ShaderPacks.inUse() && DeferredGlows.shaderReady();
         if (useDeferred && MirrorRenderer.isRendering()) {
             return;

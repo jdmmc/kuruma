@@ -670,7 +670,7 @@ public final class RaceHud {
                 break;
             }
             towerRow(graphics, font, y, String.valueOf(index), entrant.name(),
-                    RaceLobby.carName(entrant.carId()).getString(), entrant.you(), GREY);
+                    RaceLobby.carName(entrant.carId()).getString(), lobby.isSelf(index - 1), GREY);
             y += 14;
             index++;
         }

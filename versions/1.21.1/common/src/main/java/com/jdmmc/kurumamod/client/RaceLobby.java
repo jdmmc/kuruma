@@ -248,18 +248,18 @@ public final class RaceLobby {
     // K
     // ------------------------------------------------------------------
 
-    /**
-     * K を押した。<b>いまの立場で意味が変わる。</b>
-     *
-     * <p>レースがあればそのレースの画面（主催していれば主催者画面）、レースが無ければタイムアタックの画面。
-     * どの画面も上のタブで行き来できる。</p>
-     */
     /** エントリーか観戦をしているレースのコース。どちらでもなければ null。ゲートの見せ方に使う。 */
     static String followedCourse() {
         return lobby != null && (lobby.joined() || lobby.spectating()) && !lobby.course().isEmpty()
                 ? lobby.course() : null;
     }
 
+    /**
+     * K を押した。<b>いまの立場で意味が変わる。</b>
+     *
+     * <p>レースがあればそのレースの画面（主催していれば主催者画面）、レースが無ければタイムアタックの画面。
+     * どの画面も上のタブで行き来できる。</p>
+     */
     /** 観戦しているか。観戦者は信号の間も車を止めない。 */
     public static boolean spectating() {
         return lobby != null && lobby.spectating();
@@ -515,15 +515,10 @@ public final class RaceLobby {
 
     /** 自分の判定。参加していなければ null。 */
     static RaceLobbyPacket.Entrant self() {
-        if (lobby == null) {
+        if (lobby == null || lobby.self() < 0 || lobby.self() >= lobby.entrants().size()) {
             return null;
         }
-        for (RaceLobbyPacket.Entrant entrant : lobby.entrants()) {
-            if (entrant.you()) {
-                return entrant;
-            }
-        }
-        return null;
+        return lobby.entrants().get(lobby.self());
     }
 
     // ------------------------------------------------------------------
@@ -636,7 +631,7 @@ public final class RaceLobby {
             if (i >= rows) {
                 continue;
             }
-            if (entrant.you()) {
+            if (lobby.isSelf(i)) {
                 graphics.fill(left + 3, y - 2, left + panel, y + 10, 0x26FFFFFF);
             }
             int dot = good ? OK_DOT : entrant.verdict() == RaceLobbyPacket.Verdict.NO_CAR ? GREY : NG;

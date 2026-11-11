@@ -145,7 +145,8 @@ public final class RaceManager {
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         dropOut(event.getEntity(), event.getFrom());
-        // 主催者が別の次元へ移ったら、落ちたときと同じ（受付中は中止、走行中は続ける）。元のレースを操作できなくなるため
+        // 主催者が別の次元へ移ったら、受付中・信号の最中は中止、走行中は終える（リザルトは出す）。
+        // 元のレースを操作できなくなるため
         cancelIfHost(event.getEntity(), event.getFrom(), true);
         // 捨てたことは<b>必ず伝える</b>。伝えないと画面の時計だけが回り続け、
         // サーバーには周回状態が無いので、K の「計測をやめる」が
@@ -167,6 +168,9 @@ public final class RaceManager {
      *
      * <p>主催者のいないレースを残すと、誰が畳むのか・誰がスタートを押すのかの取り回しが面倒になる。</p>
      *
+     * <p>信号の最中はまだ誰も走っていないので、受付中と同じく中止する。リザルトの表示中は何もしない（表示が
+     * 終われば片付く）。</p>
+     *
      * <p><b>走行中に別の次元へ移ったら、レースを終える</b>（「終える」と同じ。ゴールした人の順位が残るよう、
      * リザルトは出す）。移った主催者はレースの画面からそのレースを操作できない。<b>落ちたときは続ける</b>——回線が
      * 一瞬切れただけで、ほかの人が走っている途中で打ち切らない。全員がゴールすれば締まり、OP と参加者が「終える」を
@@ -184,13 +188,17 @@ public final class RaceManager {
         if (level == null) {
             return;
         }
-        if (session.started && !session.showingResult && changedDimension) {
+        if (session.showingResult) {
+            // リザルトの表示中は何もしない。表示が終われば自分で片付く（ここで畳むと、全員のリザルトが途中で消えた）
+            return;
+        }
+        if (session.started && changedDimension) {
             broadcast(level, Component.translatable("race.kurumamod.host_left_dimension", session.hostName)
                     .withStyle(ChatFormatting.GOLD));
             stopRace(level);
             return;
         }
-        if (session.started && !session.showingResult) {
+        if (session.started) {
             // <b>落ちたときは続ける。</b>ほかの人が走っている途中で打ち切らない。全員がゴールすれば締まり、
             // OP と（主催者がいない間は）参加者が「終える」を押せる（canManage）
             broadcast(level, Component.translatable("race.kurumamod.host_left_running", session.hostName)
@@ -1410,7 +1418,7 @@ public final class RaceManager {
                     : violations.isEmpty() ? RaceLobbyPacket.Verdict.OK : RaceLobbyPacket.Verdict.VIOLATION;
             ids.add(id);
             list.add(new RaceLobbyPacket.Entrant(player.getGameProfile().getName(), carId, verdict,
-                    violations == null ? List.of() : violations, values, false));
+                    violations == null ? List.of() : violations, values));
         }
         return new Roster(ids, list);
     }
@@ -2154,7 +2162,8 @@ public final class RaceManager {
         Map<UUID, LapState> states = states(level);
         for (ServerPlayer player : level.players()) {
             LapState state = states.get(player.getUUID());
-            if (state != null && course.equals(state.course)) {
+            // ウォームアップ中なら候補のどれか（スタートラインを共有するコースは、チェックポイントで絞るまで候補が並ぶ）
+            if (state != null && (course.equals(state.course) || state.candidates.contains(course))) {
                 states.remove(player.getUUID());
                 send(player, RaceEventPacket.cleared());
                 player.sendSystemMessage(Component.translatable("race.kurumamod.course_changed_timing", course)

@@ -93,11 +93,9 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
      * @param verdict    判定
      * @param violations 外れている決まり
      * @param values     車の値（{@link #POWER} などの順）。乗っていなければ空
-     * @param you        受け取った本人か。<b>サーバーでは常に false で組み、送るときに {@link #self} から付ける</b>
-     *                   （受け取る人ごとに一覧を写し直さないため）
      */
     public record Entrant(String name, String carId, Verdict verdict,
-                          List<Regulation.Violation> violations, double[] values, boolean you) {
+                          List<Regulation.Violation> violations, double[] values) {
 
         /** 値を取り出す。無ければ NaN。 */
         public double value(int index) {
@@ -158,25 +156,20 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
     }
 
     /**
-     * {@code self}（受け取った本人が参加者の何行目か。いなければ -1）が負なら、届いた行の「本人か」から引き直す。
-     * サーバーは行を写し直さずに {@code self} だけを付け、クライアントは行の「本人か」で読む。
+     * 受け取った本人の行か。<b>本人かどうかは行に持たせず、{@code self}（何行目か）で引く。</b>
+     *
+     * <p>行に持たせて送るときに付けると、シングルプレイと LAN のホスト（1.21 からはメモリの中の接続で、パケットが
+     * バイトにされずにそのまま届く）では付かず、自分の行が分からなかった。番号ならどちらの経路でも同じに届く。</p>
      */
-    public RaceLobbyPacket {
-        if (self < 0) {
-            for (int i = 0; i < entrants.size(); i++) {
-                if (entrants.get(i).you()) {
-                    self = i;
-                    break;
-                }
-            }
-        }
+    public boolean isSelf(int index) {
+        return index >= 0 && index == self;
     }
 
     public RaceLobbyPacket(FriendlyByteBuf buf) {
         this(PHASES[buf.readByte()], buf.readUtf(256), buf.readVarInt(), buf.readVarInt(), buf.readUtf(256),
                 buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readLong(),
                 readDoubles(buf), readEntrants(buf), readCourses(buf), buf.readBoolean(),
-                buf.readUtf(256), -1);
+                buf.readUtf(256), buf.readVarInt() - 1);
     }
 
     /**
@@ -223,7 +216,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
             for (int j = 0; j < valueCount; j++) {
                 values[j] = buf.readDouble();
             }
-            list.add(new Entrant(name, carId, verdict, violations, values, buf.readBoolean()));
+            list.add(new Entrant(name, carId, verdict, violations, values));
         }
         return list;
     }
@@ -251,8 +244,7 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
         writeDoubles(buf, regulation, MAX_DOUBLES);
         List<Entrant> sentEntrants = entrants.subList(0, Math.min(MAX_ENTRANTS, entrants.size()));
         buf.writeVarInt(sentEntrants.size());
-        for (int index = 0; index < sentEntrants.size(); index++) {
-            Entrant entrant = sentEntrants.get(index);
+        for (Entrant entrant : sentEntrants) {
             buf.writeUtf(entrant.name(), 32);
             buf.writeUtf(entrant.carId(), 128);
             buf.writeByte(entrant.verdict().ordinal());
@@ -265,7 +257,6 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
                 buf.writeDouble(violation.limit());
             }
             writeDoubles(buf, entrant.values(), MAX_LIST);
-            buf.writeBoolean(index == self);
         }
         List<CourseInfo> sentCourses = courses.subList(0, Math.min(MAX_COURSES, courses.size()));
         buf.writeVarInt(sentCourses.size());
@@ -276,6 +267,8 @@ public record RaceLobbyPacket(Phase phase, String course, int laps, int checkpoi
         }
         buf.writeBoolean(classAdmin);
         buf.writeUtf(declaredClass, 256);
+        // 一覧の外（切った後ろ）なら、いないことにする。-1 を送れるように 1 ずらす
+        buf.writeVarInt(self < sentEntrants.size() ? self + 1 : 0);
     }
 
     private static void writeDoubles(FriendlyByteBuf buf, double[] values, int max) {

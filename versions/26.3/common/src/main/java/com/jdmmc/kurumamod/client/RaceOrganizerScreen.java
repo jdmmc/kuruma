@@ -343,8 +343,8 @@ public final class RaceOrganizerScreen extends Screen {
     private void rebuildKickButtons(RaceLobbyPacket lobby) {
         List<String> names = new ArrayList<>();
         if (lobby != null) {
-            for (RaceLobbyPacket.Entrant entrant : lobby.entrants()) {
-                names.add(entrant.you() ? "" : entrant.name());
+            for (int i = 0; i < lobby.entrants().size(); i++) {
+                names.add(lobby.isSelf(i) ? "" : lobby.entrants().get(i).name());
             }
         }
         if (names.equals(kickNames)) {
