@@ -239,7 +239,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      * これ以下の速度差では衝突として扱わない [m/s]。
      *
      * <p>縁石を擦った程度で毎回鳴ると安っぽくなる。クライアント側の
-     * {@code CarImpact.MIN_IMPACT_SPEED} と同じ値だが、<b>ここで弾いておかないと
+     * {@code ImpactShake.MIN_IMPACT_SPEED} と同じ値だが、<b>ここで弾いておかないと
      * 毎ティック無駄なパケットが飛ぶ</b>ので両方に置いてある。</p>
      */
     private static final double IMPACT_MIN_SPEED = 2.5;
