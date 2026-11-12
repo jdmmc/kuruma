@@ -39,6 +39,8 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import com.jdmmc.kurumamod.client.model.CarModel;
 import com.jdmmc.kurumamod.client.light.HeadlightBeam;
+import com.jdmmc.kurumamod.client.light.HeadlightAim;
+import com.jdmmc.kurumamod.client.Vec3d;
 import com.jdmmc.kurumamod.client.light.HeadlightGround;
 import com.jdmmc.kurumamod.client.BlockQuads;
 
@@ -422,17 +424,7 @@ public final class CarLights {
      * 車体の傾きだけが取れる——実車のオートレベライザーが車高センサーで測っているのと同じ量。</p>
      */
     private static double suspensionPitch(CarEntity car, float partialTick) {
-        double front = 0.0;
-        double rear = 0.0;
-        for (com.jdmmc.kurumamod.physics.Wheel wheel : com.jdmmc.kurumamod.physics.Wheel.VALUES) {
-            double length = car.getRenderSuspensionLength(wheel, partialTick);
-            if (wheel.isFront()) {
-                front += length * 0.5;
-            } else {
-                rear += length * 0.5;
-            }
-        }
-        return Math.atan2(front - rear, car.getSpec().wheelBase());
+        return HeadlightAim.suspensionPitch(car.carCore(), partialTick);
     }
 
     /** 周りの暗さ 0..1。松明の下や昼間は 0 に近づく。 */
@@ -470,17 +462,16 @@ public final class CarLights {
         final Vec3 up;
         /** 光の筋の裾を路面で消すのに使う。路面を調べていないときは null。 */
         HeadlightGround.Field field;
+        /** 光軸と照度の計算（core）。 */
+        private final HeadlightAim aim;
 
-        private Beam(List<Vec3> lamps, Vec3 axis, Vec3 right, Vec3 up) {
+        private Beam(List<Vec3> lamps, HeadlightAim aim) {
             this.lamps = lamps;
-            Vec3 sum = Vec3.ZERO;
-            for (Vec3 lamp : lamps) {
-                sum = sum.add(lamp);
-            }
-            this.mid = lamps.isEmpty() ? Vec3.ZERO : sum.scale(1.0 / lamps.size());
-            this.axis = axis;
-            this.right = right;
-            this.up = up;
+            this.aim = aim;
+            this.mid = vec3(aim.mid);
+            this.axis = vec3(aim.axis);
+            this.right = vec3(aim.right);
+            this.up = vec3(aim.up);
         }
 
         /**
@@ -488,47 +479,24 @@ public final class CarLights {
          *                        {@link HeadlightBeam#LEVELING} の割合だけ打ち消す
          */
         static Beam of(List<Vec3> lamps, Vec3 forward, Vec3 bodyUp, double suspensionPitch) {
-            Vec3 right = forward.cross(bodyUp).normalize();
-            Vec3 up = right.cross(forward).normalize();
-            // 下げる角度 = 取り付けの下向き + 沈み込みの戻し（鼻下げなら上へ戻す）
-            // 調整画面（Ctrl+L、HeadlightScreen）で動かせる。既定は AIM_DOWN と LEVELING と同じ値
-            double aim = HeadlightBeam.aimDown(suspensionPitch);
-            double cos = Math.cos(aim);
-            double sin = Math.sin(aim);
-            Vec3 axis = forward.scale(cos).subtract(up.scale(sin)).normalize();
-            Vec3 beamUp = up.scale(cos).add(forward.scale(sin)).normalize();
-            return new Beam(lamps, axis, right, beamUp);
+            List<Vec3d> points = new java.util.ArrayList<>(lamps.size());
+            for (Vec3 lamp : lamps) {
+                points.add(vec3d(lamp));
+            }
+            return new Beam(lamps, HeadlightAim.of(points, vec3d(forward), vec3d(bodyUp), suspensionPitch));
         }
 
-        /**
-         * 点 (x, y, z) の面（法線 n）が受ける照度。2 灯の合計。
-         *
-         * <p>配光 × 入射角の余弦 ÷ 距離²。<b>カットオフより上は照らさない</b>ので、
-         * 壁には光の上端の線が出て、遠くの路面は光軸が当たる手前で自然に途切れる。</p>
-         */
+        /** 点 (x, y, z) の面（法線 n）が受ける照度。2 灯の合計（{@link HeadlightAim#illuminance}）。 */
         double illuminance(double x, double y, double z, double nx, double ny, double nz) {
-            double total = 0.0;
-            for (Vec3 lamp : lamps) {
-                double vx = x - lamp.x;
-                double vy = y - lamp.y;
-                double vz = z - lamp.z;
-                double dist2 = vx * vx + vy * vy + vz * vz;
-                if (dist2 < 0.01) {
-                    continue;
-                }
-                double along = vx * axis.x + vy * axis.y + vz * axis.z;
-                if (along <= 0.05) {
-                    continue;
-                }
-                double cosIncidence = -(vx * nx + vy * ny + vz * nz) / Math.sqrt(dist2);
-                if (cosIncidence <= 0.0) {
-                    continue;
-                }
-                double tx = (vx * right.x + vy * right.y + vz * right.z) / along;
-                double ty = (vx * up.x + vy * up.y + vz * up.z) / along;
-                total += HeadlightBeam.pattern(tx, ty) * cosIncidence / dist2;
-            }
-            return total;
+            return aim.illuminance(x, y, z, nx, ny, nz);
+        }
+
+        private static Vec3 vec3(Vec3d v) {
+            return new Vec3(v.x(), v.y(), v.z());
+        }
+
+        private static Vec3d vec3d(Vec3 v) {
+            return new Vec3d(v.x, v.y, v.z);
         }
     }
 
