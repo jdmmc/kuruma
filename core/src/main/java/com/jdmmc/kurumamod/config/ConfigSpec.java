@@ -1,6 +1,5 @@
 package com.jdmmc.kurumamod.config;
 
-import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -29,7 +28,7 @@ import java.util.function.Predicate;
  */
 public final class ConfigSpec {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ConfigSpec.class);
 
     private final List<ConfigValue<?>> values;
     private Path file;

@@ -55,10 +55,6 @@ public final class CarClientDriver {
      */
     private static boolean headlightsOn;
 
-    /** 画面越しに読んだ変速キーの前ティックの状態。押した瞬間だけを拾うため。 */
-    private static boolean shiftUpHeld;
-    private static boolean shiftDownHeld;
-
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.START) {
@@ -189,37 +185,21 @@ public final class CarClientDriver {
         }
         // 画面越しの変速は押しっぱなしの状態で閉じたときに 1 回ぶん誤って拾わないよう、
         // 画面の外では「押されている」で揃えておく（離すまで次の押下にならない）
-        shiftUpHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_UP);
-        shiftDownHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_DOWN);
-
-        // コントローラを触っている間はそちらを使い、触っていなければキーボードへ戻す。
-        // どちらかに固定すると、持ち替えるたびに設定を触ることになる
-        CarInput pad = ControllerInput.toCarInput();
-        if (pad != null && !ControllerInput.isIdle()) {
-            car.setDriverInput(pad);
-            return;
-        }
+        DriverInput.trackShiftKeys(isKeyDown(minecraft, KurumaKeys.SHIFT_UP),
+                isKeyDown(minecraft, KurumaKeys.SHIFT_DOWN));
 
         Input in = player.input;
         // サイドブレーキはスペース。独自のキーバインドを作るとバニラのジャンプと
         // 衝突するので、ジャンプの押下状態をそのまま借りる
-        car.setDriverInput(new CarInput(in.up, in.down, in.left, in.right,
-                shiftUp, shiftDown, in.jumping));
+        // コントローラを触っている間はそちらを使う（DriverInput#choose）
+        car.setDriverInput(DriverInput.choose(new CarInput(in.up, in.down, in.left, in.right,
+                shiftUp, shiftDown, in.jumping)));
     }
 
-    /**
-     * スタートの信号の間の入力。<b>惰性で進まないよう止め、ハンドルだけは渡す</b>（グリッドで向きを
-     * 合わせられるように）。サイドを引き、前へ動いていればブレーキも掛ける——止まってからブレーキを
-     * 踏み続けると、オートマはバックに入ってしまうので、前へ動いている間だけ。
-     */
+    /** スタートの信号の間の入力（{@link DriverInput#frozen}）。 */
     private static CarInput frozenInput(Minecraft minecraft, CarEntity car) {
-        boolean forward = car.getRenderSpeed() > 0.3F;
-        CarInput pad = ControllerInput.toCarInput();
-        if (pad != null && !ControllerInput.isIdle()) {
-            return CarInput.analog(0.0, forward ? 1.0 : 0.0, pad.steerAxis(), false, false, 1.0);
-        }
         Input in = minecraft.player.input;
-        return new CarInput(false, forward, in.left, in.right, false, false, true);
+        return DriverInput.frozen(car.getRenderSpeed() > 0.3F, in.left, in.right);
     }
 
     /**
@@ -231,21 +211,11 @@ public final class CarClientDriver {
      * 変速は押した瞬間だけを拾う。</p>
      */
     private static CarInput inputThroughScreen(Minecraft minecraft) {
-        boolean upHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_UP);
-        boolean downHeld = isKeyDown(minecraft, KurumaKeys.SHIFT_DOWN);
-        boolean shiftUp = upHeld && !shiftUpHeld;
-        boolean shiftDown = downHeld && !shiftDownHeld;
-        shiftUpHeld = upHeld;
-        shiftDownHeld = downHeld;
-
-        CarInput pad = ControllerInput.toCarInput();
-        if (pad != null && !ControllerInput.isIdle()) {
-            return pad;
-        }
         var options = minecraft.options;
-        return new CarInput(isKeyDown(minecraft, options.keyUp), isKeyDown(minecraft, options.keyDown),
+        return DriverInput.throughScreen(isKeyDown(minecraft, options.keyUp), isKeyDown(minecraft, options.keyDown),
                 isKeyDown(minecraft, options.keyLeft), isKeyDown(minecraft, options.keyRight),
-                shiftUp, shiftDown, isKeyDown(minecraft, options.keyJump));
+                isKeyDown(minecraft, KurumaKeys.SHIFT_UP), isKeyDown(minecraft, KurumaKeys.SHIFT_DOWN),
+                isKeyDown(minecraft, options.keyJump));
     }
 
     /**

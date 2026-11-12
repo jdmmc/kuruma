@@ -45,7 +45,8 @@ public final class McRaceClient implements RaceClient {
         Assets.set(new McAssets());
         MeshShape.set(ObjModel::get);
         // 車まわりの画面（core）が設定と版の状態を引く口
-        ClientOptions.set(new McClientOptions());
+        ClientOptions.set(new ConfigClientOptions());
+        ControllerInput.setDevice(new ControllerDevice(), com.jdmmc.kurumamod.Platform.configDir());
         CarClient.set(new McCarClient());
         CarGhosts.install();
         RaceText.setResolver(text -> RaceTexts.of(text).getString());

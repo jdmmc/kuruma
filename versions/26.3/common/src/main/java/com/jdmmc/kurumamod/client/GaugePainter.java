@@ -13,7 +13,8 @@ import org.joml.Matrix3x2fc;
 import org.joml.Vector2f;
 
 /**
- * 円形メーターを描くための図形。<b>テクスチャを使わず、四角形を積んで描く。</b>
+ * 四角形を積む口（{@code McUiGraphics#fillQuad}）。円弧・針などの形は core の {@code GaugeShapes} が
+ * この上に組み立てる。<b>テクスチャを使わず、四角形を積んで描く。</b>
  *
  * <p>画像で用意しないのは、<b>目盛りの上限が車ごとに変わる</b>ため。最高速もレブリミットも
  * セッティングとカーパックで動くので、文字盤は毎フレーム諸元から組み立てるしかない。</p>
@@ -27,93 +28,10 @@ import org.joml.Vector2f;
  * <p>重なりの順番は GUI の描画状態が足した順に決める（後から足したものほど上）ので、
  * 文字を重ねる前に溜まった図形を流す必要はもう無い（{@link #flush} は何もしない）。</p>
  *
- * <p>角度は<b>度</b>で、x 軸の正方向が 0、そこから<b>時計回り</b>に増える
- * （GUI の Y は下向きなので、数学の向きとは逆に見える）。真上は 270 度。</p>
  */
 final class GaugePainter {
 
-    /** 円弧を何度ごとに折るか。細かくすると滑らかになるが四角形が増える。 */
-    private static final float ARC_STEP_DEGREES = 4.0F;
-
     private GaugePainter() {
-    }
-
-    /**
-     * 円弧の帯。{@code innerRadius} を 0 にすれば扇形、開始と終了を 0/360 にすれば円になる。
-     */
-    static void arc(GuiGraphicsExtractor graphics, float centerX, float centerY,
-                    float innerRadius, float outerRadius,
-                    float fromDegrees, float toDegrees, int color) {
-        if (toDegrees < fromDegrees) {
-            float swap = fromDegrees;
-            fromDegrees = toDegrees;
-            toDegrees = swap;
-        }
-        int steps = Math.max(1, (int) Math.ceil((toDegrees - fromDegrees) / ARC_STEP_DEGREES));
-        float step = (toDegrees - fromDegrees) / steps;
-
-        float[] points = new float[steps * 8];
-        for (int i = 0; i < steps; i++) {
-            float a0 = fromDegrees + step * i;
-            float a1 = a0 + step;
-            float cos0 = cos(a0), sin0 = sin(a0);
-            float cos1 = cos(a1), sin1 = sin(a1);
-            int o = i * 8;
-            points[o] = centerX + cos0 * innerRadius;
-            points[o + 1] = centerY + sin0 * innerRadius;
-            points[o + 2] = centerX + cos1 * innerRadius;
-            points[o + 3] = centerY + sin1 * innerRadius;
-            points[o + 4] = centerX + cos1 * outerRadius;
-            points[o + 5] = centerY + sin1 * outerRadius;
-            points[o + 6] = centerX + cos0 * outerRadius;
-            points[o + 7] = centerY + sin0 * outerRadius;
-        }
-        submit(graphics, color, points);
-    }
-
-    /**
-     * 半径方向に伸びる棒。目盛りの線がこれ。
-     *
-     * @param width 棒の幅
-     */
-    static void radialBar(GuiGraphicsExtractor graphics, float centerX, float centerY,
-                          float innerRadius, float outerRadius, float degrees,
-                          float width, int color) {
-        float cos = cos(degrees), sin = sin(degrees);
-        // 半径方向に直交する向き。そのまま棒の太さの向きになる
-        float nx = -sin * width * 0.5F;
-        float ny = cos * width * 0.5F;
-        float ix = centerX + cos * innerRadius, iy = centerY + sin * innerRadius;
-        float ox = centerX + cos * outerRadius, oy = centerY + sin * outerRadius;
-        quad(graphics, color,
-                ix - nx, iy - ny,
-                ix + nx, iy + ny,
-                ox + nx, oy + ny,
-                ox - nx, oy - ny);
-    }
-
-    /**
-     * 針。根本が太く先が尖る。<b>先を尖らせるのは、どの目盛りを指しているかを読ませるため。</b>
-     */
-    static void needle(GuiGraphicsExtractor graphics, float centerX, float centerY,
-                       float innerRadius, float outerRadius, float degrees,
-                       float baseWidth, int color) {
-        float cos = cos(degrees), sin = sin(degrees);
-        float nx = -sin * baseWidth * 0.5F;
-        float ny = cos * baseWidth * 0.5F;
-        float ix = centerX + cos * innerRadius, iy = centerY + sin * innerRadius;
-        float ox = centerX + cos * outerRadius, oy = centerY + sin * outerRadius;
-        // 先端は 1 点。四角形なので同じ点を 2 回積む（縮退四角形）
-        quad(graphics, color,
-                ix - nx, iy - ny,
-                ix + nx, iy + ny,
-                ox, oy,
-                ox, oy);
-    }
-
-    /** 軸に平行な長方形。{@link GuiGraphicsExtractor#fill} と違って小数で置ける。 */
-    static void rect(GuiGraphicsExtractor graphics, float left, float top, float right, float bottom, int color) {
-        quad(graphics, color, left, bottom, right, bottom, right, top, left, top);
     }
 
     /** 四隅を指定する四角形。頂点の並びは {@link GuiGraphicsExtractor#fill} と同じ（左下→右下→右上→左上）。 */

@@ -164,9 +164,10 @@ public final class ClientHooks {
      * 下に潜らないよう、どのローダーもチャットを描いた後で呼ぶこと。</p>
      */
     public static void renderGuiPost(GuiRender event) {
-        CarGaugeHud.onRenderGui(event);
-        CarHelp.onRenderGui(event);
-        CarHud.onRenderGui(event);
+        McUiGraphics graphics = new McUiGraphics(event.getGuiGraphics());
+        CarGaugeHud.onRenderGui(graphics);
+        CarHelp.onRenderGui(graphics);
+        CarHud.onRenderGui(graphics);
     }
 
     /** ホットバーの層を描き終えた直後（チャットなどより下）。 */

@@ -1,17 +1,14 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.client.hook.GuiRender;
-
+import com.jdmmc.kurumamod.client.ui.GaugeShapes;
+import com.jdmmc.kurumamod.client.ui.ScreenStyle;
+import com.jdmmc.kurumamod.client.ui.UiFont;
+import com.jdmmc.kurumamod.client.ui.UiGraphics;
+import com.jdmmc.kurumamod.race.RaceText;
+import com.jdmmc.kurumamod.util.Mth;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.GaugeTheme;
-import com.jdmmc.kurumamod.Kurumamod;
-import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarSpec;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.Mth;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.network.chat.Component;
 
 /**
  * 90 年代の国産スポーツの純正メーターに寄せた 2 眼の計器。
@@ -162,9 +159,18 @@ public final class CarGaugeHud {
     /** LED が点きはじめる回転数の割合。ここから下は 1 つも点かない。 */
     private static final double SHIFT_LIGHT_FROM = 0.45;
 
-    // 1.21.1 までは、チャットより手前に出すために Z を 200 に持ち上げて描いていた（HUD_LAYER_Z）。
-    // 26.3 の GUI は 2D で Z が無く、重なりは足した順（後から重なったものほど上）で決まるので、
-    // チャットを描いた後に呼ばれていれば手前に出る。
+    /**
+     * メーターを描く高さ（Z）。<b>チャットより手前に出すために持ち上げる。</b>
+     *
+     * <p><b>描く順番だけでは手前にならない。</b>{@code RenderGuiEvent.Post} は Forge の
+     * オーバーレイ（チャットを含む）をすべて描いた<b>後</b>に飛ぶ——ここまではバイトコードで
+     * 確認したとおり——が、<b>チャットは {@code pose().translate(0, 0, 50)} で Z を上げて
+     * 描かれている</b>ので、Z=0 のまま描くと深度テストで負けて<b>チャットの下に潜る</b>。</p>
+     *
+     * <p>バニラが使っている高さは、チャット 50・アイテム 100〜150・ツールチップ 400。
+     * その間の 200 に置けば、チャットより手前で、ツールチップより奥になる。</p>
+     */
+    private static final float HUD_LAYER_Z = 200.0F;
 
     /** レブリミットのこの割合を超えたら針と LED を白く（警告色に）する。 */
     private static final double REDLINE_WARN = 0.95;
@@ -202,7 +208,8 @@ public final class CarGaugeHud {
         return Math.min(y, panelTop - OVERLAY_MESSAGE_CLEARANCE);
     }
 
-    public static void onRenderGui(GuiRender event) {
+    /** HUD をすべて描き終えた後に呼ぶ（版の {@code ClientHooks#renderGuiPost}）。 */
+    public static void onRenderGui(UiGraphics graphics) {
         if (!ClientConfig.showGauges || RaceHud.isShowingResults()) {
             clearBounds();
             return;
@@ -213,14 +220,14 @@ public final class CarGaugeHud {
             clearBounds();
             return;
         }
-        Minecraft minecraft = Minecraft.getInstance();
+        RaceClient client = RaceClient.get();
         // 同乗者にも出す。速度も回転数も段も同期されているので描ける
-        if (minecraft.player == null || minecraft.gui.hud.isHidden()
-                || !(minecraft.player.getVehicle() instanceof CarEntity car)) {
+        HudCar car = CarClient.get().ridingHud();
+        if (client.hideGui() || car == null) {
             clearBounds();
             return;
         }
-        render(event.getGuiGraphics(), minecraft, car);
+        render(graphics, client.font(), client.guiWidth(), client.guiHeight(), car);
     }
 
     /** 出していないことを、アクションバーの高さを聞いてくる側（{@link #overlayMessageY}）へ伝える。 */
@@ -228,9 +235,7 @@ public final class CarGaugeHud {
         panelTop = Float.NaN;
     }
 
-    private static void render(GuiGraphicsExtractor graphics, Minecraft minecraft, CarEntity car) {
-        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
-        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
+    private static void render(UiGraphics graphics, UiFont font, int screenWidth, int screenHeight, HudCar car) {
 
         // ホットバーの外側に残っている幅と、画面の高さの両方に収まるまで縮める。
         // 幅だけで決めると、GUI スケールを上げた人の画面で前が見えなくなる
@@ -246,11 +251,11 @@ public final class CarGaugeHud {
         float leftX = screenWidth * 0.5F - HOTBAR_HALF_WIDTH - HOTBAR_GAP - radius;
         float rightX = screenWidth * 0.5F + HOTBAR_HALF_WIDTH + HOTBAR_GAP + radius;
 
-        Font font = minecraft.font;
         CarSpec spec = car.getSpec();
         GaugeTheme theme = ClientConfig.gaugeTheme;
 
-        graphics.pose().pushMatrix();
+        graphics.pushPose();
+        graphics.translateZ(HUD_LAYER_Z);
         renderTachometer(graphics, font, theme, car, spec, leftX, centerY, scale);
         renderSpeedometer(graphics, font, theme, car, spec, rightX, centerY, scale);
         // 小窓は下げられるだけ下げる。2 眼の間で高い位置にあると浮いて見えるので、
@@ -260,15 +265,15 @@ public final class CarGaugeHud {
         panelTop = panelBottom - (PANEL_HEIGHT + 4.0F + 3.0F) * scale;
         renderCenterPanel(graphics, font, theme, car, spec, screenWidth * 0.5F,
                 panelBottom, scale);
-        graphics.pose().popMatrix();
+        graphics.popPose();
     }
 
     // ------------------------------------------------------------------
     // 回転計（左）
     // ------------------------------------------------------------------
 
-    private static void renderTachometer(GuiGraphicsExtractor graphics, Font font, GaugeTheme theme,
-                                         CarEntity car, CarSpec spec,
+    private static void renderTachometer(UiGraphics graphics, UiFont font, GaugeTheme theme,
+                                         HudCar car, CarSpec spec,
                                          float x, float y, float scale) {
         double redline = spec.redlineRpm();
         // レブリミットの少し上まで目盛りを伸ばす。実車と同じで、限界が文字盤の端に来ない
@@ -278,34 +283,34 @@ public final class CarGaugeHud {
         // レブリミットが高い車では 1000rpm ごとに数字を出すと詰まる（13000rpm で 14 個）
         double major = top > 9000.0 ? 2.0 : 1.0;
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
-        graphics.pose().scale(scale, scale);
+        graphics.pushPose();
+        graphics.translate(x, y);
+        graphics.scale(scale, scale);
 
         plate(graphics, theme);
         // レッドゾーンは文字盤の内側の弧。その範囲の数字も赤くする
-        GaugePainter.arc(graphics, 0.0F, 0.0F, RED_OUTER - RED_WIDTH, RED_OUTER,
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, RED_OUTER - RED_WIDTH, RED_OUTER,
                 angleFor(redline / top), angleFor(1.0), theme.redline);
         ticks(graphics, theme, top / 1000.0, major, major / 2.0, redline / top);
         aidLamps(graphics, font, theme, car, false);
         needle(graphics, theme, rpm / top, warn);
 
-        GaugePainter.flush(graphics);
+        GaugeShapes.flush(graphics);
 
         labels(graphics, font, theme, top / 1000.0, major, redline / top);
         aidLamps(graphics, font, theme, car, true);
-        centerText(graphics, font, Component.translatable("hud.kurumamod.rpm_scale"),
+        centerText(graphics, font, RaceText.translatable("hud.kurumamod.rpm_scale"),
                 UNIT_DY, theme.unit);
 
-        graphics.pose().popMatrix();
+        graphics.popPose();
     }
 
     // ------------------------------------------------------------------
     // 速度計（右）
     // ------------------------------------------------------------------
 
-    private static void renderSpeedometer(GuiGraphicsExtractor graphics, Font font, GaugeTheme theme,
-                                          CarEntity car, CarSpec spec,
+    private static void renderSpeedometer(UiGraphics graphics, UiFont font, GaugeTheme theme,
+                                          HudCar car, CarSpec spec,
                                           float x, float y, float scale) {
         double maxKmh = spec.topGearSpeed() * 3.6;
         // 20km/h 刻みから始めて、数字が重ならないところまで粗くする。
@@ -317,9 +322,9 @@ public final class CarGaugeHud {
         double top = Math.ceil(maxKmh / major) * major;
         double speed = Math.abs(car.getRenderSpeed()) * 3.6;
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
-        graphics.pose().scale(scale, scale);
+        graphics.pushPose();
+        graphics.translate(x, y);
+        graphics.scale(scale, scale);
 
         plate(graphics, theme);
         ticks(graphics, theme, top, major, major / 2.0, Double.MAX_VALUE);
@@ -327,13 +332,13 @@ public final class CarGaugeHud {
         pedalBars(graphics, theme, car);
         needle(graphics, theme, speed / top, false);
 
-        GaugePainter.flush(graphics);
+        GaugeShapes.flush(graphics);
 
         labels(graphics, font, theme, top, major, Double.MAX_VALUE);
-        centerText(graphics, font, Component.translatable("hud.kurumamod.kmh"),
+        centerText(graphics, font, RaceText.translatable("hud.kurumamod.kmh"),
                 UNIT_DY, theme.unit);
 
-        graphics.pose().popMatrix();
+        graphics.popPose();
     }
 
     // ------------------------------------------------------------------
@@ -347,18 +352,18 @@ public final class CarGaugeHud {
      * 中心寄りの明るい色を薄く 2 枚重ねて近似している。枚数を増やせば滑らかになるが、
      * この大きさでは 2 枚で足りる。</p>
      */
-    private static void plate(GuiGraphicsExtractor graphics, GaugeTheme theme) {
-        GaugePainter.arc(graphics, 0.0F, 0.0F, 0.0F, RADIUS, 0.0F, 360.0F, backdrop(theme.face));
-        GaugePainter.arc(graphics, 0.0F, 0.0F, GLASS_RADIUS, RADIUS, 0.0F, 360.0F,
+    private static void plate(UiGraphics graphics, GaugeTheme theme) {
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, 0.0F, RADIUS, 0.0F, 360.0F, backdrop(theme.face));
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, GLASS_RADIUS, RADIUS, 0.0F, 360.0F,
                 backdrop(theme.bezel));
-        GaugePainter.arc(graphics, 0.0F, 0.0F, 0.0F, GLASS_RADIUS, 0.0F, 360.0F,
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, 0.0F, GLASS_RADIUS, 0.0F, 360.0F,
                 backdrop(theme.glassOuter));
-        GaugePainter.arc(graphics, 0.0F, 0.0F, 0.0F, GLASS_RADIUS * 0.66F, 0.0F, 360.0F,
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, 0.0F, GLASS_RADIUS * 0.66F, 0.0F, 360.0F,
                 backdrop(theme.glassInner, 0.45F));
-        GaugePainter.arc(graphics, 0.0F, 0.0F, 0.0F, GLASS_RADIUS * 0.36F, 0.0F, 360.0F,
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, 0.0F, GLASS_RADIUS * 0.36F, 0.0F, 360.0F,
                 backdrop(theme.glassInner, 0.45F));
         // 縁の内側に入る細い金属光沢
-        GaugePainter.arc(graphics, 0.0F, 0.0F, GLASS_RADIUS, GLASS_RADIUS + 0.9F * LINE_RING,
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, GLASS_RADIUS, GLASS_RADIUS + 0.9F * LINE_RING,
                 0.0F, 360.0F, backdrop(theme.bezelRing));
     }
 
@@ -370,14 +375,14 @@ public final class CarGaugeHud {
      * @param minor   細い線の間隔
      * @param redFrom この割合から先は赤くする。無ければ {@link Double#MAX_VALUE}
      */
-    private static void ticks(GuiGraphicsExtractor graphics, GaugeTheme theme,
+    private static void ticks(UiGraphics graphics, GaugeTheme theme,
                               double top, double major, double minor, double redFrom) {
         int count = (int) Math.round(top / minor);
         for (int i = 0; i <= count; i++) {
             double v = minor * i;
             boolean isMajor = Math.abs(v / major - Math.round(v / major)) < 1.0e-6;
             boolean hot = v / top >= redFrom - 1.0e-9;
-            GaugePainter.radialBar(graphics, 0.0F, 0.0F,
+            GaugeShapes.radialBar(graphics, 0.0F, 0.0F,
                     isMajor ? TICK_MAJOR_INNER : TICK_MINOR_INNER, TICK_OUTER,
                     angleFor(v / top),
                     isMajor ? 2.0F * LINE_TICK_MAJOR : 1.0F * LINE_TICK_MINOR,
@@ -386,7 +391,7 @@ public final class CarGaugeHud {
     }
 
     /** 目盛りの数字。<b>図形を流したあとに描く。</b> */
-    private static void labels(GuiGraphicsExtractor graphics, Font font, GaugeTheme theme,
+    private static void labels(UiGraphics graphics, UiFont font, GaugeTheme theme,
                                double top, double major, double redFrom) {
         int count = (int) Math.round(top / major);
         for (int i = 0; i <= count; i++) {
@@ -396,32 +401,32 @@ public final class CarGaugeHud {
             float ly = (float) Math.sin(Math.toRadians(angle)) * LABEL_RADIUS;
             String text = String.format("%.0f", v);
             int color = v / top >= redFrom - 1.0e-9 ? theme.redline : theme.label;
-            graphics.pose().pushMatrix();
-            graphics.pose().translate(lx, ly);
-            graphics.pose().scale(LABEL_TEXT_SCALE, LABEL_TEXT_SCALE);
-            graphics.text(font, text, -font.width(text) / 2, -font.lineHeight / 2, color, false);
-            graphics.pose().popMatrix();
+            graphics.pushPose();
+            graphics.translate(lx, ly);
+            graphics.scale(LABEL_TEXT_SCALE, LABEL_TEXT_SCALE);
+            graphics.drawString(font, text, -font.width(text) / 2, -font.lineHeight / 2, color, false);
+            graphics.popPose();
         }
     }
 
     /** 針とその軸。 */
-    private static void needle(GuiGraphicsExtractor graphics, GaugeTheme theme, double fraction, boolean warn) {
+    private static void needle(UiGraphics graphics, GaugeTheme theme, double fraction, boolean warn) {
         float angle = angleFor(fraction);
-        GaugePainter.needle(graphics, 0.0F, 0.0F, NEEDLE_INNER, NEEDLE_OUTER, angle,
+        GaugeShapes.needle(graphics, 0.0F, 0.0F, NEEDLE_INNER, NEEDLE_OUTER, angle,
                 3.0F * LINE_NEEDLE, warn ? COLOR_NEEDLE_WARN : theme.needle);
-        GaugePainter.arc(graphics, 0.0F, 0.0F, 0.0F, HUB_RADIUS, 0.0F, 360.0F, theme.hub);
-        GaugePainter.arc(graphics, 0.0F, 0.0F, HUB_RADIUS - 0.8F, HUB_RADIUS, 0.0F, 360.0F,
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, 0.0F, HUB_RADIUS, 0.0F, 360.0F, theme.hub);
+        GaugeShapes.arc(graphics, 0.0F, 0.0F, HUB_RADIUS - 0.8F, HUB_RADIUS, 0.0F, 360.0F,
                 theme.hubRing);
     }
 
     /** 文字盤の中央に置く小さな文字。{@code dy} は中心からの上下（正が下）。 */
-    private static void centerText(GuiGraphicsExtractor graphics, Font font, Component text,
+    private static void centerText(UiGraphics graphics, UiFont font, RaceText text,
                                    float dy, int color) {
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(0.0F, dy);
-        graphics.pose().scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
-        graphics.text(font, text, -font.width(text) / 2, -font.lineHeight / 2, color, false);
-        graphics.pose().popMatrix();
+        graphics.pushPose();
+        graphics.translate(0.0F, dy);
+        graphics.scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
+        graphics.drawString(font, text, -font.width(text) / 2, -font.lineHeight / 2, color, false);
+        graphics.popPose();
     }
 
     /**
@@ -433,7 +438,7 @@ public final class CarGaugeHud {
      * <p>置けるのは<b>文字盤の下の、目盛りが回ってこない範囲</b>。開始角 160 度から
      * 220 度なので、真下（90 度）の周りが空く。</p>
      */
-    private static void pedalBars(GuiGraphicsExtractor graphics, GaugeTheme theme, CarEntity car) {
+    private static void pedalBars(UiGraphics graphics, GaugeTheme theme, HudCar car) {
         float width = 24.0F;
         float height = 2.5F;
         float left = -width / 2.0F;
@@ -443,13 +448,13 @@ public final class CarGaugeHud {
                 car.getRenderBrake(), theme.brake);
     }
 
-    private static void pedalBar(GuiGraphicsExtractor graphics, GaugeTheme theme,
+    private static void pedalBar(UiGraphics graphics, GaugeTheme theme,
                                  float left, float top, float width, float height,
                                  double value, int color) {
-        GaugePainter.rect(graphics, left, top, left + width, top + height, theme.aidOff);
+        GaugeShapes.rect(graphics, left, top, left + width, top + height, theme.aidOff);
         float filled = (float) Math.max(0.0, Math.min(1.0, value)) * width;
         if (filled > 0.0F) {
-            GaugePainter.rect(graphics, left, top, left + filled, top + height, color);
+            GaugeShapes.rect(graphics, left, top, left + filled, top + height, color);
         }
     }
 
@@ -463,11 +468,11 @@ public final class CarGaugeHud {
      * <p>図形と文字で 2 回呼ぶ（{@code text}）。図形を積んだら文字の前に
      * {@link GaugePainter#flush} が要るため、置き場所の計算を 1 か所にまとめてある。</p>
      */
-    private static void aidLamps(GuiGraphicsExtractor graphics, Font font, GaugeTheme theme,
-                                 CarEntity car, boolean text) {
-        Component abs = Component.translatable("hud.kurumamod.lamp_abs");
-        Component tcs = Component.translatable("hud.kurumamod.lamp_tcs");
-        Component handbrake = Component.translatable("hud.kurumamod.lamp_handbrake");
+    private static void aidLamps(UiGraphics graphics, UiFont font, GaugeTheme theme,
+                                 HudCar car, boolean text) {
+        RaceText abs = RaceText.translatable("hud.kurumamod.lamp_abs");
+        RaceText tcs = RaceText.translatable("hud.kurumamod.lamp_tcs");
+        RaceText handbrake = RaceText.translatable("hud.kurumamod.lamp_handbrake");
         // 上の段は左右対称にしたいので、幅の広いほうに揃える
         float pairWidth = Math.max(lampWidth(font, abs), lampWidth(font, tcs));
         float offset = pairWidth / 2.0F + LAMP_GAP / 2.0F;
@@ -485,10 +490,10 @@ public final class CarGaugeHud {
         // ターボ車は下の段を E-BRAKE と TURBO の 2 つにする。上の段と同じく幅を揃えて左右対称に。
         // TURBO は<b>ブーストに合わせてじわっと</b>点く（点く／消えるの 2 値だと、
         // どれだけ掛かっているのかが分からない）
-        Component turbo = Component.translatable("hud.kurumamod.lamp_turbo");
+        RaceText turbo = RaceText.translatable("hud.kurumamod.lamp_turbo");
         float lowerWidth = Math.max(lampWidth(font, handbrake), lampWidth(font, turbo));
         float lowerOffset = lowerWidth / 2.0F + LAMP_GAP / 2.0F;
-        float boost = (float) CarTurbo.boost(car, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true));
+        float boost = (float) CarClient.get().turboBoost();
         lamp(graphics, font, theme, handbrake, -lowerOffset, secondRow, lowerWidth,
                 brake, theme.handbrake, text);
         lamp(graphics, font, theme, turbo, lowerOffset, secondRow, lowerWidth,
@@ -504,7 +509,7 @@ public final class CarGaugeHud {
         return alpha << 24 | red << 16 | green << 8 | blue;
     }
 
-    private static float lampWidth(Font font, Component label) {
+    private static float lampWidth(UiFont font, RaceText label) {
         return font.width(label) * LAMP_TEXT_SCALE + LAMP_PADDING * 2.0F;
     }
 
@@ -512,24 +517,24 @@ public final class CarGaugeHud {
      * 灯 1 つ。{@code level} は点き具合 0..1（ほとんどは 0 か 1。TURBO だけ途中の値を取る）。
      * 文字の色は半分を越えたら点いている側に切り替える。
      */
-    private static void lamp(GuiGraphicsExtractor graphics, Font font, GaugeTheme theme, Component label,
+    private static void lamp(UiGraphics graphics, UiFont font, GaugeTheme theme, RaceText label,
                              float centerX, float top, float width, float level, int onColor,
                              boolean text) {
         float left = centerX - width / 2.0F;
         boolean on = level > 0.5F;
         if (!text) {
-            GaugePainter.rect(graphics, left, top, left + width, top + LAMP_HEIGHT,
+            GaugeShapes.rect(graphics, left, top, left + width, top + LAMP_HEIGHT,
                     blend(theme.aidOff, onColor, Mth.clamp(level, 0.0F, 1.0F)));
             return;
         }
         // 大文字の字面（7px）を灯の高さの真ん中へ
         float glyph = 7.0F * LAMP_TEXT_SCALE;
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(centerX - font.width(label) * LAMP_TEXT_SCALE / 2.0F,
+        graphics.pushPose();
+        graphics.translate(centerX - font.width(label) * LAMP_TEXT_SCALE / 2.0F,
                 top + (LAMP_HEIGHT - glyph) / 2.0F);
-        graphics.pose().scale(LAMP_TEXT_SCALE, LAMP_TEXT_SCALE);
-        graphics.text(font, label, 0, 0, on ? theme.aidLabelOn : theme.aidLabel, false);
-        graphics.pose().popMatrix();
+        graphics.scale(LAMP_TEXT_SCALE, LAMP_TEXT_SCALE);
+        graphics.drawString(font, label, 0, 0, on ? theme.aidLabelOn : theme.aidLabel, false);
+        graphics.popPose();
     }
 
     // ------------------------------------------------------------------
@@ -542,16 +547,16 @@ public final class CarGaugeHud {
      * <p>置き場所は<b>2 眼の間、ホットバーの上</b>。下端に置くとホットバーと体力バーに
      * 重なるので、メーターの中心からわずかに下げたところで止めてある。</p>
      */
-    private static void renderCenterPanel(GuiGraphicsExtractor graphics, Font font, GaugeTheme theme,
-                                          CarEntity car, CarSpec spec,
+    private static void renderCenterPanel(UiGraphics graphics, UiFont font, GaugeTheme theme,
+                                          HudCar car, CarSpec spec,
                                           float x, float bottomY, float scale) {
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x, bottomY);
-        graphics.pose().scale(scale, scale);
+        graphics.pushPose();
+        graphics.translate(x, bottomY);
+        graphics.scale(scale, scale);
 
         float half = PANEL_WIDTH / 2.0F;
-        GaugePainter.rect(graphics, -half, -PANEL_HEIGHT, half, 0.0F, backdrop(theme.panel));
-        GaugePainter.rect(graphics, -half, -PANEL_HEIGHT, half, -PANEL_HEIGHT + 1.0F,
+        GaugeShapes.rect(graphics, -half, -PANEL_HEIGHT, half, 0.0F, backdrop(theme.panel));
+        GaugeShapes.rect(graphics, -half, -PANEL_HEIGHT, half, -PANEL_HEIGHT + 1.0F,
                 theme.aidOff);
         shiftLights(graphics, theme, car, spec, -PANEL_HEIGHT - 4.0F);
 
@@ -559,48 +564,48 @@ public final class CarGaugeHud {
         float boxLeft = -half + 6.0F;
         float boxTop = -PANEL_HEIGHT + 5.0F;
         float boxSize = 22.0F;
-        GaugePainter.rect(graphics, boxLeft, boxTop, boxLeft + boxSize, boxTop + boxSize,
+        GaugeShapes.rect(graphics, boxLeft, boxTop, boxLeft + boxSize, boxTop + boxSize,
                 theme.gearBox);
 
-        GaugePainter.flush(graphics);
+        GaugeShapes.flush(graphics);
 
         int gear = car.getRenderGear();
         String gearText = gear > 0 ? String.valueOf(gear) : gear < 0 ? "R" : "N";
         float gearScale = 1.7F;
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(boxLeft + boxSize / 2.0F - font.width(gearText) * gearScale / 2.0F,
+        graphics.pushPose();
+        graphics.translate(boxLeft + boxSize / 2.0F - font.width(gearText) * gearScale / 2.0F,
                 boxTop + boxSize / 2.0F - font.lineHeight * gearScale / 2.0F);
-        graphics.pose().scale(gearScale, gearScale);
-        graphics.text(font, gearText, 0, 0, theme.gearText, false);
-        graphics.pose().popMatrix();
+        graphics.scale(gearScale, gearScale);
+        graphics.drawString(font, gearText, 0, 0, theme.gearText, false);
+        graphics.popPose();
 
-        Component mode = Component.translatable(spec.isManual()
+        RaceText mode = RaceText.translatable(spec.isManual()
                 ? "hud.kurumamod.transmission_mt" : "hud.kurumamod.transmission_at");
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(boxLeft + boxSize / 2.0F - font.width(mode) * SMALL_TEXT_SCALE / 2.0F,
+        graphics.pushPose();
+        graphics.translate(boxLeft + boxSize / 2.0F - font.width(mode) * SMALL_TEXT_SCALE / 2.0F,
                 -8.0F);
-        graphics.pose().scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
-        graphics.text(font, mode, 0, 0, theme.unit, false);
-        graphics.pose().popMatrix();
+        graphics.scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
+        graphics.drawString(font, mode, 0, 0, theme.unit, false);
+        graphics.popPose();
 
         // 速度。いちばん見る数字なので大きく、右詰め
         String speed = String.format("%.0f", Math.abs(car.getRenderSpeed()) * 3.6);
         float speedScale = 1.6F;
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(half - 6.0F - font.width(speed) * speedScale,
+        graphics.pushPose();
+        graphics.translate(half - 6.0F - font.width(speed) * speedScale,
                 -PANEL_HEIGHT + 6.0F);
-        graphics.pose().scale(speedScale, speedScale);
-        graphics.text(font, speed, 0, 0, theme.text, false);
-        graphics.pose().popMatrix();
+        graphics.scale(speedScale, speedScale);
+        graphics.drawString(font, speed, 0, 0, theme.text, false);
+        graphics.popPose();
 
-        Component unit = Component.translatable("hud.kurumamod.kmh");
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(half - 6.0F - font.width(unit) * SMALL_TEXT_SCALE, -8.0F);
-        graphics.pose().scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
-        graphics.text(font, unit, 0, 0, theme.unit, false);
-        graphics.pose().popMatrix();
+        RaceText unit = RaceText.translatable("hud.kurumamod.kmh");
+        graphics.pushPose();
+        graphics.translate(half - 6.0F - font.width(unit) * SMALL_TEXT_SCALE, -8.0F);
+        graphics.scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
+        graphics.drawString(font, unit, 0, 0, theme.unit, false);
+        graphics.popPose();
 
-        graphics.pose().popMatrix();
+        graphics.popPose();
     }
 
     /**
@@ -612,8 +617,8 @@ public final class CarGaugeHud {
      * <p>当時の車には無い装置なので 90 年代の文字盤とは年代が合わないが、<b>段を自分で
      * 選ぶ以上これが無いと回転計を読み続けることになる</b>ので残してある。</p>
      */
-    private static void shiftLights(GuiGraphicsExtractor graphics, GaugeTheme theme,
-                                    CarEntity car, CarSpec spec, float bottomY) {
+    private static void shiftLights(UiGraphics graphics, GaugeTheme theme,
+                                    HudCar car, CarSpec spec, float bottomY) {
         double redline = spec.redlineRpm();
         double fraction = redline > 0.0 ? car.getRenderRpm() / redline : 0.0;
         // 下のほうは点けない。全域を使うと「いつも半分点いている」ことになって意味が薄れる
@@ -637,7 +642,7 @@ public final class CarGaugeHud {
             float angle = 270.0F - spread + spread * 2.0F * t;
             int color = i < litCount ? theme.shiftLight(t) : theme.ledOff;
             // 外側（＝上）へ伸ばす。内側へ伸ばすと弧の線より下に出て小窓に近づく
-            GaugePainter.radialBar(graphics, 0.0F, centerY,
+            GaugeShapes.radialBar(graphics, 0.0F, centerY,
                     SHIFT_ARC_RADIUS, SHIFT_ARC_RADIUS + 3.0F, angle, 3.0F, color);
         }
     }

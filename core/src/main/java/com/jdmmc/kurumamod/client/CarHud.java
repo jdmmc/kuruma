@@ -1,17 +1,14 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.client.hook.GuiRender;
-
+import com.jdmmc.kurumamod.client.ui.ScreenStyle;
+import com.jdmmc.kurumamod.client.ui.UiFont;
+import com.jdmmc.kurumamod.client.ui.UiGraphics;
+import com.jdmmc.kurumamod.race.RaceText;
 import com.jdmmc.kurumamod.CameraMode;
 import com.jdmmc.kurumamod.ClientConfig;
-import com.jdmmc.kurumamod.Kurumamod;
-import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarPhysics;
 import com.jdmmc.kurumamod.physics.Wheel;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import com.jdmmc.kurumamod.surface.RoadSurface;
-import net.minecraft.network.chat.Component;
 
 /**
  * 運転中のテレメトリ表示。<b>セッティングを詰めるための数字</b>で、H キーで切り替える。
@@ -55,7 +52,8 @@ public final class CarHud {
     private CarHud() {
     }
 
-    public static void onRenderGui(GuiRender event) {
+    /** HUD をすべて描き終えた後に呼ぶ（版の {@code ClientHooks#renderGuiPost}）。 */
+    public static void onRenderGui(UiGraphics graphics) {
         if (!ClientConfig.showTelemetry) {
             return;
         }
@@ -63,30 +61,24 @@ public final class CarHud {
         if (ScreenStyle.isCarScreen()) {
             return;
         }
-        Minecraft minecraft = Minecraft.getInstance();
+        RaceClient client = RaceClient.get();
         // 運転者に限らない。速度も回転数も路面も同期されているので同乗者にも出せるし、
         // カメラの状態は同乗者も切り替えられる（H で消せるのも同じ）。
         // 荷重の棒だけは手元で解いていないと停車時の値で止まるが、色は同期された
         // 車輪の角速度から出るので滑りは見える
-        if (minecraft.player == null || minecraft.options.hideGui
-                || !(minecraft.player.getVehicle() instanceof CarEntity car)) {
+        HudCar car = CarClient.get().ridingHud();
+        if (client.hideGui() || car == null) {
             return;
         }
-        render(event.getGuiGraphics(), minecraft, car);
-    }
-
-    private static void render(GuiGraphics graphics, Minecraft minecraft, CarEntity car) {
-        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
-        renderTelemetry(graphics, minecraft, car, screenHeight);
+        renderTelemetry(graphics, client.font(), car, client.guiWidth(), client.guiHeight());
     }
 
     /** 左下。テレメトリの数字と、その上にタイヤの図。 */
-    private static void renderTelemetry(GuiGraphics graphics, Minecraft minecraft, CarEntity car,
-                                        int screenHeight) {
+    private static void renderTelemetry(UiGraphics graphics, UiFont font, HudCar car,
+                                        int screenWidth, int screenHeight) {
         // 画面の左下の角に固定する。メーターと重なってもずらさない（2026-11-10、ユーザーの指示）。
         // ホットバーとだけは重ねない（横に重なるときは、ホットバーの上まで持ち上げる）
         int left = MARGIN;
-        int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int bottom = screenHeight - MARGIN - HotbarClearance.lift(left, left + PANEL_WIDTH, screenWidth);
         int panelHeight = LINE_HEIGHT * 6 + 8;
         int top = bottom - panelHeight;
@@ -94,8 +86,8 @@ public final class CarHud {
 
         int y = top + 4;
         double lateralG = car.getRenderLateralAcceleration() / CarPhysics.GRAVITY;
-        graphics.drawString(minecraft.font,
-                Component.translatable("hud.kurumamod.lateral_g", String.format("%.2f", Math.abs(lateralG))),
+        graphics.drawString(font,
+                RaceText.translatable("hud.kurumamod.lateral_g", String.format("%.2f", Math.abs(lateralG))),
                 left + 5, y, COLOR_LABEL, false);
         y += LINE_HEIGHT;
 
@@ -103,24 +95,24 @@ public final class CarHud {
         // 速度も諸元も同期されているので同乗者にも正しく出る
         double speed = car.getRenderSpeed();
         double drag = car.getSpec().dragForce(speed);
-        graphics.drawString(minecraft.font,
-                Component.translatable("hud.kurumamod.drag",
+        graphics.drawString(font,
+                RaceText.translatable("hud.kurumamod.drag",
                         String.format("%.0f", drag),
                         String.format("%.3f", drag / car.getSpec().mass() / CarPhysics.GRAVITY)),
                 left + 5, y, COLOR_LABEL, false);
         y += LINE_HEIGHT;
 
         // ダウンフォース。前後それぞれ何 kg ぶん押し付けているか。物理と同じく前後方向の速度で見る
-        graphics.drawString(minecraft.font,
-                Component.translatable("hud.kurumamod.downforce",
+        graphics.drawString(font,
+                RaceText.translatable("hud.kurumamod.downforce",
                         String.format("%.0f", car.getSpec().downforce(true, speed) / CarPhysics.GRAVITY),
                         String.format("%.0f", car.getSpec().downforce(false, speed) / CarPhysics.GRAVITY)),
                 left + 5, y, COLOR_LABEL, false);
         y += LINE_HEIGHT;
 
         double slip = car.getRenderSlipAngleDegrees();
-        graphics.drawString(minecraft.font,
-                Component.translatable("hud.kurumamod.drift", String.format("%+.1f", slip)),
+        graphics.drawString(font,
+                RaceText.translatable("hud.kurumamod.drift", String.format("%+.1f", slip)),
                 left + 5, y, slipColor(Math.abs(slip)), false);
         y += LINE_HEIGHT;
 
@@ -128,23 +120,23 @@ public final class CarHud {
         // 4 輪で違う路面に乗っていることもあるので、いちばんグリップの低い輪を出す
         RoadSurface worst = car.getRenderSurface();
         double wetness = car.getRenderWetness();
-        Component surfaceText = wetness > WET_SHOWN
-                ? Component.translatable("hud.kurumamod.surface_wet",
-                        Component.translatable(worst.translationKey()),
+        RaceText surfaceText = wetness > WET_SHOWN
+                ? RaceText.translatable("hud.kurumamod.surface_wet",
+                        RaceText.translatable(worst.translationKey()),
                         String.format("%.2f", worst.gripScale(wetness)))
-                : Component.translatable("hud.kurumamod.surface",
-                        Component.translatable(worst.translationKey()),
+                : RaceText.translatable("hud.kurumamod.surface",
+                        RaceText.translatable(worst.translationKey()),
                         String.format("%.2f", worst.gripScale()));
-        graphics.drawString(minecraft.font, surfaceText, left + 5, y,
+        graphics.drawString(font, surfaceText, left + 5, y,
                 worst.gripScale() < 1.0 || wetness > WET_SHOWN ? COLOR_SLIDING : COLOR_LABEL, false);
         y += LINE_HEIGHT;
 
         // カメラの状態と切り替えキー。キーは変更できるので、割り当てを実際に引いて出す
-        CameraMode cameraMode = CarCamera.currentMode();
-        graphics.drawString(minecraft.font,
-                Component.translatable("hud.kurumamod.camera",
-                        Component.translatable(cameraMode.translationKey()),
-                        KurumaKeys.TOGGLE_CAMERA.getTranslatedKeyMessage()),
+        CameraMode cameraMode = CarClient.get().cameraMode();
+        graphics.drawString(font,
+                RaceText.translatable("hud.kurumamod.camera",
+                        RaceText.translatable(cameraMode.translationKey()),
+                        RaceText.literal(CarClient.get().cameraKeyName())),
                 left + 5, y, !cameraMode.followsView() && cameraMode != CameraMode.HEADING ? COLOR_SLIDING : COLOR_LABEL, false);
 
         // タイヤの図はテレメトリの上
@@ -154,7 +146,7 @@ public final class CarHud {
     }
 
     /** 上から見た 4 輪の図。棒の高さが接地荷重、色が滑り具合。 */
-    private static void renderWheelDiagram(GuiGraphics graphics, CarEntity car, int left, int top) {
+    private static void renderWheelDiagram(UiGraphics graphics, HudCar car, int left, int top) {
         int gapX = DIAGRAM_WIDTH - WHEEL_WIDTH * 2;
         int gapY = DIAGRAM_HEIGHT - WHEEL_HEIGHT * 2;
 
@@ -165,7 +157,7 @@ public final class CarHud {
         }
     }
 
-    private static void renderWheel(GuiGraphics graphics, CarEntity car, Wheel wheel, int x, int y) {
+    private static void renderWheel(UiGraphics graphics, HudCar car, Wheel wheel, int x, int y) {
         double load = car.getRenderWheelLoad(wheel);
         double staticLoad = car.getSpec().staticWheelLoad(wheel);
         // 停車時の 2 倍で満杯になる目盛り

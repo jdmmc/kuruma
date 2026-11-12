@@ -94,56 +94,8 @@ public final class CarLights {
     }
 
     // ---- 配光 ----------------------------------------------------------------------
-    // 角度はすべて光軸からの<b>正接</b>で持つ（横 = x/z、縦 = y/z）。角度にすると
-    // 頂点ごとに atan2 が 2 回要るうえ、小さい角度では正接とほとんど変わらない
+    // 配光の形と露出は core の HeadlightBeam（pattern・exposure・aimDown）
 
-    /**
-     * 光軸を水平からどれだけ下げるか。
-     *
-     * <p>実車のロービームは 1% 前後（0.6 度）下向きに合わせる。ここでは 0.9 度で、
-     * 車高 60cm なら光軸がおよそ 40m 先で路面に当たる。1.2 度では手前に寄りすぎた。</p>
-     */
-    private static final double AIM_DOWN = Math.toRadians(0.9);
-    /**
-     * オートレベライザーの効き。サスの沈み込みで生じた前後の傾きのうち、どれだけ光軸を戻すか。
-     *
-     * <p>入れないと、ブレーキのノーズダイブで光軸が数度下を向き、<b>止まろうとした瞬間に
-     * 前が見えなくなる</b>（加速のスクワットでは逆に空を照らす）。実車にも同じ理由で付いている。
-     * 見るのは<b>前後のサスの長さの差</b>だけで、坂による車体の傾きは戻さない——戻すと
-     * 上り坂の手前で光が坂を照らさなくなる。1 にしないのは、少しだけ沈んだほうが
-     * 「ブレーキを踏んだ」ことが光で分かるから。</p>
-     */
-    private static final double LEVELING = 0.85;
-    /** カットオフ（これより上は照らさない）の、光軸からの高さ。 */
-    private static final double CUTOFF = Math.tan(Math.toRadians(0.6));
-    /** カットオフのぼかし幅。0 にするとくっきりしすぎて段が見える。 */
-    private static final double CUTOFF_SOFT = Math.tan(Math.toRadians(0.5));
-    /**
-     * 歩道側のカットオフの跳ね上げ（エルボー）。
-     *
-     * <p>ロービームは対向車を眩惑しないよう道路側を低く抑え、<b>歩道側だけ</b>
-     * 15 度の傾きで持ち上げて標識や歩行者を照らす。日本は左側通行なので<b>左が歩道側</b>。</p>
-     */
-    private static final double KICK_SLOPE = Math.tan(Math.toRadians(15.0));
-    private static final double KICK_MAX = Math.tan(Math.toRadians(2.5));
-    /** 広がり（横・縦）。路面を広く薄く照らす成分。 */
-    private static final double WIDE_X = Math.tan(Math.toRadians(24.0));
-    private static final double WIDE_Y = Math.tan(Math.toRadians(8.0));
-    private static final double WIDE_WEIGHT = 0.45;
-    /** 集光（ホットスポット）。カットオフのすぐ下に集まる明るい芯。 */
-    private static final double SPOT_X = Math.tan(Math.toRadians(7.0));
-    private static final double SPOT_Y = Math.tan(Math.toRadians(2.2));
-    private static final double SPOT_CENTER = -Math.tan(Math.toRadians(0.8));
-    private static final double SPOT_WEIGHT = 0.80;
-
-    /**
-     * 照度から明るさへの換算。{@code 明るさ = 1 − exp(−(照度 × GAIN)^GAMMA)}。
-     *
-     * <p>照度は距離の 3 乗で落ちる（距離の 2 乗 × 浅くなる入射角）ので、そのままでは
-     * 手前だけ白飛びして奥が真っ暗になる。GAMMA で圧縮して、25m 先でも 4 割ほど残す。</p>
-     */
-    private static final double EXPOSURE_GAIN = 8600.0;
-    private static final double EXPOSURE_GAMMA = 0.6;
 
     // ---- 路面 ----------------------------------------------------------------------
 
@@ -515,7 +467,7 @@ public final class CarLights {
     /**
      * ヘッドライト 2 灯ぶんの位置と光軸。
      *
-     * <p>光軸は<b>車体の前方を {@link #AIM_DOWN} だけ下げたもの</b>。レンズの平均法線から
+     * <p>光軸は<b>車体の前方を {@link HeadlightBeam#AIM_DOWN} だけ下げたもの</b>。レンズの平均法線から
      * 取ろうとしたことがあるが、箱で作ると法線が打ち消し合って向きが定まらない。</p>
      */
     private static final class Beam {
@@ -541,15 +493,14 @@ public final class CarLights {
 
         /**
          * @param suspensionPitch サスの沈み込みで生じた前後の傾き [rad]。正で鼻上げ。
-         *                        {@link #LEVELING} の割合だけ打ち消す
+         *                        {@link HeadlightBeam#LEVELING} の割合だけ打ち消す
          */
         static Beam of(List<Vec3> lamps, Vec3 forward, Vec3 bodyUp, double suspensionPitch) {
             Vec3 right = forward.cross(bodyUp).normalize();
             Vec3 up = right.cross(forward).normalize();
             // 下げる角度 = 取り付けの下向き + 沈み込みの戻し（鼻下げなら上へ戻す）
             // 調整画面（Ctrl+L、HeadlightScreen）で動かせる。既定は AIM_DOWN と LEVELING と同じ値
-            double aim = Math.toRadians(com.jdmmc.kurumamod.ClientConfig.headlightAim)
-                    + suspensionPitch * com.jdmmc.kurumamod.ClientConfig.headlightLeveling;
+            double aim = HeadlightBeam.aimDown(suspensionPitch);
             double cos = Math.cos(aim);
             double sin = Math.sin(aim);
             Vec3 axis = forward.scale(cos).subtract(up.scale(sin)).normalize();
@@ -583,35 +534,12 @@ public final class CarLights {
                 }
                 double tx = (vx * right.x + vy * right.y + vz * right.z) / along;
                 double ty = (vx * up.x + vy * up.y + vz * up.z) / along;
-                total += pattern(tx, ty) * cosIncidence / dist2;
+                total += HeadlightBeam.pattern(tx, ty) * cosIncidence / dist2;
             }
             return total;
         }
     }
 
-    /** 光軸からの正接 (tx, ty) に出る光の強さ。光軸上でおよそ 1。 */
-    private static double pattern(double tx, double ty) {
-        // 歩道側（左 = tx が負）はカットオフが持ち上がる
-        double cut = CUTOFF + Math.min(KICK_MAX, Math.max(0.0, -tx) * KICK_SLOPE);
-        double gate = 1.0 - smoothstep(-CUTOFF_SOFT, CUTOFF_SOFT, ty - cut);
-        if (gate <= 0.0) {
-            return 0.0;
-        }
-        double wx = tx / WIDE_X;
-        double wy = ty / WIDE_Y;
-        double sx = tx / SPOT_X;
-        double sy = (ty - SPOT_CENTER) / SPOT_Y;
-        return gate * (WIDE_WEIGHT * Math.exp(-(wx * wx + wy * wy))
-                + SPOT_WEIGHT * Math.exp(-(sx * sx + sy * sy)));
-    }
-
-    /** 照度を画面の明るさ 0..1 へ。 */
-    private static float exposure(double illuminance) {
-        if (illuminance <= 0.0) {
-            return 0.0F;
-        }
-        return (float) (1.0 - Math.exp(-Math.pow(illuminance * EXPOSURE_GAIN, EXPOSURE_GAMMA)));
-    }
 
     // ---- 路面 ----------------------------------------------------------------------
 
@@ -1112,13 +1040,13 @@ public final class CarLights {
             double f = dx * fx + dz * fz;
             double l = Math.abs(dx * rx + dz * rz);
             // 調べた範囲の奥と横の端でなめらかに消す。切れ目がそのまま見えないように
-            double fade = (1.0 - smoothstep(GROUND_FADE_START, GROUND_RANGE, f))
-                    * (1.0 - smoothstep(halfWidth(Math.max(0.0, f)) - 2.5, halfWidth(Math.max(0.0, f)), l));
+            double fade = (1.0 - HeadlightBeam.smoothstep(GROUND_FADE_START, GROUND_RANGE, f))
+                    * (1.0 - HeadlightBeam.smoothstep(halfWidth(Math.max(0.0, f)) - 2.5, halfWidth(Math.max(0.0, f)), l));
             if (fade <= 0.0) {
                 return 0.0F;
             }
             double e = beam.illuminance(x - origin.x, y - origin.y, z - origin.z, nx, ny, nz);
-            return (float) (strength * fade) * exposure(e);
+            return (float) (strength * fade) * HeadlightBeam.exposure(e);
         }
     }
 
@@ -1139,8 +1067,8 @@ public final class CarLights {
      */
     private static void renderVolume(Matrix4f matrix, VertexConsumer consumer, Beam beam, Vec3 lamp,
                                      Vec3 eye, Vec3 origin, float strength) {
-        double centerY = (CUTOFF + VOLUME_BOTTOM) / 2.0;
-        double halfY = (CUTOFF - VOLUME_BOTTOM) / 2.0;
+        double centerY = (HeadlightBeam.CUTOFF + VOLUME_BOTTOM) / 2.0;
+        double halfY = (HeadlightBeam.CUTOFF - VOLUME_BOTTOM) / 2.0;
         double[] ringZ = new double[VOLUME_RINGS];
         double[] ringGround = new double[VOLUME_RINGS];
         for (int r = 0; r < VOLUME_RINGS; r++) {
@@ -1175,7 +1103,7 @@ public final class CarLights {
                 Vec3 view = eye.subtract(pos).normalize();
                 double facing = Math.abs(normal.dot(view));
                 double ground = ringGround[r];
-                double groundFade = Double.isNaN(ground) ? 1.0 : smoothstep(0.0, 0.45, pos.y - ground);
+                double groundFade = Double.isNaN(ground) ? 1.0 : HeadlightBeam.smoothstep(0.0, 0.45, pos.y - ground);
                 float alpha = (float) (VOLUME_ALPHA * strength * along * Math.pow(facing, 1.5) * groundFade);
                 ring[s] = new float[]{(float) pos.x, (float) pos.y, (float) pos.z, alpha};
             }
@@ -1213,7 +1141,7 @@ public final class CarLights {
             return;
         }
         toEye = toEye.scale(1.0 / distance);
-        double visibility = smoothstep(-0.05, 0.55, facing.dot(toEye));
+        double visibility = HeadlightBeam.smoothstep(-0.05, 0.55, facing.dot(toEye));
         float alpha = (float) (strength * visibility);
         if (alpha < 0.005F) {
             return;
@@ -1350,8 +1278,4 @@ public final class CarLights {
         return new Vec3(v.x(), v.y(), v.z());
     }
 
-    private static double smoothstep(double edge0, double edge1, double x) {
-        double t = Mth.clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
-        return t * t * (3.0 - 2.0 * t);
-    }
 }

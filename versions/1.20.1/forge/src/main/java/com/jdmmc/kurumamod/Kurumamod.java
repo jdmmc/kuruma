@@ -123,10 +123,12 @@ public class Kurumamod {
         // サーバーイベントなど、購読したいゲーム内イベントのために自身を登録する
         MinecraftForge.EVENT_BUS.register(this);
 
-        // Forge が設定ファイルを生成・読み込みできるよう、この MOD の ForgeConfigSpec を登録する。
-        // CLIENT は画面の好みなので別ファイル（kurumamod-client.toml）。サーバーには置かれない
+        // サーバーにも要る設定（COMMON）は Forge の ForgeConfigSpec で登録する
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
+        // 画面の好みは自前で読み書きする（1.21.1・26.3 と同じ ConfigSpec。サーバーには置かない）
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist == Dist.CLIENT) {
+            ClientConfig.load(net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get());
+        }
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {

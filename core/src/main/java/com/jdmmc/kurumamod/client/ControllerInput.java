@@ -4,15 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.jdmmc.kurumamod.physics.CarInput;
-import net.minecraftforge.fml.loading.FMLPaths;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWGamepadState;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,9 +17,11 @@ import java.util.Map;
 /**
  * コントローラの読み取りと、割り当ての保存。
  *
- * <p>GLFW をそのまま叩く。{@code glfwGetGamepadState} は GLFW が持っている対応表で
- * 多くのコントローラを Xbox 系の並びへ正規化してくれるので、まずこれを試し、
- * 対応表に無い機器では生の軸とボタンへ落とす。</p>
+ * <p><b>機器を読むのは版の {@code ControllerDevice}</b>（1.20.1・1.21.1 は GLFW、26.3 は SDL3）。
+ * どちらも、対応表のある機器は Xbox 系の並びへ正規化し、無い機器は生の軸とボタンへ落とす。
+ * <b>軸とボタンの番号は GLFW のゲームパッドの並び</b>（{@link #AXIS_LEFT_X}・{@link #BUTTON_A} など）で、
+ * 値の範囲も GLFW と同じ（スティック −1〜1、トリガーは離して −1・引ききって 1）。保存してある割り当て
+ * （{@code index}）をどの版でもそのまま使えるように、26.3 の側が SDL の番号から並べ替える。</p>
  *
  * <p><b>アナログ入力は「0/100 しかない」という前提を崩す。</b>アクセルを微妙に開ける、
  * 舵を少しだけ当てる、といった操作ができるようになるので、トラクションコントロールや
@@ -40,16 +37,64 @@ public final class ControllerInput {
     /** 中立付近の遊び。スティックは静止していても完全な 0 にはならない。 */
     private static final double DEADZONE = 0.12;
 
+    // GLFW のゲームパッドの並び。割り当ての保存形式（index）がこの番号なので変えないこと
+    public static final int AXIS_LEFT_X = 0;
+    public static final int AXIS_LEFT_Y = 1;
+    public static final int AXIS_RIGHT_X = 2;
+    public static final int AXIS_RIGHT_Y = 3;
+    public static final int AXIS_LEFT_TRIGGER = 4;
+    public static final int AXIS_RIGHT_TRIGGER = 5;
+    public static final int BUTTON_A = 0;
+    public static final int BUTTON_B = 1;
+    public static final int BUTTON_X = 2;
+    public static final int BUTTON_Y = 3;
+    public static final int BUTTON_LEFT_BUMPER = 4;
+    public static final int BUTTON_RIGHT_BUMPER = 5;
+    public static final int BUTTON_BACK = 6;
+    public static final int BUTTON_START = 7;
+    public static final int BUTTON_GUIDE = 8;
+    public static final int BUTTON_LEFT_THUMB = 9;
+    public static final int BUTTON_RIGHT_THUMB = 10;
+    public static final int BUTTON_DPAD_UP = 11;
+    public static final int BUTTON_DPAD_RIGHT = 12;
+    public static final int BUTTON_DPAD_DOWN = 13;
+    public static final int BUTTON_DPAD_LEFT = 14;
+
+    /**
+     * 機器を読むもの。版が {@link #setDevice} で置く。
+     *
+     * <p>{@link #poll()} は<b>例外を投げないこと</b>（ネイティブが読めない環境でも運転は続けられるべきなので、
+     * 機器の側で「つながっていない」に倒す）。</p>
+     */
+    public interface Device {
+        /** 毎ティック呼ぶ。接続を探し、軸とボタンを読み込む。 */
+        void poll();
+
+        /** 読み取った軸（番号は GLFW の並び）。つながっていなければ空。 */
+        float[] axes();
+
+        boolean[] buttons();
+
+        boolean connected();
+
+        /** つながっているコントローラの名前。無ければ null。 */
+        String name();
+    }
+
+    private static Device device;
+    private static Path configDir;
+
+    /** 機器の読み方と、割り当てを置く {@code config/} を決める。クライアントの起動時に 1 回。 */
+    public static void setDevice(Device reader, Path dir) {
+        device = reader;
+        configDir = dir;
+    }
+
     private static final Map<ControllerAction, ControllerBinding> BINDINGS =
             new EnumMap<>(ControllerAction.class);
     private static boolean loaded;
 
-    /** 使うコントローラ。-1 なら未接続。 */
-    private static int joystick = -1;
     private static boolean enabled = true;
-
-    /** 使い回すゲームパッドの状態。解放してはいけないので手放さない。 */
-    private static GLFWGamepadState gamepadState;
 
     // 読み取った生の状態。割り当て画面でも使う
     private static float[] axes = new float[0];
@@ -98,11 +143,11 @@ public final class ControllerInput {
     }
 
     private static Path file() {
-        return FMLPaths.CONFIGDIR.get().resolve(FILE);
+        return configDir.resolve(FILE);
     }
 
     private static void load() {
-        if (loaded) {
+        if (loaded || configDir == null) {
             return;
         }
         loaded = true;
@@ -138,6 +183,9 @@ public final class ControllerInput {
     }
 
     private static void save() {
+        if (configDir == null) {
+            return;
+        }
         JsonObject root = new JsonObject();
         root.addProperty("enabled", enabled);
         for (Map.Entry<ControllerAction, ControllerBinding> entry : BINDINGS.entrySet()) {
@@ -164,92 +212,35 @@ public final class ControllerInput {
     // ------------------------------------------------------------------
 
     /**
-     * 毎ティック呼ぶ。接続を探し、軸とボタンを読み込む。
+     * 毎ティック呼ぶ。接続を探し、軸とボタンを読み込む（{@link Device#poll}）。
      *
      * <p>ここで何が起きても運転は続けられるべきなので、例外は握りつぶして
      * 「コントローラ無し」に倒す。</p>
      */
     public static void poll() {
-        try {
-            pollUnsafe();
-        } catch (RuntimeException e) {
-            axes = new float[0];
-            buttons = new boolean[0];
-            joystick = -1;
-        }
-    }
-
-    private static void pollUnsafe() {
         load();
-        if (joystick < 0 || !GLFW.glfwJoystickPresent(joystick)) {
-            joystick = findJoystick();
-        }
-        if (joystick < 0) {
-            axes = new float[0];
-            buttons = new boolean[0];
-            return;
-        }
-        // 対応表がある機器は Xbox 系の並びへ正規化して読む
-        if (GLFW.glfwJoystickIsGamepad(joystick)) {
-            GLFWGamepadState state = gamepadState();
-            if (GLFW.glfwGetGamepadState(joystick, state)) {
-                FloatBuffer stateAxes = state.axes();
-                axes = new float[stateAxes.limit()];
-                stateAxes.get(axes);
-                ByteBuffer stateButtons = state.buttons();
-                buttons = new boolean[stateButtons.limit()];
-                for (int i = 0; i < buttons.length; i++) {
-                    buttons[i] = stateButtons.get(i) == GLFW.GLFW_PRESS;
-                }
+        try {
+            if (device != null) {
+                device.poll();
+                axes = device.axes();
+                buttons = device.buttons();
                 return;
             }
+        } catch (RuntimeException | LinkageError e) {
+            // 機器の側で倒しきれなかったとき
         }
-        // 対応表に無い機器は生のまま
-        FloatBuffer rawAxes = GLFW.glfwGetJoystickAxes(joystick);
-        axes = new float[rawAxes == null ? 0 : rawAxes.limit()];
-        if (rawAxes != null) {
-            rawAxes.get(axes);
-        }
-        ByteBuffer rawButtons = GLFW.glfwGetJoystickButtons(joystick);
-        buttons = new boolean[rawButtons == null ? 0 : rawButtons.limit()];
-        for (int i = 0; i < buttons.length; i++) {
-            buttons[i] = rawButtons.get(i) == GLFW.GLFW_PRESS;
-        }
+        axes = new float[0];
+        buttons = new boolean[0];
     }
 
-    /**
-     * ゲームパッドの状態を受ける入れ物。<b>1 度だけ作って使い回す。</b>
-     *
-     * <p>{@code GLFWGamepadState.create()} が返すのは
-     * {@code BufferUtils.createByteBuffer} による<b>GC 管理のバッファ</b>で、
-     * {@code free()} してはいけない。try-with-resources に入れると
-     * {@code NativeResource.close()} から解放が呼ばれ、jemalloc が確保していない
-     * メモリを解放することになってヒープが壊れる。毎ティック確保していたため、
-     * 約 15 分走ったところで EXCEPTION_ACCESS_VIOLATION で落ちた。</p>
-     */
-    private static GLFWGamepadState gamepadState() {
-        if (gamepadState == null) {
-            gamepadState = GLFWGamepadState.create();
-        }
-        return gamepadState;
-    }
-
-    private static int findJoystick() {
-        for (int id = GLFW.GLFW_JOYSTICK_1; id <= GLFW.GLFW_JOYSTICK_LAST; id++) {
-            if (GLFW.glfwJoystickPresent(id)) {
-                return id;
-            }
-        }
-        return -1;
-    }
 
     public static boolean isConnected() {
-        return joystick >= 0;
+        return device != null && device.connected() && axes.length + buttons.length > 0;
     }
 
     /** つながっているコントローラの名前。無ければ null。 */
     public static String name() {
-        return joystick < 0 ? null : GLFW.glfwGetJoystickName(joystick);
+        return device == null ? null : device.name();
     }
 
     public static float[] axes() {

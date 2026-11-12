@@ -33,6 +33,20 @@ public final class ScreenStyle {
     }
 
     /**
+     * いま開いているのが<b>車をいじる画面</b>（換装・セッティング・座席の調整）か。
+     *
+     * <p>これらは同じ扱いをする（座席の調整画面は、三人称で車の大きさを見ながら合わせるため）:
+     * 車の HUD を引っ込める（どれも下端を使うので重なる）、カメラをショールームの構えにする（版の
+     * {@code CarChaseCamera}）。</p>
+     */
+    public static boolean isCarScreen() {
+        UiScreen screen = com.jdmmc.kurumamod.client.RaceClient.get().raceScreen();
+        return screen instanceof com.jdmmc.kurumamod.client.CarPartScreen
+                || screen instanceof com.jdmmc.kurumamod.client.CarTuningScreen
+                || screen instanceof com.jdmmc.kurumamod.client.SeatScreen;
+    }
+
+    /**
      * タイルの箱。<b>選んでいるものは黄色い帯と黄色い枠になる。</b>
      *
      * @param labelHeight 下端の黄色い帯の高さ。<b>高さと同じ値を渡せばタイル全体が黄色くなる</b>
