@@ -3,7 +3,16 @@ package com.jdmmc.kurumamod.util;
 /** 数の道具。<b>バニラの {@code net.minecraft.util.Mth} と同じ名前・同じ動き</b>（core は Minecraft を知らないので写した）。 */
 public final class Mth {
 
+    public static final float PI = 3.1415927F;
+    public static final float TWO_PI = 6.2831855F;
+    public static final float DEG_TO_RAD = 0.017453292F;
+    public static final float RAD_TO_DEG = 57.295776F;
+
     private Mth() {
+    }
+
+    public static float rotLerp(float delta, float start, float end) {
+        return start + delta * wrapDegrees(end - start);
     }
 
     public static double clamp(double value, double min, double max) {

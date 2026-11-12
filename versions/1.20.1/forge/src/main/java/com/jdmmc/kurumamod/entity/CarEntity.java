@@ -5,6 +5,7 @@ import com.jdmmc.kurumamod.client.effect.EmitterCar;
 import com.jdmmc.kurumamod.client.hud.HudCar;
 import com.jdmmc.kurumamod.client.effect.SkidMarkTrails;
 import com.jdmmc.kurumamod.car.CarCore;
+import com.jdmmc.kurumamod.car.CarHost;
 import com.jdmmc.kurumamod.car.CarSync;
 import com.jdmmc.kurumamod.car.CarPose;
 import com.jdmmc.kurumamod.ground.GroundSensor;
@@ -100,7 +101,7 @@ import java.util.Map;
  * <p><b>エンティティの Y はシャシー基準面（サスペンションのハードポイントが並ぶ面）を指す。</b>
  * 地面ではない。タイヤは AABB の下にぶら下がっているので、AABB は車体だけを表す。</p>
  */
-public class CarEntity extends Entity implements IEntityAdditionalSpawnData, HudCar, GroundSensor.World, SkidMarkTrails.Car, EmitterCar {
+public class CarEntity extends Entity implements IEntityAdditionalSpawnData, CarHost, HudCar, GroundSensor.World, SkidMarkTrails.Car, EmitterCar {
 
     /** 前輪の切れ角 [rad]。運転していないクライアントでの描画用。 */
     private static final EntityDataAccessor<Float> DATA_STEER_ANGLE =
@@ -278,9 +279,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     private static final Vec3 PASSENGER_SEAT_OFFSET =
             new Vec3(-DRIVER_SEAT_OFFSET.x, DRIVER_SEAT_OFFSET.y, DRIVER_SEAT_OFFSET.z);
     /** 車種・諸元・装着している部品と、そこから組み上げた実効の諸元。 */
-    private final CarCore carCore = new CarCore();
+    private final CarCore carCore = new CarCore(this);
     /** 物理の状態。運転権を持っている側だけが進める。 */
-    private final CarState state = new CarState();
+    private final CarState state = carCore.state();
     /** 同期した値（{@link SyncedValues}）。運転していない側はここから読む。 */
     private final CarSync synced = new SyncedValues();
 
@@ -370,49 +371,6 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     /** 路面の濡れ具合 0..1。天候から作るので同期も保存もしない。 */
     private double wetness;
 
-    /** 描画用のタイヤ回転角 [rad]。車輪ごとに持つので、空転やロックがそのまま見える。 */
-    private final float[] wheelRoll = new float[Wheel.COUNT];
-    private final float[] wheelRollPrev = new float[Wheel.COUNT];
-
-    // 運転していないクライアントが、サーバーから来た位置へ寄せていくための状態
-    /**
-     * 描画に使う姿勢の、今ティックと前ティックの値。
-     *
-     * <p><b>位置は補間されるのに、姿勢や切れ角は補間されていなかった。</b>同期値は 20Hz で
-     * 階段状に変わるので、位置だけ滑らかに動いて車体の傾きだけがカクつく。物理を手元で
-     * 解いている側も 20Hz なので事情は同じ。ティックの境目の値を 2 つ持って、描画時に
-     * {@code partialTick} で間を取る。</p>
-     */
-    private float renderYaw;
-    private float renderPitch;
-    private float renderRoll;
-    private float renderSteer;
-    private final double[] renderSuspension = new double[Wheel.COUNT];
-    private float prevRenderYaw;
-    private float prevRenderPitch;
-    private float prevRenderRoll;
-    private float prevRenderSteer;
-    private final double[] prevRenderSuspension = new double[Wheel.COUNT];
-    /** 最初のティックは前の値が無いので、両方を同じ値で埋める。 */
-    private boolean renderSnapshotReady;
-
-    /**
-     * 他人の車の姿勢を、届いた値へ何ティックかけて寄せるか。<b>位置と同じ 3</b>
-     * （バニラはエンティティの移動を {@code lerpTo(..., 3, ...)} で寄せる）。
-     *
-     * <p>以前は届いた値をそのまま「今ティックの値」にしていたので、知らせの届き方のばらつきが
-     * そのまま出た。届かなかったティックは止まり、2 つまとめて届いたティックは 2 ティックぶん
-     * 飛ぶ。位置は寄せているので滑らかなのに、<b>ドリフト中のロールだけがカクついて見えた</b>。
-     * 寄せておけば届かないティックも目標へ動き続け、遅れも位置と揃う。</p>
-     */
-    private static final int POSE_LERP_STEPS = 3;
-    /** 姿勢の目標（最後に届いた値）と、あと何ティックで寄せきるか。 */
-    private float targetYaw;
-    private float targetPitch;
-    private float targetRoll;
-    private float targetSteer;
-    private final double[] targetSuspension = new double[Wheel.COUNT];
-    private int poseLerpSteps;
 
     private int lerpSteps;
     private double lerpX;
@@ -502,7 +460,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
     private CarHull hull(boolean body) {
         boolean local = isControlledByLocalInstance();
-        double yaw = local ? state.yaw : remoteYaw();
+        double yaw = local ? state.yaw : carCore.remoteYaw();
         double pitch = local ? state.pitch : synced.pitch();
         double roll = local ? state.roll : synced.roll();
         return body
@@ -589,9 +547,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         return carCore.hasBlowoff();
     }
 
-    /** ブースト 0..1。手元で解いていないときは同期された値。 */
+    /** {@link CarCore#getRenderBoost}。 */
     public double getRenderBoost() {
-        return hasLocalState() ? state.boost : synced.boost();
+        return carCore.getRenderBoost();
     }
 
     /**
@@ -655,7 +613,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
     @Override
     public void tick() {
-        System.arraycopy(wheelRoll, 0, wheelRollPrev, 0, wheelRoll.length);
+        carCore.shiftWheelRoll();
         super.tick();
 
         if (level().isClientSide) {
@@ -672,7 +630,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
             hadControl = false;
         }
 
-        updateWheelRoll();
+        carCore.updateWheelRoll();
 
         if (level().isClientSide && isControlledByLocalInstance()) {
             lastSentState = stateSnapshot();
@@ -687,106 +645,10 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
         // 位置が変わらなくても姿勢が変われば箱の形が変わる
         setBoundingBox(makeBoundingBox());
-        updateRenderSnapshot();
+        carCore.updateRenderSnapshot();
     }
 
-    /**
-     * 描画用の値をティックの境目で 1 つずらす。
-     *
-     * <p>手元で解いていてもいなくても同じように補間できるよう、<b>読み出し元の違いは
-     * ここで吸収する</b>。</p>
-     */
-    private void updateRenderSnapshot() {
-        boolean local = hasLocalState();
-        prevRenderYaw = renderYaw;
-        prevRenderPitch = renderPitch;
-        prevRenderRoll = renderRoll;
-        prevRenderSteer = renderSteer;
-        System.arraycopy(renderSuspension, 0, prevRenderSuspension, 0, Wheel.COUNT);
 
-        if (local) {
-            renderYaw = getYRot();
-            renderPitch = (float) state.pitch;
-            renderRoll = (float) state.roll;
-            renderSteer = (float) state.steerAngle;
-            System.arraycopy(state.suspensionLength, 0, renderSuspension, 0, Wheel.COUNT);
-            poseLerpSteps = 0;
-        } else {
-            approachSyncedPose();
-        }
-
-        // 起き上がり補助は姿勢の表し方を置き換える（ヨー +180 度・ピッチ π−p・ロール +π）。
-        // 同じ向きでも数字が飛ぶので、前の姿勢も同じ表し方へ揃えてから補間する
-        if (CarPose.isOtherRepresentationCloser(prevRenderYaw, prevRenderPitch, prevRenderRoll,
-                renderYaw, renderPitch, renderRoll)) {
-            prevRenderYaw += 180.0F;
-            prevRenderPitch = CarPose.otherPitch(prevRenderPitch);
-            prevRenderRoll = CarPose.otherRoll(prevRenderRoll);
-        }
-
-        if (!renderSnapshotReady) {
-            renderSnapshotReady = true;
-            prevRenderYaw = renderYaw;
-            prevRenderPitch = renderPitch;
-            prevRenderRoll = renderRoll;
-            prevRenderSteer = renderSteer;
-            System.arraycopy(renderSuspension, 0, prevRenderSuspension, 0, Wheel.COUNT);
-        }
-    }
-
-    /**
-     * 同期された姿勢へ寄せる（他人の車）。新しい値が届いていたら目標を差し替えて数え直し、
-     * 残りティック数で割った分だけ進める（バニラの位置の寄せ方と同じ）。
-     */
-    private void approachSyncedPose() {
-        float yaw = synced.yaw();
-        float pitch = synced.pitch();
-        float roll = synced.roll();
-        float steer = synced.steerAngle();
-        boolean changed = !renderSnapshotReady || yaw != targetYaw || pitch != targetPitch
-                || roll != targetRoll || steer != targetSteer;
-        for (int i = 0; i < Wheel.COUNT; i++) {
-            double length = synced.suspension(i);
-            changed |= length != targetSuspension[i];
-            targetSuspension[i] = length;
-        }
-        targetYaw = yaw;
-        targetPitch = pitch;
-        targetRoll = roll;
-        targetSteer = steer;
-        if (!renderSnapshotReady) {
-            // 最初は寄せずにそのまま置く
-            renderYaw = yaw;
-            renderPitch = pitch;
-            renderRoll = roll;
-            renderSteer = steer;
-            System.arraycopy(targetSuspension, 0, renderSuspension, 0, Wheel.COUNT);
-            poseLerpSteps = 0;
-            return;
-        }
-        if (changed) {
-            poseLerpSteps = POSE_LERP_STEPS;
-        }
-        if (poseLerpSteps <= 0) {
-            return;
-        }
-        // 届いた姿勢が別の表し方に切り替わっていたら、寄せる前にこちらも揃える。
-        // 揃えずに寄せると、同じ向きのはずの車が数ティックかけてでんぐり返る
-        if (CarPose.isOtherRepresentationCloser(renderYaw, renderPitch, renderRoll, yaw, pitch, roll)) {
-            renderYaw += 180.0F;
-            renderPitch = CarPose.otherPitch(renderPitch);
-            renderRoll = CarPose.otherRoll(renderRoll);
-        }
-        float step = 1.0F / poseLerpSteps;
-        renderYaw += Mth.wrapDegrees(yaw - renderYaw) * step;
-        renderPitch = CarPose.wrapRadians(renderPitch + CarPose.wrapRadians(pitch - renderPitch) * step);
-        renderRoll = CarPose.wrapRadians(renderRoll + CarPose.wrapRadians(roll - renderRoll) * step);
-        renderSteer += (steer - renderSteer) * step;
-        for (int i = 0; i < Wheel.COUNT; i++) {
-            renderSuspension[i] += (targetSuspension[i] - renderSuspension[i]) * step;
-        }
-        poseLerpSteps--;
-    }
 
     /** 送信用に各輪のサスペンション長を float でまとめる。 */
     private float[] suspensionSnapshot() {
@@ -1224,7 +1086,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     /** 車体（{@link CarBody}）の角のワールド座標。描画用。順番は {@link CarBody#corners()} と同じ。 */
     public double[][] bodyCorners() {
         boolean local = isControlledByLocalInstance();
-        double yaw = local ? state.yaw : remoteYaw();
+        double yaw = local ? state.yaw : carCore.remoteYaw();
         double pitch = local ? state.pitch : synced.pitch();
         double roll = local ? state.roll : synced.roll();
         double[][] ax = CarBody.axes(yaw, pitch, roll);
@@ -1305,31 +1167,17 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         reportImpact(Math.hypot(dx, dz));
     }
 
-    /** ワールド座標での速度の X 成分 [m/s]。手元で解いていない車は同期された値から組み立てる。 */
+    /** {@link CarCore#worldVelocityX}。 */
     public double worldVelocityX() {
-        if (hasLocalState()) {
-            return state.velocityX();
-        }
-        return remoteVelocity()[0];
+        return carCore.worldVelocityX();
     }
 
-    /** ワールド座標での速度の Z 成分 [m/s]。 */
+    /** {@link CarCore#worldVelocityZ}。 */
     public double worldVelocityZ() {
-        if (hasLocalState()) {
-            return state.velocityZ();
-        }
-        return remoteVelocity()[1];
+        return carCore.worldVelocityZ();
     }
 
-    /** 同期された値から組み立てたワールド座標の速度 {x, z}（{@link CarPose#remoteVelocity}）。 */
-    private double[] remoteVelocity() {
-        return CarPose.remoteVelocity(synced.yaw(), synced.speed(), synced.slipAngle());
-    }
 
-    /** 同期されたヨー角 [rad]。 */
-    private double remoteYaw() {
-        return synced.yaw() * Mth.DEG_TO_RAD;
-    }
 
     /**
      * ぶつかったことを音と揺れに変える。
@@ -1400,14 +1248,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         wetness += (target - wetness) * Math.min(1.0, rate);
     }
 
-    /** 1 輪ぶんの路面を詰めるビット数。{@link RoadSurface} が 16 種を超えたら広げること。 */
-    private static final int SURFACE_BITS = 4;
-    /**
-     * 1 輪ぶんの 4 ビットのうち、最上位を「その輪が浮いている」に使う。路面は 6 種なので下の 3 ビットで足りる。
-     * <b>立っていると浮いている</b>（0 を接地にしておけば、まだ何も届いていない車は接地扱いになる）。
-     */
-    private static final int AIRBORNE_BIT = 1 << (SURFACE_BITS - 1);
-    private static final int SURFACE_MASK = AIRBORNE_BIT - 1;
+    private static final int SURFACE_BITS = CarCore.SURFACE_BITS;
+    private static final int AIRBORNE_BIT = CarCore.AIRBORNE_BIT;
+    private static final int SURFACE_MASK = CarCore.SURFACE_MASK;
 
     /** 4 輪の路面を 1 つの整数へ詰める。{@link CarStatePacket} は 2 バイトで運ぶ。 */
     private int packSurfaces() {
@@ -1445,19 +1288,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         return RoadSurface.byIndex((packed >> (wheel.ordinal() * SURFACE_BITS)) & SURFACE_MASK);
     }
 
-    /**
-     * その輪が路面から浮いているか。
-     *
-     * <p>車輪の回転と車体の滑り角から組み立てる値（{@link #getRenderSlideSpeed}・{@link #getRenderScrubSpeed}）は、
-     * 空中でも計算できてしまう。<b>ジャンプ中にスキール音と砂利の音が鳴り続けた</b>ので、これで止める。
-     * 手元で解いていないときは、路面と一緒に配られたビットを見る。</p>
-     */
+    /** {@link CarCore#isRenderWheelAirborne}。 */
     public boolean isRenderWheelAirborne(Wheel wheel) {
-        if (hasLocalState()) {
-            return state.wheelLoad[wheel.ordinal()] <= 0.0;
-        }
-        int packed = synced.surface();
-        return ((packed >> (wheel.ordinal() * SURFACE_BITS)) & AIRBORNE_BIT) != 0;
+        return carCore.isRenderWheelAirborne(wheel);
     }
 
     /**
@@ -1504,24 +1337,6 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         setRot(yRot, getXRot());
     }
 
-    /**
-     * タイヤの転がり角を進める。
-     *
-     * <p>手元で物理を解いているなら車輪の実際の角速度を使う。空転すれば路面より速く、
-     * ロックすれば止まって見える。そうでなければ車速から均等に回す。</p>
-     */
-    private void updateWheelRoll() {
-        boolean local = isControlledByLocalInstance();
-        for (Wheel wheel : Wheel.VALUES) {
-            int index = wheel.ordinal();
-            // 手元で解いていないときは同期された角速度を使う。
-            // 車速から作ると空転もロックも見えなくなる
-            double angularVelocity = local
-                    ? state.wheelAngularVelocity[index]
-                    : synced.wheelSpeed(index);
-            wheelRoll[index] += (float) (angularVelocity * TICK_SECONDS);
-        }
-    }
 
     @Override
     public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps, boolean teleport) {
@@ -1572,7 +1387,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         for (int i = 0; i < Wheel.COUNT; i++) {
             entityData.set(DATA_SUSPENSION.get(i), (float) current.staticSuspensionLength(Wheel.VALUES[i]));
         }
-        updateRenderSnapshot();
+        carCore.updateRenderSnapshot();
     }
 
     /**
@@ -1694,236 +1509,105 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     // 描画向けの取得
     // ------------------------------------------------------------------
 
-    /** 滑りが「撫でる速さ」へ上乗せされる強さ。{@link #getRenderScrubSpeed(Wheel)} */
-    private static final double SCRUB_SLIP_GAIN = 1.2;
 
     /** 自分の手元で物理を解いているか（＝同期を待たずに自前の値を描画に使えるか） */
     private boolean hasLocalState() {
         return level().isClientSide && isControlledByLocalInstance();
     }
 
-    /** 描画に使う切れ角 [rad]。運転中は往復のラグを避けて手元の値を使う。 */
+    /** {@link CarCore#getRenderSteerAngle}。 */
     public float getRenderSteerAngle() {
-        return hasLocalState() ? (float) state.steerAngle : synced.steerAngle();
+        return carCore.getRenderSteerAngle();
     }
 
-    /**
-     * <b>描画専用</b>の前輪の切れ角 [rad]。
-     *
-     * <p>大きく流すと自動カウンターがフルロックまで当たる。そこから逆へ切ると、車体に対する
-     * 角度は最大切れ角の範囲内（35 度）で正しいのに、<b>進行方向に対しては垂直を超える</b>
-     * （車体スリップ角 -72 度＋切れ角 +35 度 = 進行方向から 107 度）。タイヤが横を向いて
-     * 見えるのはこれが理由。</p>
-     *
-     * <p>そこで<b>カウンターを当てている角度を基準にして、そこから {@code visualSlipLimit} までに
-     * 収める</b>（{@link #counterSteerAngle}）。基準は物理の自動カウンターが当てる角度そのものなので、
-     * 舵を放している間は実際の舵が基準へ戻っていくだけで、見た目は何も変わらない。カウンター中に
-     * 内側へ切れば、カウンターの角度から上限ぶんだけ内側へ切れて見える。</p>
-     *
-     * <p>以前は車体のスリップ角を進行方向とし、180 度ごとに現れる線から寄せる先を選んでいた。
-     * 物理と基準が違うので、<b>カウンターが当たっているのに逆向きやまっすぐに見え</b>、選ぶ線が
-     * 切り替わる瞬間に 65 度跳んだ。</p>
-     *
-     * <p><b>物理は実際の切れ角（{@link #getRenderSteerAngle()}）で解かれており、
-     * この値は一切影響しない。</b>同期して配るのも実際の切れ角の方。</p>
-     */
+    /** {@link CarCore#getVisualSteerAngle}。 */
     public float getVisualSteerAngle(float partialTick) {
-        return visualSteerAngle(getRenderSteerAngle(partialTick));
+        return carCore.getVisualSteerAngle(partialTick);
     }
 
+    /** {@link CarCore#getVisualSteerAngle}。 */
     public float getVisualSteerAngle() {
-        return visualSteerAngle(getRenderSteerAngle());
+        return carCore.getVisualSteerAngle();
     }
 
-    private float visualSteerAngle(float steer) {
-        // 計算は core の CarPose。基準のカウンター角は手元で解いているかで組み立て方が違う
-        return CarPose.visualSteerAngle(carCore.baseSpec(), steer, renderGroundSpeed(), counterSteerAngle());
-    }
 
-    /** 自動カウンターが当てる角度 [rad]（{@link CarPose#counterSteerLocal}・{@link CarPose#counterSteerRemote}）。 */
-    private double counterSteerAngle() {
-        double forward = getRenderSpeed();
-        boolean reversing = forward < 0.0 && getRenderGear() == -1;
-        if (hasLocalState()) {
-            return CarPose.counterSteerLocal(carCore.baseSpec(), forward, state.lateralSpeed, state.yawRate, reversing);
-        }
-        double slip = getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD;
-        double yawRate = Mth.wrapDegrees(renderYaw - prevRenderYaw) * Mth.DEG_TO_RAD / TICK_SECONDS;
-        return CarPose.counterSteerRemote(carCore.baseSpec(), forward, slip, yawRate, reversing);
-    }
 
-    /** 描画に使う、地面に対する水平の速さ [m/s]（前後と横の合成）。 */
-    private double renderGroundSpeed() {
-        if (hasLocalState()) {
-            return Math.hypot(state.forwardSpeed, state.lateralSpeed);
-        }
-        return CarPose.groundSpeedFromSlip(getRenderSpeed(), getRenderSlipAngleDegrees());
-    }
 
-    /** 描画に使う車速 [m/s]。 */
+    /** {@link CarCore#getRenderSpeed}。 */
     public float getRenderSpeed() {
-        return isControlledByLocalInstance() ? (float) state.forwardSpeed : synced.speed();
+        return carCore.getRenderSpeed();
     }
 
-    /** 描画に使うピッチ角 [rad]。正で鼻上げ。 */
+    /** {@link CarCore#getRenderPitch}。 */
     public float getRenderPitch() {
-        return hasLocalState() ? (float) state.pitch : synced.pitch();
+        return carCore.getRenderPitch();
     }
 
-    /**
-     * 描画に使うヨー角 [度]。ティックの間を補間する。
-     *
-     * <p><b>{@code EntityRenderer#render} に渡ってくる {@code entityYaw} を使ってはいけない。</b>
-     * あちらはバニラが量子化した値から作られているので、旋回中にガタつく。
-     * 折り返しがあるので補間は {@link Mth#rotLerp} で。</p>
-     */
+    /** {@link CarCore#getRenderYaw}。 */
     public float getRenderYaw(float partialTick) {
-        return Mth.rotLerp(partialTick, prevRenderYaw, renderYaw);
+        return carCore.getRenderYaw(partialTick);
     }
 
-    /** 描画に使うピッチ角 [rad]。ティックの間を補間する。 */
+    /** {@link CarCore#getRenderPitch}。 */
     public float getRenderPitch(float partialTick) {
-        return lerpRadians(partialTick, prevRenderPitch, renderPitch);
+        return carCore.getRenderPitch(partialTick);
     }
 
-    /** 描画に使うロール角 [rad]。ティックの間を補間する。 */
+    /** {@link CarCore#getRenderRoll}。 */
     public float getRenderRoll(float partialTick) {
-        return lerpRadians(partialTick, prevRenderRoll, renderRoll);
+        return carCore.getRenderRoll(partialTick);
     }
 
-    /**
-     * 角度の補間。<b>近い方の回り方を選ぶ</b>。
-     *
-     * <p>ピッチとロールは ±180 度に巻き取ってあるので、横転して回っている車が
-     * 折り返しをまたぐと、素の線形補間では<b>1 ティックで逆向きに 1 周する</b>。
-     * ヨー角で {@link Mth#rotLerp} を使っているのと同じ話（あちらは度、こちらはラジアン）。</p>
-     */
-    private static float lerpRadians(float partialTick, float from, float to) {
-        float difference = (to - from) % Mth.TWO_PI;
-        if (difference >= Mth.PI) {
-            difference -= Mth.TWO_PI;
-        } else if (difference < -Mth.PI) {
-            difference += Mth.TWO_PI;
-        }
-        return from + partialTick * difference;
-    }
 
-    /** 描画に使う切れ角 [rad]。ティックの間を補間する。 */
+    /** {@link CarCore#getRenderSteerAngle}。 */
     public float getRenderSteerAngle(float partialTick) {
-        return Mth.lerp(partialTick, prevRenderSteer, renderSteer);
+        return carCore.getRenderSteerAngle(partialTick);
     }
 
-    /** 描画に使うサスペンション長 [m]。ティックの間を補間する。 */
+    /** {@link CarCore#getRenderSuspensionLength}。 */
     public double getRenderSuspensionLength(Wheel wheel, float partialTick) {
-        int index = wheel.ordinal();
-        return Mth.lerp(partialTick, prevRenderSuspension[index], renderSuspension[index]);
+        return carCore.getRenderSuspensionLength(wheel, partialTick);
     }
 
-    /** 描画に使うロール角 [rad]。正で右下がり。 */
+    /** {@link CarCore#getRenderRoll}。 */
     public float getRenderRoll() {
-        return hasLocalState() ? (float) state.roll : synced.roll();
+        return carCore.getRenderRoll();
     }
 
-    /**
-     * 描画に使うサスペンション長 [m]。
-     *
-     * <p>サスペンションの伸縮そのものは同期していない。遠くの車では見て分からない一方、
-     * 4 輪ぶんを毎ティック送ると割に合わないため、手元で解いていないときは停車時の長さを返す。</p>
-     */
+    /** {@link CarCore#getRenderSuspensionLength}。 */
     public double getRenderSuspensionLength(Wheel wheel) {
-        return hasLocalState()
-                ? state.suspensionLength[wheel.ordinal()]
-                : synced.suspension(wheel.ordinal());
+        return carCore.getRenderSuspensionLength(wheel);
     }
 
-    /** 補間込みのタイヤ回転角 [rad] */
+    /** {@link CarCore#getWheelRoll}。 */
     public float getWheelRoll(Wheel wheel, float partialTick) {
-        int index = wheel.ordinal();
-        return Mth.lerp(partialTick, wheelRollPrev[index], wheelRoll[index]);
+        return carCore.getWheelRoll(wheel, partialTick);
     }
 
-    /**
-     * 描画と音に使う滑り率。
-     *
-     * <p>手元で解いていないときは、配ってある車輪の角速度と車速から組み立て直す。
-     * 滑り率そのものを配る必要はない。</p>
-     */
+    /** {@link CarCore#getRenderSlipRatio}。 */
     public double getRenderSlipRatio(Wheel wheel) {
-        if (hasLocalState()) {
-            return state.wheelSlipRatio[wheel.ordinal()];
-        }
-        double rolling = synced.speed();
-        double reference = Math.max(Math.abs(rolling), CarPhysics.SLIP_REFERENCE_SPEED);
-        double surfaceSpeed = synced.wheelSpeed(wheel.ordinal()) * carCore.baseSpec().wheelRadius();
-        return (surfaceSpeed - rolling) / reference;
+        return carCore.getRenderSlipRatio(wheel);
     }
 
-    /**
-     * 煙に使う、その輪が接地面で捨てている摩擦の仕事率 [W]。
-     *
-     * <p>タイヤの力 × 滑り速度。<b>回っているだけでも、荷重が掛かっているだけでも
-     * 大きくならない</b>ので、後輪駆動で後輪をブン回したときに前輪から煙が出ない。</p>
-     */
+    /** {@link CarCore#getRenderFrictionPower}。 */
     public double getRenderFrictionPower(Wheel wheel) {
-        return hasLocalState()
-                ? state.wheelFrictionPower[wheel.ordinal()]
-                : synced.friction(wheel.ordinal());
+        return carCore.getRenderFrictionPower(wheel);
     }
 
-    /**
-     * 接地面が路面を撫でる速さ [m/s]。
-     *
-     * <p>転がっているだけなら車速そのもの。縦に滑れば（ホイールスピン・ロック）その滑り率ぶん、
-     * 横を向いていれば車体スリップ角ぶんが上乗せされる。<b>タイヤが路面をどれだけ擦っているか</b>
-     * という 1 つの量で、未舗装で舞う砂塵（{@code CarDust}）と砂利の音（{@code CarSound}）の
-     * 両方がこれで決まる。<b>2 か所で別々に組み立てないこと</b>——片方だけ直すと、
-     * 見えている土煙と聞こえている音が食い違う。</p>
-     *
-     * <p>縦の滑り率は配ってある車輪の角速度と車速から組み直され、スリップ角はそのまま
-     * 配られているので、<b>他人の車でも読める</b>。</p>
-     */
+    /** {@link CarCore#getRenderScrubSpeed}。 */
     public double getRenderScrubSpeed(Wheel wheel) {
-        if (isRenderWheelAirborne(wheel)) {
-            return 0.0;
-        }
-        double speed = Math.abs(getRenderSpeed());
-        double slip = Math.min(1.0, Math.abs(getRenderSlipRatio(wheel)));
-        double sideways = Math.abs(Math.sin(getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD));
-        return speed * (1.0 + SCRUB_SLIP_GAIN * (slip + sideways));
+        return carCore.getRenderScrubSpeed(wheel);
     }
 
-    /** 滑る速さの横成分を出すときのドリフト角の上限 [度]。90 度に近づくと tan が発散する。 */
-    private static final double SLIDE_MAX_ANGLE = 80.0;
 
-    /**
-     * タイヤの接地面が路面の上を滑っている速さ [m/s]。スキール音の大きさに使う。
-     *
-     * <p>縦（タイヤの表面の速さ − 車速。ホイールスピンで回すほど、ロックさせるほど大きい）と
-     * 横（車速 × tan(ドリフト角)）の合成。<b>角度・車速・回転数のどれを上げても大きくなる</b>。
-     * 滑り率やスリップ角のままだと、ドリフトでは後輪の空転だけですぐ頭打ちになり、
-     * 角度にも速さにも応じなくなる。</p>
-     *
-     * <p>{@link #getRenderScrubSpeed(Wheel)} とは別物。あちらは転がっているだけでも車速ぶんある
-     * （土煙は滑らなくても舞う）が、こちらは<b>滑っていなければ 0</b>。</p>
-     */
+    /** {@link CarCore#getRenderSlideSpeed}。 */
     public double getRenderSlideSpeed(Wheel wheel) {
-        if (isRenderWheelAirborne(wheel)) {
-            return 0.0;
-        }
-        int index = wheel.ordinal();
-        double forward = getRenderSpeed();
-        double angularVelocity = hasLocalState()
-                ? state.wheelAngularVelocity[index]
-                : synced.wheelSpeed(index);
-        double longitudinal = angularVelocity * carCore.baseSpec().wheelRadius() - forward;
-        double angle = Math.min(SLIDE_MAX_ANGLE, Math.abs(getRenderSlipAngleDegrees()));
-        double lateral = Math.abs(forward) * Math.tan(angle * Mth.DEG_TO_RAD);
-        return Math.hypot(longitudinal, lateral);
+        return carCore.getRenderSlideSpeed(wheel);
     }
 
-    /** 音に使うアクセルの踏み込み量 0..1。 */
+    /** {@link CarCore#getRenderThrottle}。 */
     public double getRenderThrottle() {
-        return hasLocalState() ? state.throttle : synced.throttle();
+        return carCore.getRenderThrottle();
     }
 
     /**
@@ -1937,35 +1621,24 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         return hasLocalState() ? state.brake : (isBrakeLightOn() ? 1.0 : 0.0);
     }
 
-    /** 表示に使う接地荷重 [N]。手元で解いていないときは停車時の値。 */
+    /** {@link CarCore#getRenderWheelLoad}。 */
     public double getRenderWheelLoad(Wheel wheel) {
-        return hasLocalState() ? state.wheelLoad[wheel.ordinal()] : carCore.baseSpec().staticWheelLoad(wheel);
+        return carCore.getRenderWheelLoad(wheel);
     }
 
-    /** 表示に使う横加速度 [m/s^2]。 */
+    /** {@link CarCore#getRenderLateralAcceleration}。 */
     public double getRenderLateralAcceleration() {
-        return hasLocalState() ? state.lateralAcceleration : 0.0;
+        return carCore.getRenderLateralAcceleration();
     }
 
-    /** 表示に使うエンジン回転数 [rpm]。 */
+    /** {@link CarCore#getRenderRpm}。 */
     public double getRenderRpm() {
-        return hasLocalState() ? state.engineRpm : synced.rpm();
+        return carCore.getRenderRpm();
     }
 
-    /** トラクションコントロールが介入しているか。アクセルを絞っているときと、空転輪にブレーキを掛けているとき。 */
+    /** {@link CarCore#isTractionControlActive}。 */
     public boolean isTractionControlActive() {
-        if (!hasLocalState()) {
-            return false;
-        }
-        if (state.tractionControlThrottle < 0.99) {
-            return true;
-        }
-        for (double brake : state.tractionBrake) {
-            if (brake > 1.0) {
-                return true;
-            }
-        }
-        return false;
+        return carCore.isTractionControlActive();
     }
 
     /**
@@ -1978,27 +1651,19 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         return hasLocalState() && driverInput.handbrake();
     }
 
-    /** ABS が介入しているか。 */
+    /** {@link CarCore#isAbsActive}。 */
     public boolean isAbsActive() {
-        if (!hasLocalState()) {
-            return false;
-        }
-        for (double release : state.brakeRelease) {
-            if (release < 0.99) {
-                return true;
-            }
-        }
-        return false;
+        return carCore.isAbsActive();
     }
 
-    /** 表示に使う段。1 以上で前進、-1 で後退、0 でニュートラル。 */
+    /** {@link CarCore#getRenderGear}。 */
     public int getRenderGear() {
-        return hasLocalState() ? state.gear : synced.gear();
+        return carCore.getRenderGear();
     }
 
-    /** 表示に使う車体スリップ角（ドリフト角） [度]。正なら右へ滑っている。 */
+    /** {@link CarCore#getRenderSlipAngleDegrees}。 */
     public double getRenderSlipAngleDegrees() {
-        return hasLocalState() ? state.slipAngle() * Mth.RAD_TO_DEG : synced.slipAngle();
+        return carCore.getRenderSlipAngleDegrees();
     }
 
     // ------------------------------------------------------------------
@@ -2336,6 +2001,25 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     @Override
     public double posZ() {
         return getZ();
+    }
+
+    // ------------------------------------------------------------------
+    // CarHost（CarCore が聞くこと）
+    // ------------------------------------------------------------------
+
+    @Override
+    public boolean simulatedOnThisClient() {
+        return hasLocalState();
+    }
+
+    @Override
+    public boolean simulatedHere() {
+        return isControlledByLocalInstance();
+    }
+
+    @Override
+    public CarSync synced() {
+        return synced;
     }
 
     /** 同期項目を読む口。運転していない側の見た目と、運転を引き継ぐときに読む。 */
