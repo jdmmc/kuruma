@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.CarRules;
+import com.jdmmc.kurumamod.car.CarRules;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 

@@ -1,9 +1,9 @@
-package com.jdmmc.kurumamod;
+package com.jdmmc.kurumamod.car;
 
 /**
  * サーバーが決める走行のルール。両側が同じものを持つ。
  *
- * <p><b>設定そのものではなく「いま効いている値」を持つ。</b>{@link Config} は COMMON なので
+ * <p><b>設定そのものではなく「いま効いている値」を持つ。</b>版の {@code Config} は COMMON なので
  * クライアントにも同名のファイルがあるが、マルチプレイで決めるのは<b>接続先のサーバー</b>で
  * あって手元のファイルではない。そこでサーバーが {@code CarRulesPacket} で配り、
  * クライアントは配られたものだけを見る（車種の扱いと同じ）。</p>

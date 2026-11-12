@@ -13,7 +13,7 @@ import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
 
-import com.jdmmc.kurumamod.CarRules;
+import com.jdmmc.kurumamod.car.CarRules;
 import com.jdmmc.kurumamod.Config;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;

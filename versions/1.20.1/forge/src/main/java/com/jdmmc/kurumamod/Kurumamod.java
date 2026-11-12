@@ -58,6 +58,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
 import com.jdmmc.kurumamod.config.ClientConfig;
+import com.jdmmc.kurumamod.car.CarRules;
 
 // ここの値は META-INF/mods.toml のエントリと一致していなければならない
 @Mod(Kurumamod.MODID)

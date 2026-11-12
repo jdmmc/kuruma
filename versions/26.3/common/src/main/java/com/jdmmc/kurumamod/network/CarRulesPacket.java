@@ -4,7 +4,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
 import com.jdmmc.kurumamod.Kurumamod;
-import com.jdmmc.kurumamod.CarRules;
+import com.jdmmc.kurumamod.car.CarRules;
 import net.minecraft.network.FriendlyByteBuf;
 
 
