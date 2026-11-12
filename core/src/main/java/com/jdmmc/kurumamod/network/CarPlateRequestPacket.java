@@ -1,17 +1,9 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.car.CarId;
-import com.jdmmc.kurumamod.part.CarPart;
-import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
-import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.plate.PlateLook;
 import com.jdmmc.kurumamod.plate.PlateRules;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * クライアント → サーバー。ナンバーの中身（打った字と付ける位置）の<b>要求</b>。

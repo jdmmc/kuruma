@@ -1,11 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.car.CarId;
-import com.jdmmc.kurumamod.part.CarPart;
-import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * クライアント → サーバー。換装の<b>要求</b>。

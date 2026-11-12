@@ -1,6 +1,5 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;

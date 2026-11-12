@@ -212,13 +212,6 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
     /** ブレーキランプ点灯（{@link CarCore#LIGHT_BRAKE}）。 */
     public static final int LIGHT_BRAKE = CarCore.LIGHT_BRAKE;
 
-    /**
-     * 車体の下面の接地点の、どれだけ上から地面を探すか [m]。これより深くめり込んでいる地面は
-     * 見つけない（そこは壁として箱が止める）。
-     */
-    private static final double SCRAPE_REACH = 0.5;
-    /** 車体の下面の接地点の、どれだけ下まで地面を探すか [m]。擦るのはめり込んだときだけなので少しでよい。 */
-    private static final double SCRAPE_BELOW = 0.3;
     /** これ以下の速度差では衝突として扱わない [m/s]（{@link CarCore#IMPACT_MIN_SPEED}）。 */
     private static final double IMPACT_MIN_SPEED = CarCore.IMPACT_MIN_SPEED;
     /** 車体が壁とこれより速く擦れたら火花を出す [m/s]（{@link CarCore#SPARK_MIN_SPEED}）。 */

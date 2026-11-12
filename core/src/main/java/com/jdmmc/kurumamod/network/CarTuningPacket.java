@@ -1,7 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
 import com.jdmmc.kurumamod.physics.CarSpec;
-import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import com.jdmmc.kurumamod.tuning.TunableParameter;
 import com.jdmmc.kurumamod.tuning.Tunables;
 
