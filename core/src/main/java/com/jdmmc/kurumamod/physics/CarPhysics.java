@@ -295,7 +295,11 @@ public final class CarPhysics {
         double limit = MAX_LATERAL_G * GRAVITY;
         state.lateralAcceleration = Math.max(-limit, Math.min(limit, lateralAcceleration));
 
-        double longitudinalAcceleration = (state.forwardSpeed - forwardSpeedBefore) / dt;
+        // 縦も車体が回っているぶんを引く（横の + 前進速度×ヨー と対）。d(前進速度)/dt だけだと、
+        // 横滑りしている車では向きが回るだけで前進速度が減り、減速していないのに減速して見える
+        // （惰性で β 33° のとき -0.77G、実際はほぼ 0）
+        double longitudinalAcceleration = (state.forwardSpeed - forwardSpeedBefore) / dt
+                - state.lateralSpeed * state.yawRate;
         state.longitudinalAcceleration =
                 Math.max(-limit, Math.min(limit, longitudinalAcceleration));
         // ヨー角加速度も同じく低速補正の後で取る。上限は「重心から軸までの距離で
