@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.client.effect.EmitterCar;
 import com.jdmmc.kurumamod.client.hud.HudCar;
 import com.jdmmc.kurumamod.client.effect.SkidMarkTrails;
+import com.jdmmc.kurumamod.car.CarCore;
 import com.jdmmc.kurumamod.car.CarSync;
 import com.jdmmc.kurumamod.car.CarPose;
 import com.jdmmc.kurumamod.ground.GroundSensor;
@@ -22,13 +23,7 @@ import com.jdmmc.kurumamod.client.CarSeat;
 import com.jdmmc.kurumamod.debug.GroundTrace;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
-import com.jdmmc.kurumamod.part.CarPart;
-import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
-import com.jdmmc.kurumamod.part.PartSlot;
-import com.jdmmc.kurumamod.physics.PartAero;
-import com.jdmmc.kurumamod.physics.Tire;
-import com.jdmmc.kurumamod.physics.Turbo;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
 import com.jdmmc.kurumamod.network.CarPartsPacket;
 import com.jdmmc.kurumamod.network.CarPushPacket;
@@ -44,11 +39,9 @@ import com.jdmmc.kurumamod.physics.CarInput;
 import com.jdmmc.kurumamod.physics.CarPhysics;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.CarState;
-import com.jdmmc.kurumamod.physics.GroundContact;
 import com.jdmmc.kurumamod.physics.Wheel;
 import com.jdmmc.kurumamod.surface.RoadSurface;
 import com.jdmmc.kurumamod.surface.SurfaceLookup;
-import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -284,26 +277,8 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     /** 助手席。運転席の左右反対。 */
     private static final Vec3 PASSENGER_SEAT_OFFSET =
             new Vec3(-DRIVER_SEAT_OFFSET.x, DRIVER_SEAT_OFFSET.y, DRIVER_SEAT_OFFSET.z);
-    /**
-     * 車種。<b>諸元とは別に持つ。</b>
-     *
-     * <p>諸元は調整画面でいくらでも変わるので、「もとはどの車か」は諸元からは分からない。
-     * 見た目（{@code assets/<ns>/vehicles/<path>.json}）を引くのも、名前を出すのも、
-     * 調整画面の「戻す」でどこへ戻すかも、すべてこの id が決める。</p>
-     */
-    private CarId carId = CarTypes.DEFAULT_ID;
-    /** 車両諸元。調整画面から差し替えられる。 */
-    private CarSpec spec = CarSpec.DEFAULT;
-    /**
-     * 装着している部品。<b>車種・諸元と並ぶ 3 つめの状態。</b>
-     *
-     * <p>いまは見た目だけを変える（{@code CarPartModel}）。物理には一切入らないので、
-     * サーバーが無人の車を解く結果は履いているものに依らない。</p>
-     *
-     * <p>諸元と違って<b>サーバーが決める</b>——手元にあるだけの部品を勝手に履けると、
-     * 他の人には見えない部品を履いた車が走ることになる（{@code CarPartRequestPacket}）。</p>
-     */
-    private PartFitment parts = PartFitment.EMPTY;
+    /** 車種・諸元・装着している部品と、そこから組み上げた実効の諸元。 */
+    private final CarCore carCore = new CarCore();
     /** 物理の状態。運転権を持っている側だけが進める。 */
     private final CarState state = new CarState();
     /** 同期した値（{@link SyncedValues}）。運転していない側はここから読む。 */
@@ -583,104 +558,27 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
     /** 停車時のシャシー基準面の地上高 [m]。スポーンさせるときにこの高さぶん持ち上げる。 */
     public double getStaticRideHeight() {
-        return spec.staticRideHeight();
+        return carCore.staticRideHeight();
     }
 
-    /**
-     * 物理が解く諸元。<b>調整画面の諸元に、装着している部品の性能を載せたもの。</b>
-     *
-     * <p>重ねる順は「車種の諸元 → 調整画面 → 部品」。部品の性能（ターボとタイヤ）は諸元の側に
-     * 焼き込まない——焼き込むと、外しても戻らない・調整画面の値と食い違う、の二重管理になる。
-     * 載せ直すのは諸元か部品か部品の一覧（データパックの再読み込み）が変わったときだけ。</p>
-     *
-     * <p>ターボは調整画面の項目ではないので保存も同期もされない（{@code CarSpecCodec} は
-     * {@code Tunables} しか読み書きしない）。部品の装着状態は別に保存・同期されているので、
-     * どちらの側でも同じものが組み上がる。</p>
-     */
+    /** 物理が解く諸元（調整画面の諸元に、装着している部品の性能を載せたもの。{@link CarCore#spec()}）。 */
     public CarSpec getSpec() {
-        PartFitment fitted = getEffectiveFitment();
-        if (effectiveBase != spec || effectiveParts != fitted || effectiveGeneration != CarParts.generation()) {
-            effectiveSpec = spec.toBuilder().turbo(turboOf(fitted)).tire(tireOf(fitted))
-                    .partAero(totalAero(fitted))
-                    .build();
-            effectiveBase = spec;
-            effectiveParts = fitted;
-            effectiveGeneration = CarParts.generation();
-        }
-        return effectiveSpec;
+        return carCore.spec();
     }
 
-    /**
-     * 初期装備（車種の {@code default_parts}）を足した、<b>実際に付いている状態</b>。
-     * 描画・諸元・音はこちらを読む。保存・通信・換装画面の「装着中」の印は {@link #getFitment()}（元の状態）。
-     *
-     * <p>装着状態と車種（読み直すと別のインスタンスになる）が変わったときだけ組み直す。</p>
-     */
+    /** 初期装備を足した、実際に付いている状態（{@link CarCore#effectiveFitment()}）。 */
     public PartFitment getEffectiveFitment() {
-        CarType type = CarTypes.get(carId);
-        // 部品の一覧が変わると「知らない部品」も変わる（カーパックの出し入れ・ログイン直後に一覧が届いたとき）
-        if (resolvedFrom != parts || resolvedType != type || resolvedGeneration != CarParts.generation()) {
-            resolvedFitment = parts.resolve(type.defaultPartIds());
-            resolvedFrom = parts;
-            resolvedType = type;
-            resolvedGeneration = CarParts.generation();
-        }
-        return resolvedFitment;
+        return carCore.effectiveFitment();
     }
 
-    private PartFitment resolvedFitment = PartFitment.EMPTY;
-    private PartFitment resolvedFrom;
-    private CarType resolvedType;
-    private int resolvedGeneration = -1;
-
-    private CarSpec effectiveSpec = CarSpec.DEFAULT;
-    private CarSpec effectiveBase;
-    private PartFitment effectiveParts;
-    private int effectiveGeneration = -1;
-
-    /** 装着しているターボの性能。付いていない・知らない部品なら無し。 */
-    private static Turbo turboOf(PartFitment parts) {
-        CarId id = parts.getPart(PartSlot.TURBO);
-        CarPart part = id == null ? null : CarParts.get(id);
-        return part == null || part.turbo() == null ? Turbo.NONE : part.turbo();
-    }
-
-    /** 履いているタイヤの性能。付いていない・知らない部品ならノーマル。 */
-    private static Tire tireOf(PartFitment parts) {
-        CarId id = parts.getPart(PartSlot.TIRE);
-        CarPart part = id == null ? null : CarParts.get(id);
-        return part == null || part.tire() == null ? Tire.NORMAL : part.tire();
-    }
-
-    /** 車体の部品すべて（バンパー・スカート・フェンダー・ウイング・ディフューザー）が足すダウンフォース。 */
-    private static PartAero totalAero(PartFitment parts) {
-        PartAero total = PartAero.NONE;
-        for (PartSlot slot : PartSlot.VALUES) {
-            if (slot.isBodyPart()) {
-                total = total.plus(aeroOf(parts, slot));
-            }
-        }
-        return total;
-    }
-
-    /**
-     * その場所の空力部品が足すダウンフォース。付いていない・知らない部品なら無し。
-     *
-     * <p>角度は装着状態の上書き、無ければ部品の既定。範囲は部品が持ち、角度はその中の位置。</p>
-     */
-    private static PartAero aeroOf(PartFitment parts, PartSlot slot) {
-        CarId id = parts.getPart(slot);
-        CarPart part = id == null ? null : CarParts.get(id);
-        if (part == null || part.aero() == null) {
-            return PartAero.NONE;
-        }
-        Double angle = parts.getAngle(slot);
-        return part.aero().at(angle != null ? angle : part.aero().defaultAngle());
+    /** 中身（車種・諸元・部品）。 */
+    public CarCore carCore() {
+        return carCore;
     }
 
     /** ターボが付いているか。 */
     public boolean hasTurbo() {
-        return getSpec().turbo().present();
+        return carCore.hasTurbo();
     }
 
     /**
@@ -688,8 +586,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
      * 知らない部品（カーパックを外した）なら付いていないものとする。
      */
     public boolean hasBlowoff() {
-        CarId id = getEffectiveFitment().getPart(PartSlot.BLOWOFF);
-        return id != null && CarParts.get(id) != null && hasTurbo();
+        return carCore.hasBlowoff();
     }
 
     /** ブースト 0..1。手元で解いていないときは同期された値。 */
@@ -705,7 +602,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
      */
     /** 車種の id。見た目の定義を引くのと、名前を出すのに使う。 */
     public CarId getCarId() {
-        return carId;
+        return carCore.carId();
     }
 
     /**
@@ -715,12 +612,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
      * 「id は AE86 なのに諸元は既定の車」という組み合わせを作れてしまう。</p>
      */
     public void setCarType(CarType type) {
-        this.carId = type.id();
+        carCore.setCarId(type.id());
         setSpec(type.spec());
     }
 
     public void setSpec(CarSpec spec) {
-        this.spec = spec;
+        carCore.setBaseSpec(spec);
         if (!level().isClientSide) {
             KurumaNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> this),
                     new CarSpecPacket(getId(), spec));
@@ -734,7 +631,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
      * 多分割エンティティ用に同じ名前（戻り値 {@code PartEntity<?>[]}）を持っているため。</p>
      */
     public PartFitment getFitment() {
-        return parts;
+        return carCore.fitment();
     }
 
     /**
@@ -745,7 +642,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
      * {@link #writeSpawnData} が運ぶ。</p>
      */
     public void setFitment(PartFitment parts) {
-        this.parts = parts;
+        carCore.setFitment(parts);
         if (!level().isClientSide) {
             KurumaNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> this),
                     new CarPartsPacket(getId(), parts));
@@ -962,7 +859,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         state.rollRate = 0.0;
         // 車輪の回転を車速に合わせておく。0 のままだと乗った瞬間に
         // 「全輪ロック」と判定されて急制動がかかる
-        double angularVelocity = state.forwardSpeed / spec.wheelRadius();
+        double angularVelocity = state.forwardSpeed / carCore.baseSpec().wheelRadius();
         Arrays.fill(state.wheelAngularVelocity, angularVelocity);
         Arrays.fill(state.wheelSlipRatio, 0.0);
         // 段差の立ち上がり制限は前ティックの値を見るので、引き継いだ時点では捨てる
@@ -995,7 +892,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         for (int i = 0; i < PHYSICS_SUBSTEPS; i++) {
             // 接地は物理の 1 刻みごとに探す。1 ティックに 1 回だと、20m/s では次に探すまでに 1m 進み、
             // その間に越えた段の縁を知らないまま新しい段の中を走って、スラブの坂でタイヤが床に埋まった
-            ground.update(state, spec, getSpec(), wetness, x, z, dt);
+            ground.update(state, carCore.baseSpec(), getSpec(), wetness, x, z, dt);
             // 変速の要求は押した瞬間の 1 回なので、最初の刻みにだけ渡す
             CarPhysics.step(carSpec, state, ground.contact(), dt, i == 0 ? input : input.withoutShift());
             CarBody.Result hit = body.solve(carSpec, state, ground.contact(), x, z, blockField, dt);
@@ -1371,7 +1268,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
                 contactX - other.getX(), contactZ - other.getZ(),
                 state.velocityX(), state.velocityZ(),
                 other.worldVelocityX(), other.worldVelocityZ(),
-                spec.mass(), other.getSpec().mass(), other.getSpec().yawInertia());
+                carCore.baseSpec().mass(), other.getSpec().mass(), other.getSpec().yawInertia());
         if (result == null) {
             return;
         }
@@ -1657,9 +1554,9 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
      */
     public void becomeGhost(CarId carId, CarSpec spec, PartFitment parts) {
         this.ghost = true;
-        this.carId = carId;
-        this.spec = spec;
-        this.parts = parts;
+        carCore.setCarId(carId);
+        carCore.setBaseSpec(spec);
+        carCore.setFitment(parts);
         setNoGravity(true);
     }
 
@@ -1840,7 +1737,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
     private float visualSteerAngle(float steer) {
         // 計算は core の CarPose。基準のカウンター角は手元で解いているかで組み立て方が違う
-        return CarPose.visualSteerAngle(spec, steer, renderGroundSpeed(), counterSteerAngle());
+        return CarPose.visualSteerAngle(carCore.baseSpec(), steer, renderGroundSpeed(), counterSteerAngle());
     }
 
     /** 自動カウンターが当てる角度 [rad]（{@link CarPose#counterSteerLocal}・{@link CarPose#counterSteerRemote}）。 */
@@ -1848,11 +1745,11 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         double forward = getRenderSpeed();
         boolean reversing = forward < 0.0 && getRenderGear() == -1;
         if (hasLocalState()) {
-            return CarPose.counterSteerLocal(spec, forward, state.lateralSpeed, state.yawRate, reversing);
+            return CarPose.counterSteerLocal(carCore.baseSpec(), forward, state.lateralSpeed, state.yawRate, reversing);
         }
         double slip = getRenderSlipAngleDegrees() * Mth.DEG_TO_RAD;
         double yawRate = Mth.wrapDegrees(renderYaw - prevRenderYaw) * Mth.DEG_TO_RAD / TICK_SECONDS;
-        return CarPose.counterSteerRemote(spec, forward, slip, yawRate, reversing);
+        return CarPose.counterSteerRemote(carCore.baseSpec(), forward, slip, yawRate, reversing);
     }
 
     /** 描画に使う、地面に対する水平の速さ [m/s]（前後と横の合成）。 */
@@ -1957,7 +1854,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         }
         double rolling = synced.speed();
         double reference = Math.max(Math.abs(rolling), CarPhysics.SLIP_REFERENCE_SPEED);
-        double surfaceSpeed = synced.wheelSpeed(wheel.ordinal()) * spec.wheelRadius();
+        double surfaceSpeed = synced.wheelSpeed(wheel.ordinal()) * carCore.baseSpec().wheelRadius();
         return (surfaceSpeed - rolling) / reference;
     }
 
@@ -2018,7 +1915,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         double angularVelocity = hasLocalState()
                 ? state.wheelAngularVelocity[index]
                 : synced.wheelSpeed(index);
-        double longitudinal = angularVelocity * spec.wheelRadius() - forward;
+        double longitudinal = angularVelocity * carCore.baseSpec().wheelRadius() - forward;
         double angle = Math.min(SLIDE_MAX_ANGLE, Math.abs(getRenderSlipAngleDegrees()));
         double lateral = Math.abs(forward) * Math.tan(angle * Mth.DEG_TO_RAD);
         return Math.hypot(longitudinal, lateral);
@@ -2042,7 +1939,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
     /** 表示に使う接地荷重 [N]。手元で解いていないときは停車時の値。 */
     public double getRenderWheelLoad(Wheel wheel) {
-        return hasLocalState() ? state.wheelLoad[wheel.ordinal()] : spec.staticWheelLoad(wheel);
+        return hasLocalState() ? state.wheelLoad[wheel.ordinal()] : carCore.baseSpec().staticWheelLoad(wheel);
     }
 
     /** 表示に使う横加速度 [m/s^2]。 */
@@ -2237,7 +2134,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         if (level().isClientSide) {
             seat = DistExecutor.unsafeCallWhenOn(Dist.CLIENT,
                     () -> () -> {
-                        var offset = CarSeat.seatOffset(carId, passengerSeat);
+                        var offset = CarSeat.seatOffset(carCore.carId(), passengerSeat);
                         return new Vec3(offset.x(), offset.y(), offset.z());
                     });
         }
@@ -2247,7 +2144,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         // 席は車体の一部。車体メッシュの原点は前後輪の中点なので、席もそこを基準に書く。
         // エンティティの原点は重心なので、その差を足す（前 56% なら 0.187m 後ろ）。
         // これを忘れると、荷重配分のスライダーを動かしたとき車体だけが動いて席が取り残される
-        return seat.add(0.0, 0.0, spec.axleMidpointOffset());
+        return seat.add(0.0, 0.0, carCore.baseSpec().axleMidpointOffset());
     }
 
     // ------------------------------------------------------------------
@@ -2337,12 +2234,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     @Override
     public ItemStack getPickResult() {
         // 拾ったアイテムからは同じ車が出る
-        return CarSpawnItem.stackFor(carId);
+        return CarSpawnItem.stackFor(carCore.carId());
     }
 
     @Override
     public Component getName() {
-        return RaceTexts.of(CarTypes.get(carId).displayName());
+        return RaceTexts.of(CarTypes.get(carCore.carId()).displayName());
     }
 
     @Override
@@ -2352,16 +2249,16 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
         if (tag.contains("CarId")) {
             CarId parsed = CarId.parse(tag.getString("CarId"));
             if (parsed != null) {
-                carId = parsed;
+                carCore.setCarId(parsed);
             }
         }
         if (tag.contains("Spec")) {
             // ここは saveWithoutId 経由なので配信はしない（まだ誰も追跡していない）
-            spec = CarSpecNbt.load(tag.getCompound("Spec"));
+            carCore.setBaseSpec(CarSpecNbt.load(tag.getCompound("Spec")));
         }
         // 装着している部品。知らない id もそのまま覚えておく（カーパックを入れ直せば戻る）
         if (tag.contains("Parts")) {
-            parts = PartFitments.load(tag.getCompound("Parts"));
+            carCore.setFitment(PartFitments.load(tag.getCompound("Parts")));
         }
         // 姿勢。物理を引き継ぐときに takeOverPhysics がここから読む。
         // 保存しないと、ひっくり返ったまま放置した車がチャンクの読み直しで水平に戻る。
@@ -2374,12 +2271,12 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
 
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
-        tag.putString("CarId", carId.toString());
+        tag.putString("CarId", carCore.carId().toString());
         // 諸元を保存しないと、リログやチャンクの読み直しで調整が消えて車高が変わる
-        tag.put("Spec", CarSpecNbt.save(spec));
+        tag.put("Spec", CarSpecNbt.save(carCore.baseSpec()));
         // 保存しないと、リログやチャンクの読み直しで換装が消えて既定の見た目に戻る
-        if (!parts.isEmpty()) {
-            tag.put("Parts", PartFitments.save(parts));
+        if (!carCore.fitment().isEmpty()) {
+            tag.put("Parts", PartFitments.save(carCore.fitment()));
         }
         tag.putFloat("Pitch", synced.pitch());
         tag.putFloat("Roll", synced.roll());
@@ -2395,17 +2292,17 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Hud
     @Override
     public void writeSpawnData(FriendlyByteBuf buf) {
         // 車種も一緒に。これが無いと、他人の車が全部既定の見た目で描かれる
-        McIds.write(buf, carId);
-        CarSpecNbt.write(buf, spec);
+        McIds.write(buf, carCore.carId());
+        CarSpecNbt.write(buf, carCore.baseSpec());
         // 装着した部品も。これが無いと、後から見た人には既定のホイールで見える
-        PartFitments.write(buf, parts);
+        PartFitments.write(buf, carCore.fitment());
     }
 
     @Override
     public void readSpawnData(FriendlyByteBuf buf) {
-        carId = McIds.read(buf);
-        spec = CarSpecNbt.read(buf);
-        parts = PartFitments.read(buf);
+        carCore.setCarId(McIds.read(buf));
+        carCore.setBaseSpec(CarSpecNbt.read(buf));
+        carCore.setFitment(PartFitments.read(buf));
     }
 
     @Override
