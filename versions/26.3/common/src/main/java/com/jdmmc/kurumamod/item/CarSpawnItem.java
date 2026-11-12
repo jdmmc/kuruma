@@ -3,6 +3,10 @@ package com.jdmmc.kurumamod.item;
 import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
+import com.jdmmc.kurumamod.car.CarItemData;
+import com.jdmmc.kurumamod.race.NbtRaceTag;
+import com.jdmmc.kurumamod.race.RaceTag;
+import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarType;
@@ -44,16 +48,6 @@ import java.util.List;
  */
 public class CarSpawnItem extends Item {
 
-    /** NBT のキー。車種の id を文字列で入れる。 */
-    private static final String CAR_ID = "CarId";
-    /**
-     * 諸元と装着した部品。<b>キーは {@code CarEntity} の NBT と同じ名前にしてある。</b>
-     *
-     * <p>同じものを指すキーが 2 つあると、片方を直したときにもう片方が取り残される。</p>
-     */
-    private static final String SPEC = "Spec";
-    private static final String PARTS = "Parts";
-
     public CarSpawnItem(Properties properties) {
         super(properties);
     }
@@ -73,9 +67,9 @@ public class CarSpawnItem extends Item {
     /** その車種を出すアイテム。クリエイティブタブと {@code getPickResult} が使う。 */
     public static ItemStack stackFor(CarId carId) {
         ItemStack stack = new ItemStack(Kurumamod.CAR_ITEM.get());
-        if (!carId.equals(CarTypes.DEFAULT_ID)) {
+        if (CarItemData.storesCarId(carId)) {
             // 既定の車には書かない。NBT の付いていないアイテムと同じ物として重なる
-            editTag(stack, tag -> tag.putString(CAR_ID, carId.toString()));
+            editTag(stack, tag -> CarItemData.writeCarId(new NbtRaceTag(tag), carId));
         }
         return stack;
     }
@@ -89,11 +83,7 @@ public class CarSpawnItem extends Item {
      */
     public static ItemStack stackFor(CarEntity car) {
         ItemStack stack = stackFor(car.getCarId());
-        editTag(stack, tag -> tag.put(SPEC, CarSpecNbt.save(car.getSpec())));
-        PartFitment parts = car.getFitment();
-        if (!parts.isEmpty()) {
-            editTag(stack, tag -> tag.put(PARTS, PartFitments.save(parts)));
-        }
+        editTag(stack, tag -> CarItemData.writeSettings(new NbtRaceTag(tag), car.getSpec(), car.getFitment()));
         return stack;
     }
 
@@ -110,28 +100,27 @@ public class CarSpawnItem extends Item {
         if (tag == null) {
             return;
         }
-        if (tag.contains(SPEC)) {
-            car.setSpec(CarSpecNbt.load(tag.getCompoundOrEmpty(SPEC)));
+        RaceTag saved = new NbtRaceTag(tag);
+        CarSpec spec = CarItemData.savedSpec(saved);
+        if (spec != null) {
+            car.setSpec(spec);
         }
-        if (tag.contains(PARTS)) {
-            car.setFitment(PartFitments.load(tag.getCompoundOrEmpty(PARTS)));
+        PartFitment parts = CarItemData.savedParts(saved);
+        if (parts != null) {
+            car.setFitment(parts);
         }
     }
 
     /** そのアイテムが設定を持っているか。持ち物の画面で見分けるために使う。 */
     private static boolean hasSettings(ItemStack stack) {
         CompoundTag tag = tagOf(stack);
-        return tag != null && (tag.contains(SPEC) || tag.contains(PARTS));
+        return CarItemData.hasSettings(tag == null ? null : new NbtRaceTag(tag));
     }
 
     /** そのアイテムが出す車種。壊れた NBT や知らない id なら既定の車。 */
     public static CarType carTypeOf(ItemStack stack) {
         CompoundTag tag = tagOf(stack);
-        if (tag == null || !tag.contains(CAR_ID)) {
-            return CarTypes.get(CarTypes.DEFAULT_ID);
-        }
-        CarId id = CarId.parse(tag.getStringOr(CAR_ID, ""));
-        return id != null ? CarTypes.get(id) : CarTypes.get(CarTypes.DEFAULT_ID);
+        return CarItemData.carTypeOf(tag == null ? null : new NbtRaceTag(tag));
     }
 
     /**
