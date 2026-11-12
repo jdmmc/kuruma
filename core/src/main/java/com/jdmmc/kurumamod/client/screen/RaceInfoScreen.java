@@ -240,13 +240,22 @@ public final class RaceInfoScreen extends UiScreen {
         return assist ? assistRule : violation == rule;
     }
 
-    /** 判定の札。右端を {@code right} に揃える。 */
-    static void verdictBadge(UiGraphics graphics, UiFont font, RaceLobbyPacket.Entrant entrant, int right, int y) {
-        RaceText label = switch (entrant.verdict()) {
+    /** 判定の札の幅。左端で揃えたいときに、右端を求めるのに使う。 */
+    static int verdictBadgeWidth(UiFont font, RaceLobbyPacket.Entrant entrant) {
+        return font.width(verdictLabel(entrant)) + 8;
+    }
+
+    private static RaceText verdictLabel(RaceLobbyPacket.Entrant entrant) {
+        return switch (entrant.verdict()) {
             case OK -> RaceText.translatable("race.kurumamod.verdict.ok");
             case VIOLATION -> RaceText.translatable("race.kurumamod.verdict.violation");
             case NO_CAR -> RaceText.translatable("race.kurumamod.verdict.no_car");
         };
+    }
+
+    /** 判定の札。右端を {@code right} に揃える。 */
+    static void verdictBadge(UiGraphics graphics, UiFont font, RaceLobbyPacket.Entrant entrant, int right, int y) {
+        RaceText label = verdictLabel(entrant);
         int w = font.width(label) + 8;
         int bg = switch (entrant.verdict()) {
             case OK -> RaceLobby.OK;

@@ -1239,7 +1239,9 @@ public final class RaceOrganizerScreen extends UiScreen {
             }
             // 判定と理由
             int vx = right - verdictWidth;
-            RaceInfoScreen.verdictBadge(graphics, font, entrant, vx + 40, y + 2);
+            // 札は下の理由の行と左端を揃える（右端で揃えると、OK と Breach で札の幅が違うぶん左右にずれた）
+            RaceInfoScreen.verdictBadge(graphics, font, entrant,
+                    vx + RaceInfoScreen.verdictBadgeWidth(font, entrant), y + 2);
             RaceText reason = good ? RaceText.translatable("screen.kurumamod.race_host.can_start")
                     : entrant.verdict() == RaceLobbyPacket.Verdict.NO_CAR
                     ? RaceText.translatable("race.kurumamod.no_car")
