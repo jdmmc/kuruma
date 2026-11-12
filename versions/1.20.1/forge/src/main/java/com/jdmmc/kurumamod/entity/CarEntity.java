@@ -25,6 +25,7 @@ import com.jdmmc.kurumamod.debug.GroundTrace;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.part.PartFitment;
+import com.jdmmc.kurumamod.network.CarPacketHandlers;
 import com.jdmmc.kurumamod.network.CarImpactPacket;
 import com.jdmmc.kurumamod.network.CarPartsPacket;
 import com.jdmmc.kurumamod.network.CarPushPacket;
@@ -889,7 +890,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Car
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> CarImpact.onImpact(this, impact));
             KurumaNetwork.CHANNEL.sendToServer(new CarImpactPacket(getId(), (float) impact));
         } else {
-            CarImpactPacket.broadcast(this, (float) impact);
+            CarPacketHandlers.broadcastImpact(this, (float) impact);
         }
     }
 
@@ -904,7 +905,7 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Car
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> CarSparks.emit(this, offset, normal, velocity, impact));
             KurumaNetwork.CHANNEL.sendToServer(new CarScrapePacket(getId(), offset, normal, velocity, impact));
         } else {
-            CarScrapePacket.broadcast(this, offset, normal, velocity, impact);
+            CarPacketHandlers.broadcastScrape(this, offset, normal, velocity, impact);
         }
     }
 

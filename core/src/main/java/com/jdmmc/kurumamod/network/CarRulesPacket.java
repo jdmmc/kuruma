@@ -1,10 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
 import com.jdmmc.kurumamod.car.CarRules;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
 
 /**
  * サーバーが決めた走行のルールをクライアントへ配る。
@@ -12,17 +8,17 @@ import java.util.function.Supplier;
  * <p>送るのはログイン時と {@code /reload} 時（{@code OnDatapackSyncEvent}）、それに
  * {@code /kuruma-admin collide} で書き換えたとき。</p>
  *
- * <p><b>設定ファイルを両側で読ませてはいけない。</b>{@link com.jdmmc.kurumamod.Config} は
+ * <p><b>設定ファイルを両側で読ませてはいけない。</b>{@code Config} は
  * COMMON なのでクライアントにも同名のファイルがあるが、中身が違えば
  * <b>片方だけ当たる</b>ことになり、運転者がサーバーに引き戻され続ける。</p>
  */
-public record CarRulesPacket(boolean carCollision) {
+public record CarRulesPacket(boolean carCollision) implements RacePayload {
 
-    public CarRulesPacket(FriendlyByteBuf buf) {
+    public CarRulesPacket(RaceBuf buf) {
         this(buf.readBoolean());
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RaceBuf buf) {
         buf.writeBoolean(carCollision);
     }
 
@@ -31,8 +27,4 @@ public record CarRulesPacket(boolean carCollision) {
         return new CarRulesPacket(CarRules.carCollision());
     }
 
-    public void handle(Supplier<NetworkEvent.Context> context) {
-        context.get().enqueueWork(() -> CarRules.setCarCollision(carCollision));
-        context.get().setPacketHandled(true);
-    }
 }

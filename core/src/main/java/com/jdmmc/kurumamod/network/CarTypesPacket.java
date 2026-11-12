@@ -1,17 +1,9 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.tuning.CarSpecNbt;
-import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
-import net.minecraft.resources.Identifier;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.network.codec.StreamCodec;
-import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;
-import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
-import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,30 +29,18 @@ import java.util.List;
  *   <li>調整画面の「戻す」で、既定値ではなく<b>その車種の値</b>へ戻す</li>
  * </ul>
  */
-public record CarTypesPacket(List<CarType> types) implements CustomPacketPayload {
+public record CarTypesPacket(List<CarType> types) implements RacePayload {
 
-    public static final CustomPacketPayload.Type<CarTypesPacket> TYPE = new CustomPacketPayload.Type<>(
-            Identifier.fromNamespaceAndPath(Kurumamod.MODID, "car_types"));
-
-    public static final StreamCodec<FriendlyByteBuf, CarTypesPacket> STREAM_CODEC =
-            StreamCodec.ofMember(CarTypesPacket::encode, CarTypesPacket::new);
-
-    @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
-        return TYPE;
-    }
-
-
-    public CarTypesPacket(FriendlyByteBuf buf) {
+    public CarTypesPacket(RaceBuf buf) {
         this(read(buf));
     }
 
-    private static List<CarType> read(FriendlyByteBuf buf) {
+    private static List<CarType> read(RaceBuf buf) {
         int count = buf.readVarInt();
         List<CarType> types = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            var id = McIds.read(buf);
-            var spec = CarSpecNbt.read(buf);
+            var id = buf.readCarId();
+            var spec = CarSpecCodec.read(buf);
             int order = buf.readVarInt();
             var defaults = new java.util.EnumMap<com.jdmmc.kurumamod.part.PartSlot, CarType.DefaultPart>(
                     com.jdmmc.kurumamod.part.PartSlot.class);
@@ -68,7 +48,7 @@ public record CarTypesPacket(List<CarType> types) implements CustomPacketPayload
             for (int j = 0; j < count2; j++) {
                 // 知らない場所でも最後まで読む。途中で止めると後ろがずれる
                 var slot = com.jdmmc.kurumamod.part.PartSlot.byName(buf.readUtf());
-                var part = new CarType.DefaultPart(McIds.read(buf), buf.readBoolean());
+                var part = new CarType.DefaultPart(buf.readCarId(), buf.readBoolean());
                 if (slot != null) {
                     defaults.put(slot, part);
                 }
@@ -78,17 +58,17 @@ public record CarTypesPacket(List<CarType> types) implements CustomPacketPayload
         return types;
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RaceBuf buf) {
         buf.writeVarInt(types.size());
         for (CarType type : types) {
-            McIds.write(buf, type.id());
-            CarSpecNbt.write(buf, type.spec());
+            buf.writeCarId(type.id());
+            CarSpecCodec.write(buf, type.spec());
             buf.writeVarInt(type.order());
             // 初期装備。描くのも諸元を組むのもクライアントがするので、同じものを持っていなければならない
             buf.writeVarInt(type.defaultParts().size());
             type.defaultParts().forEach((slot, part) -> {
                 buf.writeUtf(slot.getSerializedName());
-                McIds.write(buf, part.part());
+                buf.writeCarId(part.part());
                 buf.writeBoolean(part.removable());
             });
         }
@@ -99,8 +79,4 @@ public record CarTypesPacket(List<CarType> types) implements CustomPacketPayload
         return new CarTypesPacket(CarTypes.all());
     }
 
-    public void handle(PacketContext context) {
-        // クライアント専用のクラスを専用サーバーで読み込ませないため、Dist で包む
-        context.enqueueWork(() -> CarClientPackets.applyCarTypes(types));
-    }
 }

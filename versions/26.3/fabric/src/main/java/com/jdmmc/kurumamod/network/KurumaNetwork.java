@@ -34,24 +34,24 @@ public final class KurumaNetwork {
 
     /** 両側で 1 回だけ呼ぶ（{@code onInitialize}）。種類の登録と、サーバーでの受け口。 */
     public static void register() {
-        toServer(CarStatePacket.TYPE, CarStatePacket.STREAM_CODEC, p -> p::handle);
-        toServer(CarTuningPacket.TYPE, CarTuningPacket.STREAM_CODEC, p -> p::handle);
-        toClient(CarSpecPacket.TYPE, CarSpecPacket.STREAM_CODEC);
+        toServer(CorePackets.CAR_STATE.type(), CorePackets.CAR_STATE.codec(), p -> p::handle);
+        toServer(CorePackets.CAR_TUNING.type(), CorePackets.CAR_TUNING.codec(), p -> p::handle);
+        toClient(CorePackets.CAR_SPEC.type(), CorePackets.CAR_SPEC.codec());
         toClient(CorePackets.RACE_EVENT.type(), CorePackets.RACE_EVENT.codec());
         toClient(CorePackets.COURSE_LINES.type(), CorePackets.COURSE_LINES.codec());
         // 衝突だけは行きも帰りもある（運転者 → サーバー → 周りのクライアント）
-        both(CarImpactPacket.TYPE, CarImpactPacket.STREAM_CODEC, p -> p::handle);
+        both(CorePackets.CAR_IMPACT.type(), CorePackets.CAR_IMPACT.codec(), p -> p::handle);
         // 車体が壁と擦れている合図（火花）。衝突と同じ道
-        both(CarScrapePacket.TYPE, CarScrapePacket.STREAM_CODEC, p -> p::handle);
+        both(CorePackets.CAR_SCRAPE.type(), CorePackets.CAR_SCRAPE.codec(), p -> p::handle);
         toClient(CorePackets.RACE_STANDINGS.type(), CorePackets.RACE_STANDINGS.codec());
-        toClient(CarTypesPacket.TYPE, CarTypesPacket.STREAM_CODEC);
-        toClient(CarRulesPacket.TYPE, CarRulesPacket.STREAM_CODEC);
-        both(CarPushPacket.TYPE, CarPushPacket.STREAM_CODEC, p -> p::handle);
-        toClient(CarPartTypesPacket.TYPE, CarPartTypesPacket.STREAM_CODEC);
-        toClient(CarPartsPacket.TYPE, CarPartsPacket.STREAM_CODEC);
-        toServer(CarPartRequestPacket.TYPE, CarPartRequestPacket.STREAM_CODEC, p -> p::handle);
-        toServer(CarPaintRequestPacket.TYPE, CarPaintRequestPacket.STREAM_CODEC, p -> p::handle);
-        toServer(CarPlateRequestPacket.TYPE, CarPlateRequestPacket.STREAM_CODEC, p -> p::handle);
+        toClient(CorePackets.CAR_TYPES.type(), CorePackets.CAR_TYPES.codec());
+        toClient(CorePackets.CAR_RULES.type(), CorePackets.CAR_RULES.codec());
+        both(CorePackets.CAR_PUSH.type(), CorePackets.CAR_PUSH.codec(), p -> p::handle);
+        toClient(CorePackets.CAR_PART_TYPES.type(), CorePackets.CAR_PART_TYPES.codec());
+        toClient(CorePackets.CAR_PARTS.type(), CorePackets.CAR_PARTS.codec());
+        toServer(CorePackets.CAR_PART_REQUEST.type(), CorePackets.CAR_PART_REQUEST.codec(), p -> p::handle);
+        toServer(CorePackets.CAR_PAINT_REQUEST.type(), CorePackets.CAR_PAINT_REQUEST.codec(), p -> p::handle);
+        toServer(CorePackets.CAR_PLATE_REQUEST.type(), CorePackets.CAR_PLATE_REQUEST.codec(), p -> p::handle);
         toClient(CorePackets.RACE_LOBBY.type(), CorePackets.RACE_LOBBY.codec());
         toClient(CorePackets.RACE_CLASSES.type(), CorePackets.RACE_CLASSES.codec());
         toClient(CorePackets.TIME_ATTACK_RECORDS.type(), CorePackets.TIME_ATTACK_RECORDS.codec());
@@ -148,5 +148,9 @@ public final class KurumaNetwork {
 
     public static void sendToAllPlayers(RacePayload payload) {
         sendToAllPlayers(CorePackets.wrap(payload));
+    }
+
+    public static void sendToPlayersTrackingEntity(Entity entity, RacePayload payload) {
+        sendToPlayersTrackingEntity(entity, CorePackets.wrap(payload));
     }
 }

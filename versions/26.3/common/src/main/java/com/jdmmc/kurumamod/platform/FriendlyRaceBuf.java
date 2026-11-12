@@ -86,6 +86,41 @@ public final class FriendlyRaceBuf implements RaceBuf {
     }
 
     @Override
+    public void writeFloat(float value) {
+        buf.writeFloat(value);
+    }
+
+    @Override
+    public void writeShort(int value) {
+        buf.writeShort(value);
+    }
+
+    @Override
+    public void writeVarIntArray(int[] values) {
+        buf.writeVarIntArray(values);
+    }
+
+    @Override
+    public float readFloat() {
+        return buf.readFloat();
+    }
+
+    @Override
+    public int readUnsignedByte() {
+        return buf.readUnsignedByte();
+    }
+
+    @Override
+    public int readUnsignedShort() {
+        return buf.readUnsignedShort();
+    }
+
+    @Override
+    public int[] readVarIntArray() {
+        return buf.readVarIntArray();
+    }
+
+    @Override
     public RuntimeException invalid(String message) {
         return new DecoderException(message);
     }

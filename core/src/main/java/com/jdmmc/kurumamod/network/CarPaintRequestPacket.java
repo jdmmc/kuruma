@@ -1,14 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.PartFitment;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraftforge.network.NetworkEvent;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.Supplier;
 
 /**
  * クライアント → サーバー。塗装の<b>要求</b>。
@@ -24,13 +17,13 @@ import java.util.function.Supplier;
  * @param entityId 対象の車のエンティティ ID
  * @param paint    塗装の id。null で既定の色へ戻す
  */
-public record CarPaintRequestPacket(int entityId, @Nullable String paint) {
+public record CarPaintRequestPacket(int entityId, @Nullable String paint) implements RacePayload {
 
-    public CarPaintRequestPacket(FriendlyByteBuf buf) {
+    public CarPaintRequestPacket(RaceBuf buf) {
         this(buf.readVarInt(), buf.readBoolean() ? buf.readUtf(PartFitment.PAINT_MAX_LENGTH) : null);
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RaceBuf buf) {
         buf.writeVarInt(entityId);
         buf.writeBoolean(paint != null);
         if (paint != null) {
@@ -38,20 +31,4 @@ public record CarPaintRequestPacket(int entityId, @Nullable String paint) {
         }
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context context = ctx.get();
-        context.enqueueWork(() -> {
-            ServerPlayer sender = context.getSender();
-            if (sender == null) {
-                return;
-            }
-            Entity entity = sender.level().getEntity(entityId);
-            if (!(entity instanceof CarEntity car) || car.getControllingPassenger() != sender) {
-                return;
-            }
-            // setFitment がそのまま周囲のクライアントへ配る
-            car.setFitment(car.getFitment().withPaint(paint));
-        });
-        context.setPacketHandled(true);
-    }
 }

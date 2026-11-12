@@ -1,17 +1,5 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.client.CarClientPackets;
-import com.jdmmc.kurumamod.entity.CarEntity;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.PacketDistributor;
-
-import java.util.function.Supplier;
-
 /**
  * 車体が地形や他の車と擦れた・ぶつかった合図（火花を出す）。<b>行きと帰りの両方向に使う</b>（{@link CarImpactPacket} と同じ道）。
  *
@@ -31,9 +19,10 @@ import java.util.function.Supplier;
  * @param impact   このティックにぶつかった強さ（近づいていた速さ） [m/s]。擦っているだけなら 0。
  *                 火花をまとめて飛び散らせる量になる
  */
-public record CarScrapePacket(int entityId, float[] offset, float[] normal, float[] velocity, float impact) {
+public record CarScrapePacket(int entityId, float[] offset, float[] normal, float[] velocity, float impact)
+        implements RacePayload {
 
-    public CarScrapePacket(FriendlyByteBuf buf) {
+    public CarScrapePacket(RaceBuf buf) {
         this(buf.readVarInt(),
                 new float[]{buf.readFloat(), buf.readFloat(), buf.readFloat()},
                 new float[]{buf.readFloat(), buf.readFloat()},
@@ -41,7 +30,7 @@ public record CarScrapePacket(int entityId, float[] offset, float[] normal, floa
                 buf.readFloat());
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RaceBuf buf) {
         buf.writeVarInt(entityId);
         for (float value : offset) {
             buf.writeFloat(value);
@@ -55,28 +44,4 @@ public record CarScrapePacket(int entityId, float[] offset, float[] normal, floa
         buf.writeFloat(impact);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context context = ctx.get();
-        context.enqueueWork(() -> {
-            ServerPlayer sender = context.getSender();
-            if (sender == null) {
-                // クライアント専用のクラスを専用サーバーで読み込ませないため、Dist で包む
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> CarClientPackets.applyScrape(entityId, offset, normal, velocity, impact));
-                return;
-            }
-            Entity entity = sender.level().getEntity(entityId);
-            // 運転している本人からのものだけ中継する
-            if (entity instanceof CarEntity car && car.getControllingPassenger() == sender) {
-                broadcast(car, offset, normal, velocity, impact);
-            }
-        });
-        context.setPacketHandled(true);
-    }
-
-    /** その車を追跡しているクライアントへ配る。運転者本人のぶんは受信側で捨てる。 */
-    public static void broadcast(CarEntity car, float[] offset, float[] normal, float[] velocity, float impact) {
-        KurumaNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> car),
-                new CarScrapePacket(car.getId(), offset, normal, velocity, impact));
-    }
 }

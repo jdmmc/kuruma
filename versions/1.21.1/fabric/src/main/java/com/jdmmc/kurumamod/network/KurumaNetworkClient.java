@@ -19,17 +19,17 @@ public final class KurumaNetworkClient {
 
     /** クライアントで 1 回だけ呼ぶ（{@code onInitializeClient}）。種類の登録は {@link KurumaNetwork#register()} が済ませている。 */
     public static void register() {
-        on(CarSpecPacket.TYPE, p -> p::handle);
+        on(CorePackets.CAR_SPEC.type(), p -> p::handle);
         on(CorePackets.RACE_EVENT.type(), p -> p::handle);
         on(CorePackets.COURSE_LINES.type(), p -> p::handle);
-        on(CarImpactPacket.TYPE, p -> p::handle);
-        on(CarScrapePacket.TYPE, p -> p::handle);
+        on(CorePackets.CAR_IMPACT.type(), p -> p::handle);
+        on(CorePackets.CAR_SCRAPE.type(), p -> p::handle);
         on(CorePackets.RACE_STANDINGS.type(), p -> p::handle);
-        on(CarTypesPacket.TYPE, p -> p::handle);
-        on(CarRulesPacket.TYPE, p -> p::handle);
-        on(CarPushPacket.TYPE, p -> p::handle);
-        on(CarPartTypesPacket.TYPE, p -> p::handle);
-        on(CarPartsPacket.TYPE, p -> p::handle);
+        on(CorePackets.CAR_TYPES.type(), p -> p::handle);
+        on(CorePackets.CAR_RULES.type(), p -> p::handle);
+        on(CorePackets.CAR_PUSH.type(), p -> p::handle);
+        on(CorePackets.CAR_PART_TYPES.type(), p -> p::handle);
+        on(CorePackets.CAR_PARTS.type(), p -> p::handle);
         on(CorePackets.RACE_LOBBY.type(), p -> p::handle);
         on(CorePackets.RACE_CLASSES.type(), p -> p::handle);
         on(CorePackets.TIME_ATTACK_RECORDS.type(), p -> p::handle);

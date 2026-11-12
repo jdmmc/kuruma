@@ -1,19 +1,12 @@
 package com.jdmmc.kurumamod.network;
 
 import com.jdmmc.kurumamod.car.CarSync;
-import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.Wheel;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
 
 /**
  * 運転クライアント → サーバー。位置・向き以外の車両状態を送る。
  *
- * <p>受け取ったサーバーは値を検算せず {@link net.minecraft.network.syncher.SynchedEntityData} に流し込むだけで、
+ * <p>受け取ったサーバーは値を検算せず {@code SynchedEntityData} に流し込むだけで、
  * そこから先はバニラの同期に任せて周囲のクライアントへ配る。</p>
  *
  * <p>運ぶのは<b>見た目に効くものだけ</b>。姿勢（ピッチ・ロール）とタイヤ（切れ角・サスの伸縮・回転）が
@@ -44,7 +37,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
                              float pitch, float roll,
                              float[] suspension, float[] wheelSpeed, float[] friction,
                              float rpm, int gear, float throttle, float slipAngle, int surface,
-                             byte lights, float boost) implements CarSync {
+                             byte lights, float boost) implements RacePayload, CarSync {
 
     @Override
     public float suspension(int wheel) {
@@ -61,7 +54,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         return friction[wheel];
     }
 
-    public CarStatePacket(FriendlyByteBuf buf) {
+    public CarStatePacket(RaceBuf buf) {
         this(buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 buf.readFloat(),
                 readWheels(buf), readWheels(buf), readWheels(buf),
@@ -69,7 +62,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
                 buf.readUnsignedShort(), buf.readByte(), buf.readUnsignedByte() / 255.0F);
     }
 
-    private static float[] readWheels(FriendlyByteBuf buf) {
+    private static float[] readWheels(RaceBuf buf) {
         float[] values = new float[Wheel.COUNT];
         for (int i = 0; i < values.length; i++) {
             values[i] = buf.readFloat();
@@ -77,7 +70,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         return values;
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RaceBuf buf) {
         buf.writeVarInt(entityId);
         buf.writeFloat(steerAngle);
         buf.writeFloat(speed);
@@ -102,18 +95,4 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         buf.writeByte(Math.round(Math.max(0.0F, Math.min(1.0F, boost)) * 255.0F));
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context context = ctx.get();
-        context.enqueueWork(() -> {
-            ServerPlayer sender = context.getSender();
-            if (sender == null) return;
-
-            Entity entity = sender.level().getEntity(entityId);
-            // 運転している本人からのパケットだけ受け付ける
-            if (entity instanceof CarEntity car && car.getControllingPassenger() == sender) {
-                car.applyDriverState(this);
-            }
-        });
-        context.setPacketHandled(true);
-    }
 }

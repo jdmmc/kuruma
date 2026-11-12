@@ -14,6 +14,7 @@ import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
+import com.jdmmc.kurumamod.network.CarPacketHandlers;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
 
 import com.jdmmc.kurumamod.car.CarRules;
@@ -894,7 +895,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
             CarImpact.onImpact(this, impact);
             KurumaNetwork.sendToServer(new CarImpactPacket(getId(), (float) impact));
         } else {
-            CarImpactPacket.broadcast(this, (float) impact);
+            CarPacketHandlers.broadcastImpact(this, (float) impact);
         }
     }
 
@@ -909,7 +910,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
             CarSparks.emit(this, offset, normal, velocity, impact);
             KurumaNetwork.sendToServer(new CarScrapePacket(getId(), offset, normal, velocity, impact));
         } else {
-            CarScrapePacket.broadcast(this, offset, normal, velocity, impact);
+            CarPacketHandlers.broadcastScrape(this, offset, normal, velocity, impact);
         }
     }
 

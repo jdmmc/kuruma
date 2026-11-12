@@ -1,10 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.network.codec.StreamCodec;
-import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.Tire;
 import com.jdmmc.kurumamod.physics.Turbo;
@@ -12,12 +8,9 @@ import com.jdmmc.kurumamod.plate.PlateChars;
 import com.jdmmc.kurumamod.plate.PlateField;
 import com.jdmmc.kurumamod.plate.PlateLook;
 import com.jdmmc.kurumamod.plate.PlateRules;
-import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartSlot;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,32 +30,20 @@ import java.util.Set;
  * <p><b>これが運ぶのは選べる部品の一覧であって、走っている車が何を履いているかではない。</b>
  * 後者は車のスポーンデータと {@link CarPartsPacket} が運ぶ（車種と諸元の関係と同じ）。</p>
  */
-public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPayload {
+public record CarPartTypesPacket(List<CarPart> parts) implements RacePayload {
 
-    public static final CustomPacketPayload.Type<CarPartTypesPacket> TYPE = new CustomPacketPayload.Type<>(
-            ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "car_part_types"));
-
-    public static final StreamCodec<FriendlyByteBuf, CarPartTypesPacket> STREAM_CODEC =
-            StreamCodec.ofMember(CarPartTypesPacket::encode, CarPartTypesPacket::new);
-
-    @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
-        return TYPE;
-    }
-
-
-    public CarPartTypesPacket(FriendlyByteBuf buf) {
+    public CarPartTypesPacket(RaceBuf buf) {
         this(read(buf));
     }
 
-    private static List<CarPart> read(FriendlyByteBuf buf) {
+    private static List<CarPart> read(RaceBuf buf) {
         int count = buf.readVarInt();
         List<CarPart> parts = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            var id = McIds.read(buf);
+            var id = buf.readCarId();
             String name = buf.readUtf();
             int order = buf.readVarInt();
-            Set<CarId> cars = buf.readCollection(HashSet::new, McIds::read);
+            Set<CarId> cars = buf.readCollection(HashSet::new, RaceBuf::readCarId);
             Turbo turbo = buf.readBoolean()
                     ? new Turbo(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
                     : null;
@@ -82,13 +63,13 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
         return parts;
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RaceBuf buf) {
         buf.writeVarInt(parts.size());
         for (CarPart part : parts) {
-            McIds.write(buf, part.id());
+            buf.writeCarId(part.id());
             buf.writeUtf(part.slot().getSerializedName());
             buf.writeVarInt(part.order());
-            buf.writeCollection(part.cars(), McIds::write);
+            buf.writeCollection(part.cars(), RaceBuf::writeCarId);
             // ターボの性能。物理が使うので、クライアントも同じ値を持っていなければならない
             // （運転しているのはクライアント）
             Turbo turbo = part.turbo();
@@ -126,7 +107,7 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
         }
     }
 
-    private static void writePlate(FriendlyByteBuf buf, PlateRules plate) {
+    private static void writePlate(RaceBuf buf, PlateRules plate) {
         buf.writeVarInt(plate.fields().size());
         for (PlateField field : plate.fields()) {
             buf.writeUtf(field.id(), PlateLook.FIELD_ID_MAX_LENGTH);
@@ -136,7 +117,7 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
         }
     }
 
-    private static PlateRules readPlate(FriendlyByteBuf buf) {
+    private static PlateRules readPlate(RaceBuf buf) {
         int count = Math.min(buf.readVarInt(), PlateRules.MAX_FIELDS);
         List<PlateField> fields = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
@@ -146,12 +127,12 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
         return new PlateRules(fields);
     }
 
-    private static java.util.Map<String, Double> readScales(FriendlyByteBuf buf) {
-        return buf.readMap(FriendlyByteBuf::readUtf, FriendlyByteBuf::readDouble);
+    private static java.util.Map<String, Double> readScales(RaceBuf buf) {
+        return buf.readMap(RaceBuf::readUtf, RaceBuf::readDouble);
     }
 
-    private static void writeScales(FriendlyByteBuf buf, java.util.Map<String, Double> scales) {
-        buf.writeMap(scales, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeDouble);
+    private static void writeScales(RaceBuf buf, java.util.Map<String, Double> scales) {
+        buf.writeMap(scales, RaceBuf::writeUtf, RaceBuf::writeDouble);
     }
 
     /** いま読み込まれている部品を全部詰めたパケット。 */
@@ -159,7 +140,4 @@ public record CarPartTypesPacket(List<CarPart> parts) implements CustomPacketPay
         return new CarPartTypesPacket(CarParts.all());
     }
 
-    public void handle(PacketContext context) {
-        context.enqueueWork(() -> CarClientPackets.applyCarParts(parts));
-    }
 }
