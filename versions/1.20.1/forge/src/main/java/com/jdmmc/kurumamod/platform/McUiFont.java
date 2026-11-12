@@ -2,7 +2,7 @@ package com.jdmmc.kurumamod.platform;
 
 import com.jdmmc.kurumamod.client.ui.UiFont;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.FormattedText;

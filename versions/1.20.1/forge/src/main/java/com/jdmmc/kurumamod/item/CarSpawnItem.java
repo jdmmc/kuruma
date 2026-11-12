@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.item;
 
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import com.jdmmc.kurumamod.car.CarId;

@@ -6,7 +6,7 @@ import com.jdmmc.kurumamod.client.hud.HudCar;
 import com.jdmmc.kurumamod.client.effect.SkidMarkTrails;
 import com.jdmmc.kurumamod.car.CarPose;
 import com.jdmmc.kurumamod.ground.GroundSensor;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import com.jdmmc.kurumamod.platform.McIds;

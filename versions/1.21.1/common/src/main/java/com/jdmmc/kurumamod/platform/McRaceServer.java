@@ -7,6 +7,7 @@ import com.jdmmc.kurumamod.network.RacePayload;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
@@ -23,7 +24,7 @@ import com.jdmmc.kurumamod.race.RacePlayer;
 import com.jdmmc.kurumamod.race.RaceRecords;
 import com.jdmmc.kurumamod.race.RaceServer;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 
 /**
  * core の {@link RaceEngine} から見たサーバー（{@link RaceServer}）を、{@link MinecraftServer} で実装したもの。
@@ -121,7 +122,7 @@ public final class McRaceServer implements RaceServer {
 
     @Override
     public RaceClassBook classes() {
-        return RaceClasses.book(server);
+        return RaceClasses.book(server.getWorldPath(LevelResource.ROOT));
     }
 
     @Override

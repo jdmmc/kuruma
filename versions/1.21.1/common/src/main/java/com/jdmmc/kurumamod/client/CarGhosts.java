@@ -15,7 +15,7 @@ import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;

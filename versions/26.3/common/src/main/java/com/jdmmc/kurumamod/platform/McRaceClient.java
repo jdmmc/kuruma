@@ -12,7 +12,7 @@ import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.platform.McRaceServer;
 import com.jdmmc.kurumamod.race.RaceCar;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.jdmmc.kurumamod.sound.KurumaSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;

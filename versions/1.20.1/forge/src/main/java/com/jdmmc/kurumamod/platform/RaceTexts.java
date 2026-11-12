@@ -1,8 +1,10 @@
-package com.jdmmc.kurumamod.race;
+package com.jdmmc.kurumamod.platform;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import com.jdmmc.kurumamod.race.RaceColor;
+import com.jdmmc.kurumamod.race.RaceText;
 
 /** core の {@link RaceText} を {@link Component} に直す。 */
 public final class RaceTexts {

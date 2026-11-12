@@ -5,7 +5,7 @@ import com.jdmmc.kurumamod.client.ui.UiGraphics;
 import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import net.minecraft.client.gui.GuiGraphics;
 import java.util.List;
 import org.joml.Matrix4f;

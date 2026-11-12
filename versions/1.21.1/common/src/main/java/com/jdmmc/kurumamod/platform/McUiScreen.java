@@ -9,7 +9,7 @@ import com.jdmmc.kurumamod.client.ui.UiScreen;
 import com.jdmmc.kurumamod.client.ui.UiSlider;
 import com.jdmmc.kurumamod.client.ui.UiWidget;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
