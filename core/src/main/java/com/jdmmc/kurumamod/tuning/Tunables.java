@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.tuning;
 
+import com.jdmmc.kurumamod.SpeedUnit;
 import org.jetbrains.annotations.Nullable;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Wheel;
@@ -466,10 +467,12 @@ public final class Tunables {
         String partKg = String.format("%.0f", 0.5 * CarSpec.AIR_DENSITY * partArea * speed * speed / 9.81);
         boolean parts = partArea > 0.0;
         if (front || spec.totalDownforce(1.0) <= 0.0) {
-            return parts ? detail("downforce_parts", kg, partKg) : detail("downforce", kg);
+            return parts ? detail("downforce_parts", kg, partKg, SpeedUnit.detail(speed))
+                    : detail("downforce", kg, SpeedUnit.detail(speed));
         }
         String share = String.format("%.0f", spec.downforceFrontShare() * 100.0);
-        return parts ? detail("downforce_balance_parts", kg, partKg, share) : detail("downforce_balance", kg, share);
+        return parts ? detail("downforce_balance_parts", kg, partKg, share, SpeedUnit.detail(speed))
+                : detail("downforce_balance", kg, share, SpeedUnit.detail(speed));
     }
 
     /** 100km/h での空気抵抗が何 G の減速になるか。CdA だけでは車重に対してどれほどか読めない。 */
@@ -478,9 +481,10 @@ public final class Tunables {
         // ダウンフォースを作るのに増えたぶん（調整画面のぶんと部品のぶん）。補足の G はこれも込み
         double added = spec.effectiveDragArea() - spec.dragArea();
         if (added > 1e-6) {
-            return detail("drag_area_added", String.format("%.3f", accel / 9.81), String.format("%.2f", added));
+            return detail("drag_area_added", String.format("%.3f", accel / 9.81), String.format("%.2f", added),
+                    SpeedUnit.detail(100.0 / 3.6));
         }
-        return detail("drag_area", String.format("%.3f", accel / 9.81));
+        return detail("drag_area", String.format("%.3f", accel / 9.81), SpeedUnit.detail(100.0 / 3.6));
     }
 
     /**
@@ -508,7 +512,7 @@ public final class Tunables {
         double grip = spec.tractionLimitAccel() / 9.81;
         double speed = spec.tractionLimitedSpeed();
         if (speed >= 0.5) {
-            return detail("traction_limited", String.format("%.0f", speed * 3.6), String.format("%.2f", grip));
+            return detail("traction_limited", SpeedUnit.detail(speed), String.format("%.2f", grip));
         }
         // いちばん際どい速度（エンジンがグリップに最も迫るところ）で、同じ速度どうしを比べる
         double closest = 0.0;
@@ -527,8 +531,8 @@ public final class Tunables {
     }
 
     /** 最高段でレブリミットまで回したときの速度。ギアの高さの目安。 */
-    private static String topGearSpeed(CarSpec spec) {
-        return String.format("%.0f", spec.topGearSpeed() * 3.6);
+    private static Object topGearSpeed(CarSpec spec) {
+        return SpeedUnit.detail(spec.topGearSpeed());
     }
 
     /** センターデフの種類。四駆でなければ効かないことを出す。 */

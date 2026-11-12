@@ -76,6 +76,10 @@ public final class ClientConfig {
                     "MODERN=銀の縁に平らな文字盤と赤い針。形は同じで色だけ変わる")
             .defineEnum("gaugeTheme", GaugeTheme.CLASSIC);
 
+    public static final ConfigSpec.EnumValue<SpeedUnit> SPEED_UNIT = BUILDER
+            .comment("速さを出す単位。KMH=km/h、MPH=mph。速度計・最高速と、性能を比べる基準の速さ（200km/h のダウンフォースなど）が変わる")
+            .defineEnum("speedUnit", SpeedUnit.KMH);
+
     public static final ConfigSpec.BooleanValue LIVE_MIRRORS = BUILDER
             .comment("ルームミラー・ドアミラーに実際の後方の景色を映すかどうか。",
                     "映すには世界をもう 1 回描くことになるので、そのぶん重くなる（フレームあたり 1 枚ずつ",
@@ -303,6 +307,8 @@ public final class ClientConfig {
 
     /** メーターの配色。 */
     public static GaugeTheme gaugeTheme = GaugeTheme.CLASSIC;
+    /** 速さを出す単位。 */
+    public static SpeedUnit speedUnit = SpeedUnit.KMH;
 
     /** ミラーに実際の景色を映すか。 */
     public static boolean liveMirrors = false;
@@ -423,6 +429,7 @@ public final class ClientConfig {
         cockpitLookAhead = COCKPIT_LOOK_AHEAD.get();
         cockpitDriftLook = COCKPIT_DRIFT_LOOK.get();
         gaugeTheme = GAUGE_THEME.get();
+        speedUnit = SPEED_UNIT.get();
         liveMirrors = LIVE_MIRRORS.get();
         gpuCarMeshes = GPU_CAR_MESHES.get();
         timeAttackGhost = TIME_ATTACK_GHOST.get();

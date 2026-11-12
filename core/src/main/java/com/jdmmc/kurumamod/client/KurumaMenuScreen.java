@@ -21,6 +21,7 @@ import com.jdmmc.kurumamod.car.CarId;
 
 import com.jdmmc.kurumamod.GateDisplay;
 import com.jdmmc.kurumamod.GaugeTheme;
+import com.jdmmc.kurumamod.SpeedUnit;
 import com.jdmmc.kurumamod.SmokeQuality;
 import com.jdmmc.kurumamod.SmokeStyle;
 
@@ -199,6 +200,8 @@ public class KurumaMenuScreen extends UiScreen {
                 toggle("show_gauges", ClientOptions.get().bool("SHOW_GAUGES"));
                 cycle("gauge_theme", GaugeTheme.class, ClientOptions.get().choice("GAUGE_THEME", GaugeTheme.class),
                         theme -> RaceText.translatable(theme.translationKey()));
+                cycle("speed_unit", SpeedUnit.class, ClientOptions.get().choice("SPEED_UNIT", SpeedUnit.class),
+                        unit -> RaceText.translatable(unit.translationKey()));
                 slider("gauge_scale", 0.5, 2.0, ClientOptions.get().number("GAUGE_SCALE"));
                 slider("gauge_opacity", 0.15, 1.0, ClientOptions.get().number("GAUGE_OPACITY"));
             }

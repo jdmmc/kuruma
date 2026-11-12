@@ -8,6 +8,7 @@ import com.jdmmc.kurumamod.race.RaceText;
 import com.jdmmc.kurumamod.util.Mth;
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.GaugeTheme;
+import com.jdmmc.kurumamod.SpeedUnit;
 import com.jdmmc.kurumamod.physics.CarSpec;
 
 /**
@@ -312,7 +313,8 @@ public final class CarGaugeHud {
     private static void renderSpeedometer(UiGraphics graphics, UiFont font, GaugeTheme theme,
                                           HudCar car, CarSpec spec,
                                           float x, float y, float scale) {
-        double maxKmh = spec.topGearSpeed() * 3.6;
+        SpeedUnit units = SpeedUnit.current();
+        double maxKmh = units.fromMetersPerSecond(spec.topGearSpeed());
         // 20km/h 刻みから始めて、数字が重ならないところまで粗くする。
         // 最高速はセッティングとカーパックで変わるので、決め打ちにはできない
         int major = 20;
@@ -320,7 +322,7 @@ public final class CarGaugeHud {
             major += 20;
         }
         double top = Math.ceil(maxKmh / major) * major;
-        double speed = Math.abs(car.getRenderSpeed()) * 3.6;
+        double speed = units.fromMetersPerSecond(Math.abs(car.getRenderSpeed()));
 
         graphics.pushPose();
         graphics.translate(x, y);
@@ -335,7 +337,7 @@ public final class CarGaugeHud {
         GaugeShapes.flush(graphics);
 
         labels(graphics, font, theme, top, major, Double.MAX_VALUE);
-        centerText(graphics, font, RaceText.translatable("hud.kurumamod.kmh"),
+        centerText(graphics, font, units.unit(),
                 UNIT_DY, theme.unit);
 
         graphics.popPose();
@@ -589,7 +591,7 @@ public final class CarGaugeHud {
         graphics.popPose();
 
         // 速度。いちばん見る数字なので大きく、右詰め
-        String speed = String.format("%.0f", Math.abs(car.getRenderSpeed()) * 3.6);
+        String speed = String.format("%.0f", SpeedUnit.current().fromMetersPerSecond(Math.abs(car.getRenderSpeed())));
         float speedScale = 1.6F;
         graphics.pushPose();
         graphics.translate(half - 6.0F - font.width(speed) * speedScale,
@@ -598,7 +600,7 @@ public final class CarGaugeHud {
         graphics.drawString(font, speed, 0, 0, theme.text, false);
         graphics.popPose();
 
-        RaceText unit = RaceText.translatable("hud.kurumamod.kmh");
+        RaceText unit = SpeedUnit.current().unit();
         graphics.pushPose();
         graphics.translate(half - 6.0F - font.width(unit) * SMALL_TEXT_SCALE, -8.0F);
         graphics.scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
