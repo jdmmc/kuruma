@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.SpeedUnit;
 import com.jdmmc.kurumamod.client.ui.Slant;
 import com.jdmmc.kurumamod.client.ui.UiButton;
 import com.jdmmc.kurumamod.client.ui.UiEditBox;
@@ -326,7 +327,7 @@ public final class RaceOrganizerScreen extends UiScreen {
             changed();
         });
         if (tooltip != null) {
-            toggle.setTooltip(UiTooltip.create(RaceText.translatable(tooltip)));
+            toggle.setTooltip(UiTooltip.create(RaceText.translatable(tooltip, SpeedUnit.reference(200.0))));
         }
         regulationWidgets.add(addRenderableWidget(toggle));
         return toggle;
@@ -1059,7 +1060,9 @@ public final class RaceOrganizerScreen extends UiScreen {
             row(graphics, y, rowHeight - 1, (i & 1) == 0);
             int color = on[i] ? RaceLobby.WHITE : 0xFF8A8A8A;
             int textY = y + (compact ? 3 : 5);
-            Slant.fit(graphics, font, RaceText.translatable(limits[i][0]), x + 24, textY, leftWidth - 136, color);
+            // 余分な引数は使わない文言では無視される。ダウンフォースの行だけ基準の速さを差し込む
+            Slant.fit(graphics, font, RaceText.translatable(limits[i][0], SpeedUnit.reference(200.0)), x + 24, textY,
+                    leftWidth - 136, color);
             String value = limits[i][1];
             int valueRoom = compact ? 72 : 68;
             int valueCenter = x + leftWidth - 2 - (compact ? 13 : 16) - (100 - (compact ? 13 : 16)) / 2 + 4;

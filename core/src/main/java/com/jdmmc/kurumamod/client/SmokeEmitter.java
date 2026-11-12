@@ -107,9 +107,9 @@ public final class SmokeEmitter {
         double travel = signedSpeed >= 0.0 ? 1.0 : -1.0;
         double kick = Math.min(MAX_KICK, speed * KICK_PER_SPEED);
         // この 1 ティックで動いたぶん。粒をその間へ撒かないと、速いときに煙が点線になる
-        double stepX = car.getX() - xo;
-        double stepY = car.getY() - yo;
-        double stepZ = car.getZ() - zo;
+        double stepX = car.posX() - xo;
+        double stepY = car.posY() - yo;
+        double stepZ = car.posZ() - zo;
 
         for (Wheel wheel : Wheel.VALUES) {
             // 路面は輪ごとに見る。車全体の路面（いちばん滑りやすい輪）で決めると、
@@ -124,18 +124,18 @@ public final class SmokeEmitter {
             if (kind == ParticleKind.SMOKE && volumetric) {
                 // 体積の煙（H メニューの既定）。滑りの強さ（頭打ちにしない）と、滑り続けて溜まった
                 // タイヤの熱で、量・大きさ・濃さが増えていく。熱を冷ますため、滑っていない輪も毎ティック通す
-                double strength = sink.smokeStrength(car.getId() * 4 + wheel.ordinal(), intensity);
+                double strength = sink.smokeStrength(car.carEntityId() * 4 + wheel.ordinal(), intensity);
                 if (strength <= 0.0) {
                     continue;
                 }
                 double forwardOffset = spec.wheelForwardOffset(wheel);
                 double rightOffset = spec.wheelRightOffset(wheel);
-                double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
-                double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
-                double y = car.getY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
+                double x = car.posX() + forwardX * forwardOffset + rightX * rightOffset;
+                double z = car.posZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+                double y = car.posY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
                 // 輪の外側へも吹き出す（車体の下へは潜らない）
                 double side = rightOffset >= 0.0 ? 1.0 : -1.0;
-                sink.emitSmoke(car.getId() * 4 + wheel.ordinal(), x, y, z, stepX, stepY, stepZ,
+                sink.emitSmoke(car.carEntityId() * 4 + wheel.ordinal(), x, y, z, stepX, stepY, stepZ,
                         // 空転するタイヤは煙を後ろへ吐き出す。止まったままのバーンアウトでも後ろへ流れるよう、強さのぶん足す
                         -forwardX * travel * (kick + SPIN_KICK * Math.min(strength, 2.0)),
                         -forwardZ * travel * (kick + SPIN_KICK * Math.min(strength, 2.0)),
@@ -151,12 +151,12 @@ public final class SmokeEmitter {
                 double amount = 1.7 * (1.0 - Math.exp(-1.1 * intensity)) * surface.dustScale();
                 double forwardOffset = spec.wheelForwardOffset(wheel);
                 double rightOffset = spec.wheelRightOffset(wheel);
-                double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
-                double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
-                double y = car.getY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
+                double x = car.posX() + forwardX * forwardOffset + rightX * rightOffset;
+                double z = car.posZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+                double y = car.posY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
                 double push = kick + SPIN_KICK * Math.min(amount, 2.0);
                 // 輪ごとの番号は CarDust と分ける（出方のムラが同じ調子にならないように）
-                sink.emitDust(1_000_000 + car.getId() * 4 + wheel.ordinal(), surface,
+                sink.emitDust(1_000_000 + car.carEntityId() * 4 + wheel.ordinal(), surface,
                         x, y, z, stepX, stepY, stepZ, -forwardX * travel * push, -forwardZ * travel * push, amount);
                 continue;
             }
@@ -180,10 +180,10 @@ public final class SmokeEmitter {
 
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
-            double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
-            double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+            double x = car.posX() + forwardX * forwardOffset + rightX * rightOffset;
+            double z = car.posZ() + forwardZ * forwardOffset + rightZ * rightOffset;
             // 接地面。サス長とタイヤ半径だけ下
-            double y = car.getY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
+            double y = car.posY() - car.getRenderSuspensionLength(wheel) - spec.wheelRadius();
 
             Object particle = switch (kind) {
                 case SMOKE -> sink.smoke();

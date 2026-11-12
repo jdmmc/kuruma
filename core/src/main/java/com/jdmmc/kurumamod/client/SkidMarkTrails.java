@@ -21,9 +21,13 @@ import java.util.Set;
  */
 public final class SkidMarkTrails {
 
-    /** 跡を残す車の値。版の {@code CarEntity} がそのまま持つ。 */
+    /**
+     * 跡を残す車の値。版の {@code CarEntity} が持つ。<b>Minecraft と同じ名前のメソッドを置かないこと</b>
+     * （配布環境では名前が変わって満たされない。{@link EmitterCar} の説明）。
+     */
     public interface Car {
-        int getId();
+        /** エンティティの番号。 */
+        int carEntityId();
 
         float getRenderSpeed();
 
@@ -177,7 +181,7 @@ public final class SkidMarkTrails {
     }
 
     public static void track(Car car, double x0, double y0, double z0, boolean own, int limit, Ground ground) {
-        Point[] trail = TRAILS.computeIfAbsent(car.getId(), id -> new Point[Wheel.VALUES.length]);
+        Point[] trail = TRAILS.computeIfAbsent(car.carEntityId(), id -> new Point[Wheel.VALUES.length]);
         double speed = Math.abs(car.getRenderSpeed());
         if (speed < MIN_SPEED) {
             java.util.Arrays.fill(trail, null);

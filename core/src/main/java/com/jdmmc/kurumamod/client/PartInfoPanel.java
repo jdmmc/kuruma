@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
+import com.jdmmc.kurumamod.SpeedUnit;
 import com.jdmmc.kurumamod.client.ui.Slant;
 import com.jdmmc.kurumamod.client.ui.UiButton;
 import com.jdmmc.kurumamod.client.ui.UiCycleButton;
@@ -186,7 +187,7 @@ final class PartInfoPanel {
         CarSpec now = spec;
         CarSpec after = spec.toBuilder().partAero(others.plus(candidate)).build();
 
-        rows.add(heading("screen.kurumamod.part.info.downforce"));
+        rows.add(heading("screen.kurumamod.part.info.downforce", SpeedUnit.text(AERO_SPEED)));
         if (aero == null || (candidate.front() <= 0.0 && candidate.rear() <= 0.0 && !aero.adjustable())) {
             rows.add(text(RaceText.translatable("screen.kurumamod.part.info.no_aero"), ScreenStyle.SUB));
         } else {
@@ -200,7 +201,7 @@ final class PartInfoPanel {
             }
         }
 
-        rows.add(heading("screen.kurumamod.part.info.whole_car"));
+        rows.add(heading("screen.kurumamod.part.info.whole_car", SpeedUnit.text(AERO_SPEED)));
         rows.add(text(RaceText.literal(String.format("%s → %s kg",
                 kgForce(now.totalDownforce(AERO_SPEED)), kgForce(after.totalDownforce(AERO_SPEED)))),
                 compare(after.totalDownforce(AERO_SPEED), now.totalDownforce(AERO_SPEED))));
@@ -208,15 +209,16 @@ final class PartInfoPanel {
             rows.add(text(RaceText.translatable("screen.kurumamod.part.info.balance",
                     String.format("%.0f", after.downforceFrontShare() * 100.0)), ScreenStyle.LABEL));
         }
-        rows.add(heading("screen.kurumamod.part.info.grip_at_speed"));
+        rows.add(heading("screen.kurumamod.part.info.grip_at_speed", SpeedUnit.text(AERO_SPEED)));
         rows.add(text(RaceText.literal(String.format("×%.2f → ×%.2f",
                 now.aeroGripFactor(AERO_SPEED), after.aeroGripFactor(AERO_SPEED))),
                 compare(after.aeroGripFactor(AERO_SPEED), now.aeroGripFactor(AERO_SPEED))));
         rows.add(heading("screen.kurumamod.part.info.top_speed"));
-        double nowTop = now.estimatedTopSpeed() * 3.6;
-        double afterTop = after.estimatedTopSpeed() * 3.6;
+        double nowTop = now.estimatedTopSpeed();
+        double afterTop = after.estimatedTopSpeed();
         // 最高速は下がるほど悪い。比べる向きが逆なので入れ替えて渡す
-        rows.add(text(RaceText.literal(String.format("%.0f → %.0f km/h", nowTop, afterTop)),
+        rows.add(text(RaceText.literal(String.format("%.0f → ", SpeedUnit.current().fromMetersPerSecond(nowTop)))
+                        .append(SpeedUnit.text(afterTop)),
                 compare(afterTop, nowTop)));
         rows.add(text(RaceText.translatable("screen.kurumamod.part.info.drag_area",
                 String.format("%.2f", now.effectiveDragArea()), String.format("%.2f", after.effectiveDragArea())),
@@ -367,14 +369,14 @@ final class PartInfoPanel {
         void draw(UiGraphics graphics, UiFont font, int y);
     }
 
-    private static Row heading(String key) {
+    private static Row heading(String key, Object... args) {
         return new Row() {
             public int height() {
                 return LINE + 2;
             }
 
             public void draw(UiGraphics graphics, UiFont font, int y) {
-                graphics.drawString(font, RaceText.translatable(key), PADDING, y + 2, ScreenStyle.ACCENT, false);
+                graphics.drawString(font, RaceText.translatable(key, args), PADDING, y + 2, ScreenStyle.ACCENT, false);
             }
         };
     }

@@ -90,8 +90,8 @@ public final class DustEmitter {
             return;
         }
         CarSpec spec = car.getSpec();
-        double forwardX = -Math.sin(car.getYRot() * (float) (Math.PI / 180.0));
-        double forwardZ = Math.cos(car.getYRot() * (float) (Math.PI / 180.0));
+        double forwardX = -Math.sin(car.vanillaYaw() * (float) (Math.PI / 180.0));
+        double forwardZ = Math.cos(car.vanillaYaw() * (float) (Math.PI / 180.0));
         double rightX = -forwardZ;
         double rightZ = forwardX;
         // 進んでいる向きの逆へ弾き飛ばす。バックなら前へ飛ぶ
@@ -122,12 +122,12 @@ public final class DustEmitter {
                 // 体積の砂塵・雪煙（H メニューの「煙の描き方」が体積のとき）。数と動かし方は TireSmokeVolume が決める
                 double forwardOffset = spec.wheelForwardOffset(wheel);
                 double rightOffset = spec.wheelRightOffset(wheel);
-                double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
-                double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
-                double y = car.getY() - suspension - spec.wheelRadius();
+                double x = car.posX() + forwardX * forwardOffset + rightX * rightOffset;
+                double z = car.posZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+                double y = car.posY() - suspension - spec.wheelRadius();
                 double side = wheel.isLeft() ? -SIDE_KICK : SIDE_KICK;
-                sink.emitDust(car.getId() * 4 + wheel.ordinal(), car.getRenderSurface(wheel),
-                        x, y, z, car.getX() - xo, car.getY() - yo, car.getZ() - zo,
+                sink.emitDust(car.carEntityId() * 4 + wheel.ordinal(), car.getRenderSurface(wheel),
+                        x, y, z, car.posX() - xo, car.posY() - yo, car.posZ() - zo,
                         -forwardX * travel * kick + rightX * side, -forwardZ * travel * kick + rightZ * side,
                         intensity);
                 continue;
@@ -144,10 +144,10 @@ public final class DustEmitter {
 
             double forwardOffset = spec.wheelForwardOffset(wheel);
             double rightOffset = spec.wheelRightOffset(wheel);
-            double x = car.getX() + forwardX * forwardOffset + rightX * rightOffset;
-            double z = car.getZ() + forwardZ * forwardOffset + rightZ * rightOffset;
+            double x = car.posX() + forwardX * forwardOffset + rightX * rightOffset;
+            double z = car.posZ() + forwardZ * forwardOffset + rightZ * rightOffset;
             // 接地面。サス長とタイヤ半径だけ下
-            double y = car.getY() - suspension - spec.wheelRadius();
+            double y = car.posY() - suspension - spec.wheelRadius();
 
             double side = wheel.isLeft() ? -SIDE_KICK : SIDE_KICK;
             double lift = LIFT_BASE + LIFT_PER_INTENSITY * intensity;

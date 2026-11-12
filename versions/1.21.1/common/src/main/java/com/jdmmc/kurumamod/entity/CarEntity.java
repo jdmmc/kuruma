@@ -2420,4 +2420,30 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         parts = PartFitments.read(buf);
     }
 
+    // ---- core の口（EmitterCar・SkidMarkTrails.Car）。Minecraft と同じ名前は配布環境で満たされないので、名前を変えて渡す ----
+
+    @Override
+    public int carEntityId() {
+        return getId();
+    }
+
+    @Override
+    public float vanillaYaw() {
+        return getYRot();
+    }
+
+    @Override
+    public double posX() {
+        return getX();
+    }
+
+    @Override
+    public double posY() {
+        return getY();
+    }
+
+    @Override
+    public double posZ() {
+        return getZ();
+    }
 }

@@ -7,10 +7,15 @@ import com.jdmmc.kurumamod.surface.RoadSurface;
 /**
  * 煙・土煙（{@link SmokeEmitter}・{@link DustEmitter}）が読む車の値。版の {@code CarEntity} がそのまま持つ
  * （同じ名前のメソッドが元からある）。どれも同期されているので、他人の車からも同じように出る。
+ *
+ * <p><b>Minecraft と同じ名前のメソッドを置かないこと</b>（{@code getId}・{@code getX} など）。開発環境ではバニラから継いだ
+ * メソッドで満たされるが、Fabric（intermediary）・Forge（SRG）の配布環境ではバニラのメソッドの名前が変わるので満たされず、
+ * {@code AbstractMethodError} で落ちる（実際に落ちた）。{@code CarEntity} の側で明示的に実装する。</p>
  */
 public interface EmitterCar {
 
-    int getId();
+    /** エンティティの番号（{@code getId}）。 */
+    int carEntityId();
 
     CarSpec getSpec();
 
@@ -21,13 +26,14 @@ public interface EmitterCar {
     float getRenderYaw(float partialTick);
 
     /** バニラのヨー角 [度]（1.4 度刻みに量子化されている）。 */
-    float getYRot();
+    float vanillaYaw();
 
-    double getX();
+    /** 位置（{@code getX}・{@code getY}・{@code getZ}）。 */
+    double posX();
 
-    double getY();
+    double posY();
 
-    double getZ();
+    double posZ();
 
     RoadSurface getRenderSurface(Wheel wheel);
 
