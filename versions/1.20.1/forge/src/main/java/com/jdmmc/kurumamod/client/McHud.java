@@ -10,6 +10,9 @@ import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.jdmmc.kurumamod.client.hud.CarGaugeHud;
+import com.jdmmc.kurumamod.client.hud.CarHelp;
+import com.jdmmc.kurumamod.client.hud.CarHud;
 
 /**
  * 運転中の HUD（core の {@link CarGaugeHud}・{@link CarHelp}・{@link CarHud}）を Forge のイベントで描く。

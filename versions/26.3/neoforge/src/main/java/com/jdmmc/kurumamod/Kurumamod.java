@@ -6,7 +6,7 @@ import com.jdmmc.kurumamod.network.KurumaNetwork;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
 import com.jdmmc.kurumamod.client.DustParticle;
 import com.jdmmc.kurumamod.client.SparkParticle;
-import com.jdmmc.kurumamod.client.KurumaMenuScreen;
+import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.particle.KurumaParticles;
@@ -44,6 +44,7 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import org.slf4j.Logger;
+import com.jdmmc.kurumamod.config.ClientConfig;
 
 // ここの値は META-INF/neoforge.mods.toml のエントリと一致していなければならない
 @Mod(Kurumamod.MODID)

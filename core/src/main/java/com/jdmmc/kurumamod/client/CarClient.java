@@ -6,6 +6,9 @@ import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.plate.PlateLook;
 
 import java.util.List;
+import com.jdmmc.kurumamod.client.model.CarPartModel;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
+import com.jdmmc.kurumamod.client.hud.HudCar;
 
 /**
  * 車まわりの画面（ライト・換装・座席・セッティング・H）が、版にしか無いもの（描画の状態・運転・カメラ）に触る口。
@@ -37,7 +40,7 @@ public interface CarClient {
     double turboBoost();
 
     /** いまのカメラ。 */
-    com.jdmmc.kurumamod.CameraMode cameraMode();
+    com.jdmmc.kurumamod.config.CameraMode cameraMode();
 
     /** カメラを切り替えるキーの表示名（割り当てを変えたら追従する）。 */
     String cameraKeyName();

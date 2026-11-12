@@ -5,6 +5,7 @@ import org.lwjgl.glfw.GLFWGamepadState;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import com.jdmmc.kurumamod.client.input.ControllerInput;
 
 /**
  * コントローラを GLFW で読む（core の {@link ControllerInput.Device}）。{@code glfwGetGamepadState} は GLFW が

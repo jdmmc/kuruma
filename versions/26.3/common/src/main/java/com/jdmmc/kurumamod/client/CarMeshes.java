@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.client.hook.ShaderRegistrar;
 import com.mojang.blaze3d.systems.RenderSystem;

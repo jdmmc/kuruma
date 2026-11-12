@@ -2,6 +2,8 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.tuning.TunableParameter;
+import com.jdmmc.kurumamod.client.race.RaceClient;
+import com.jdmmc.kurumamod.client.race.RaceLobby;
 
 /**
  * 調整画面（{@link CarTuningScreen}）でいじった値を保持するクライアント側の入れ物。

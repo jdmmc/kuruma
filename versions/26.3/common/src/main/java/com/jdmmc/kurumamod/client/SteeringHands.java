@@ -30,6 +30,10 @@ import org.joml.Vector3f;
 
 import java.util.Map;
 import java.util.WeakHashMap;
+import com.jdmmc.kurumamod.client.model.CarModel;
+import com.jdmmc.kurumamod.client.model.SteeringArms;
+import com.jdmmc.kurumamod.client.model.SteeringGrip;
+import com.jdmmc.kurumamod.client.input.SteeringWheelAxis;
 
 /**
  * 運転者の手をハンドルに置く。<b>三人称はプレイヤーのモデルの腕を向け直し</b>（{@code mixin/PlayerModelMixin}）、

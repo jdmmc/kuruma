@@ -16,6 +16,10 @@ import org.joml.Vector4f;
 
 import java.util.EnumMap;
 import java.util.Map;
+import com.jdmmc.kurumamod.client.model.CarModel;
+import com.jdmmc.kurumamod.client.screen.CarPartScreen;
+import com.jdmmc.kurumamod.client.model.PartAnchorLayout;
+import com.jdmmc.kurumamod.client.model.PlateMounts;
 
 /**
  * 換装画面（{@link CarPartScreen}）の札を立てる場所。<b>車の部位を、このフレームの画面の位置へ写したもの。</b>

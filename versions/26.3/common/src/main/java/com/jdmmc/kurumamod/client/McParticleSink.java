@@ -8,6 +8,7 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.level.block.state.BlockState;
 import com.jdmmc.kurumamod.surface.RoadSurface;
+import com.jdmmc.kurumamod.client.effect.ParticleSink;
 
 /** 粒を置く口（core の {@link ParticleSink}）。煙・土煙・火花（{@link SmokeEmitter} など）が使う。 */
 final class McParticleSink implements ParticleSink {

@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
+import com.jdmmc.kurumamod.client.effect.DustLook;
 
 /**
  * 車輪が掻き飛ばした砂塵と、タイヤが擦れて上げる白煙。

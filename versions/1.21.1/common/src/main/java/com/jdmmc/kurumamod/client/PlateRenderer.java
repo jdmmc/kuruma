@@ -21,6 +21,9 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.function.Function;
+import com.jdmmc.kurumamod.client.model.CarModel;
+import com.jdmmc.kurumamod.client.model.PlateModel;
+import com.jdmmc.kurumamod.client.model.PlateMounts;
 
 /**
  * ナンバープレートを描く。<b>車体の姿勢を掛けた後、車体の拡大（{@code body.scale}）を掛ける前</b>に呼ぶ。

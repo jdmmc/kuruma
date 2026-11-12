@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.tuning;
 
-import com.jdmmc.kurumamod.SpeedUnit;
+import com.jdmmc.kurumamod.config.SpeedUnit;
 import org.jetbrains.annotations.Nullable;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Wheel;

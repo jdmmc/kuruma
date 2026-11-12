@@ -11,6 +11,9 @@ import net.minecraft.client.gui.screens.Screen;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.jdmmc.kurumamod.client.model.CarPartModel;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
+import com.jdmmc.kurumamod.client.hud.HudCar;
 
 /** core の {@link CarClient} の Minecraft 1.20.1 版。 */
 final class McCarClient implements CarClient {
@@ -70,7 +73,7 @@ final class McCarClient implements CarClient {
     }
 
     @Override
-    public com.jdmmc.kurumamod.CameraMode cameraMode() {
+    public com.jdmmc.kurumamod.config.CameraMode cameraMode() {
         return CarCamera.currentMode();
     }
 

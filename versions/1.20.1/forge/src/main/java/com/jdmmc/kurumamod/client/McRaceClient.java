@@ -21,6 +21,10 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 
 import java.nio.file.Path;
+import com.jdmmc.kurumamod.client.input.ControllerInput;
+import com.jdmmc.kurumamod.client.race.GhostEngine;
+import com.jdmmc.kurumamod.client.model.MeshShape;
+import com.jdmmc.kurumamod.client.race.RaceClient;
 
 /**
  * core の {@link RaceClient} の Minecraft 1.20.1 版。{@link #install} でクライアントの起動時に置く

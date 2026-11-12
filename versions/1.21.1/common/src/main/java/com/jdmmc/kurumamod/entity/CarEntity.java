@@ -1,9 +1,9 @@
 package com.jdmmc.kurumamod.entity;
 
-import com.jdmmc.kurumamod.ClientConfig;
-import com.jdmmc.kurumamod.client.EmitterCar;
-import com.jdmmc.kurumamod.client.HudCar;
-import com.jdmmc.kurumamod.client.SkidMarkTrails;
+import com.jdmmc.kurumamod.config.ClientConfig;
+import com.jdmmc.kurumamod.client.effect.EmitterCar;
+import com.jdmmc.kurumamod.client.hud.HudCar;
+import com.jdmmc.kurumamod.client.effect.SkidMarkTrails;
 import com.jdmmc.kurumamod.car.CarPose;
 import com.jdmmc.kurumamod.ground.GroundSensor;
 import com.jdmmc.kurumamod.race.RaceTexts;
@@ -241,7 +241,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      * 車体が壁とこれより速く擦れたら火花を出す [m/s]（{@code CarSparks}）。
      * ゆっくり押し付けているだけでは飛ばない。
      */
-    public static final double SPARK_MIN_SPEED = com.jdmmc.kurumamod.client.SparkEmitter.MIN_SPEED;
+    public static final double SPARK_MIN_SPEED = com.jdmmc.kurumamod.client.effect.SparkEmitter.MIN_SPEED;
     /** 車同士でぶつかった火花を出す高さ（重心のシャシー基準面から） [m]。車体の真ん中あたり。 */
     private static final double CAR_SPARK_HEIGHT = 0.25;
     /**

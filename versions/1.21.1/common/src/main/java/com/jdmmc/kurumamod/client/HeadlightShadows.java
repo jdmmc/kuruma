@@ -108,7 +108,7 @@ final class HeadlightShadows {
 
     /** 光の届く距離から決まる、格子の水平の大きさ。96m 以下は {@link #MIN_GRID}。 */
     private static int wantedGrid() {
-        double range = com.jdmmc.kurumamod.ClientConfig.headlightRange;
+        double range = com.jdmmc.kurumamod.config.ClientConfig.headlightRange;
         if (range <= MIN_GRID) {
             return MIN_GRID;
         }
@@ -405,7 +405,7 @@ final class HeadlightShadows {
         shader.setSampler("LampSampler", lampTexture);
         setGridUniforms(shader, camera);
         shader.safeGetUniform("LampCount").set(count);
-        shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
+        shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightRange);
 
         map.bindWrite(true);
         RenderSystem.disableDepthTest();

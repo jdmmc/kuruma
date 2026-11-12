@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import com.jdmmc.kurumamod.client.model.CarModel;
 
 /**
  * 車のアイテムのアイコン。<b>車のモデルを画面の外で 1 度だけ描いて画像に焼き、あとはその画像を貼る。</b>

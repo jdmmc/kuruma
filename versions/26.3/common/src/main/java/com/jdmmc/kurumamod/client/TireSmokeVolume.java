@@ -1,8 +1,8 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
-import com.jdmmc.kurumamod.SmokeStyle;
+import com.jdmmc.kurumamod.config.SmokeStyle;
 import com.jdmmc.kurumamod.client.hook.ShaderRegistrar;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.surface.RoadSurface;
@@ -56,6 +56,8 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import com.jdmmc.kurumamod.client.effect.SmokeNoise;
+import com.jdmmc.kurumamod.client.effect.SmokePuffs;
 
 /**
  * タイヤの煙を<b>体積として</b>描く。粒（板に煙の絵を貼ったもの）ではなく、煙の塊（パフ）を
@@ -89,7 +91,7 @@ import java.util.OptionalDouble;
  *
  * <h2>重さ</h2>
  * <ul>
- *   <li><b>縮小した画面に描く</b>（{@link com.jdmmc.kurumamod.SmokeQuality#divisor}）。煙はぼやけたものなので
+ *   <li><b>縮小した画面に描く</b>（{@link com.jdmmc.kurumamod.config.SmokeQuality#divisor}）。煙はぼやけたものなので
  *       縮小しても見た目はほとんど変わらない。拡大するときに深度を見て、車や柱の輪郭で煙がにじまないようにする
  *       （{@code tire_smoke_composite.fsh}）</li>
  *   <li><b>形のノイズはテクスチャ</b>（{@link SmokeNoise}。起動後に別スレッドで一度だけ作る）</li>

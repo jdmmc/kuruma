@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import com.jdmmc.kurumamod.client.model.CarModel;
 
 /**
  * ルームミラーとドアミラーに、<b>実際に後ろの景色を映す</b>。

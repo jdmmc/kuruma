@@ -37,6 +37,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import com.jdmmc.kurumamod.client.model.CarModel;
+import com.jdmmc.kurumamod.client.light.HeadlightBeam;
+import com.jdmmc.kurumamod.client.light.HeadlightGround;
 
 /**
  * 灯火の描画。
@@ -90,7 +93,7 @@ public final class CarLights {
 
     /** 照らされた光の色（Ctrl+L で選ぶ。既定はハロゲン寄りの暖かい白）。書き換えないこと。 */
     private static float[] beamColor() {
-        return com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
+        return com.jdmmc.kurumamod.config.ClientConfig.headlightColor.rgb();
     }
 
     // ---- 配光 ----------------------------------------------------------------------

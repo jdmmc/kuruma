@@ -22,6 +22,8 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import com.jdmmc.kurumamod.client.model.ObjMesh;
+import com.jdmmc.kurumamod.client.input.SteeringWheelAxis;
 
 /**
  * OBJ のメッシュを GPU に積んで描く。<b>形（頂点・面・名前・寸法・読み込み）は core の {@link ObjMesh}</b>。

@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 
 import java.awt.image.BufferedImage;
+import com.jdmmc.kurumamod.client.model.PlateImages;
+import com.jdmmc.kurumamod.client.model.PlateModel;
 
 /**
  * 字を焼き込んだプレートのテクスチャ。焼く・覚えておく・捨てるのは core の {@link PlateImages}。

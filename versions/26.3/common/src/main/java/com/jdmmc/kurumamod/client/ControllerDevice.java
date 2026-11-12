@@ -9,6 +9,7 @@ import org.lwjgl.sdl.SDLStdinc;
 import org.slf4j.Logger;
 
 import java.nio.IntBuffer;
+import com.jdmmc.kurumamod.client.input.ControllerInput;
 
 /**
  * コントローラを SDL3 で読む（core の {@link ControllerInput.Device}）。26.3 でウィンドウと入力が GLFW から SDL3 に

@@ -71,7 +71,7 @@ public final class HeadlightVolume {
     /**
      * ランプを集める入れ物の大きさ。<b>シェーダー側に灯数の決め打ちは無い</b>（ランプはテクスチャで渡す。
      * {@link HeadlightShadows#uploadLamps}）。実際に描く台数は設定
-     * （{@link com.jdmmc.kurumamod.ClientConfig#headlightCars}、無制限あり）で絞り、天井は GPU の
+     * （{@link com.jdmmc.kurumamod.config.ClientConfig#headlightCars}、無制限あり）で絞り、天井は GPU の
      * テクスチャの大きさ（{@link HeadlightShadows#maxLamps}）。シェーダーのループは {@code LampCount}
      * までしか回らないので、絞ったぶんだけ軽くなる。
      */
@@ -81,7 +81,7 @@ public final class HeadlightVolume {
 
     /** 光を描く車を集める距離。128m か、光の届く距離 +32m の大きい方（96m 以下では 128m のまま）。 */
     private static double collectDistance() {
-        return Math.max(MAX_DISTANCE, com.jdmmc.kurumamod.ClientConfig.headlightRange + 32.0);
+        return Math.max(MAX_DISTANCE, com.jdmmc.kurumamod.config.ClientConfig.headlightRange + 32.0);
     }
 
     /**
@@ -145,14 +145,14 @@ public final class HeadlightVolume {
 
     /**
      * シェーダーパックのために光を止めているか。<b>止めるのは、パックが使われていて、かつ設定で
-     * 「使用中も光を描く」を切っているときだけ</b>（{@link com.jdmmc.kurumamod.ClientConfig#headlightWithShaderPacks}）。
+     * 「使用中も光を描く」を切っているときだけ</b>（{@link com.jdmmc.kurumamod.config.ClientConfig#headlightWithShaderPacks}）。
      *
      * <p>以前はパックが使われていれば無条件に止めていた（Oculus で描画がおかしくなったため）。
      * 2026-10-01 に Oculus 1.8.0 ＋ Embeddium で試すと、路面の照り返しも光芒も深度どおりに乗ったので、
      * 既定で描くようにした。合わないパックのときだけプレイヤーが切れる。パックが無ければ何も変わらない。</p>
      */
     public static boolean suppressedByShaderPack() {
-        return !com.jdmmc.kurumamod.ClientConfig.headlightWithShaderPacks && ShaderPacks.inUse();
+        return !com.jdmmc.kurumamod.config.ClientConfig.headlightWithShaderPacks && ShaderPacks.inUse();
     }
 
     /**
@@ -392,7 +392,7 @@ public final class HeadlightVolume {
      */
     public static void renderBeforePackComposite() {
         if (renderedThisFrame || !viewCaptured || !isActive() || MirrorRenderer.isRendering()
-                || !com.jdmmc.kurumamod.ClientConfig.headlightPackPreComposite) {
+                || !com.jdmmc.kurumamod.config.ClientConfig.headlightPackPreComposite) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -461,20 +461,20 @@ public final class HeadlightVolume {
         shader.safeGetUniform("InvViewProj").set(inverse);
         shader.setSampler("LampSampler", HeadlightShadows.lampTexture());
         shader.safeGetUniform("LampCount").set(count);
-        shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
+        shader.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightRange);
         shader.safeGetUniform("FogDensity").set(fogDensity(level, partialTick));
         shader.safeGetUniform("ScreenSize").set((float) width, (float) height);
         // 明るさは 1 本のつまみ（Ctrl+L）で、路面とビームに同じ割合で掛ける
-        float brightness = (float) com.jdmmc.kurumamod.ClientConfig.headlightBrightness;
+        float brightness = (float) com.jdmmc.kurumamod.config.ClientConfig.headlightBrightness;
         shader.safeGetUniform("SurfaceGain").set(SURFACE_GAIN * brightness);
         shader.safeGetUniform("VolumeGain").set(VOLUME_GAIN * brightness);
-        shader.safeGetUniform("SmokeGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke);
+        shader.safeGetUniform("SmokeGain").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightSmoke);
         // シェーダーパックの仕上げ前の絵に描くときは明るくし方を変える
         shader.safeGetUniform("PackMode").set(packMode);
-        shader.safeGetUniform("PackContrast").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackContrast);
-        shader.safeGetUniform("PackTint").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackTint);
-        shader.safeGetUniform("PackAdd").set((float) com.jdmmc.kurumamod.ClientConfig.headlightPackAdd);
-        float[] lightColor = com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
+        shader.safeGetUniform("PackContrast").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightPackContrast);
+        shader.safeGetUniform("PackTint").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightPackTint);
+        shader.safeGetUniform("PackAdd").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightPackAdd);
+        float[] lightColor = com.jdmmc.kurumamod.config.ClientConfig.headlightColor.rgb();
         shader.safeGetUniform("LightColor").set(lightColor[0], lightColor[1], lightColor[2]);
 
         // 画面いっぱいに 1 枚。色はシェーダーが全部決めるので混色も深度も要らない
@@ -528,12 +528,12 @@ public final class HeadlightVolume {
         HeadlightShadows.setGridUniforms(target, frameCamera);
         target.safeGetUniform("ShadowSize").set((float) HeadlightShadows.MAP_WIDTH,
                 (float) HeadlightShadows.mapHeight(count));
-        target.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.ClientConfig.headlightRange);
-        float[] lightColor = com.jdmmc.kurumamod.ClientConfig.headlightColor.rgb();
+        target.safeGetUniform("LightRange").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightRange);
+        float[] lightColor = com.jdmmc.kurumamod.config.ClientConfig.headlightColor.rgb();
         target.safeGetUniform("LightColor").set(lightColor[0], lightColor[1], lightColor[2]);
         // ヘッドライトの「煙の照らされ方」（既定 4）。粒のときと同じつまみで、体積の煙の明るさへ。
         // 既定で 3（周りの明るさの 3 倍）。照らされた煙は夜でもはっきり白く浮かぶ
-        target.safeGetUniform("LampGain").set((float) com.jdmmc.kurumamod.ClientConfig.headlightSmoke * 0.75F);
+        target.safeGetUniform("LampGain").set((float) com.jdmmc.kurumamod.config.ClientConfig.headlightSmoke * 0.75F);
         return count;
     }
 
@@ -568,8 +568,8 @@ public final class HeadlightVolume {
             }
         }
         cars.sort(Comparator.comparingDouble(car -> car.position().distanceToSqr(camera)));
-        int wanted = com.jdmmc.kurumamod.ClientConfig.headlightCars;
-        int limit = wanted >= com.jdmmc.kurumamod.ClientConfig.UNLIMITED_HEADLIGHT_CARS
+        int wanted = com.jdmmc.kurumamod.config.ClientConfig.headlightCars;
+        int limit = wanted >= com.jdmmc.kurumamod.config.ClientConfig.UNLIMITED_HEADLIGHT_CARS
                 ? HeadlightShadows.maxLamps()
                 : Math.min(HeadlightShadows.maxLamps(), Math.max(1, wanted) * LAMPS_PER_CAR);
         int count = 0;
@@ -586,7 +586,7 @@ public final class HeadlightVolume {
 
     private static float fogDensity(ClientLevel level, float partialTick) {
         // 晴れの濃さは調整画面（Ctrl+L、HeadlightScreen）で動かせる。既定は CLEAR_FOG
-        return (float) com.jdmmc.kurumamod.ClientConfig.headlightFog + RAIN_FOG * level.getRainLevel(partialTick)
+        return (float) com.jdmmc.kurumamod.config.ClientConfig.headlightFog + RAIN_FOG * level.getRainLevel(partialTick)
                 + THUNDER_FOG * level.getThunderLevel(partialTick);
     }
 

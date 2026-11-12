@@ -1,17 +1,17 @@
 package com.jdmmc.kurumamod;
 
 import com.jdmmc.kurumamod.client.CarIcons;
-import com.jdmmc.kurumamod.client.CarModel;
+import com.jdmmc.kurumamod.client.model.CarModel;
 import com.jdmmc.kurumamod.client.CarObjRenderer;
-import com.jdmmc.kurumamod.client.CarPartModel;
+import com.jdmmc.kurumamod.client.model.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
-import com.jdmmc.kurumamod.client.CarSoundSet;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
 import com.jdmmc.kurumamod.client.DustParticle;
 import com.jdmmc.kurumamod.client.SparkParticle;
-import com.jdmmc.kurumamod.client.KurumaMenuScreen;
+import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
 import com.jdmmc.kurumamod.client.ObjModel;
-import com.jdmmc.kurumamod.client.PlateModel;
-import com.jdmmc.kurumamod.client.PlateMounts;
+import com.jdmmc.kurumamod.client.model.PlateModel;
+import com.jdmmc.kurumamod.client.model.PlateMounts;
 import com.jdmmc.kurumamod.client.PlateTextures;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
@@ -57,6 +57,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+import com.jdmmc.kurumamod.config.ClientConfig;
 
 // ここの値は META-INF/mods.toml のエントリと一致していなければならない
 @Mod(Kurumamod.MODID)

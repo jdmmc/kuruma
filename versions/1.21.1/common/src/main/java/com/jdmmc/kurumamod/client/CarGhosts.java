@@ -4,7 +4,7 @@ import com.jdmmc.kurumamod.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.Platform;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -33,6 +33,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import com.jdmmc.kurumamod.client.race.GhostClient;
+import com.jdmmc.kurumamod.client.race.GhostEngine;
+import com.jdmmc.kurumamod.client.race.GhostFrame;
 
 /**
  * タイムアタックのゴーストの入口。<b>中身は core の {@link GhostEngine}</b>（周の切り出し・保存の場所・読み書き）。

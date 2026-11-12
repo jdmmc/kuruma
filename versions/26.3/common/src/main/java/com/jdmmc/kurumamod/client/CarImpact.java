@@ -2,12 +2,13 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.client.hook.CameraAngles;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
 
 /**
  * ぶつかったときの手応え。音を鳴らし、画面を揺らす。

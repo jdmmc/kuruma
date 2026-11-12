@@ -11,6 +11,7 @@ import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import com.jdmmc.kurumamod.client.effect.SparkLife;
 
 /**
  * 車体が壁と擦れて飛ぶ火花 1 粒（{@link CarSparks} が撒く）。

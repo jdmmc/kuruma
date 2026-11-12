@@ -27,6 +27,7 @@ import net.minecraftforge.eventbus.api.listener.Priority;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 import java.util.function.Consumer;
+import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
 
 /**
  * Forge のクライアントのイベントを受けて、共有側（{@link ClientHooks}）へ渡すだけのつなぎ。

@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Minecraft;
@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Entity;
 
 import java.util.Map;
 import java.util.WeakHashMap;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
 
 /**
  * ターボの見た目と音の側。<b>ブーストそのものは物理が持つ</b>（{@code CarState#boost}、

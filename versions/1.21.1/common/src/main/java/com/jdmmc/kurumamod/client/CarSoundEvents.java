@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
 
 /** core の {@link CarSoundSet}（車種ごとの音の差し替え）から、鳴らすサウンドイベントを引く。 */
 public final class CarSoundEvents {

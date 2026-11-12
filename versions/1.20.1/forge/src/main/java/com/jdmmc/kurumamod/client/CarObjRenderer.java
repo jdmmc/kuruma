@@ -20,6 +20,10 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.jdmmc.kurumamod.client.model.CarModel;
+import com.jdmmc.kurumamod.client.model.CarPartModel;
+import com.jdmmc.kurumamod.client.model.CarRig;
+import com.jdmmc.kurumamod.client.screen.SeatScreen;
 
 /**
  * 車の描画。Blender で作った OBJ を、車体 1 つ ＋ タイヤ 4 つとして組み立てる。

@@ -11,6 +11,8 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
+import com.jdmmc.kurumamod.client.sound.CarSoundVoice;
 
 /**
  * 車がクライアントに現れたら、ループ音を張り付ける。

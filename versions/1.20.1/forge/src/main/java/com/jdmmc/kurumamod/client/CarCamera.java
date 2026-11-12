@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.CameraMode;
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.CameraMode;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.CarSpec;
@@ -14,6 +14,7 @@ import net.minecraftforge.client.event.ComputeFovModifierEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.jdmmc.kurumamod.client.camera.CameraFollow;
 
 /**
  * 運転中の視点。

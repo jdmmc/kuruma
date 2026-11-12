@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.particle.KurumaParticles;
@@ -13,6 +13,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import com.jdmmc.kurumamod.client.effect.DustEmitter;
 
 /**
  * 車を集めて、未舗装を走る車輪から土煙を出す（{@link DustEmitter}）。

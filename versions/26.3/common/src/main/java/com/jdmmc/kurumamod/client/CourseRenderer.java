@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
-import com.jdmmc.kurumamod.GateDisplay;
+import com.jdmmc.kurumamod.config.ClientConfig;
+import com.jdmmc.kurumamod.config.GateDisplay;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CourseLinesPacket;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -12,6 +12,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 import java.util.List;
+import com.jdmmc.kurumamod.client.race.CourseGates;
 
 /**
  * コースの線をゲートとして描く。

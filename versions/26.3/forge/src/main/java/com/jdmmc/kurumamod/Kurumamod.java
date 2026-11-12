@@ -29,6 +29,7 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+import com.jdmmc.kurumamod.config.ClientConfig;
 
 /**
  * Forge 版の入り口（{@code META-INF/mods.toml} の {@code modId} と一致していなければならない）と、登録したものの置き場所。

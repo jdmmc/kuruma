@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.car.CarId;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.jdmmc.kurumamod.client.model.CarModel;
 
 /**
  * 座席の位置を<b>見た目の定義</b>（{@code vehicles/car.json} の {@code seat}）から引く。

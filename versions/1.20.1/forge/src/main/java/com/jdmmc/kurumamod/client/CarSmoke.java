@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.particle.KurumaParticles;
@@ -23,6 +23,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.jdmmc.kurumamod.client.effect.SmokeEmitter;
 
 /**
  * 車を集めて、滑っている車輪から煙を出す（{@link SmokeEmitter}）。

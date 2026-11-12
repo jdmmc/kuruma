@@ -2,8 +2,8 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.client.hook.CameraAngles;
 
-import com.jdmmc.kurumamod.CameraMode;
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.CameraMode;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Camera;
@@ -18,6 +18,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3fc;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
+import com.jdmmc.kurumamod.client.model.CarModel;
+import com.jdmmc.kurumamod.client.camera.ShowroomCamera;
 
 
 /**

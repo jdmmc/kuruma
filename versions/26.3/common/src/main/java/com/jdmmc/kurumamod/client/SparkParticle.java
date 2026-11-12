@@ -14,6 +14,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3f;
 import org.joml.Quaternionf;
+import com.jdmmc.kurumamod.client.effect.SparkLife;
 
 /**
  * 車体が壁と擦れて飛ぶ火花 1 粒（{@link CarSparks} が撒く）。

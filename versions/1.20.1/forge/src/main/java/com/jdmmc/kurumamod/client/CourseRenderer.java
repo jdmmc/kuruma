@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
-import com.jdmmc.kurumamod.GateDisplay;
+import com.jdmmc.kurumamod.config.ClientConfig;
+import com.jdmmc.kurumamod.config.GateDisplay;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CourseLinesPacket;
@@ -24,6 +24,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
 import java.util.List;
+import com.jdmmc.kurumamod.client.race.CourseGates;
 
 /**
  * コースの線をゲートとして描く。

@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.CameraMode;
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.CameraMode;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Minecraft;

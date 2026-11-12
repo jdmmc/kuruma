@@ -23,6 +23,16 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
+import com.jdmmc.kurumamod.client.screen.CarPartScreen;
+import com.jdmmc.kurumamod.client.screen.CarTuningScreen;
+import com.jdmmc.kurumamod.client.input.ControllerInput;
+import com.jdmmc.kurumamod.client.screen.ControllerScreen;
+import com.jdmmc.kurumamod.client.input.DriverInput;
+import com.jdmmc.kurumamod.client.screen.HeadlightScreen;
+import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
+import com.jdmmc.kurumamod.client.hud.RaceHud;
+import com.jdmmc.kurumamod.client.race.RaceLobby;
+import com.jdmmc.kurumamod.client.screen.SeatScreen;
 
 /**
  * 運転中のキー入力を車へ渡すクライアント側の橋渡し。
