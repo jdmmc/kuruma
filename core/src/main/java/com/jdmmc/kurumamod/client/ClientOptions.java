@@ -5,7 +5,7 @@ package com.jdmmc.kurumamod.client;
  * {@code ConfigClientOptions} が中身を持ち、クライアントの起動時に {@link #set} で置く。
  *
  * <p>値は {@code ClientConfig} の項目の名前（{@code SHOW_HELP}・{@code HEADLIGHT_AIM} など）で引く。書き換えたら
- * {@link #refresh} で効かせ、ファイルへ書くのは画面を閉じるとき（{@link #save}）。決めごとは CLAUDE.md の「設定と操作ヘルプ」。</p>
+ * {@link #refresh} で効かせ、ファイルへ書くのは画面を閉じるとき（{@link #save}）。</p>
  */
 public interface ClientOptions {
 
