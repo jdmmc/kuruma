@@ -5,6 +5,8 @@ import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.CarSpec;
+import org.jetbrains.annotations.Nullable;
+import com.jdmmc.kurumamod.physics.CarInput;
 import com.jdmmc.kurumamod.util.Mth;
 import com.jdmmc.kurumamod.physics.Wheel;
 import com.jdmmc.kurumamod.physics.CarState;
@@ -60,6 +62,35 @@ public final class CarCore {
 
     /** 滑る速さの横成分を出すときのドリフト角の上限 [度]。90 度に近づくと tan が発散する。 */
     private static final double SLIDE_MAX_ANGLE = 80.0;
+
+    /** ヘッドライト点灯。 */
+    public static final int LIGHT_HEAD = 1;
+    /** ブレーキランプ点灯。 */
+    public static final int LIGHT_BRAKE = 2;
+    /** これ以上踏んでいればブレーキランプを点ける。 */
+    private static final double BRAKE_LIGHT_THRESHOLD = 0.05;
+
+    /** 運転クライアントから毎ティック差し込まれる入力。サーバーや同乗者側では常に無操作。 */
+    private CarInput driverInput = CarInput.NONE;
+
+    /**
+     * 自分の画面にだけいる、記録を再生している車（ゴースト）か。
+     *
+     * <p>ゴーストはサーバーに存在しない。ぶつからず、殴れず、乗れない。音・煙・タイヤ痕・
+     * 路面を照らす光も出さない（それぞれの描き手がこれを見て飛ばす）。</p>
+     */
+    private boolean ghost;
+    /** 誰も乗っていないまま経過したティック数。サーバー側だけで数える。 */
+    private int abandonedTicks;
+
+    /**
+     * ヘッドライトの状態。<b>車が持つ。</b>
+     *
+     * <p>運転クライアントが入れ、サーバーは届いた状態を覚えておく（{@link #applyDriverState}）。
+     * 覚えておかないと、降りた瞬間に物理を引き継いだサーバーが「消えている」を配り直して
+     * <b>降りるとライトが消える</b>。保存もするので、点けたまま置いた車はリログしても点いている。</p>
+     */
+    private boolean headlightsOn;
 
     /** 版の {@code CarEntity}。同期した値・向き・どちらの側で解いているかを聞く。 */
     private final CarHost host;
@@ -707,5 +738,128 @@ public final class CarCore {
     /** ブースト 0..1。手元で解いていないときは同期された値。 */
     public double getRenderBoost() {
         return hasLocalState() ? state.boost : host.synced().boost();
+    }
+
+    // ------------------------------------------------------------------
+    // 灯火・運転入力・ゴースト・放置の寿命
+    // ------------------------------------------------------------------
+
+    /** ヘッドライトの切替。運転クライアントから呼ぶ。 */
+    public void setHeadlights(boolean on) {
+        headlightsOn = on;
+    }
+
+    /** 運転クライアント（または無人時のサーバー）が配る灯火の状態。 */
+    public byte driverLights() {
+        int lights = headlightsOn ? LIGHT_HEAD : 0;
+        if (state.brake > BRAKE_LIGHT_THRESHOLD) {
+            lights |= LIGHT_BRAKE;
+        }
+        return (byte) lights;
+    }
+
+    /**
+     * 配られてきたヘッドライトの状態。乗り込んだ運転者がこれを<b>引き継ぐ</b>
+     * （点けたまま降りた車は、乗り直しても点いている）。
+     */
+    public boolean isHeadlightOnSynced() {
+        return (host.synced().lights() & LIGHT_HEAD) != 0;
+    }
+
+    /** 描画に使う灯火の状態。手元で解いていないときは同期された値。 */
+    public byte getRenderLights() {
+        return hasLocalState() ? driverLights() : host.synced().lights();
+    }
+
+    /** ヘッドライトが点いているか（描画用）。 */
+    public boolean isHeadlightOn() {
+        return (getRenderLights() & LIGHT_HEAD) != 0;
+    }
+
+    /** ブレーキランプが点いているか（描画用）。 */
+    public boolean isBrakeLightOn() {
+        return (getRenderLights() & LIGHT_BRAKE) != 0;
+    }
+
+    /** バックランプが点いているか（描画用）。段から分かるので同期は要らない。 */
+    public boolean isReverseLightOn() {
+        return getRenderGear() < 0;
+    }
+
+    /**
+     * 表示に使うブレーキの踏み込み量 0..1。
+     *
+     * <p>アクセルと違って同期していないので、手元で解いていないときは<b>ブレーキランプから
+     * 代用する</b>（踏んでいるか踏んでいないかだけ）。メーターの棒のためだけに 1 バイト
+     * 増やす価値はない。</p>
+     */
+    public double getRenderBrake() {
+        return hasLocalState() ? state.brake : (isBrakeLightOn() ? 1.0 : 0.0);
+    }
+
+    /**
+     * 運転者がいまハンドルを操作しているか（A/D・スティック）。入力を持っているのは運転しているクライアントだけなので、
+     * それ以外（同乗者・他人の車・サーバー）では null。ハンドルを握る手の見た目に使う（{@code SteeringHands}）。
+     */
+    @Nullable
+    public Boolean steeringInputHeld() {
+        if (!hasLocalState()) {
+            return null;
+        }
+        return driverInput.analog()
+                ? Math.abs(driverInput.steerAxis()) > CarInput.AXIS_THRESHOLD
+                : driverInput.left() || driverInput.right();
+    }
+
+    /** 運転クライアントが毎ティック呼ぶ。次の {@link #tick()} で使われる。 */
+    public void setDriverInput(CarInput input) {
+        this.driverInput = input;
+    }
+
+    /**
+     * サイドブレーキを引いているか。メーターの灯に使う。
+     *
+     * <p>操作そのものなので<b>運転している本人にしか分からない</b>（同期していない）。
+     * メーターは自分の車にしか出さないので、それで足りる。</p>
+     */
+    public boolean isHandbrakeOn() {
+        return hasLocalState() && driverInput.handbrake();
+    }
+
+    public boolean isGhost() {
+        return ghost;
+    }
+
+    /** ヘッドライトを点けているか（運転者が入れた状態。保存もする）。 */
+    public boolean headlightsOn() {
+        return headlightsOn;
+    }
+
+    /** 運転クライアントから差し込まれた入力。 */
+    public CarInput driverInput() {
+        return driverInput;
+    }
+
+    /** ゴーストにする（戻せない）。重力を切るのは版の {@code CarEntity#becomeGhost}。 */
+    public void markGhost() {
+        ghost = true;
+    }
+
+    /**
+     * 放置された車を消すか（サーバー側で毎ティック呼ぶ）。
+     *
+     * <p>マルチプレイでは乗り捨てが溜まっていく一方で、無人の車もサーバーが毎ティック
+     * 物理を解いている。設定した時間だけ誰も乗らなければ消す（0 で無効）。消すのは版。</p>
+     *
+     * @param lifetimeSeconds 設定の寿命 [秒]。0 以下なら消さない
+     * @param occupied        誰かが乗っているか
+     * @return 消すなら true
+     */
+    public boolean tickAbandoned(int lifetimeSeconds, boolean occupied) {
+        if (lifetimeSeconds <= 0 || occupied) {
+            abandonedTicks = 0;
+            return false;
+        }
+        return ++abandonedTicks > lifetimeSeconds * 20;
     }
 }

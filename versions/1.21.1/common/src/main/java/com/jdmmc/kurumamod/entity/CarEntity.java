@@ -200,12 +200,10 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
     private static final EntityDataAccessor<Float> DATA_BOOST =
             SynchedEntityData.defineId(CarEntity.class, EntityDataSerializers.FLOAT);
 
-    /** ヘッドライト点灯。 */
-    public static final int LIGHT_HEAD = 1;
-    /** ブレーキランプ点灯。 */
-    public static final int LIGHT_BRAKE = 2;
-    /** これ以上踏んでいればブレーキランプを点ける。 */
-    private static final double BRAKE_LIGHT_THRESHOLD = 0.05;
+    /** ヘッドライト点灯（{@link CarCore#LIGHT_HEAD}）。 */
+    public static final int LIGHT_HEAD = CarCore.LIGHT_HEAD;
+    /** ブレーキランプ点灯（{@link CarCore#LIGHT_BRAKE}）。 */
+    public static final int LIGHT_BRAKE = CarCore.LIGHT_BRAKE;
 
     /** 1 ティック = 50ms は粗いので、物理はこの回数に分割して解く */
     private static final int PHYSICS_SUBSTEPS = 4;
@@ -281,8 +279,6 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
     private final CarSync synced = new SyncedValues();
 
 
-    /** 運転クライアントから毎ティック差し込まれる入力。サーバーや同乗者側では常に無操作。 */
-    private CarInput driverInput = CarInput.NONE;
     /** 前ティックで自分が運転権を持っていたか。持ち替わった瞬間に物理の状態を作り直す。 */
     private boolean hadControl;
 
@@ -295,15 +291,6 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
     @Nullable
     private CarStatePacket lastSentState;
 
-    /**
-     * 自分の画面にだけいる、記録を再生している車（ゴースト）か。
-     *
-     * <p>ゴーストはサーバーに存在しない。ぶつからず、殴れず、乗れない。音・煙・タイヤ痕・
-     * 路面を照らす光も出さない（それぞれの描き手がこれを見て飛ばす）。</p>
-     */
-    private boolean ghost;
-    /** 誰も乗っていないまま経過したティック数。サーバー側だけで数える。 */
-    private int abandonedTicks;
 
     /** 4 輪の接地面を探すもの（core）。世界を読む口はこの車が持つ（{@link GroundSensor.World}）。 */
     private final GroundSensor ground = new GroundSensor(this);
@@ -618,7 +605,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
                 takeOverPhysics();
                 hadControl = true;
             }
-            physicsTick(driverInput);
+            physicsTick(carCore.driverInput());
         } else {
             hadControl = false;
         }
@@ -677,16 +664,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
      * 物理を解いている。設定した時間だけ誰も乗らなければ消す（0 で無効）。</p>
      */
     private void tickAbandoned() {
-        int lifetime = Config.abandonedCarLifetimeSeconds;
-        if (lifetime <= 0) {
-            abandonedTicks = 0;
-            return;
-        }
-        if (!getPassengers().isEmpty()) {
-            abandonedTicks = 0;
-            return;
-        }
-        if (++abandonedTicks > lifetime * 20) {
+        if (carCore.tickAbandoned(Config.abandonedCarLifetimeSeconds, !getPassengers().isEmpty())) {
             discard();
         }
     }
@@ -894,7 +872,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         if (CarRules.carCollision()) {
             // 相手のバニラの箱は車体の箱より小さいので、広めに探す
             for (CarEntity other : level().getEntitiesOfClass(CarEntity.class, area.inflate(3.0),
-                    car -> car != this && !car.isRemoved() && !car.ghost)) {
+                    car -> car != this && !car.isRemoved() && !car.isGhost())) {
                 cars.add(other);
                 hulls.add(other.currentBody());
             }
@@ -1350,8 +1328,9 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         return lastSentState;
     }
 
+    /** {@link CarCore#isGhost}。 */
     public boolean isGhost() {
-        return ghost;
+        return carCore.isGhost();
     }
 
     /**
@@ -1361,7 +1340,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
      * 記録した車の姿で走る。</p>
      */
     public void becomeGhost(CarId carId, CarSpec spec, PartFitment parts) {
-        this.ghost = true;
+        carCore.markGhost();
         carCore.setCarId(carId);
         carCore.setBaseSpec(spec);
         carCore.setFitment(parts);
@@ -1392,74 +1371,47 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         applyDriverState(frame);
     }
 
-    /**
-     * 運転者がいまハンドルを操作しているか（A/D・スティック）。入力を持っているのは運転しているクライアントだけなので、
-     * それ以外（同乗者・他人の車・サーバー）では null。ハンドルを握る手の見た目に使う（{@code SteeringHands}）。
-     */
     @Nullable
+    /** {@link CarCore#steeringInputHeld}。 */
     public Boolean steeringInputHeld() {
-        if (!hasLocalState()) {
-            return null;
-        }
-        return driverInput.analog()
-                ? Math.abs(driverInput.steerAxis()) > CarInput.AXIS_THRESHOLD
-                : driverInput.left() || driverInput.right();
+        return carCore.steeringInputHeld();
     }
 
-    /** 運転クライアントが毎ティック呼ぶ。次の {@link #tick()} で使われる。 */
+    /** {@link CarCore#setDriverInput}。 */
     public void setDriverInput(CarInput input) {
-        this.driverInput = input;
+        carCore.setDriverInput(input);
     }
 
-    /**
-     * ヘッドライトの状態。<b>車が持つ。</b>
-     *
-     * <p>運転クライアントが入れ、サーバーは届いた状態を覚えておく（{@link #applyDriverState}）。
-     * 覚えておかないと、降りた瞬間に物理を引き継いだサーバーが「消えている」を配り直して
-     * <b>降りるとライトが消える</b>。保存もするので、点けたまま置いた車はリログしても点いている。</p>
-     */
-    private boolean headlightsOn;
 
-    /** ヘッドライトの切替。運転クライアントから呼ぶ。 */
+    /** {@link CarCore#setHeadlights}。 */
     public void setHeadlights(boolean on) {
-        headlightsOn = on;
+        carCore.setHeadlights(on);
     }
 
-    /** 運転クライアント（または無人時のサーバー）が配る灯火の状態。 */
-    private byte driverLights() {
-        int lights = headlightsOn ? LIGHT_HEAD : 0;
-        if (state.brake > BRAKE_LIGHT_THRESHOLD) {
-            lights |= LIGHT_BRAKE;
-        }
-        return (byte) lights;
-    }
 
-    /**
-     * 配られてきたヘッドライトの状態。乗り込んだ運転者がこれを<b>引き継ぐ</b>
-     * （点けたまま降りた車は、乗り直しても点いている）。
-     */
+    /** {@link CarCore#isHeadlightOnSynced}。 */
     public boolean isHeadlightOnSynced() {
-        return (synced.lights() & LIGHT_HEAD) != 0;
+        return carCore.isHeadlightOnSynced();
     }
 
-    /** 描画に使う灯火の状態。手元で解いていないときは同期された値。 */
+    /** {@link CarCore#getRenderLights}。 */
     public byte getRenderLights() {
-        return hasLocalState() ? driverLights() : synced.lights();
+        return carCore.getRenderLights();
     }
 
-    /** ヘッドライトが点いているか（描画用）。 */
+    /** {@link CarCore#isHeadlightOn}。 */
     public boolean isHeadlightOn() {
-        return (getRenderLights() & LIGHT_HEAD) != 0;
+        return carCore.isHeadlightOn();
     }
 
-    /** ブレーキランプが点いているか（描画用）。 */
+    /** {@link CarCore#isBrakeLightOn}。 */
     public boolean isBrakeLightOn() {
-        return (getRenderLights() & LIGHT_BRAKE) != 0;
+        return carCore.isBrakeLightOn();
     }
 
-    /** バックランプが点いているか（描画用）。段から分かるので同期は要らない。 */
+    /** {@link CarCore#isReverseLightOn}。 */
     public boolean isReverseLightOn() {
-        return getRenderGear() < 0;
+        return carCore.isReverseLightOn();
     }
 
     /** いまの物理の状態を、配る形（{@link CarStatePacket}）にする。運転しているクライアントが送り、サーバーは自分で解いたときに覚える。 */
@@ -1470,7 +1422,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
                     suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
                     (float) state.engineRpm, state.gear, (float) state.throttle,
                     (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
-                    driverLights(), (float) state.boost);
+                    carCore.driverLights(), (float) state.boost);
     }
 
     /** サーバーが {@link CarStatePacket} から受け取った値を反映する。 */
@@ -1494,7 +1446,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         entityData.set(DATA_BOOST, Math.max(0.0F, Math.min(1.0F, values.boost())));
         if (!level().isClientSide) {
             // 運転者が入れた状態を覚えておく。降りた後もサーバーがこれを配り続ける
-            headlightsOn = (values.lights() & LIGHT_HEAD) != 0;
+            carCore.setHeadlights((values.lights() & LIGHT_HEAD) != 0);
         }
     }
 
@@ -1603,15 +1555,9 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         return carCore.getRenderThrottle();
     }
 
-    /**
-     * 表示に使うブレーキの踏み込み量 0..1。
-     *
-     * <p>アクセルと違って同期していないので、手元で解いていないときは<b>ブレーキランプから
-     * 代用する</b>（踏んでいるか踏んでいないかだけ）。メーターの棒のためだけに 1 バイト
-     * 増やす価値はない。</p>
-     */
+    /** {@link CarCore#getRenderBrake}。 */
     public double getRenderBrake() {
-        return hasLocalState() ? state.brake : (isBrakeLightOn() ? 1.0 : 0.0);
+        return carCore.getRenderBrake();
     }
 
     /** {@link CarCore#getRenderWheelLoad}。 */
@@ -1634,14 +1580,9 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         return carCore.isTractionControlActive();
     }
 
-    /**
-     * サイドブレーキを引いているか。メーターの灯に使う。
-     *
-     * <p>操作そのものなので<b>運転している本人にしか分からない</b>（同期していない）。
-     * メーターは自分の車にしか出さないので、それで足りる。</p>
-     */
+    /** {@link CarCore#isHandbrakeOn}。 */
     public boolean isHandbrakeOn() {
-        return hasLocalState() && driverInput.handbrake();
+        return carCore.isHandbrakeOn();
     }
 
     /** {@link CarCore#isAbsActive}。 */
@@ -1665,7 +1606,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
-        if (ghost || player.isSecondaryUseActive()) {
+        if (carCore.isGhost() || player.isSecondaryUseActive()) {
             return InteractionResult.PASS;
         }
         if (!level().isClientSide) {
@@ -1828,12 +1769,12 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
 
     @Override
     public boolean isPickable() {
-        return !isRemoved() && !ghost;
+        return !isRemoved() && !carCore.isGhost();
     }
 
     @Override
     public boolean canBeCollidedWith() {
-        return !ghost;
+        return !carCore.isGhost();
     }
 
     @Override
@@ -1862,7 +1803,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
      */
     @Override
     public boolean canCollideWith(Entity other) {
-        if (ghost || other instanceof CarEntity car && car.ghost) {
+        if (carCore.isGhost() || other instanceof CarEntity car && car.isGhost()) {
             return false;
         }
         if (!CarRules.carCollision() && other instanceof CarEntity) {
@@ -1883,7 +1824,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
      */
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (ghost) {
+        if (carCore.isGhost()) {
             return false;
         }
         if (level().isClientSide || isRemoved()) {
@@ -1940,8 +1881,8 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         // 単位はラジアン（/summon で横転した車を出すのにも使う）
         entityData.set(DATA_PITCH, tag.getFloat("Pitch"));
         entityData.set(DATA_ROLL, tag.getFloat("Roll"));
-        headlightsOn = tag.getBoolean("Headlights");
-        entityData.set(DATA_LIGHTS, (byte) (headlightsOn ? LIGHT_HEAD : 0));
+        carCore.setHeadlights(tag.getBoolean("Headlights"));
+        entityData.set(DATA_LIGHTS, (byte) (carCore.headlightsOn() ? LIGHT_HEAD : 0));
     }
 
     @Override
@@ -1955,7 +1896,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         }
         tag.putFloat("Pitch", synced.pitch());
         tag.putFloat("Roll", synced.roll());
-        tag.putBoolean("Headlights", headlightsOn);
+        tag.putBoolean("Headlights", carCore.headlightsOn());
     }
 
     /**
