@@ -116,6 +116,15 @@ public final class CarPhysics {
     private static final double ABS_CORNER_BLEND = 0.2;
 
     /**
+     * 後輪がピーク角をピーク角のこの倍数ぶん越えたところで、曲がる側の舵を戻しきる（{@link #rearUnwind}）。
+     * S15・100km/h・惰性で右いっぱい（3 秒後の β）: 無し -40°、1.0 で -31°（間に合わない）、<b>0.5 で -2.6° に落ち着く</b>。
+     * 0.5 でも 50m 走ったところの進む向きは 37.0° → 34.8° とほとんど変わらない（車体が流れなくなるだけ）
+     */
+    private static final double REAR_UNWIND_RANGE = 0.5;
+    /** 後ろが出たときの舵の戻しを効かせ始める速さ [m/s]。この 2 倍で効ききる */
+    private static final double REAR_UNWIND_SPEED = 5.0;
+
+    /**
      * 縦にグリップを使いきっていても、横へ回せるぶんとして残す割合。
      *
      * <p>0 にすると全制動中に舵が完全に死ぬ。実車の ABS が目指すのは
@@ -354,8 +363,13 @@ public final class CarPhysics {
             // 低速では、滑らずに回れる幾何の角度のほうが大きい（車庫入れの小回り）。
             // 前軸の向きは車が回り出すまで付いてこないので、こちらは車体基準で下支えする
             double floor = Math.min(max, geometricSteer(spec, state, contact, speed));
-            high = Math.min(max, Math.max(floor, center + width));
-            low = Math.max(-max, Math.min(-floor, center - width));
+            // 後ろが出たら、曲がる側（回っている向き）だけ舵を戻す。0 で今まで通り、1 で前輪の横力が 0 になる角度まで
+            double rearSlip = rearSlipAngle(spec, state);
+            double unwind = rearUnwind(spec, contact, rearSlip, speed);
+            double highUnwind = rearSlip < 0.0 ? unwind : 0.0;
+            double lowUnwind = rearSlip > 0.0 ? unwind : 0.0;
+            high = Math.min(max, Math.max(floor * (1.0 - highUnwind), center + width * (1.0 - highUnwind)));
+            low = Math.max(-max, Math.min(-floor * (1.0 - lowUnwind), center - width * (1.0 - lowUnwind)));
         }
 
         // カウンター中に切れる角度を、前軸の進む向き ± visualSlipLimit に収める。
@@ -989,12 +1003,43 @@ public final class CarPhysics {
 
     /** その輪のスリップ角の大きさ [rad]（{@link #wheelContact} と同じ測り方）。 */
     private static double wheelSlipAngle(CarSpec spec, CarState state, Wheel wheel) {
+        return Math.abs(signedSlipAngle(spec, state, wheel));
+    }
+
+    /** その輪のスリップ角 [rad]。接地面が右へ滑っていれば正（右へ曲がっている前輪は負）。 */
+    private static double signedSlipAngle(CarSpec spec, CarState state, Wheel wheel) {
         double wheelForward = state.forwardSpeed - spec.wheelRightOffset(wheel) * state.yawRate;
         double wheelRight = state.lateralSpeed + spec.wheelForwardOffset(wheel) * state.yawRate;
         double steer = state.wheelSteerAngle[wheel.ordinal()];
         double rolling = wheelForward * Math.cos(steer) + wheelRight * Math.sin(steer);
         double sliding = -wheelForward * Math.sin(steer) + wheelRight * Math.cos(steer);
-        return Math.abs(Math.atan2(sliding, Math.max(Math.abs(rolling), SLIP_REFERENCE_SPEED)));
+        return Math.atan2(sliding, Math.max(Math.abs(rolling), SLIP_REFERENCE_SPEED));
+    }
+
+    /** 後軸のスリップ角 [rad]（左右の平均）。負なら車は右へ回り込んでいる。 */
+    private static double rearSlipAngle(CarSpec spec, CarState state) {
+        return (signedSlipAngle(spec, state, Wheel.REAR_LEFT) + signedSlipAngle(spec, state, Wheel.REAR_RIGHT)) / 2.0;
+    }
+
+    /**
+     * 後ろが出たときに、曲がる側の舵をどれだけ戻すか（0〜1）。
+     *
+     * <p><b>前後とも滑りきった車は、向きを戻す力がほぼ 0 になる。</b>飽和したタイヤはどちらも
+     * μ × 荷重の横力を出し、停車時の荷重配分は重心まわりで「前の荷重 × 前の腕 ＝ 後ろの荷重 × 後ろの腕」に
+     * 釣り合うので、ちょうど中立になる。舵の上限が前輪をピークに保ったまま（キーを押し続けたまま）だと、
+     * 切り始めの揺り返しで後輪がピークを越えた車は戻らず、惰性のわずかな荷重移動で回り続けた
+     * （S15・100km/h・惰性で右いっぱい、3 秒で β 40 度）。実車のドライバーは後ろが出た時点で舵を戻す。</p>
+     *
+     * <p>後輪のスリップ角がピーク角を越えたところから {@link #REAR_UNWIND_RANGE} 倍ぶんかけて、
+     * 曲がる側の上限を前輪の横力が 0 になる角度（前軸の進む向き）まで寄せる。カウンター側には触らない。</p>
+     */
+    private static double rearUnwind(CarSpec spec, GroundContact contact, double rearSlip, double speed) {
+        double grip = (contact.gripScale(Wheel.REAR_LEFT) + contact.gripScale(Wheel.REAR_RIGHT)) / 2.0;
+        double peak = spec.tireFriction() * grip / spec.effectiveCorneringStiffness();
+        double over = (Math.abs(rearSlip) / Math.max(peak, 1e-6) - 1.0) / REAR_UNWIND_RANGE;
+        // 低速ではスリップ角が分母の下駄で大きく出るうえ、車庫入れの小回りを殺したくない
+        double fade = clamp01((speed - REAR_UNWIND_SPEED) / REAR_UNWIND_SPEED);
+        return clamp01(over) * fade;
     }
 
     /**
