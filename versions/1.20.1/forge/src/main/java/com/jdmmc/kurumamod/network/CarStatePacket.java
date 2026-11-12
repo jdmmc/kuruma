@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.car.CarSync;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.physics.Wheel;
 import net.minecraft.network.FriendlyByteBuf;
@@ -43,7 +44,22 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
                              float pitch, float roll,
                              float[] suspension, float[] wheelSpeed, float[] friction,
                              float rpm, int gear, float throttle, float slipAngle, int surface,
-                             byte lights, float boost) {
+                             byte lights, float boost) implements CarSync {
+
+    @Override
+    public float suspension(int wheel) {
+        return suspension[wheel];
+    }
+
+    @Override
+    public float wheelSpeed(int wheel) {
+        return wheelSpeed[wheel];
+    }
+
+    @Override
+    public float friction(int wheel) {
+        return friction[wheel];
+    }
 
     public CarStatePacket(FriendlyByteBuf buf) {
         this(buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
@@ -95,8 +111,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
             Entity entity = sender.level().getEntity(entityId);
             // 運転している本人からのパケットだけ受け付ける
             if (entity instanceof CarEntity car && car.getControllingPassenger() == sender) {
-                car.applyDriverState(steerAngle, speed, yaw, pitch, roll, suspension, wheelSpeed, friction,
-                        rpm, gear, throttle, slipAngle, surface, lights, boost);
+                car.applyDriverState(this);
             }
         });
         context.setPacketHandled(true);

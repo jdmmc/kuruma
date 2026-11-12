@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.car.CarSync;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
@@ -45,7 +46,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
                              float pitch, float roll,
                              float[] suspension, float[] wheelSpeed, float[] friction,
                              float rpm, int gear, float throttle, float slipAngle, int surface,
-                             byte lights, float boost) implements CustomPacketPayload {
+                             byte lights, float boost) implements CustomPacketPayload, CarSync {
 
     public static final CustomPacketPayload.Type<CarStatePacket> TYPE = new CustomPacketPayload.Type<>(
             ResourceLocation.fromNamespaceAndPath(Kurumamod.MODID, "car_state"));
@@ -58,6 +59,21 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
         return TYPE;
     }
 
+
+    @Override
+    public float suspension(int wheel) {
+        return suspension[wheel];
+    }
+
+    @Override
+    public float wheelSpeed(int wheel) {
+        return wheelSpeed[wheel];
+    }
+
+    @Override
+    public float friction(int wheel) {
+        return friction[wheel];
+    }
 
     public CarStatePacket(FriendlyByteBuf buf) {
         this(buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
@@ -108,8 +124,7 @@ public record CarStatePacket(int entityId, float steerAngle, float speed, float 
             Entity entity = sender.level().getEntity(entityId);
             // 運転している本人からのパケットだけ受け付ける
             if (entity instanceof CarEntity car && car.getControllingPassenger() == sender) {
-                car.applyDriverState(steerAngle, speed, yaw, pitch, roll, suspension, wheelSpeed, friction,
-                        rpm, gear, throttle, slipAngle, surface, lights, boost);
+                car.applyDriverState(this);
             }
         });
     }

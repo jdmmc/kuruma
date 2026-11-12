@@ -4,6 +4,7 @@ import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.client.effect.EmitterCar;
 import com.jdmmc.kurumamod.client.hud.HudCar;
 import com.jdmmc.kurumamod.client.effect.SkidMarkTrails;
+import com.jdmmc.kurumamod.car.CarSync;
 import com.jdmmc.kurumamod.car.CarPose;
 import com.jdmmc.kurumamod.ground.GroundSensor;
 import com.jdmmc.kurumamod.platform.RaceTexts;
@@ -306,6 +307,8 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     private PartFitment parts = PartFitment.EMPTY;
     /** 物理の状態。運転権を持っている側だけが進める。 */
     private final CarState state = new CarState();
+    /** 同期した値（{@link SyncedValues}）。運転していない側はここから読む。 */
+    private final CarSync synced = new SyncedValues();
 
 
     /** 運転クライアントから毎ティック差し込まれる入力。サーバーや同乗者側では常に無操作。 */
@@ -531,8 +534,8 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     private CarHull hull(boolean body) {
         boolean local = isLocalInstanceAuthoritative();
         double yaw = local ? state.yaw : remoteYaw();
-        double pitch = local ? state.pitch : entityData.get(DATA_PITCH);
-        double roll = local ? state.roll : entityData.get(DATA_ROLL);
+        double pitch = local ? state.pitch : synced.pitch();
+        double roll = local ? state.roll : synced.roll();
         return body
                 ? CarHull.body(getSpec(), bodyShape(), getX(), getY(), getZ(), yaw, pitch, roll)
                 : CarHull.of(getSpec(), getX(), getY(), getZ(), yaw, pitch, roll);
@@ -697,7 +700,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** ブースト 0..1。手元で解いていないときは同期された値。 */
     public double getRenderBoost() {
-        return hasLocalState() ? state.boost : entityData.get(DATA_BOOST);
+        return hasLocalState() ? state.boost : synced.boost();
     }
 
     /**
@@ -779,13 +782,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         updateWheelRoll();
 
         if (level().isClientSide() && isLocalInstanceAuthoritative()) {
-            lastSentState = new CarStatePacket(getId(),
-                    (float) state.steerAngle, (float) state.forwardSpeed,
-                    getYRot(), (float) state.pitch, (float) state.roll,
-                    suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
-                    (float) state.engineRpm, state.gear, (float) state.throttle,
-                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
-                    driverLights(), (float) state.boost);
+            lastSentState = stateSnapshot();
             KurumaNetwork.sendToServer(lastSentState);
         } else {
             lastSentState = null;
@@ -849,14 +846,14 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      * 残りティック数で割った分だけ進める（バニラの位置の寄せ方と同じ）。
      */
     private void approachSyncedPose() {
-        float yaw = entityData.get(DATA_YAW);
-        float pitch = entityData.get(DATA_PITCH);
-        float roll = entityData.get(DATA_ROLL);
-        float steer = entityData.get(DATA_STEER_ANGLE);
+        float yaw = synced.yaw();
+        float pitch = synced.pitch();
+        float roll = synced.roll();
+        float steer = synced.steerAngle();
         boolean changed = !renderSnapshotReady || yaw != targetYaw || pitch != targetPitch
                 || roll != targetRoll || steer != targetSteer;
         for (int i = 0; i < Wheel.COUNT; i++) {
-            double length = entityData.get(DATA_SUSPENSION.get(i));
+            double length = synced.suspension(i);
             changed |= length != targetSuspension[i];
             targetSuspension[i] = length;
         }
@@ -955,16 +952,16 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         // （1.4 度刻み・3 ティックかけて寄せる）を補間した途中の値で、ピッチ・ロール（同期値）とも
         // 揃っていないので、乗った瞬間に車が水平に回った。サーバーの getYRot() は運転者の移動
         // パケットそのもので、最初のティックはまだ同期値が無いので getYRot() のまま
-        float yaw = level().isClientSide() ? entityData.get(DATA_YAW) : getYRot();
+        float yaw = level().isClientSide() ? synced.yaw() : getYRot();
         setYRot(yaw);
         state.yaw = yaw * Mth.DEG_TO_RAD;
-        state.forwardSpeed = entityData.get(DATA_SPEED);
+        state.forwardSpeed = synced.speed();
         state.lateralSpeed = 0.0;
         state.yawRate = 0.0;
         state.height = getY();
         state.verticalSpeed = 0.0;
-        state.pitch = entityData.get(DATA_PITCH);
-        state.roll = entityData.get(DATA_ROLL);
+        state.pitch = synced.pitch();
+        state.roll = synced.roll();
         state.pitchRate = 0.0;
         state.rollRate = 0.0;
         // 車輪の回転を車速に合わせておく。0 のままだと乗った瞬間に
@@ -1060,12 +1057,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
         if (!level().isClientSide()) {
             // 無人の車をサーバーが動かしている場合。運転者から届く値の代わりに自分の結果を配る
-            applyDriverState((float) state.steerAngle, (float) state.forwardSpeed,
-                    getYRot(), (float) state.pitch, (float) state.roll,
-                    suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
-                    (float) state.engineRpm, state.gear, (float) state.throttle,
-                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
-                    driverLights(), (float) state.boost);
+            applyDriverState(stateSnapshot());
         }
     }
 
@@ -1341,8 +1333,8 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     public double[][] bodyCorners() {
         boolean local = isLocalInstanceAuthoritative();
         double yaw = local ? state.yaw : remoteYaw();
-        double pitch = local ? state.pitch : entityData.get(DATA_PITCH);
-        double roll = local ? state.roll : entityData.get(DATA_ROLL);
+        double pitch = local ? state.pitch : synced.pitch();
+        double roll = local ? state.roll : synced.roll();
         double[][] ax = CarBody.axes(yaw, pitch, roll);
         double[][] corners = CarBody.of(getSpec(), bodyShape()).corners();
         double[][] out = new double[corners.length][];
@@ -1439,12 +1431,12 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 同期された値から組み立てたワールド座標の速度 {x, z}（{@link CarPose#remoteVelocity}）。 */
     private double[] remoteVelocity() {
-        return CarPose.remoteVelocity(entityData.get(DATA_YAW), entityData.get(DATA_SPEED), entityData.get(DATA_SLIP_ANGLE));
+        return CarPose.remoteVelocity(synced.yaw(), synced.speed(), synced.slipAngle());
     }
 
     /** 同期されたヨー角 [rad]。 */
     private double remoteYaw() {
-        return entityData.get(DATA_YAW) * Mth.DEG_TO_RAD;
+        return synced.yaw() * Mth.DEG_TO_RAD;
     }
 
     /**
@@ -1557,7 +1549,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         if (hasLocalState()) {
             return ground.surfaces()[wheel.ordinal()];
         }
-        int packed = entityData.get(DATA_SURFACE);
+        int packed = synced.surface();
         return RoadSurface.byIndex((packed >> (wheel.ordinal() * SURFACE_BITS)) & SURFACE_MASK);
     }
 
@@ -1572,7 +1564,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         if (hasLocalState()) {
             return state.wheelLoad[wheel.ordinal()] <= 0.0;
         }
-        int packed = entityData.get(DATA_SURFACE);
+        int packed = synced.surface();
         return ((packed >> (wheel.ordinal() * SURFACE_BITS)) & AIRBORNE_BIT) != 0;
     }
 
@@ -1634,7 +1626,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
             // 車速から作ると空転もロックも見えなくなる
             double angularVelocity = local
                     ? state.wheelAngularVelocity[index]
-                    : entityData.get(DATA_WHEEL_SPEED.get(index));
+                    : synced.wheelSpeed(index);
             wheelRoll[index] += (float) (angularVelocity * TICK_SECONDS);
         }
     }
@@ -1744,9 +1736,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      */
     public void playGhostFrame(double x, double y, double z, CarStatePacket frame) {
         setLerpTarget(x, y, z, frame.yaw(), 3);
-        applyDriverState(frame.steerAngle(), frame.speed(), frame.yaw(), frame.pitch(), frame.roll(),
-                frame.suspension(), frame.wheelSpeed(), frame.friction(), frame.rpm(), frame.gear(),
-                frame.throttle(), frame.slipAngle(), frame.surface(), frame.lights(), frame.boost());
+        applyDriverState(frame);
     }
 
     /**
@@ -1796,12 +1786,12 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      * （点けたまま降りた車は、乗り直しても点いている）。
      */
     public boolean isHeadlightOnSynced() {
-        return (entityData.get(DATA_LIGHTS) & LIGHT_HEAD) != 0;
+        return (synced.lights() & LIGHT_HEAD) != 0;
     }
 
     /** 描画に使う灯火の状態。手元で解いていないときは同期された値。 */
     public byte getRenderLights() {
-        return hasLocalState() ? driverLights() : entityData.get(DATA_LIGHTS);
+        return hasLocalState() ? driverLights() : synced.lights();
     }
 
     /** ヘッドライトが点いているか（描画用）。 */
@@ -1819,31 +1809,39 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         return getRenderGear() < 0;
     }
 
+    /** いまの物理の状態を、配る形（{@link CarStatePacket}）にする。運転しているクライアントが送り、サーバーは自分で解いたときに覚える。 */
+    private CarStatePacket stateSnapshot() {
+        return new CarStatePacket(getId(),
+                    (float) state.steerAngle, (float) state.forwardSpeed,
+                    getYRot(), (float) state.pitch, (float) state.roll,
+                    suspensionSnapshot(), wheelSpeedSnapshot(), frictionSnapshot(),
+                    (float) state.engineRpm, state.gear, (float) state.throttle,
+                    (float) (state.slipAngle() * Mth.RAD_TO_DEG), packSurfaces(),
+                    driverLights(), (float) state.boost);
+    }
+
     /** サーバーが {@link CarStatePacket} から受け取った値を反映する。 */
-    public void applyDriverState(float steerAngle, float speed, float yaw, float pitch, float roll,
-                                float[] suspension, float[] wheelSpeed, float[] friction,
-                                float rpm, int gear, float throttle, float slipAngle, int surface,
-                                byte lights, float boost) {
-        entityData.set(DATA_STEER_ANGLE, steerAngle);
-        entityData.set(DATA_SPEED, speed);
-        entityData.set(DATA_YAW, yaw);
-        entityData.set(DATA_PITCH, pitch);
-        entityData.set(DATA_ROLL, roll);
-        for (int i = 0; i < DATA_SUSPENSION.size() && i < suspension.length; i++) {
-            entityData.set(DATA_SUSPENSION.get(i), suspension[i]);
-            entityData.set(DATA_WHEEL_SPEED.get(i), wheelSpeed[i]);
-            entityData.set(DATA_WHEEL_FRICTION.get(i), friction[i]);
+    public void applyDriverState(CarSync values) {
+        entityData.set(DATA_STEER_ANGLE, values.steerAngle());
+        entityData.set(DATA_SPEED, values.speed());
+        entityData.set(DATA_YAW, values.yaw());
+        entityData.set(DATA_PITCH, values.pitch());
+        entityData.set(DATA_ROLL, values.roll());
+        for (int i = 0; i < DATA_SUSPENSION.size(); i++) {
+            entityData.set(DATA_SUSPENSION.get(i), values.suspension(i));
+            entityData.set(DATA_WHEEL_SPEED.get(i), values.wheelSpeed(i));
+            entityData.set(DATA_WHEEL_FRICTION.get(i), values.friction(i));
         }
-        entityData.set(DATA_RPM, rpm);
-        entityData.set(DATA_GEAR, gear);
-        entityData.set(DATA_THROTTLE, throttle);
-        entityData.set(DATA_SLIP_ANGLE, slipAngle);
-        entityData.set(DATA_SURFACE, surface);
-        entityData.set(DATA_LIGHTS, lights);
-        entityData.set(DATA_BOOST, Math.max(0.0F, Math.min(1.0F, boost)));
+        entityData.set(DATA_RPM, values.rpm());
+        entityData.set(DATA_GEAR, values.gear());
+        entityData.set(DATA_THROTTLE, values.throttle());
+        entityData.set(DATA_SLIP_ANGLE, values.slipAngle());
+        entityData.set(DATA_SURFACE, values.surface());
+        entityData.set(DATA_LIGHTS, values.lights());
+        entityData.set(DATA_BOOST, Math.max(0.0F, Math.min(1.0F, values.boost())));
         if (!level().isClientSide()) {
             // 運転者が入れた状態を覚えておく。降りた後もサーバーがこれを配り続ける
-            headlightsOn = (lights & LIGHT_HEAD) != 0;
+            headlightsOn = (values.lights() & LIGHT_HEAD) != 0;
         }
     }
 
@@ -1861,7 +1859,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 描画に使う切れ角 [rad]。運転中は往復のラグを避けて手元の値を使う。 */
     public float getRenderSteerAngle() {
-        return hasLocalState() ? (float) state.steerAngle : entityData.get(DATA_STEER_ANGLE);
+        return hasLocalState() ? (float) state.steerAngle : synced.steerAngle();
     }
 
     /**
@@ -1919,12 +1917,12 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 描画に使う車速 [m/s]。 */
     public float getRenderSpeed() {
-        return isLocalInstanceAuthoritative() ? (float) state.forwardSpeed : entityData.get(DATA_SPEED);
+        return isLocalInstanceAuthoritative() ? (float) state.forwardSpeed : synced.speed();
     }
 
     /** 描画に使うピッチ角 [rad]。正で鼻上げ。 */
     public float getRenderPitch() {
-        return hasLocalState() ? (float) state.pitch : entityData.get(DATA_PITCH);
+        return hasLocalState() ? (float) state.pitch : synced.pitch();
     }
 
     /**
@@ -1978,7 +1976,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 描画に使うロール角 [rad]。正で右下がり。 */
     public float getRenderRoll() {
-        return hasLocalState() ? (float) state.roll : entityData.get(DATA_ROLL);
+        return hasLocalState() ? (float) state.roll : synced.roll();
     }
 
     /**
@@ -1990,7 +1988,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     public double getRenderSuspensionLength(Wheel wheel) {
         return hasLocalState()
                 ? state.suspensionLength[wheel.ordinal()]
-                : entityData.get(DATA_SUSPENSION.get(wheel.ordinal()));
+                : synced.suspension(wheel.ordinal());
     }
 
     /** 補間込みのタイヤ回転角 [rad] */
@@ -2009,9 +2007,9 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         if (hasLocalState()) {
             return state.wheelSlipRatio[wheel.ordinal()];
         }
-        double rolling = entityData.get(DATA_SPEED);
+        double rolling = synced.speed();
         double reference = Math.max(Math.abs(rolling), CarPhysics.SLIP_REFERENCE_SPEED);
-        double surfaceSpeed = entityData.get(DATA_WHEEL_SPEED.get(wheel.ordinal())) * spec.wheelRadius();
+        double surfaceSpeed = synced.wheelSpeed(wheel.ordinal()) * spec.wheelRadius();
         return (surfaceSpeed - rolling) / reference;
     }
 
@@ -2024,7 +2022,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     public double getRenderFrictionPower(Wheel wheel) {
         return hasLocalState()
                 ? state.wheelFrictionPower[wheel.ordinal()]
-                : entityData.get(DATA_WHEEL_FRICTION.get(wheel.ordinal()));
+                : synced.friction(wheel.ordinal());
     }
 
     /**
@@ -2071,7 +2069,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         double forward = getRenderSpeed();
         double angularVelocity = hasLocalState()
                 ? state.wheelAngularVelocity[index]
-                : entityData.get(DATA_WHEEL_SPEED.get(index));
+                : synced.wheelSpeed(index);
         double longitudinal = angularVelocity * spec.wheelRadius() - forward;
         double angle = Math.min(SLIDE_MAX_ANGLE, Math.abs(getRenderSlipAngleDegrees()));
         double lateral = Math.abs(forward) * Math.tan(angle * Mth.DEG_TO_RAD);
@@ -2080,7 +2078,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 音に使うアクセルの踏み込み量 0..1。 */
     public double getRenderThrottle() {
-        return hasLocalState() ? state.throttle : entityData.get(DATA_THROTTLE);
+        return hasLocalState() ? state.throttle : synced.throttle();
     }
 
     /**
@@ -2106,7 +2104,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 表示に使うエンジン回転数 [rpm]。 */
     public double getRenderRpm() {
-        return hasLocalState() ? state.engineRpm : entityData.get(DATA_RPM);
+        return hasLocalState() ? state.engineRpm : synced.rpm();
     }
 
     /** トラクションコントロールが介入しているか。アクセルを絞っているときと、空転輪にブレーキを掛けているとき。 */
@@ -2150,12 +2148,12 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
 
     /** 表示に使う段。1 以上で前進、-1 で後退、0 でニュートラル。 */
     public int getRenderGear() {
-        return hasLocalState() ? state.gear : entityData.get(DATA_GEAR);
+        return hasLocalState() ? state.gear : synced.gear();
     }
 
     /** 表示に使う車体スリップ角（ドリフト角） [度]。正なら右へ滑っている。 */
     public double getRenderSlipAngleDegrees() {
-        return hasLocalState() ? state.slipAngle() * Mth.RAD_TO_DEG : entityData.get(DATA_SLIP_ANGLE);
+        return hasLocalState() ? state.slipAngle() * Mth.RAD_TO_DEG : synced.slipAngle();
     }
 
     // ------------------------------------------------------------------
@@ -2226,7 +2224,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         // 席は車体に付いているので、車体と一緒に傾ける。ヨーだけで回していた頃は
         // 車がロールしても乗員は水平のまま浮いていて、一人称の視点だけが車体から取り残された
         Vec3 seat = toWorld(seatOffset(passenger).add(0.0, ridingOffset(passenger), 0.0),
-                hasLocalState() ? getYRot() : entityData.get(DATA_YAW), getRenderPitch(), getRenderRoll());
+                hasLocalState() ? getYRot() : synced.yaw(), getRenderPitch(), getRenderRoll());
         move.accept(passenger, getX() + seat.x, getY() + seat.y, getZ() + seat.z);
     }
 
@@ -2452,8 +2450,8 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         if (!parts.isEmpty()) {
             output.store("Parts", CompoundTag.CODEC, PartFitments.save(parts));
         }
-        output.putFloat("Pitch", entityData.get(DATA_PITCH));
-        output.putFloat("Roll", entityData.get(DATA_ROLL));
+        output.putFloat("Pitch", synced.pitch());
+        output.putFloat("Roll", synced.roll());
         output.putBoolean("Headlights", headlightsOn);
     }
 
@@ -2504,5 +2502,83 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     @Override
     public double posZ() {
         return getZ();
+    }
+
+    /** 同期項目を読む口。運転していない側の見た目と、運転を引き継ぐときに読む。 */
+    private final class SyncedValues implements CarSync {
+        @Override
+        public float steerAngle() {
+            return entityData.get(DATA_STEER_ANGLE);
+        }
+
+        @Override
+        public float speed() {
+            return entityData.get(DATA_SPEED);
+        }
+
+        @Override
+        public float yaw() {
+            return entityData.get(DATA_YAW);
+        }
+
+        @Override
+        public float pitch() {
+            return entityData.get(DATA_PITCH);
+        }
+
+        @Override
+        public float roll() {
+            return entityData.get(DATA_ROLL);
+        }
+
+        @Override
+        public float rpm() {
+            return entityData.get(DATA_RPM);
+        }
+
+        @Override
+        public int gear() {
+            return entityData.get(DATA_GEAR);
+        }
+
+        @Override
+        public float throttle() {
+            return entityData.get(DATA_THROTTLE);
+        }
+
+        @Override
+        public float slipAngle() {
+            return entityData.get(DATA_SLIP_ANGLE);
+        }
+
+        @Override
+        public int surface() {
+            return entityData.get(DATA_SURFACE);
+        }
+
+        @Override
+        public byte lights() {
+            return entityData.get(DATA_LIGHTS);
+        }
+
+        @Override
+        public float boost() {
+            return entityData.get(DATA_BOOST);
+        }
+
+        @Override
+        public float suspension(int wheel) {
+            return entityData.get(DATA_SUSPENSION.get(wheel));
+        }
+
+        @Override
+        public float wheelSpeed(int wheel) {
+            return entityData.get(DATA_WHEEL_SPEED.get(wheel));
+        }
+
+        @Override
+        public float friction(int wheel) {
+            return entityData.get(DATA_WHEEL_FRICTION.get(wheel));
+        }
     }
 }
