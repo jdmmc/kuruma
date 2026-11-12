@@ -33,10 +33,50 @@ final class McCarClient implements CarClient {
     @Override
     public List<HelpLine> helpLines() {
         List<HelpLine> lines = new ArrayList<>();
-        for (CarHelp.Line line : CarHelp.lines(Minecraft.getInstance())) {
-            lines.add(new HelpLine(line.key(), line.descriptionKey()));
-        }
+        lines.add(new HelpLine(key(Minecraft.getInstance().options.keyUp) + "/" + key(Minecraft.getInstance().options.keyDown),
+                "help.kurumamod.pedals"));
+        lines.add(new HelpLine(key(Minecraft.getInstance().options.keyLeft) + "/" + key(Minecraft.getInstance().options.keyRight),
+                "help.kurumamod.steer"));
+        lines.add(new HelpLine(key(Minecraft.getInstance().options.keyJump), "help.kurumamod.handbrake"));
+        lines.add(new HelpLine(key(KurumaKeys.SHIFT_UP) + "/" + key(KurumaKeys.SHIFT_DOWN),
+                "help.kurumamod.shift"));
+        lines.add(new HelpLine(key(Minecraft.getInstance().options.keyShift), "help.kurumamod.dismount"));
+        lines.add(new HelpLine(key(KurumaKeys.OPEN_TUNING), "help.kurumamod.tuning"));
+        lines.add(new HelpLine(key(KurumaKeys.OPEN_MENU), "help.kurumamod.menu"));
+        lines.add(new HelpLine(key(KurumaKeys.OPEN_RACE), "help.kurumamod.race"));
+        lines.add(new HelpLine(key(KurumaKeys.TOGGLE_HEADLIGHTS), "help.kurumamod.headlights"));
+        lines.add(new HelpLine(key(KurumaKeys.OPEN_HEADLIGHT_SETTINGS), "help.kurumamod.headlight_settings"));
+        lines.add(new HelpLine(key(KurumaKeys.TOGGLE_CAMERA), "help.kurumamod.camera"));
+        lines.add(new HelpLine(key(KurumaKeys.CAMERA_CLOSER) + "/" + key(KurumaKeys.CAMERA_FARTHER),
+                "help.kurumamod.camera_distance"));
+        lines.add(new HelpLine(key(KurumaKeys.OPEN_CONTROLLER), "help.kurumamod.controller"));
         return lines;
+    }
+
+    /** キーの表示名。割り当てを変えたらそのまま追従する。 */
+    private static String key(net.minecraft.client.KeyMapping mapping) {
+        return mapping.getTranslatedKeyMessage().getString();
+    }
+
+    @Override
+    public HudCar ridingHud() {
+        return ridingEntity();
+    }
+
+    @Override
+    public double turboBoost() {
+        CarEntity car = ridingEntity();
+        return car == null ? 0.0 : CarTurbo.boost(car, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true));
+    }
+
+    @Override
+    public com.jdmmc.kurumamod.CameraMode cameraMode() {
+        return CarCamera.currentMode();
+    }
+
+    @Override
+    public String cameraKeyName() {
+        return key(KurumaKeys.TOGGLE_CAMERA);
     }
 
     @Override

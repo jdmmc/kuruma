@@ -45,19 +45,6 @@ import java.util.WeakHashMap;
  */
 public final class SteeringHands {
 
-    /** プレイヤーのモデルの拡大率（{@code PlayerRenderer#scale}）。 */
-    private static final float PLAYER_SCALE = 0.9375F;
-    /** モデルの原点を足元へ下げる量（{@code LivingEntityRenderer#render}）[ブロック]。 */
-    private static final float MODEL_DROP = 1.501F;
-    /** 腕の付け根から手のひらまで [ブロック]（腕の箱は付け根から 10px、握るのはその少し手前）。 */
-    private static final float HAND_REACH = 9.5F / 16.0F;
-    /** 腕を伸び縮みさせてでも手をリムに届かせる範囲。これを越える座席の位置では手が離れて見える。 */
-    private static final float MIN_STRETCH = 0.75F;
-    private static final float MAX_STRETCH = 1.35F;
-    /** 握る位置の半径。メッシュの外形の直径に対する割合（リムの太さの真ん中あたり）。 */
-    private static final double RIM_RATIO = 0.45;
-    /** 持ち替えで手をリムから浮かせる高さ [m]（運転者の側へ）。 */
-    private static final double LIFT = 0.07;
 
     /**
      * 腕の向き。ModelPart の xRot / yRot [rad] と、長さ方向の拡大率。
@@ -69,15 +56,7 @@ public final class SteeringHands {
     }
 
     /** 車ごとの手の握り具合。車が消えれば一緒に捨てる。 */
-    private static final Map<CarEntity, Grip> GRIPS = new WeakHashMap<>();
-
-    private static final class Grip {
-        final SteeringGrip grip = new SteeringGrip();
-        long lastNanos;
-        int driverId = -1;
-        /** 前のフレームのハンドルの角度 [度]。他人の車で「放している」を推し量るのに使う */
-        double lastWheel;
-    }
+    private static final Map<CarEntity, SteeringArms.Grip> GRIPS = new WeakHashMap<>();
 
     private SteeringHands() {
     }
@@ -120,33 +99,8 @@ public final class SteeringHands {
     }
 
     private static SteeringGrip gripOf(CarEntity car, LivingEntity driver, double wheel) {
-        Grip state = GRIPS.computeIfAbsent(car, key -> new Grip());
-        long now = System.nanoTime();
-        if (state.driverId != driver.getId() || now - state.lastNanos > 1_000_000_000L) {
-            // 乗り換えた・しばらく見ていなかった。定位置で握らせ直す
-            state.grip.reset(wheel);
-            state.driverId = driver.getId();
-        } else {
-            state.grip.update(wheel, (now - state.lastNanos) / 1.0e9, steeringHeld(car, wheel, state.lastWheel));
-        }
-        state.lastNanos = now;
-        state.lastWheel = wheel;
-        return state.grip;
-    }
-
-    /**
-     * 運転者がハンドルを握っているか。放している間は手を止める（{@link SteeringGrip}）。
-     *
-     * <p>自分が運転している車は入力（A/D・スティック）をそのまま見る。他人の車は入力が届かないので、
-     * <b>ハンドルが中立へ戻っていく間を「放している」と見なす</b>（舵を放すと戻るため）。
-     * 自己復元でカウンターへ切れていくのは見分けられず、握っている扱いになる。</p>
-     */
-    private static boolean steeringHeld(CarEntity car, double wheel, double lastWheel) {
-        Boolean input = car.steeringInputHeld();
-        if (input != null) {
-            return input;
-        }
-        return !(Math.abs(wheel) < Math.abs(lastWheel) - 0.05);
+        return GRIPS.computeIfAbsent(car, key -> new SteeringArms.Grip())
+                .update(driver.getId(), wheel, car.steeringInputHeld());
     }
 
     /** 車体のメッシュの座標から車体の座標へ（{@link CarObjRenderer#applyBodyTransform}）。 */
@@ -157,74 +111,24 @@ public final class SteeringHands {
     }
 
     /**
-     * リムの上の、見た目の角度 {@code angle}（真上から時計回り）[度] の点を車体の座標で。
+     * リムの上の、見た目の角度 {@code angle}（真上から時計回り）[度] の点を車体の座標で（{@link SteeringArms#rimPoint}）。
      * ハンドルの描き方（{@link CarObjRenderer} の drawSteeringWheel → {@link ObjModel#renderSteeringWheel}）と同じ順で
      * 平行移動と傾きを掛ける。ハンドルの回転ぶんは角度に入っているので掛けない。
      */
     private static Vector3f gripPoint(CarModel model, SteeringWheelAxis.Result axis, CarEntity car,
                                       Matrix4f toCar, double angle, double lift) {
-        double[] c = axis.center();
-        double[] a = axis.axis();
-        // 面内の上（世界の上を面へ落としたもの）と右（上 × 運転者向きの軸）
-        double ux = -a[0] * a[1];
-        double uy = 1.0 - a[1] * a[1];
-        double uz = -a[2] * a[1];
-        double ul = Math.sqrt(ux * ux + uy * uy + uz * uz);
-        ux /= ul;
-        uy /= ul;
-        uz /= ul;
-        double rx = uy * a[2] - uz * a[1];
-        double ry = uz * a[0] - ux * a[2];
-        double rz = ux * a[1] - uy * a[0];
-
         double fit = CarSpec.DEFAULT.wheelBase() / model.designWheelBase();
         CarModel.Vec3 scale = model.bodyScale();
-        double radius = axis.diameter() * RIM_RATIO;
-        double theta = Math.toRadians(angle);
-        double cos = Math.cos(theta) * radius;
-        double sin = Math.sin(theta) * radius;
-        double up = lift * LIFT / (fit * scale.y());
-        Vector3f v = new Vector3f((float) (ux * cos + rx * sin + a[0] * up),
-                (float) (uy * cos + ry * sin + a[1] * up),
-                (float) (uz * cos + rz * sin + a[2] * up));
-
-        double tilt = Math.toRadians(CarSeat.currentSteeringTilt(car.getCarId()));
-        if (tilt != 0.0) {
-            v.rotate(new Quaternionf().rotationX((float) -tilt));
-        }
         CarModel.Vec3 offset = CarSeat.currentSteering(car.getCarId());
-        v.add((float) (c[0] + offset.x() / (fit * scale.x())),
-                (float) (c[1] + offset.y() / (fit * scale.y())),
-                (float) (c[2] + offset.z() / (fit * scale.z())));
-        return toCar.transformPosition(v);
+        float[] p = SteeringArms.rimPoint(axis.center(), axis.axis(), axis.diameter(), fit,
+                new double[]{scale.x(), scale.y(), scale.z()}, angle, lift,
+                CarSeat.currentSteeringTilt(car.getCarId()), new double[]{offset.x(), offset.y(), offset.z()});
+        return toCar.transformPosition(new Vector3f(p[0], p[1], p[2]));
     }
 
-    /**
-     * 肩から握る位置へ腕を向ける。
-     *
-     * <p>腕は付け根から +Y（モデルの下）へ伸びていて、ModelPart は Rz·Ry·Rx の順に回す。zRot を 0 にすると
-     * 向きは (sin y·sin x, cos x, cos y·sin x) なので、x = −acos(向きの y)、y = atan2(−向きの x, −向きの z)
-     * （前へ出すとき sin x が負）。</p>
-     *
-     * @param pivotX 付け根の X [ブロック]（モデルの座標。右腕が負）
-     */
+    /** 肩から握る位置へ腕を向ける（{@link SteeringArms#arm}）。 */
     private static float[] arm(Vector3f feet, float pivotX, float pivotY, Vector3f grip) {
-        // 肩（車体の座標）
-        float sx = feet.x - PLAYER_SCALE * pivotX;
-        float sy = feet.y - PLAYER_SCALE * (pivotY - MODEL_DROP);
-        float sz = feet.z;
-        // 肩から手へ（モデルの座標。Rz(180) を戻して拡大で割る）
-        float dx = -(grip.x - sx) / PLAYER_SCALE;
-        float dy = -(grip.y - sy) / PLAYER_SCALE;
-        float dz = (grip.z - sz) / PLAYER_SCALE;
-        float length = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (length < 1.0e-4F) {
-            return new float[]{0.0F, 0.0F, 1.0F};
-        }
-        float x = (float) -Math.acos(Math.max(-1.0F, Math.min(1.0F, dy / length)));
-        float y = (float) Math.atan2(-dx, -dz);
-        float stretch = Math.max(MIN_STRETCH, Math.min(MAX_STRETCH, length / HAND_REACH));
-        return new float[]{x, y, stretch};
+        return SteeringArms.arm(feet.x, feet.y, feet.z, pivotX, pivotY, grip.x, grip.y, grip.z);
     }
 
     /**
@@ -307,8 +211,8 @@ public final class SteeringHands {
         // 三人称の描き方（LivingEntityRenderer）と同じ: 足元へ寄せ、上下と左右を返し、縮めて原点を下げる
         pose.translate(-seat.x, seat.y, -seat.z);
         pose.rotate(Axis.ZP.rotationDegrees(180.0F));
-        pose.scale(PLAYER_SCALE, PLAYER_SCALE, PLAYER_SCALE);
-        pose.translate(0.0F, -MODEL_DROP, 0.0F);
+        pose.scale(SteeringArms.PLAYER_SCALE, SteeringArms.PLAYER_SCALE, SteeringArms.PLAYER_SCALE);
+        pose.translate(0.0F, -SteeringArms.MODEL_DROP, 0.0F);
 
         // モデルは全員で使い回していて、描かれるのは後（ほかの人の姿勢で上書きされている）。
         // 腕の向きは描く直前に入れ直す。袖は腕の子なので腕と一緒に描かれる

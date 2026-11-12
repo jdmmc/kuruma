@@ -2,7 +2,7 @@ package com.jdmmc.kurumamod.client;
 
 /**
  * 画面の好みの設定（{@code kurumamod-client.toml}。版の {@code ClientConfig}）を、core の画面が読み書きする口。
- * 版ごとの {@code McClientOptions} が中身を持ち、クライアントの起動時に {@link #set} で置く。
+ * {@code ConfigClientOptions} が中身を持ち、クライアントの起動時に {@link #set} で置く。
  *
  * <p>値は {@code ClientConfig} の項目の名前（{@code SHOW_HELP}・{@code HEADLIGHT_AIM} など）で引く。書き換えたら
  * {@link #refresh} で効かせ、ファイルへ書くのは画面を閉じるとき（{@link #save}）。決めごとは CLAUDE.md の「設定と操作ヘルプ」。</p>

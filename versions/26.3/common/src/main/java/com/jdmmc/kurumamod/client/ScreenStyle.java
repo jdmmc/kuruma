@@ -58,9 +58,7 @@ final class ScreenStyle {
      * </ul>
      */
     static boolean isCarScreen() {
-        Object screen = McUiScreen.unwrap(Minecraft.getInstance().gui.screen());
-        return screen instanceof CarPartScreen || screen instanceof CarTuningScreen
-                || screen instanceof SeatScreen;
+        return com.jdmmc.kurumamod.client.ui.ScreenStyle.isCarScreen();
     }
 
     /**

@@ -65,6 +65,11 @@ public final class McUiGraphics extends UiGraphics {
     }
 
     @Override
+    public void translateZ(float z) {
+        graphics.pose().translate(0.0F, 0.0F, z);
+    }
+
+    @Override
     public void scale(float x, float y) {
         graphics.pose().scale(x, y, 1.0F);
     }

@@ -2,6 +2,7 @@ package com.jdmmc.kurumamod.client;
 
 import com.jdmmc.kurumamod.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
+import com.jdmmc.kurumamod.Platform;
 import com.jdmmc.kurumamod.client.hook.ClientHooks;
 import com.jdmmc.kurumamod.client.hook.GuiRender;
 import com.jdmmc.kurumamod.network.KurumaNetworkClient;
@@ -38,7 +39,7 @@ public final class KurumamodClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // 画面の好み（kurumamod-client.toml）。NeoForge 版と同じファイル・同じ書き方
-        ClientConfig.load();
+        ClientConfig.load(Platform.configDir());
 
         KurumaKeys.register();
         KurumaNetworkClient.register();

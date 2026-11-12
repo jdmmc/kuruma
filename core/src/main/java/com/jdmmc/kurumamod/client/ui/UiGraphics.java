@@ -61,6 +61,13 @@ public abstract class UiGraphics {
 
     public abstract void scale(float x, float y);
 
+    /**
+     * 奥行きを持ち上げる（チャットより手前に出す）。<b>Z のある版（1.20.1・1.21.1）だけが動かす。</b>
+     * 26.3 の GUI には Z が無く、描いた順で重なるので何もしない。
+     */
+    public void translateZ(float z) {
+    }
+
     /** 横へずらす（せん断）。{@code x' = x - slant·y}（上の辺が右へ、下の辺が左へ）。 */
     public abstract void shearX(float slant);
 

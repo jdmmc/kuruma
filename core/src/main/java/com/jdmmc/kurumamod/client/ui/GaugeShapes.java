@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.client.ui;
 
 /**
- * 円弧・棒・四角形（小数で置ける）を描く道具。換装画面の照準やタイヤの絵に使う。
+ * 円弧・棒・針・四角形（小数で置ける）を描く道具。メーター（{@code CarGaugeHud}）と、換装画面の照準やタイヤの絵に使う。
  * 版の {@code GaugePainter}（メーターが使う）と同じ形の描き方を、{@link UiGraphics#fillQuad} の上に書いたもの。
  *
  * <p><b>文字を重ねる前に {@link #flush} を呼ぶこと。</b>図形は溜めてからまとめて描かれる。</p>
@@ -47,6 +47,18 @@ public final class GaugeShapes {
         float ix = centerX + cos * innerRadius, iy = centerY + sin * innerRadius;
         float ox = centerX + cos * outerRadius, oy = centerY + sin * outerRadius;
         graphics.fillQuad(color, ix - nx, iy - ny, ix + nx, iy + ny, ox + nx, oy + ny, ox - nx, oy - ny);
+    }
+
+    /** 針。根元は {@code baseWidth} の幅、先端は 1 点。 */
+    public static void needle(UiGraphics graphics, float centerX, float centerY, float innerRadius,
+                              float outerRadius, float degrees, float baseWidth, int color) {
+        float cos = cos(degrees), sin = sin(degrees);
+        float nx = -sin * baseWidth * 0.5F;
+        float ny = cos * baseWidth * 0.5F;
+        float ix = centerX + cos * innerRadius, iy = centerY + sin * innerRadius;
+        float ox = centerX + cos * outerRadius, oy = centerY + sin * outerRadius;
+        // 先端は 1 点。四角形なので同じ点を 2 回積む（縮退四角形）
+        graphics.fillQuad(color, ix - nx, iy - ny, ix + nx, iy + ny, ox, oy, ox, oy);
     }
 
     /** 軸に平行な長方形。 */

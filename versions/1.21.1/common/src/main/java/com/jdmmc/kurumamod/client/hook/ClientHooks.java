@@ -133,9 +133,10 @@ public final class ClientHooks {
 
     /** HUD をすべて描き終えた後。 */
     public static void renderGuiPost(GuiRender event) {
-        CarGaugeHud.onRenderGui(event);
-        CarHelp.onRenderGui(event);
-        CarHud.onRenderGui(event);
+        McUiGraphics graphics = new McUiGraphics(event.getGuiGraphics());
+        CarGaugeHud.onRenderGui(graphics);
+        CarHelp.onRenderGui(graphics);
+        CarHud.onRenderGui(graphics);
     }
 
     /** ホットバーの層を描き終えた直後（チャットなどより下）。 */

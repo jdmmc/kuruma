@@ -30,6 +30,18 @@ public interface CarClient {
 
     List<HelpLine> helpLines();
 
+    /** 乗っている車（HUD が読む値）。乗っていなければ null。 */
+    HudCar ridingHud();
+
+    /** 乗っている車のブーストの掛かり具合 0..1（描画の途中の値）。乗っていなければ 0。 */
+    double turboBoost();
+
+    /** いまのカメラ。 */
+    com.jdmmc.kurumamod.CameraMode cameraMode();
+
+    /** カメラを切り替えるキーの表示名（割り当てを変えたら追従する）。 */
+    String cameraKeyName();
+
     /** 乗っている車の車種。乗っていなければ null。 */
     CarId ridingCarId();
 

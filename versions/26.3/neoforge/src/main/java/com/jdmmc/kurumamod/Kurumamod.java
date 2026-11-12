@@ -120,7 +120,7 @@ public class Kurumamod {
         // CLIENT は画面の好みなので別ファイル（kurumamod-client.toml）。サーバーには置かない
         Config.load();
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
-            ClientConfig.load();
+            ClientConfig.load(Platform.configDir());
             // Mod 一覧の「Config」ボタンから設定画面を開けるようにする（クライアントだけ）
             ClientModEvents.registerConfigScreen(modContainer);
         }

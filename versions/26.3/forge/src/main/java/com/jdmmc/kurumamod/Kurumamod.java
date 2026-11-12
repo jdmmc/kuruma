@@ -96,7 +96,7 @@ public class Kurumamod {
         // 設定は Forge の仕組みを使わず、自前で読む（config/ConfigSpec。ほかのローダーと同じ画面・同じファイル）
         Config.load();
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            ClientConfig.load();
+            ClientConfig.load(Platform.configDir());
             ForgeClientEvents.register(context);
         }
         LOGGER.info("KurumaMod（Forge）を準備した");
