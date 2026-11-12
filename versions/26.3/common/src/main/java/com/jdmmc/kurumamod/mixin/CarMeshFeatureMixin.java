@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.CarMeshes;
+import com.jdmmc.kurumamod.render.CarMeshes;
 import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import org.spongepowered.asm.mixin.Mixin;

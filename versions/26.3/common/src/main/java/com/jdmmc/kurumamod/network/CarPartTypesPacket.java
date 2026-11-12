@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;

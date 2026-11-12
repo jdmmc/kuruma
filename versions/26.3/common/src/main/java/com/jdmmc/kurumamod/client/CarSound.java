@@ -47,7 +47,7 @@ public class CarSound extends AbstractTickableSoundInstance {
      *
      * <p>{@link CarSounds} も同じものを見て、マフラーの音源が変わったら排気音を鳴らし直す。</p>
      */
-    static CarSoundSet soundsOf(CarEntity car) {
+    public static CarSoundSet soundsOf(CarEntity car) {
         return CarSoundSet.of(car.getCarId()).withExhaust(CarPartModel.exhaustOf(car.getEffectiveFitment()));
     }
 

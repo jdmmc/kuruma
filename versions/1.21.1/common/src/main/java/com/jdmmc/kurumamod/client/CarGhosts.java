@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
@@ -56,7 +56,7 @@ public final class CarGhosts implements GhostClient {
     }
 
     /** core へ口を置く（クラスを読み込むだけ。{@link McRaceClient#install} が呼ぶ）。 */
-    static void install() {
+    public static void install() {
     }
 
     /** 記録の見た目（車種・諸元・装着）。 */
@@ -100,7 +100,7 @@ public final class CarGhosts implements GhostClient {
     }
 
     /** いまいる次元の名前。ワールドに入っていなければ null。 */
-    static String currentDimension(Minecraft minecraft) {
+    public static String currentDimension(Minecraft minecraft) {
         return minecraft.level != null ? minecraft.level.dimension().location().toString() : null;
     }
 

@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.part;
 
-import com.jdmmc.kurumamod.network.FriendlyRaceBuf;
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 import com.jdmmc.kurumamod.plate.PlateLook;
 import com.jdmmc.kurumamod.race.NbtRaceTag;
 import net.minecraft.nbt.CompoundTag;

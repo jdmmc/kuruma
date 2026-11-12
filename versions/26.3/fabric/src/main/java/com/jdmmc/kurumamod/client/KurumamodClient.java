@@ -21,6 +21,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import org.slf4j.Logger;
+import com.jdmmc.kurumamod.render.CarObjRenderer;
+import com.jdmmc.kurumamod.render.DustParticle;
+import com.jdmmc.kurumamod.render.SparkParticle;
 
 /**
  * Fabric 版のクライアントの入り口（{@code fabric.mod.json} の {@code client}）。

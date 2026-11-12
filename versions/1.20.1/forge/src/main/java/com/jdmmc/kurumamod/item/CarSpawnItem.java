@@ -154,7 +154,7 @@ public class CarSpawnItem extends Item {
         consumer.accept(new IClientItemExtensions() {
             @Override
             public BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return com.jdmmc.kurumamod.client.CarItemRenderer.get();
+                return com.jdmmc.kurumamod.render.CarItemRenderer.get();
             }
         });
     }

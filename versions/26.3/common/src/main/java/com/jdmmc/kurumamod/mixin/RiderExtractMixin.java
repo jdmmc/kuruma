@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.RiderPoseRenderer;
+import com.jdmmc.kurumamod.render.RiderPoseRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;

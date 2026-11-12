@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.SteeringHands;
+import com.jdmmc.kurumamod.render.SteeringHands;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import org.spongepowered.asm.mixin.Mixin;

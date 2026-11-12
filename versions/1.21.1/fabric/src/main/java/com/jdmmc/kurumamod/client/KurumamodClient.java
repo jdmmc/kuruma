@@ -23,6 +23,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.slf4j.Logger;
+import com.jdmmc.kurumamod.render.CarItemRenderer;
+import com.jdmmc.kurumamod.render.CarObjRenderer;
+import com.jdmmc.kurumamod.render.DustParticle;
+import com.jdmmc.kurumamod.render.SparkParticle;
 
 /**
  * Fabric 版のクライアントの入り口（{@code fabric.mod.json} の {@code client}）。

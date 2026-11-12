@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
 import net.minecraft.resources.ResourceLocation;

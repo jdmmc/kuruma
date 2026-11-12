@@ -12,7 +12,7 @@ import com.jdmmc.kurumamod.client.input.ControllerInput;
  * 持っている対応表で多くのコントローラを Xbox 系の並びへ正規化してくれるので、まずこれを試し、
  * 対応表に無い機器では生の軸とボタンへ落とす。
  */
-final class ControllerDevice implements ControllerInput.Device {
+public final class ControllerDevice implements ControllerInput.Device {
 
     /** 使うコントローラ。-1 なら未接続。 */
     private int joystick = -1;

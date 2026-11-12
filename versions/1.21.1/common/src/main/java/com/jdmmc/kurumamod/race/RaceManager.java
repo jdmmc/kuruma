@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import com.jdmmc.kurumamod.platform.McRaceServer;
 
 /**
  * ラップ計測とレースの入口。<b>中身は core の {@link RaceEngine}</b>（Minecraft に触らない）。

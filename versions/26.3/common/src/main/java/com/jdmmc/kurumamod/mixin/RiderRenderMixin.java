@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.RiderPoseRenderer;
+import com.jdmmc.kurumamod.render.RiderPoseRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;

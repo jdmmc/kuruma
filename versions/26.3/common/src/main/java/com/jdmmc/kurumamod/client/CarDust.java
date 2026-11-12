@@ -14,6 +14,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import com.jdmmc.kurumamod.client.effect.DustEmitter;
+import com.jdmmc.kurumamod.platform.McParticleSink;
 
 /**
  * 車を集めて、未舗装を走る車輪から土煙を出す（{@link DustEmitter}）。

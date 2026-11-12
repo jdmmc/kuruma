@@ -5,6 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 
 /**
  * この MOD 用のパケットチャンネル。

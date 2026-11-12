@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.sound.KurumaSounds;
 import com.mojang.logging.LogUtils;

@@ -9,7 +9,7 @@ import com.jdmmc.kurumamod.ground.GroundSensor;
 import com.jdmmc.kurumamod.race.RaceTexts;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
 

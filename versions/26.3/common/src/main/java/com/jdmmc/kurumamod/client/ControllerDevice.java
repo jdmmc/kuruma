@@ -24,7 +24,7 @@ import com.jdmmc.kurumamod.client.input.ControllerInput;
  * サブシステムは最初の {@link #poll()}（メインスレッド）で自分で立ち上げる。状態は Minecraft の
  * イベントの汲み出し（{@code SDL_PollEvent}）で更新されるので、こちらで汲む必要は無い。</p>
  */
-final class ControllerDevice implements ControllerInput.Device {
+public final class ControllerDevice implements ControllerInput.Device {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 

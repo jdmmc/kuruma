@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.SteeringHands;
+import com.jdmmc.kurumamod.render.SteeringHands;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;

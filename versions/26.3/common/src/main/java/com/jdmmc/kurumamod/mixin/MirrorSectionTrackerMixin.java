@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.MirrorRenderer;
+import com.jdmmc.kurumamod.render.MirrorRenderer;
 import net.minecraft.client.SectionUpdateTracker;
 import net.minecraft.core.SectionPos;
 import org.spongepowered.asm.mixin.Mixin;

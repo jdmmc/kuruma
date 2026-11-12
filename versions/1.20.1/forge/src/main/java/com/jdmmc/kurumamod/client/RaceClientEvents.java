@@ -9,6 +9,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import com.jdmmc.kurumamod.client.hud.RaceHud;
 import com.jdmmc.kurumamod.client.race.RaceLobby;
+import com.jdmmc.kurumamod.platform.McRaceClient;
+import com.jdmmc.kurumamod.platform.McUiGraphics;
 
 /**
  * レースのクライアント側（core の {@link RaceLobby}・{@link RaceHud}・{@link GhostEngine}）へ Forge のイベントを渡す。

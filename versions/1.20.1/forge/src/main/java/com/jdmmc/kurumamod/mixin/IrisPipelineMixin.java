@@ -1,9 +1,9 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.CarSkidMarks;
-import com.jdmmc.kurumamod.client.CourseRenderer;
-import com.jdmmc.kurumamod.client.HeadlightVolume;
-import com.jdmmc.kurumamod.client.TireSmokeVolume;
+import com.jdmmc.kurumamod.render.CarSkidMarks;
+import com.jdmmc.kurumamod.render.CourseRenderer;
+import com.jdmmc.kurumamod.render.HeadlightVolume;
+import com.jdmmc.kurumamod.render.TireSmokeVolume;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;

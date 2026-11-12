@@ -19,6 +19,7 @@ import java.util.List;
 import com.jdmmc.kurumamod.client.hud.RaceHud;
 import com.jdmmc.kurumamod.client.race.RaceLobby;
 import com.jdmmc.kurumamod.client.screen.TimeAttackScreen;
+import com.jdmmc.kurumamod.render.CourseRenderer;
 
 /**
  * サーバーから届いたパケットのクライアント側の処理。

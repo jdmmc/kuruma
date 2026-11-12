@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.network;
 
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.car.CarType;
 import com.jdmmc.kurumamod.car.CarTypes;

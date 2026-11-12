@@ -20,6 +20,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import com.jdmmc.kurumamod.client.effect.SmokeEmitter;
+import com.jdmmc.kurumamod.platform.McParticleSink;
 
 /**
  * 車を集めて、滑っている車輪から煙を出す（{@link SmokeEmitter}）。

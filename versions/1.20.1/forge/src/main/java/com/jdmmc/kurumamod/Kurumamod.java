@@ -1,18 +1,18 @@
 package com.jdmmc.kurumamod;
 
-import com.jdmmc.kurumamod.client.CarIcons;
+import com.jdmmc.kurumamod.render.CarIcons;
 import com.jdmmc.kurumamod.client.model.CarModel;
-import com.jdmmc.kurumamod.client.CarObjRenderer;
+import com.jdmmc.kurumamod.render.CarObjRenderer;
 import com.jdmmc.kurumamod.client.model.CarPartModel;
 import com.jdmmc.kurumamod.client.CarPresets;
 import com.jdmmc.kurumamod.client.sound.CarSoundSet;
-import com.jdmmc.kurumamod.client.DustParticle;
-import com.jdmmc.kurumamod.client.SparkParticle;
+import com.jdmmc.kurumamod.render.DustParticle;
+import com.jdmmc.kurumamod.render.SparkParticle;
 import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
-import com.jdmmc.kurumamod.client.ObjModel;
+import com.jdmmc.kurumamod.render.ObjModel;
 import com.jdmmc.kurumamod.client.model.PlateModel;
 import com.jdmmc.kurumamod.client.model.PlateMounts;
-import com.jdmmc.kurumamod.client.PlateTextures;
+import com.jdmmc.kurumamod.render.PlateTextures;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
@@ -223,7 +223,7 @@ public class Kurumamod {
             ModLoadingContext.get().registerExtensionPoint(
                     ConfigScreenHandler.ConfigScreenFactory.class,
                     () -> new ConfigScreenHandler.ConfigScreenFactory(
-                            (minecraft, parent) -> new com.jdmmc.kurumamod.client.McUiScreen(new KurumaMenuScreen(parent))));
+                            (minecraft, parent) -> new com.jdmmc.kurumamod.platform.McUiScreen(new KurumaMenuScreen(parent))));
         }
 
         /**

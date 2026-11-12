@@ -3,10 +3,10 @@ package com.jdmmc.kurumamod;
 import com.jdmmc.kurumamod.client.hook.ClientHooks;
 import com.jdmmc.kurumamod.hook.CommonHooks;
 import com.jdmmc.kurumamod.network.KurumaNetwork;
-import com.jdmmc.kurumamod.client.CarItemRenderer;
-import com.jdmmc.kurumamod.client.CarObjRenderer;
-import com.jdmmc.kurumamod.client.DustParticle;
-import com.jdmmc.kurumamod.client.SparkParticle;
+import com.jdmmc.kurumamod.render.CarItemRenderer;
+import com.jdmmc.kurumamod.render.CarObjRenderer;
+import com.jdmmc.kurumamod.render.DustParticle;
+import com.jdmmc.kurumamod.render.SparkParticle;
 import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.item.CarSpawnItem;
@@ -198,7 +198,7 @@ public class Kurumamod {
          */
         static void registerConfigScreen(ModContainer modContainer) {
             modContainer.registerExtensionPoint(IConfigScreenFactory.class,
-                    (container, parent) -> new com.jdmmc.kurumamod.client.McUiScreen(new KurumaMenuScreen(parent)));
+                    (container, parent) -> new com.jdmmc.kurumamod.platform.McUiScreen(new KurumaMenuScreen(parent)));
         }
 
         /**

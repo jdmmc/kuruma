@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 
 /**
  * core に置いたパケットの、名前と届いたときの処理。ローダーの {@code KurumaNetwork} はここの

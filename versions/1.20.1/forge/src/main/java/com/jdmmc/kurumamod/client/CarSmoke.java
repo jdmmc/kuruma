@@ -24,6 +24,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import com.jdmmc.kurumamod.client.effect.SmokeEmitter;
+import com.jdmmc.kurumamod.platform.McParticleSink;
 
 /**
  * 車を集めて、滑っている車輪から煙を出す（{@link SmokeEmitter}）。
