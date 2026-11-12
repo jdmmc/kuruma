@@ -9,6 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import com.jdmmc.kurumamod.car.CarRules;
 
 /**
  * 走行のルールを切り替えるコマンド。

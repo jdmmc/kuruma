@@ -27,6 +27,11 @@ import net.minecraftforge.eventbus.api.listener.Priority;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 import java.util.function.Consumer;
+import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
+import com.jdmmc.kurumamod.render.CarObjRenderer;
+import com.jdmmc.kurumamod.render.DustParticle;
+import com.jdmmc.kurumamod.platform.McUiScreen;
+import com.jdmmc.kurumamod.render.SparkParticle;
 
 /**
  * Forge のクライアントのイベントを受けて、共有側（{@link ClientHooks}）へ渡すだけのつなぎ。

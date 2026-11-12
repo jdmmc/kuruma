@@ -1,15 +1,15 @@
 package com.jdmmc.kurumamod.client.hook;
 
-import com.jdmmc.kurumamod.client.CarMeshes;
-import com.jdmmc.kurumamod.client.CarSkidMarks;
-import com.jdmmc.kurumamod.client.CourseRenderer;
-import com.jdmmc.kurumamod.client.DeferredGlows;
-import com.jdmmc.kurumamod.client.HeadlightVolume;
-import com.jdmmc.kurumamod.client.IrisScene;
-import com.jdmmc.kurumamod.client.MirrorRenderer;
-import com.jdmmc.kurumamod.client.PartAnchors;
-import com.jdmmc.kurumamod.client.RiderPoseRenderer;
-import com.jdmmc.kurumamod.client.TireSmokeVolume;
+import com.jdmmc.kurumamod.render.CarMeshes;
+import com.jdmmc.kurumamod.render.CarSkidMarks;
+import com.jdmmc.kurumamod.render.CourseRenderer;
+import com.jdmmc.kurumamod.render.DeferredGlows;
+import com.jdmmc.kurumamod.render.HeadlightVolume;
+import com.jdmmc.kurumamod.render.IrisScene;
+import com.jdmmc.kurumamod.render.MirrorRenderer;
+import com.jdmmc.kurumamod.render.PartAnchors;
+import com.jdmmc.kurumamod.render.RiderPoseRenderer;
+import com.jdmmc.kurumamod.render.TireSmokeVolume;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;

@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
@@ -11,6 +11,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import com.jdmmc.kurumamod.client.model.CarPartModel;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
+import com.jdmmc.kurumamod.client.sound.CarSoundVoice;
 
 /**
  * 車から出るループ音 1 本ぶん。<b>音量と音程を決める中身は core の {@link CarSoundVoice}</b>（ピッチの壁と
@@ -44,7 +47,7 @@ public class CarSound extends AbstractTickableSoundInstance {
      *
      * <p>{@link CarSounds} も同じものを見て、マフラーの音源が変わったら排気音を鳴らし直す。</p>
      */
-    static CarSoundSet soundsOf(CarEntity car) {
+    public static CarSoundSet soundsOf(CarEntity car) {
         return CarSoundSet.of(car.getCarId()).withExhaust(CarPartModel.exhaustOf(car.getEffectiveFitment()));
     }
 

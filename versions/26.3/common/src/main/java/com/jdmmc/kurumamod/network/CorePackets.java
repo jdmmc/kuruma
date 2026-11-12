@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 
 /**
  * core に置いたパケットの、名前と届いたときの処理。ローダーの {@code KurumaNetwork} はここの
@@ -83,6 +84,34 @@ public final class CorePackets {
                     RaceManager.handleAction(player, p);
                 }
             }));
+
+    // 車のパケット。中身は core、届いたときの処理は CarPacketHandlers。名前を変えると通信が変わる
+    public static final Kind<CarImpactPacket> CAR_IMPACT = kind("car_impact", CarImpactPacket.class,
+            CarImpactPacket::new, CarPacketHandlers::handleCarImpact);
+    public static final Kind<CarPaintRequestPacket> CAR_PAINT_REQUEST = kind("car_paint_request", CarPaintRequestPacket.class,
+            CarPaintRequestPacket::new, CarPacketHandlers::handleCarPaintRequest);
+    public static final Kind<CarPartRequestPacket> CAR_PART_REQUEST = kind("car_part_request", CarPartRequestPacket.class,
+            CarPartRequestPacket::new, CarPacketHandlers::handleCarPartRequest);
+    public static final Kind<CarPartTypesPacket> CAR_PART_TYPES = kind("car_part_types", CarPartTypesPacket.class,
+            CarPartTypesPacket::new, CarPacketHandlers::handleCarPartTypes);
+    public static final Kind<CarPartsPacket> CAR_PARTS = kind("car_parts", CarPartsPacket.class,
+            CarPartsPacket::new, CarPacketHandlers::handleCarParts);
+    public static final Kind<CarPlateRequestPacket> CAR_PLATE_REQUEST = kind("car_plate_request", CarPlateRequestPacket.class,
+            CarPlateRequestPacket::new, CarPacketHandlers::handleCarPlateRequest);
+    public static final Kind<CarPushPacket> CAR_PUSH = kind("car_push", CarPushPacket.class,
+            CarPushPacket::new, CarPacketHandlers::handleCarPush);
+    public static final Kind<CarRulesPacket> CAR_RULES = kind("car_rules", CarRulesPacket.class,
+            CarRulesPacket::new, CarPacketHandlers::handleCarRules);
+    public static final Kind<CarScrapePacket> CAR_SCRAPE = kind("car_scrape", CarScrapePacket.class,
+            CarScrapePacket::new, CarPacketHandlers::handleCarScrape);
+    public static final Kind<CarSpecPacket> CAR_SPEC = kind("car_spec", CarSpecPacket.class,
+            CarSpecPacket::new, CarPacketHandlers::handleCarSpec);
+    public static final Kind<CarStatePacket> CAR_STATE = kind("car_state", CarStatePacket.class,
+            CarStatePacket::new, CarPacketHandlers::handleCarState);
+    public static final Kind<CarTuningPacket> CAR_TUNING = kind("car_tuning", CarTuningPacket.class,
+            CarTuningPacket::new, CarPacketHandlers::handleCarTuning);
+    public static final Kind<CarTypesPacket> CAR_TYPES = kind("car_types", CarTypesPacket.class,
+            CarTypesPacket::new, CarPacketHandlers::handleCarTypes);
 
     private CorePackets() {
     }

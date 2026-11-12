@@ -1,0 +1,143 @@
+package com.jdmmc.kurumamod.network;
+
+import com.jdmmc.kurumamod.car.CarId;
+import com.jdmmc.kurumamod.physics.Aero;
+import com.jdmmc.kurumamod.physics.Tire;
+import com.jdmmc.kurumamod.physics.Turbo;
+import com.jdmmc.kurumamod.plate.PlateChars;
+import com.jdmmc.kurumamod.plate.PlateField;
+import com.jdmmc.kurumamod.plate.PlateLook;
+import com.jdmmc.kurumamod.plate.PlateRules;
+import com.jdmmc.kurumamod.part.CarPart;
+import com.jdmmc.kurumamod.part.CarParts;
+import com.jdmmc.kurumamod.part.PartSlot;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * サーバー → クライアント。読み込まれている部品を丸ごと配る。
+ *
+ * <p>{@link CarTypesPacket} とまったく同じ場面（ログイン時とデータパックの再読み込み時）で
+ * 送る。部品も走行中に増えないので、差分ではなく毎回まるごと。</p>
+ *
+ * <p><b>クライアントが自分でデータパックを読まないのが要点。</b>マルチプレイで何を履けるか
+ * 決めるのはサーバーであって手元のカーパックではない。配られたものだけを見ることで、
+ * サーバーが知らない部品が換装画面に並ぶことがなくなる。</p>
+ *
+ * <p><b>これが運ぶのは選べる部品の一覧であって、走っている車が何を履いているかではない。</b>
+ * 後者は車のスポーンデータと {@link CarPartsPacket} が運ぶ（車種と諸元の関係と同じ）。</p>
+ */
+public record CarPartTypesPacket(List<CarPart> parts) implements RacePayload {
+
+    public CarPartTypesPacket(RaceBuf buf) {
+        this(read(buf));
+    }
+
+    private static List<CarPart> read(RaceBuf buf) {
+        int count = buf.readVarInt();
+        List<CarPart> parts = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            var id = buf.readCarId();
+            String name = buf.readUtf();
+            int order = buf.readVarInt();
+            Set<CarId> cars = buf.readCollection(HashSet::new, RaceBuf::readCarId);
+            Turbo turbo = buf.readBoolean()
+                    ? new Turbo(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
+                    : null;
+            Tire tire = buf.readBoolean()
+                    ? new Tire(buf.readDouble(), readScales(buf), readScales(buf))
+                    : null;
+            Aero aero = buf.readBoolean()
+                    ? new Aero(buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readDouble())
+                    : null;
+            PlateRules plate = buf.readBoolean() ? readPlate(buf) : null;
+            PartSlot slot = PartSlot.byName(name);
+            if (slot != null) {
+                parts.add(new CarPart(id, slot, order, cars, turbo, tire, aero, plate));
+            }
+            // 知らない場所の部品は落とす。並べようがないので、黙って無視してよい
+        }
+        return parts;
+    }
+
+    public void encode(RaceBuf buf) {
+        buf.writeVarInt(parts.size());
+        for (CarPart part : parts) {
+            buf.writeCarId(part.id());
+            buf.writeUtf(part.slot().getSerializedName());
+            buf.writeVarInt(part.order());
+            buf.writeCollection(part.cars(), RaceBuf::writeCarId);
+            // ターボの性能。物理が使うので、クライアントも同じ値を持っていなければならない
+            // （運転しているのはクライアント）
+            Turbo turbo = part.turbo();
+            buf.writeBoolean(turbo != null);
+            if (turbo != null) {
+                buf.writeDouble(turbo.boostGain());
+                buf.writeDouble(turbo.spoolFrom());
+                buf.writeDouble(turbo.spoolFull());
+                buf.writeDouble(turbo.spoolRate());
+            }
+            // タイヤの性能も物理が使う（路面ごとの倍率は CarEntity が接地の条件へ掛ける）
+            Tire tire = part.tire();
+            buf.writeBoolean(tire != null);
+            if (tire != null) {
+                buf.writeDouble(tire.stiffness());
+                writeScales(buf, tire.grip());
+                writeScales(buf, tire.rolling());
+            }
+            // 空力部品の性能も物理が使う
+            Aero aero = part.aero();
+            buf.writeBoolean(aero != null);
+            if (aero != null) {
+                buf.writeDouble(aero.frontMin());
+                buf.writeDouble(aero.frontMax());
+                buf.writeDouble(aero.rearMin());
+                buf.writeDouble(aero.rearMax());
+                buf.writeDouble(aero.defaultAngle());
+            }
+            // ナンバーの欄の決まり。換装画面が入力欄を並べ、打った字を手元で先に検査するのに使う
+            PlateRules plate = part.plate();
+            buf.writeBoolean(plate != null);
+            if (plate != null) {
+                writePlate(buf, plate);
+            }
+        }
+    }
+
+    private static void writePlate(RaceBuf buf, PlateRules plate) {
+        buf.writeVarInt(plate.fields().size());
+        for (PlateField field : plate.fields()) {
+            buf.writeUtf(field.id(), PlateLook.FIELD_ID_MAX_LENGTH);
+            buf.writeVarInt(field.max());
+            buf.writeVarIntArray(field.chars().toArray());
+            buf.writeUtf(field.defaultText(), PlateRules.FIELD_MAX_LENGTH * 2);
+        }
+    }
+
+    private static PlateRules readPlate(RaceBuf buf) {
+        int count = Math.min(buf.readVarInt(), PlateRules.MAX_FIELDS);
+        List<PlateField> fields = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            fields.add(new PlateField(buf.readUtf(PlateLook.FIELD_ID_MAX_LENGTH), buf.readVarInt(),
+                    PlateChars.fromArray(buf.readVarIntArray()), buf.readUtf(PlateRules.FIELD_MAX_LENGTH * 2)));
+        }
+        return new PlateRules(fields);
+    }
+
+    private static java.util.Map<String, Double> readScales(RaceBuf buf) {
+        return buf.readMap(RaceBuf::readUtf, RaceBuf::readDouble);
+    }
+
+    private static void writeScales(RaceBuf buf, java.util.Map<String, Double> scales) {
+        buf.writeMap(scales, RaceBuf::writeUtf, RaceBuf::writeDouble);
+    }
+
+    /** いま読み込まれている部品を全部詰めたパケット。 */
+    public static CarPartTypesPacket current() {
+        return new CarPartTypesPacket(CarParts.all());
+    }
+
+}

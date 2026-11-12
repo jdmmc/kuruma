@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.mixin;
 
-import com.jdmmc.kurumamod.client.MirrorRenderer;
+import com.jdmmc.kurumamod.render.MirrorRenderer;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;

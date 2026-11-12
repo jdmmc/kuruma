@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.Platform;
 import com.jdmmc.kurumamod.client.hook.ClientHooks;
@@ -23,6 +23,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.slf4j.Logger;
+import com.jdmmc.kurumamod.render.CarItemRenderer;
+import com.jdmmc.kurumamod.render.CarObjRenderer;
+import com.jdmmc.kurumamod.render.DustParticle;
+import com.jdmmc.kurumamod.render.SparkParticle;
 
 /**
  * Fabric 版のクライアントの入り口（{@code fabric.mod.json} の {@code client}）。

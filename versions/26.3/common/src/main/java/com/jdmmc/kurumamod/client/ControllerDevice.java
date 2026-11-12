@@ -9,6 +9,7 @@ import org.lwjgl.sdl.SDLStdinc;
 import org.slf4j.Logger;
 
 import java.nio.IntBuffer;
+import com.jdmmc.kurumamod.client.input.ControllerInput;
 
 /**
  * コントローラを SDL3 で読む（core の {@link ControllerInput.Device}）。26.3 でウィンドウと入力が GLFW から SDL3 に
@@ -23,7 +24,7 @@ import java.nio.IntBuffer;
  * サブシステムは最初の {@link #poll()}（メインスレッド）で自分で立ち上げる。状態は Minecraft の
  * イベントの汲み出し（{@code SDL_PollEvent}）で更新されるので、こちらで汲む必要は無い。</p>
  */
-final class ControllerDevice implements ControllerInput.Device {
+public final class ControllerDevice implements ControllerInput.Device {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 

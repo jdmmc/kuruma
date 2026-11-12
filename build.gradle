@@ -5,10 +5,42 @@
 //   kurumamod-neoforge-1.21.1-<version>.jar
 //   kurumamod-fabric-1.21.1-<version>.jar
 
+// core が Minecraft にもローダーにも版のクラスにも触っていないことを確かめる。
+// 各版のビルドは core を版のソースと一緒にコンパイルするので、core が Minecraft を import しても、
+// 同じパッケージの版のクラスを import 無しで参照しても、そこでは通ってしまう。
+// ここでは core だけを、core が使ってよいライブラリだけでコンパイルする。
+// 版はいちばん古い Minecraft（1.20.1）が持っているものに揃える（新しい版にしか無い API を使わせないため）。
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    coreLibraries
+}
+
+dependencies {
+    coreLibraries 'com.google.code.gson:gson:2.10'
+    coreLibraries 'org.slf4j:slf4j-api:2.0.1'
+    coreLibraries 'org.jetbrains:annotations:24.0.1'
+}
+
+tasks.register('checkCore', JavaCompile) {
+    group = 'verification'
+    description = 'core を Minecraft 抜きでコンパイルする（Gson・SLF4J・JetBrains の注釈だけ）'
+    source = fileTree('core/src/main/java')
+    classpath = configurations.coreLibraries
+    destinationDirectory = layout.buildDirectory.dir('check-core')
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    options.release = 17
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-proc:none'
+}
+
 tasks.register('build') {
     group = 'build'
     description = 'すべての jar を作ってルートの build/libs/ へ集める'
-    dependsOn ':forge-1.20.1:build', ':neoforge-1.21.1:build', ':fabric-1.21.1:build'
+    dependsOn 'checkCore', ':forge-1.20.1:build', ':neoforge-1.21.1:build', ':fabric-1.21.1:build'
 }
 
 tasks.register('clean', Delete) {

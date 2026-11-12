@@ -40,10 +40,10 @@ public final class ScreenStyle {
      * {@code CarChaseCamera}）。</p>
      */
     public static boolean isCarScreen() {
-        UiScreen screen = com.jdmmc.kurumamod.client.RaceClient.get().raceScreen();
-        return screen instanceof com.jdmmc.kurumamod.client.CarPartScreen
-                || screen instanceof com.jdmmc.kurumamod.client.CarTuningScreen
-                || screen instanceof com.jdmmc.kurumamod.client.SeatScreen;
+        UiScreen screen = com.jdmmc.kurumamod.client.race.RaceClient.get().raceScreen();
+        return screen instanceof com.jdmmc.kurumamod.client.screen.CarPartScreen
+                || screen instanceof com.jdmmc.kurumamod.client.screen.CarTuningScreen
+                || screen instanceof com.jdmmc.kurumamod.client.screen.SeatScreen;
     }
 
     /**

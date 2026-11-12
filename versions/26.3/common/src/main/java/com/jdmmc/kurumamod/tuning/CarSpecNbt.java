@@ -1,6 +1,6 @@
 package com.jdmmc.kurumamod.tuning;
 
-import com.jdmmc.kurumamod.network.FriendlyRaceBuf;
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.race.NbtRaceTag;
 import net.minecraft.nbt.CompoundTag;

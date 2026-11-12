@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.jdmmc.kurumamod.car.CarRules;
 
 // 設定クラスのサンプル。必須ではないが、設定を整理しておくために用意しておくとよい。
 // Forge の設定 API の使い方を示すためのもの。

@@ -23,6 +23,17 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
+import com.jdmmc.kurumamod.client.screen.CarPartScreen;
+import com.jdmmc.kurumamod.client.screen.CarTuningScreen;
+import com.jdmmc.kurumamod.client.input.ControllerInput;
+import com.jdmmc.kurumamod.client.screen.ControllerScreen;
+import com.jdmmc.kurumamod.client.input.DriverInput;
+import com.jdmmc.kurumamod.client.screen.HeadlightScreen;
+import com.jdmmc.kurumamod.client.screen.KurumaMenuScreen;
+import com.jdmmc.kurumamod.client.hud.RaceHud;
+import com.jdmmc.kurumamod.client.race.RaceLobby;
+import com.jdmmc.kurumamod.client.screen.SeatScreen;
+import com.jdmmc.kurumamod.platform.McUiScreen;
 
 /**
  * 運転中のキー入力を車へ渡すクライアント側の橋渡し。
@@ -357,12 +368,12 @@ public final class CarClientDriver {
     }
 
     /** 乗っている車（運転席でも助手席でも）。乗っていなければ null。 */
-    static CarEntity ridingCar(Minecraft minecraft) {
+    public static CarEntity ridingCar(Minecraft minecraft) {
         return minecraft.player != null && minecraft.player.getVehicle() instanceof CarEntity car ? car : null;
     }
 
     /** 自分が運転しているか（セッティングを変えてよいか）。 */
-    static boolean isDriver(Minecraft minecraft) {
+    public static boolean isDriver(Minecraft minecraft) {
         CarEntity car = ridingCar(minecraft);
         return car != null && car.getControllingPassenger() == minecraft.player;
     }
@@ -371,7 +382,7 @@ public final class CarClientDriver {
      * 助手席から見ている車の値を調整画面の入れ物へ取り込む（見るだけ。送り返さない）。
      * 運転している人がセッティングを変えると車の諸元が届くので、画面は毎フレームこれを呼んで追う。
      */
-    static void viewPassengerCar(CarEntity car) {
+    public static void viewPassengerCar(CarEntity car) {
         if (CarTuning.spec() != car.getSpec()) {
             CarTuning.adopt(car.getSpec(), CarTypes.get(car.getCarId()).spec());
         }

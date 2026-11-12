@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.hook;
 
 import com.jdmmc.kurumamod.CarRuleCommands;
-import com.jdmmc.kurumamod.CarRules;
+import com.jdmmc.kurumamod.car.CarRules;
 import com.jdmmc.kurumamod.Config;
 import com.jdmmc.kurumamod.network.CarPartTypesPacket;
 import com.jdmmc.kurumamod.network.CarRulesPacket;

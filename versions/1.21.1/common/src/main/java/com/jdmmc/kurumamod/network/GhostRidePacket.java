@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.entity.CarEntity;
@@ -73,7 +74,7 @@ public record GhostRidePacket(int carEntityId, byte kind, @Nullable CompoundTag 
                 kind == FRAME ? buf.readDouble() : 0.0,
                 kind == FRAME ? buf.readDouble() : 0.0,
                 kind == FRAME ? buf.readDouble() : 0.0,
-                kind == FRAME ? new CarStatePacket(buf) : null);
+                kind == FRAME ? new CarStatePacket(new FriendlyRaceBuf(buf)) : null);
     }
 
     public void encode(FriendlyByteBuf buf) {
@@ -85,7 +86,7 @@ public record GhostRidePacket(int carEntityId, byte kind, @Nullable CompoundTag 
             buf.writeDouble(x);
             buf.writeDouble(y);
             buf.writeDouble(z);
-            state.encode(buf);
+            state.encode(new FriendlyRaceBuf(buf));
         }
     }
 

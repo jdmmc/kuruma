@@ -16,6 +16,8 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.jdmmc.kurumamod.platform.McRaceServer;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 
 
 /**

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import com.jdmmc.kurumamod.client.race.RaceClient;
 
 /**
  * セッティングのプリセット。<b>クライアント側に保存する。</b>

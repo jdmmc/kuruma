@@ -11,6 +11,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.jdmmc.kurumamod.platform.McRaceServer;
 
 /**
  * ラップ計測とレースの入口。<b>中身は core の {@link RaceEngine}</b>（Minecraft に触らない）。

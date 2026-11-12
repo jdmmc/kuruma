@@ -6,6 +6,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import com.jdmmc.kurumamod.client.sound.CarSoundSet;
+import com.jdmmc.kurumamod.client.sound.CarSoundVoice;
 
 /**
  * 車がクライアントに現れたら、ループ音を張り付ける。

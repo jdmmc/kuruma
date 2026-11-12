@@ -3,6 +3,8 @@ package com.jdmmc.kurumamod.client;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import com.jdmmc.kurumamod.client.effect.SparkEmitter;
+import com.jdmmc.kurumamod.platform.McParticleSink;
 
 /** 火花（{@link SparkEmitter}）を、車のいる世界に出す。 */
 public final class CarSparks {

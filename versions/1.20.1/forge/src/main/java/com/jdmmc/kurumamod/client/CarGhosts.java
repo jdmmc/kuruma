@@ -1,10 +1,10 @@
 package com.jdmmc.kurumamod.client;
 
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.part.PartFitments;
 import com.jdmmc.kurumamod.tuning.CarSpecNbt;
-import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.network.CarStatePacket;
@@ -14,7 +14,7 @@ import com.jdmmc.kurumamod.network.RaceEventPacket;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.race.RaceText;
-import com.jdmmc.kurumamod.race.RaceTexts;
+import com.jdmmc.kurumamod.platform.RaceTexts;
 import com.jdmmc.kurumamod.tuning.CarSpecCodec;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -31,6 +31,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import com.jdmmc.kurumamod.client.race.GhostClient;
+import com.jdmmc.kurumamod.client.race.GhostEngine;
+import com.jdmmc.kurumamod.client.race.GhostFrame;
 
 /**
  * タイムアタックのゴーストの入口。<b>中身は core の {@link GhostEngine}</b>（周の切り出し・保存の場所・読み書き）。
@@ -53,7 +56,7 @@ public final class CarGhosts implements GhostClient {
     }
 
     /** core へ口を置く（クラスを読み込むだけ。{@link McRaceClient#install} が呼ぶ）。 */
-    static void install() {
+    public static void install() {
     }
 
     /** 記録の見た目（車種・諸元・装着）。 */
@@ -97,7 +100,7 @@ public final class CarGhosts implements GhostClient {
     }
 
     /** いまいる次元の名前。ワールドに入っていなければ null。 */
-    static String currentDimension(Minecraft minecraft) {
+    public static String currentDimension(Minecraft minecraft) {
         return minecraft.level != null ? minecraft.level.dimension().location().toString() : null;
     }
 

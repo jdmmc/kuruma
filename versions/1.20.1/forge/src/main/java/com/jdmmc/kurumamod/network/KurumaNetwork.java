@@ -5,6 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
+import com.jdmmc.kurumamod.platform.FriendlyRaceBuf;
 
 /**
  * この MOD 用のパケットチャンネル。
@@ -33,19 +34,19 @@ public final class KurumaNetwork {
     public static void register() {
         int id = 0;
         CHANNEL.messageBuilder(CarStatePacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(CarStatePacket::encode)
-                .decoder(CarStatePacket::new)
-                .consumerMainThread(CarStatePacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarStatePacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarState)
                 .add();
         CHANNEL.messageBuilder(CarTuningPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(CarTuningPacket::encode)
-                .decoder(CarTuningPacket::new)
-                .consumerMainThread(CarTuningPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarTuningPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarTuning)
                 .add();
         CHANNEL.messageBuilder(CarSpecPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(CarSpecPacket::encode)
-                .decoder(CarSpecPacket::new)
-                .consumerMainThread(CarSpecPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarSpecPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarSpec)
                 .add();
         CHANNEL.messageBuilder(RaceEventPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
@@ -59,9 +60,9 @@ public final class KurumaNetwork {
                 .add();
         // 衝突だけは行きも帰りもある（運転者 → サーバー → 周りのクライアント）ので方向を決めない
         CHANNEL.messageBuilder(CarImpactPacket.class, id++)
-                .encoder(CarImpactPacket::encode)
-                .decoder(CarImpactPacket::new)
-                .consumerMainThread(CarImpactPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarImpactPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarImpact)
                 .add();
         CHANNEL.messageBuilder(RaceStandingsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
@@ -70,39 +71,39 @@ public final class KurumaNetwork {
                 .add();
         // カーパックが足した車種。ログイン時と /reload 時に丸ごと配る
         CHANNEL.messageBuilder(CarTypesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(CarTypesPacket::encode)
-                .decoder(CarTypesPacket::new)
-                .consumerMainThread(CarTypesPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarTypesPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarTypes)
                 .add();
         // サーバーが決めた走行のルール（車同士が当たるか）。車種と同じ場面で配る
         CHANNEL.messageBuilder(CarRulesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(CarRulesPacket::encode)
-                .decoder(CarRulesPacket::new)
-                .consumerMainThread(CarRulesPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarRulesPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarRules)
                 .add();
         // ぶつけられた車を弾く。運転者 → サーバー → 相手の運転者（無人ならサーバーが足す）
         CHANNEL.messageBuilder(CarPushPacket.class, id++)
-                .encoder(CarPushPacket::encode)
-                .decoder(CarPushPacket::new)
-                .consumerMainThread(CarPushPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarPushPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarPush)
                 .add();
         // カーパックが足した部品。車種と同じ場面で配る
         CHANNEL.messageBuilder(CarPartTypesPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(CarPartTypesPacket::encode)
-                .decoder(CarPartTypesPacket::new)
-                .consumerMainThread(CarPartTypesPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarPartTypesPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarPartTypes)
                 .add();
         // 車 1 台の装着状態。走行中に換装したときだけ飛ぶ（現れるときはスポーンデータが運ぶ）
         CHANNEL.messageBuilder(CarPartsPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(CarPartsPacket::encode)
-                .decoder(CarPartsPacket::new)
-                .consumerMainThread(CarPartsPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarPartsPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarParts)
                 .add();
         // 換装の要求。何を履けるかを決めるのはサーバーなので、結果ではなく要求を送る
         CHANNEL.messageBuilder(CarPartRequestPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(CarPartRequestPacket::encode)
-                .decoder(CarPartRequestPacket::new)
-                .consumerMainThread(CarPartRequestPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarPartRequestPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarPartRequest)
                 .add();
         // 運転者の画面で走っているゴーストを、同じ車の助手席の人へ。運転者 → サーバー → ほかの乗員。
         // 番号は登録の順で決まるので、新しいパケットは必ず末尾に足すこと（途中に挟むと後ろが全部ずれる）
@@ -113,21 +114,21 @@ public final class KurumaNetwork {
                 .add();
         // 車体が壁と擦れている合図（火花）。衝突と同じく運転者 → サーバー → 周りのクライアント
         CHANNEL.messageBuilder(CarScrapePacket.class, id++)
-                .encoder(CarScrapePacket::encode)
-                .decoder(CarScrapePacket::new)
-                .consumerMainThread(CarScrapePacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarScrapePacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarScrape)
                 .add();
         // 塗装の要求。一覧はクライアントだけが知っているので、サーバーは形だけ見て覚えて配る
         CHANNEL.messageBuilder(CarPaintRequestPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(CarPaintRequestPacket::encode)
-                .decoder(CarPaintRequestPacket::new)
-                .consumerMainThread(CarPaintRequestPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarPaintRequestPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarPaintRequest)
                 .add();
         // ナンバーの中身（打った字と付ける位置）の要求。様式の決まりと看板と同じフィルタを通してから配る
         CHANNEL.messageBuilder(CarPlateRequestPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(CarPlateRequestPacket::encode)
-                .decoder(CarPlateRequestPacket::new)
-                .consumerMainThread(CarPlateRequestPacket::handle)
+                .encoder((packet, buf) -> packet.encode(new FriendlyRaceBuf(buf)))
+                .decoder(buf -> new CarPlateRequestPacket(new FriendlyRaceBuf(buf)))
+                .consumerMainThread(CarPacketHandlers::handleCarPlateRequest)
                 .add();
         // レースの様子（受付中か・決まり・参加者と判定）。受け取る人ごとに組んで配る
         CHANNEL.messageBuilder(RaceLobbyPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)

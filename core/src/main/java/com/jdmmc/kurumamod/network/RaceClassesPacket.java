@@ -14,7 +14,7 @@ import java.util.List;
  */
 public record RaceClassesPacket(List<RaceLobbyPacket.RaceClass> classes) implements RacePayload {
 
-    /** 読むときの上限。サーバーは {@code RaceClasses.MAX_CLASSES} までしか持たない。 */
+    /** 読むときの上限。サーバーは {@link com.jdmmc.kurumamod.race.RaceClassBook#MAX_CLASSES} までしか持たない。 */
     private static final int MAX_CLASSES = 256;
 
     public RaceClassesPacket(RaceBuf buf) {

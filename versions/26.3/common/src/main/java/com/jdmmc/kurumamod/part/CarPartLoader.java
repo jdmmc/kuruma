@@ -1,7 +1,7 @@
 package com.jdmmc.kurumamod.part;
 
 import com.google.gson.JsonElement;
-import com.jdmmc.kurumamod.McIds;
+import com.jdmmc.kurumamod.platform.McIds;
 import com.jdmmc.kurumamod.car.CarId;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
