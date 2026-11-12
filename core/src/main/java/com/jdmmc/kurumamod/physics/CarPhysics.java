@@ -108,6 +108,13 @@ public final class CarPhysics {
      */
     private static final double ABS_INTEGRAL_RATE = 10.0;
 
+    /** 舵を切っているときに ABS が許す、縦横を合わせた滑りの深さ（ピークの何倍か）。{@link #absExcess} */
+    private static final double ABS_CORNER_TARGET = 1.2;
+    /** 舵を切っているときでも縦に残す滑りの深さ（ピークの何倍か）。これより先は横がどれだけ立っていても緩めない */
+    private static final double ABS_CORNER_FLOOR = 0.5;
+    /** スリップ角がピーク角のこの倍数に立つまでかけて、直進の閾値から舵を切っているときの閾値へ移す */
+    private static final double ABS_CORNER_BLEND = 0.2;
+
     /**
      * 縦にグリップを使いきっていても、横へ回せるぶんとして残す割合。
      *
@@ -947,6 +954,46 @@ public final class CarPhysics {
     }
 
     /**
+     * その輪のロックが ABS の閾値をどれだけ超えているか（既定の車・舗装の滑り率の尺度）。
+     *
+     * <p><b>舵を切っているときは閾値をピークの近くまで締める。</b>タイヤの力は滑りのベクトル
+     * （縦の滑り率 × 縦の剛性、スリップ角 × 横の剛性）の向きに出るので、縦の滑りを
+     * {@code absSlip}（既定でピークの 2.5 倍）まで深くしたままだと、舵の上限が許す角度
+     * （合成でピークにいる前提の {@link #peakFrontSlipAngle}）では力がほぼ縦を向き、横が立たない。
+     * S15・100km/h のフルブレーキ＋右いっぱいで横 G が 0.36 しか出ず、1 秒で 7 度しか向きが
+     * 変わらなかった（惰性なら 25 度）。実車のコーナリング中の ABS も目標の滑り率を下げる。</p>
+     *
+     * <p>縦横を合わせた深さ {@code hypot(縦, 横)} が {@link #ABS_CORNER_TARGET} × ピークに収まる
+     * ところまで縦を許す。スリップ角がピーク角の {@link #ABS_CORNER_BLEND} 倍に立つまでかけて
+     * {@code absSlip} から移すので、直進の制動距離と ABS の強さの意味は変わらない。</p>
+     */
+    private static double absExcess(CarSpec spec, CarState state, GroundContact contact, Wheel wheel) {
+        int index = wheel.ordinal();
+        double lock = -state.wheelSlipRatio[index] / aidSlipScale(spec, contact, wheel);
+        // 横の深さを縦と同じ尺度（既定の車・舗装の滑り率）へ直す。後軸にも掛ける——前だけだと前輪だけ横が立ち、
+        // 深く滑ったままの後輪に負けて回る（停止まで制動＋右いっぱい、μ 1.0/0.6/0.3 × 60/100/140km/h の
+        // 9 通りで 5 件スピン。両軸なら 0 件）
+        double peakAngle = spec.tireFriction() * contact.gripScale(wheel) / spec.effectiveCorneringStiffness();
+        double lateral = wheelSlipAngle(spec, state, wheel) / peakAngle * DEFAULT_PEAK_SLIP;
+        double combined = ABS_CORNER_TARGET * DEFAULT_PEAK_SLIP;
+        double cornering = Math.max(ABS_CORNER_FLOOR * DEFAULT_PEAK_SLIP,
+                Math.sqrt(Math.max(0.0, combined * combined - lateral * lateral)));
+        double weight = Math.min(1.0, lateral / (ABS_CORNER_BLEND * DEFAULT_PEAK_SLIP));
+        double threshold = spec.absSlip() - Math.max(0.0, spec.absSlip() - cornering) * weight;
+        return lock - threshold;
+    }
+
+    /** その輪のスリップ角の大きさ [rad]（{@link #wheelContact} と同じ測り方）。 */
+    private static double wheelSlipAngle(CarSpec spec, CarState state, Wheel wheel) {
+        double wheelForward = state.forwardSpeed - spec.wheelRightOffset(wheel) * state.yawRate;
+        double wheelRight = state.lateralSpeed + spec.wheelForwardOffset(wheel) * state.yawRate;
+        double steer = state.wheelSteerAngle[wheel.ordinal()];
+        double rolling = wheelForward * Math.cos(steer) + wheelRight * Math.sin(steer);
+        double sliding = -wheelForward * Math.sin(steer) + wheelRight * Math.cos(steer);
+        return Math.abs(Math.atan2(sliding, Math.max(Math.abs(rolling), SLIP_REFERENCE_SPEED)));
+    }
+
+    /**
      * 1 輪ぶん、あるいは後軸まとめてブレーキを緩める。
      *
      * <p><b>比例ではなく積分で効かせる。</b>比例（超過ぶんに比例して緩める）だと、緩めるには
@@ -962,17 +1009,17 @@ public final class CarPhysics {
                                      Wheel wheel, boolean selectLow) {
         int index = wheel.ordinal();
         // ピーク滑り率で割って測る（aidSlipScale）。セレクトローもこの尺度で比べる
-        double lock = -state.wheelSlipRatio[index] / aidSlipScale(spec, contact, wheel);
+        double excess = absExcess(spec, state, contact, wheel);
         int partner = -1;
         if (selectLow) {
             partner = (wheel.isLeft()
                     ? (wheel.isFront() ? Wheel.FRONT_RIGHT : Wheel.REAR_RIGHT)
                     : (wheel.isFront() ? Wheel.FRONT_LEFT : Wheel.REAR_LEFT)).ordinal();
-            lock = Math.max(lock, -state.wheelSlipRatio[partner] / aidSlipScale(spec, contact, Wheel.VALUES[partner]));
+            excess = Math.max(excess, absExcess(spec, state, contact, Wheel.VALUES[partner]));
         }
 
         // 超過をピーク滑り率いくつぶんかで測る。閾値より浅ければ同じ速さで踏み戻す
-        double excessPeaks = (lock - spec.absSlip()) / DEFAULT_PEAK_SLIP;
+        double excessPeaks = excess / DEFAULT_PEAK_SLIP;
         double release = Math.max(0.0, Math.min(1.0,
                 state.brakeRelease[index] - ABS_INTEGRAL_RATE * excessPeaks * dt));
         state.brakeRelease[index] = release;
