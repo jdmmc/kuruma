@@ -271,45 +271,12 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
      */
     public static double[] iconBounds(CarEntity car) {
         CarModel model = CarModel.get(car.getCarId());
-        CarSpec spec = car.getSpec();
-        double[] box = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
-                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
-
-        // 車体。描くときと同じ変換（applyBodyTransform）を 8 隅に掛ける
-        double[] mesh = ObjModel.get(model.bodyModel()).bounds();
-        PoseStack pose = new PoseStack();
-        applyBodyTransform(model, spec, pose);
-        org.joml.Matrix4f matrix = pose.last().pose();
-        for (int corner = 0; corner < 8; corner++) {
-            org.joml.Vector3f point = matrix.transformPosition(new org.joml.Vector3f(
-                    (float) mesh[(corner & 1) == 0 ? 0 : 3],
-                    (float) mesh[(corner & 2) == 0 ? 1 : 4],
-                    (float) mesh[(corner & 4) == 0 ? 2 : 5]));
-            include(box, point.x(), point.y(), point.z());
-        }
-
-        // タイヤ。太さは半径の半分を見込む（車体からはみ出すのは外側だけ）
-        CarModel.Vec3 offset = CarPartModel.wheelOf(car.getCarId(), model, car.getEffectiveFitment()).offset();
-        double radius = spec.wheelRadius();
+        double[] suspension = new double[Wheel.COUNT];
         for (Wheel wheel : Wheel.VALUES) {
-            double outward = wheel.isLeft() ? -offset.x() : offset.x();
-            double x = spec.wheelRightOffset(wheel) + outward;
-            double y = -car.getRenderSuspensionLength(wheel, 1.0F) + offset.y();
-            double z = -spec.wheelForwardOffset(wheel) + offset.z();
-            double side = Math.signum(x) * radius * 0.5;
-            include(box, x + side, y - radius, z - radius);
-            include(box, x, y + radius, z + radius);
+            suspension[wheel.ordinal()] = car.getRenderSuspensionLength(wheel, 1.0F);
         }
-        return box;
-    }
-
-    private static void include(double[] box, double x, double y, double z) {
-        box[0] = Math.min(box[0], x);
-        box[1] = Math.min(box[1], y);
-        box[2] = Math.min(box[2], z);
-        box[3] = Math.max(box[3], x);
-        box[4] = Math.max(box[4], y);
-        box[5] = Math.max(box[5], z);
+        return CarRig.iconBounds(model, car.getSpec(), ObjModel.get(model.bodyModel()).bounds(),
+                CarPartModel.wheelOf(car.getCarId(), model, car.getEffectiveFitment()).offset(), suspension);
     }
 
     /**
@@ -475,15 +442,6 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
                 && minecraft.getCameraEntity().getVehicle() == car;
     }
 
-    /**
-     * フルロックでのハンドルの回転角。<b>どの車も 1 回転半（540 度）でフルロックに届く。</b>
-     *
-     * <p>ギア比は持たず、最大切れ角から決める（{@code 540 度 ÷ 最大切れ角}）。既定の 35 度なら 15.4 で
-     * 乗用車のそれ、90 度まで切れるようにした車なら 6.0 でアングルキットを入れた車と同じ速さになる——
-     * 実車でもアングルキットは切れ角を増やす代わりにロック・トゥ・ロックをほとんど変えない。
-     * 比を固定すると 90 度の車はハンドルが 3.75 回転して、キーを押した瞬間に回りすぎる。</p>
-     */
-    private static final double HANDWHEEL_LOCK = Math.toRadians(540.0);
 
     /** いま描いている車の部分ティック。描く口ごとに引数で回さずに済むよう、{@link #render} が置く。 */
     private float partialTick;
@@ -536,10 +494,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
 
     /** ハンドルの回転角 [rad]。正で右。ハンドルを握る手（{@link SteeringHands}）も同じ角度を使う。 */
     static double handwheelAngle(CarEntity car, CarSpec spec, float partialTick) {
-        if (spec.maxSteerAngle() <= 0.0) {
-            return 0.0;
-        }
-        return car.getRenderSteerAngle(partialTick) * HANDWHEEL_LOCK / spec.maxSteerAngle();
+        return CarRig.handwheelAngle(spec, car.getRenderSteerAngle(partialTick));
     }
 
     /**
@@ -548,31 +503,11 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
      * <p>{@link MirrorRenderer} が鏡の世界での位置を出すのにも使う。</p>
      */
     static void applyBodyTransform(CarModel model, CarSpec spec, PoseStack pose) {
-        // エンティティの位置はシャシー基準面。モデルは地面に立った状態で作られているので下げる。
-        // 現在の車高で下げてはいけない。サスを伸ばすとシャシー基準面も同じだけ上がるので、
-        // 車体とタイヤの両方を車高で動かすと打ち消し合い、車体とタイヤの間隔が変わらなくなる。
-        // 拡大より先に平行移動すること（後に置くと下げ量まで拡大される）
-        // 前後輪の中点まで下がる。エンティティの原点は<b>重心</b>なので、重心を前寄りにすると
-        // タイヤは相対的に後ろへ動く（前 56% なら 0.187m）。車体メッシュは前後輪の中点を
-        // 原点に作られているので、この差を埋めないとホイールアーチがタイヤから前へずれる。
-        // 荷重配分を入れた日にここを直し忘れ、body.offset で手当てする羽目になった
-        // エンティティ空間は -Z が前なので、物理側（+Z が前）とは符号が逆になる
-        double axleMidpoint = -spec.axleMidpointOffset();
-
-        CarModel.Vec3 offset = model.bodyOffset();
-        pose.translate(offset.x(), offset.y() - model.designRideHeight(), offset.z() + axleMidpoint);
-
-        // メッシュの作りの大きさを既定の車格へ正規化する。5.2m で作ったモデルに
-        // designWheelBase = 5.2 と書けば半分に縮み、ホイールアーチがタイヤの位置に合う。
-        //
-        // 比べる相手は CarSpec.DEFAULT であって、今の諸元ではない。ここを spec.wheelBase() に
-        // すると、ホイールベースのスライダーで車体まで伸び縮みする（キャビンごと伸びる）。
-        // 定数なので走行中に変わることはない
-        double fit = CarSpec.DEFAULT.wheelBase() / model.designWheelBase();
-
-        // その上に手で決める拡大率。原点が地面なので、上げると車体は上へ伸びる
-        CarModel.Vec3 scale = model.bodyScale();
-        pose.scale((float) (fit * scale.x()), (float) (fit * scale.y()), (float) (fit * scale.z()));
+        // 数は core の CarRig（下げる量・前後輪の中点・車格への正規化）。平行移動を拡大より先に掛けること
+        double[] offset = CarRig.bodyOffset(model, spec);
+        pose.translate(offset[0], offset[1], offset[2]);
+        double[] scale = CarRig.bodyScale(model);
+        pose.scale((float) scale[0], (float) scale[1], (float) scale[2]);
     }
 
     private void renderWheels(CarEntity car, CarModel model, CarSpec spec, PoseStack pose,
@@ -591,11 +526,10 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
         // 見た目もそのまま追従する（車高も上がるので接地したまま車体が持ち上がる）。
         // 後者で縦（Y・Z）を触ると接地が崩れる——物理はこの補正を知らないため。
         // 太さ（X）だけなら安全
-        double scale = spec.wheelRadius() / look.designRadius();
-        CarModel.Vec3 wheelScale = look.scale();
-        float scaleX = (float) (scale * wheelScale.x());
-        float scaleY = (float) (scale * wheelScale.y());
-        float scaleZ = (float) (scale * wheelScale.z());
+        float[] wheelScale = CarRig.wheelScale(spec, look);
+        float scaleX = wheelScale[0];
+        float scaleY = wheelScale[1];
+        float scaleZ = wheelScale[2];
 
         // タイヤ。ホイールは必ずタイヤ抜きで描き、タイヤ（選んだもの、無ければ純正）を、内径がリムへ・
         // 外径がメッシュのタイヤ半径へ来るよう半径方向に合わせ直して描く。拡大はホイールと同じ pose が
@@ -630,10 +564,8 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
             // どれだけ伸びているか。タイヤ中心 = シャシー基準面からサス長ぶん下。静止時は
             // サス長 = 車高 - タイヤ半径 なので、タイヤはちょうど地面に接する。
             // JSON のオフセットはこれに対する補正で、X は左右で符号を反転させて「外向き」にする
-            double outward = wheel.isLeft() ? -offset.x() : offset.x();
-            pose.translate(spec.wheelRightOffset(wheel) + outward,
-                    -car.getRenderSuspensionLength(wheel, partialTick) + offset.y(),
-                    -spec.wheelForwardOffset(wheel) + offset.z());
+            double[] center = CarRig.wheelCenter(spec, offset, wheel, car.getRenderSuspensionLength(wheel, partialTick));
+            pose.translate(center[0], center[1], center[2]);
 
             // リジッドアクスルは左右のタイヤが 1 本の軸に付いているので、軸の傾きぶん両輪とも傾く。
             // 軸の傾きは左右のサス長の差から出る（サス長は 4 輪とも同期しているので、他人の車でも同じ）。
@@ -692,14 +624,7 @@ public class CarObjRenderer extends EntityRenderer<CarEntity, CarObjRenderer.Car
      * それも無ければリムの外縁の {@link CarPartModel#BEAD_RATIO} 倍。</p>
      */
     static double beadRadius(CarPartModel.Wheel look, ObjModel wheelMesh) {
-        if (look.rimRadius() != null) {
-            return look.rimRadius();
-        }
-        double[] attached = wheelMesh.tireRadialRange();
-        if (attached != null) {
-            return attached[0];
-        }
-        return wheelMesh.rimOuterRadius() * CarPartModel.BEAD_RATIO;
+        return CarRig.beadRadius(look, wheelMesh);
     }
 
     /** ホイールを、付属のタイヤを除いて描く。 */

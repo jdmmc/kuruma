@@ -104,19 +104,8 @@ public final class CarLights {
 
     // ---- 路面 ----------------------------------------------------------------------
 
-    /** 路面を照らす奥行き [m]。{@link #GROUND_FADE_START} から先で消えていく。 */
-    private static final double GROUND_RANGE = 44.0;
-    private static final double GROUND_FADE_START = 30.0;
     /** これより遠い車の路面は描かない。ブロックを数百個調べるので。 */
     private static final double GROUND_MAX_DISTANCE = 96.0;
-    /** 下を何ブロックまで探すか。これより深い谷底は照らさない。 */
-    private static final int GROUND_SCAN_DEPTH = 6;
-    /** 壁を上へ何ブロックまで見るか。光はカットオフより上へ行かないので高くは要らない。 */
-    private static final int WALL_SCAN_HEIGHT = 2;
-    /** 面から浮かせる量 [m]。z ファイティングよけ。 */
-    private static final float SURFACE_LIFT = 0.012F;
-    /** 壁の面を縦に刻む幅 [m]。カットオフの線が壁にくっきり出るように。 */
-    private static final double WALL_SLICE = 0.25;
     /**
      * 照らされた面を昼の姿へどこまで近づけるか。1 で昼と同じ明るさ。
      *
@@ -127,8 +116,6 @@ public final class CarLights {
     private static final float GROUND_ADD = 0.12F;
     /** テクスチャを持たない面（水面など）は加算だけで描くので、そのぶん強く足す。 */
     private static final float UNTEXTURED_BOOST = 2.5F;
-    /** 遮蔽を調べる角度の刻み（光軸の左右 90 度を何分割するか）。 */
-    private static final int HORIZON_BINS = 360;
 
     // ---- 光の筋 --------------------------------------------------------------------
 
@@ -168,7 +155,7 @@ public final class CarLights {
     private static final float GLOW_DAYLIGHT = 0.15F;
 
     /** 路面の形は 1 ティックに 1 度だけ調べ直す。車ごとに持つ。 */
-    private static final Map<CarEntity, GroundField> FIELDS = new WeakHashMap<>();
+    private static final Map<CarEntity, HeadlightGround.Field> FIELDS = new WeakHashMap<>();
 
     private CarLights() {
     }
@@ -304,9 +291,10 @@ public final class CarLights {
         if (beam != null && !screenSpace && !MirrorRenderer.isRendering()) {
             float strength = darkness;
             if (strength > 0.03F && eye.lengthSqr() < GROUND_MAX_DISTANCE * GROUND_MAX_DISTANCE) {
-                GroundField field = FIELDS.computeIfAbsent(car, key -> new GroundField());
+                HeadlightGround.Field field = FIELDS.computeIfAbsent(car, key -> new HeadlightGround.Field());
                 if (field.tick != car.tickCount) {
-                    field.rebuild(car.level(), origin, beam);
+                    field.rebuild(blocks(car.level()), origin.x + beam.mid.x, origin.z + beam.mid.z, origin.y + beam.mid.y,
+                            beam.axis.x, beam.axis.z);
                     field.tick = car.tickCount;
                 }
                 Lighting lit = renderGround(car.level(), field, beam, origin, strength);
@@ -514,7 +502,7 @@ public final class CarLights {
         final Vec3 right;
         final Vec3 up;
         /** 光の筋の裾を路面で消すのに使う。路面を調べていないときは null。 */
-        GroundField field;
+        HeadlightGround.Field field;
 
         private Beam(List<Vec3> lamps, Vec3 axis, Vec3 right, Vec3 up) {
             this.lamps = lamps;
@@ -581,181 +569,6 @@ public final class CarLights {
     // ---- 路面 ----------------------------------------------------------------------
 
     /**
-     * 車の前に広がる扇形の範囲で、ブロックごとの路面の高さを調べたもの。
-     *
-     * <p><b>1 ティックに 1 度だけ作り直す。</b>世界の形はそうそう変わらないのに対し、
-     * 明るさは毎フレーム計算し直す（ライトの位置は補間されて動くので、20Hz で計算すると
-     * 照らされた範囲が車からカクカク遅れる）。</p>
-     */
-    private static final class GroundField {
-        static final byte NONE = 0;
-        static final byte FLOOR = 1;
-        /** ライトの高さにブロックがある。天面は照らさず、手前の面だけが照らされる。 */
-        static final byte WALL = 2;
-
-        int tick = Integer.MIN_VALUE;
-        int minX;
-        int minZ;
-        int sizeX;
-        int sizeZ;
-        double lampY;
-        float[] top = new float[0];
-        byte[] kind = new byte[0];
-        /** 壁の当たり判定の水平の範囲（フェンスや塀は 1 ブロックいっぱいではない）。 */
-        float[] wall = new float[0];
-        /** 床のブロックの高さ（Y 座標）。照らした面をそのブロックのテクスチャで描くのに使う。 */
-        int[] floorY = new int[0];
-        /** 光源に近い順に並べたセルの番号。遮蔽を手前から積むのに使う。 */
-        int[] order = new int[0];
-        int orderCount;
-
-        int index(int bx, int bz) {
-            int ix = bx - minX;
-            int iz = bz - minZ;
-            if (ix < 0 || iz < 0 || ix >= sizeX || iz >= sizeZ) {
-                return -1;
-            }
-            return iz * sizeX + ix;
-        }
-
-        /** その位置の床の高さ。調べていないか床でなければ NaN。 */
-        double floorAt(double x, double z) {
-            int i = index(Mth.floor(x), Mth.floor(z));
-            return i >= 0 && kind[i] == FLOOR ? top[i] : Double.NaN;
-        }
-
-        void rebuild(Level level, Vec3 origin, Beam beam) {
-            // 範囲は光軸の水平の向きで決める。調べるのはブロックの座標なので世界の向き
-            double fx = beam.axis.x;
-            double fz = beam.axis.z;
-            double length = Math.hypot(fx, fz);
-            if (length < 1.0E-4) {
-                sizeX = sizeZ = 0;
-                orderCount = 0;
-                return;
-            }
-            fx /= length;
-            fz /= length;
-            double rx = -fz;
-            double rz = fx;
-            double ox = origin.x + beam.mid.x;
-            double oz = origin.z + beam.mid.z;
-            lampY = origin.y + beam.mid.y;
-
-            // 扇形を囲む箱
-            double far = GROUND_RANGE + 2.0;
-            double farHalf = halfWidth(GROUND_RANGE) + 2.0;
-            double[][] corners = {
-                    {ox - fx * 2.0 + rx * 3.0, oz - fz * 2.0 + rz * 3.0},
-                    {ox - fx * 2.0 - rx * 3.0, oz - fz * 2.0 - rz * 3.0},
-                    {ox + fx * far + rx * farHalf, oz + fz * far + rz * farHalf},
-                    {ox + fx * far - rx * farHalf, oz + fz * far - rz * farHalf},
-            };
-            double lowX = Double.MAX_VALUE;
-            double lowZ = Double.MAX_VALUE;
-            double highX = -Double.MAX_VALUE;
-            double highZ = -Double.MAX_VALUE;
-            for (double[] c : corners) {
-                lowX = Math.min(lowX, c[0]);
-                highX = Math.max(highX, c[0]);
-                lowZ = Math.min(lowZ, c[1]);
-                highZ = Math.max(highZ, c[1]);
-            }
-            minX = Mth.floor(lowX);
-            minZ = Mth.floor(lowZ);
-            sizeX = Mth.floor(highX) - minX + 1;
-            sizeZ = Mth.floor(highZ) - minZ + 1;
-            int cells = sizeX * sizeZ;
-            if (top.length < cells) {
-                top = new float[cells];
-                kind = new byte[cells];
-                wall = new float[cells * 4];
-                floorY = new int[cells];
-                order = new int[cells];
-            }
-            Arrays.fill(kind, 0, cells, NONE);
-
-            long[] sortable = new long[cells];
-            int count = 0;
-            BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-            int lampBlock = Mth.floor(lampY);
-            for (int iz = 0; iz < sizeZ; iz++) {
-                for (int ix = 0; ix < sizeX; ix++) {
-                    int bx = minX + ix;
-                    int bz = minZ + iz;
-                    double dx = bx + 0.5 - ox;
-                    double dz = bz + 0.5 - oz;
-                    double f = dx * fx + dz * fz;
-                    double l = dx * rx + dz * rz;
-                    if (f < -1.5 || f > GROUND_RANGE + 1.0 || Math.abs(l) > halfWidth(Math.max(0.0, f)) + 1.5) {
-                        continue;
-                    }
-                    int i = iz * sizeX + ix;
-                    if (!scan(level, pos, bx, bz, lampBlock, i)) {
-                        continue;
-                    }
-                    // 距離を上位、番号を下位に詰めて並べ替える（1mm 単位）
-                    sortable[count++] = ((long) (Math.sqrt(dx * dx + dz * dz) * 1000.0) << 24) | i;
-                }
-            }
-            Arrays.sort(sortable, 0, count);
-            for (int k = 0; k < count; k++) {
-                order[k] = (int) (sortable[k] & 0xFFFFFF);
-            }
-            orderCount = count;
-        }
-
-        /**
-         * 1 列ぶんの路面を調べる。
-         *
-         * <p><b>ライトの高さから始める。</b>上から下へ舐めると、トンネルの天井や
-         * 高架を「路面」と読んで、その下の道路が照らされなくなる。ライトの高さに
-         * ブロックがあれば壁、無ければそこから下へ床を探す。</p>
-         */
-        private boolean scan(Level level, BlockPos.MutableBlockPos pos, int bx, int bz,
-                             int lampBlock, int i) {
-            double t = surfaceTop(level, pos.set(bx, lampBlock, bz));
-            if (!Double.isNaN(t) && t >= lampY - 0.05) {
-                // 壁。水平の範囲は当たり判定の箱から取る
-                BlockState state = level.getBlockState(pos);
-                VoxelShape shape = state.getCollisionShape(level, pos);
-                AABB box = shape.isEmpty() ? new AABB(0, 0, 0, 1, 1, 1) : shape.bounds();
-                wall[i * 4] = (float) (bx + box.minX);
-                wall[i * 4 + 1] = (float) (bx + box.maxX);
-                wall[i * 4 + 2] = (float) (bz + box.minZ);
-                wall[i * 4 + 3] = (float) (bz + box.maxZ);
-                double height = t;
-                for (int y = lampBlock + 1; y <= lampBlock + WALL_SCAN_HEIGHT; y++) {
-                    double above = surfaceTop(level, pos.set(bx, y, bz));
-                    if (Double.isNaN(above)) {
-                        break;
-                    }
-                    height = above;
-                }
-                top[i] = (float) height;
-                kind[i] = WALL;
-                return true;
-            }
-            if (!Double.isNaN(t)) {
-                top[i] = (float) t;
-                kind[i] = FLOOR;
-                floorY[i] = lampBlock;
-                return true;
-            }
-            for (int y = lampBlock - 1; y >= lampBlock - GROUND_SCAN_DEPTH; y--) {
-                double below = surfaceTop(level, pos.set(bx, y, bz));
-                if (!Double.isNaN(below)) {
-                    top[i] = (float) below;
-                    kind[i] = FLOOR;
-                    floorY[i] = y;
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
-    /**
      * そのブロックの上面の高さ。当たり判定も液体も無ければ NaN。
      *
      * <p>液体も面として扱う（水面が照らされ、その下の水底は照らされない）。
@@ -792,159 +605,62 @@ public final class CarLights {
         return top;
     }
 
-    /** 光軸から横へどこまで調べるか [m]。手前は広く、奥は配光の芯のぶんだけ。 */
-    private static double halfWidth(double forward) {
-        return Math.min(forward * Math.tan(Math.toRadians(60.0)) + 1.5,
-                3.5 + forward * Math.tan(Math.toRadians(22.0)));
+    /** 路面を読む口（{@link HeadlightGround.Blocks}）。 */
+    private static HeadlightGround.Blocks blocks(Level level) {
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        return new HeadlightGround.Blocks() {
+            @Override
+            public double surfaceTop(int x, int y, int z) {
+                return CarLights.surfaceTop(level, pos.set(x, y, z));
+            }
+
+            @Override
+            public double[] wallBox(int x, int y, int z) {
+                pos.set(x, y, z);
+                VoxelShape shape = level.getBlockState(pos).getCollisionShape(level, pos);
+                AABB box = shape.isEmpty() ? new AABB(0, 0, 0, 1, 1, 1) : shape.bounds();
+                return new double[]{box.minX, box.maxX, box.minZ, box.maxZ};
+            }
+        };
     }
 
     /**
-     * 路面の照り返しを組み立てる。
-     *
-     * <p>ブロックごとに<b>上面と、光源を向いている側面</b>を、<b>そのブロックのモデルの面</b>として
-     * 明るさ最大で描き直し、頂点ごとに配光から求めた濃さで重ねる（{@link EffectRenderTypes#LIT_SURFACE}）。
-     * 照らされた路面は模様も色もそのまま明るくなる。頂点はブロックの角にあるので、
-     * 隣どうしで明るさが途切れない。</p>
-     *
-     * <h3>遮蔽</h3>
-     *
-     * <p>光源に近いセルから順に、光軸の左右の角度ごとに「これまでに見えた最も高い仰角」を
-     * 積んでいく（地平線）。自分の仰角がそれより低ければ、手前の何かの陰にいる。
-     * 平らな地面は奥ほど仰角が上がるので自分の陰にはならず、段差や塀の向こうだけが暗くなる。
-     * 光線を 1 本ずつ飛ばすより桁違いに安い。</p>
+     * 路面の照り返しを組み立てる（どこを照らすかは {@link HeadlightGround#light}）。ブロックごとに<b>上面と、光源を
+     * 向いている側面</b>を、<b>そのブロックのモデルの面</b>として明るさ最大で描き直し、頂点ごとに配光から求めた濃さで重ねる。
      */
-    private static Lighting renderGround(Level level, GroundField field, Beam beam, Vec3 origin,
+    private static Lighting renderGround(Level level, HeadlightGround.Field field, Beam beam, Vec3 origin,
                                          float strength) {
-        if (field.orderCount == 0) {
-            return null;
-        }
         double fx = beam.axis.x;
         double fz = beam.axis.z;
         double length = Math.hypot(fx, fz);
         if (length < 1.0E-4) {
             return null;
         }
-        fx /= length;
-        fz /= length;
-        double rx = -fz;
-        double rz = fx;
         double mx = origin.x + beam.mid.x;
         double mz = origin.z + beam.mid.z;
         double lampY = origin.y + beam.mid.y;
-
-        float[] horizon = new float[HORIZON_BINS];
-        Arrays.fill(horizon, Float.NEGATIVE_INFINITY);
-        double binScale = HORIZON_BINS / Math.PI;
-        Lighting lighting = new Lighting(level, beam, origin, strength, mx, mz, fx, fz, rx, rz);
-        Vertices out = lighting.glow;
-
-        for (int k = 0; k < field.orderCount; k++) {
-            int i = field.order[k];
-            int bx = field.minX + i % field.sizeX;
-            int bz = field.minZ + i / field.sizeX;
-            double dx = bx + 0.5 - mx;
-            double dz = bz + 0.5 - mz;
-            double f = dx * fx + dz * fz;
-            double l = dx * rx + dz * rz;
-            double dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < 0.4 || f <= 0.0) {
-                continue;
-            }
-            double angle = Math.atan2(l, f);
-            int bin = Mth.clamp((int) ((angle + Math.PI / 2.0) * binScale), 0, HORIZON_BINS - 1);
-            int spread = Math.max(0, (int) Math.ceil(Math.atan(0.75 / dist) * binScale));
-            float seen = horizon[bin];
-            double top = field.top[i];
-
-            if (field.kind[i] == GroundField.FLOOR) {
-                if ((top - lampY) / dist >= seen - 1.0E-4
-                        && !lighting.surface(bx, field.floorY[i], bz, Direction.UP)) {
-                    // モデルの面が無い（水面など）。テクスチャ無しの光だけ置く
-                    float y = (float) (top + SURFACE_LIFT);
-                    lighting.quad(out, bx, y, bz, bx + 1, y, bz, bx + 1, y, bz + 1, bx, y, bz + 1,
-                            0.0, 1.0, 0.0);
-                }
+        Lighting lighting = new Lighting(level, beam, origin, strength, mx, mz, fx / length, fz / length,
+                -fz / length, fx / length);
+        boolean any = HeadlightGround.light(field, new HeadlightGround.Faces() {
+            @Override
+            public boolean surface(int x, int y, int z, HeadlightGround.Side side) {
+                return lighting.surface(x, y, z, switch (side) {
+                    case UP -> Direction.UP;
+                    case WEST -> Direction.WEST;
+                    case EAST -> Direction.EAST;
+                    case NORTH -> Direction.NORTH;
+                    case SOUTH -> Direction.SOUTH;
+                });
             }
 
-            // 光源を向いている側面。手前（光源側）の隣が低ければ、そのぶんだけ面が見えている
-            double faceTop = Math.min(top, lampY + WALL_SCAN_HEIGHT);
-            wallFace(field, lighting, out, i, bx, bz, -1, 0, mx, mz, lampY, dist, seen, faceTop);
-            wallFace(field, lighting, out, i, bx, bz, 1, 0, mx, mz, lampY, dist, seen, faceTop);
-            wallFace(field, lighting, out, i, bx, bz, 0, -1, mx, mz, lampY, dist, seen, faceTop);
-            wallFace(field, lighting, out, i, bx, bz, 0, 1, mx, mz, lampY, dist, seen, faceTop);
-
-            float elevation = (float) ((top - lampY) / dist);
-            for (int b = Math.max(0, bin - spread); b <= Math.min(HORIZON_BINS - 1, bin + spread); b++) {
-                if (elevation > horizon[b]) {
-                    horizon[b] = elevation;
-                }
+            @Override
+            public void quad(float x0, float y0, float z0, float x1, float y1, float z1,
+                             float x2, float y2, float z2, float x3, float y3, float z3,
+                             double nx, double ny, double nz) {
+                lighting.quad(lighting.glow, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, nx, ny, nz);
             }
-        }
-        return lighting;
-    }
-
-    /** セル i の、(sx, sz) 側の側面。見えていて照らされていれば縦に刻んで出す。 */
-    private static void wallFace(GroundField field, Lighting lighting, Vertices out, int i,
-                                 int bx, int bz, int sx, int sz, double mx, double mz, double lampY,
-                                 double dist, float seen, double faceTop) {
-        // 光源を向いていない面は照らされない
-        double toLampX = mx - (bx + 0.5);
-        double toLampZ = mz - (bz + 0.5);
-        if (sx * toLampX + sz * toLampZ <= 0.0) {
-            return;
-        }
-        int neighbour = field.index(bx + sx, bz + sz);
-        if (neighbour < 0 || field.kind[neighbour] == GroundField.NONE
-                || field.kind[neighbour] == GroundField.WALL) {
-            return;
-        }
-        double bottom = field.top[neighbour];
-        if (faceTop - bottom < 0.1) {
-            return;
-        }
-        // 面の下端が手前の何かに隠れていれば、面全体を隠れたものとする
-        if ((bottom - lampY) / dist < seen - 1.0E-4) {
-            return;
-        }
-        double x0;
-        double x1;
-        double z0;
-        double z1;
-        if (field.kind[i] == GroundField.WALL) {
-            x0 = field.wall[i * 4];
-            x1 = field.wall[i * 4 + 1];
-            z0 = field.wall[i * 4 + 2];
-            z1 = field.wall[i * 4 + 3];
-        } else {
-            x0 = bx;
-            x1 = bx + 1;
-            z0 = bz;
-            z1 = bz + 1;
-        }
-        // まずはブロックのモデルの面として描く。1 ブロックずつ積む
-        Direction side = Direction.getNearest(sx, 0, sz, null);
-        boolean textured = false;
-        for (int y = Mth.floor(bottom + 1.0E-3); y <= Mth.floor(faceTop - 1.0E-3); y++) {
-            textured |= lighting.surface(bx, y, bz, side);
-        }
-        if (textured) {
-            return;
-        }
-        float lift = SURFACE_LIFT;
-        int slices = Mth.clamp((int) Math.ceil((faceTop - bottom) / WALL_SLICE), 1, 16);
-        for (int s = 0; s < slices; s++) {
-            float ya = (float) (bottom + (faceTop - bottom) * s / slices);
-            float yb = (float) (bottom + (faceTop - bottom) * (s + 1) / slices);
-            if (sx != 0) {
-                float x = (float) (sx < 0 ? x0 - lift : x1 + lift);
-                lighting.quad(out, x, ya, (float) z0, x, ya, (float) z1, x, yb, (float) z1, x, yb, (float) z0,
-                        sx, 0.0, 0.0);
-            } else {
-                float z = (float) (sz < 0 ? z0 - lift : z1 + lift);
-                lighting.quad(out, (float) x0, ya, z, (float) x1, ya, z, (float) x1, yb, z, (float) x0, yb, z,
-                        0.0, 0.0, sz);
-            }
-        }
+        }, mx, mz, lampY, fx, fz);
+        return any ? lighting : null;
     }
 
     /** 路面の頂点の明るさを求めて積む係。範囲の端で消していくのもここ。 */
@@ -1050,9 +766,9 @@ public final class CarLights {
             float sum = 0.0F;
             for (int v = 0; v < 4; v++) {
                 Vector3fc position = quad.position(v);
-                px[v] = (float) (x + position.x() + nx * SURFACE_LIFT);
-                py[v] = (float) (y + position.y() + ny * SURFACE_LIFT);
-                pz[v] = (float) (z + position.z() + nz * SURFACE_LIFT);
+                px[v] = (float) (x + position.x() + nx * HeadlightGround.SURFACE_LIFT);
+                py[v] = (float) (y + position.y() + ny * HeadlightGround.SURFACE_LIFT);
+                pz[v] = (float) (z + position.z() + nz * HeadlightGround.SURFACE_LIFT);
                 b[v] = brightness(px[v], py[v], pz[v], nx, ny, nz);
                 sum += b[v];
             }
@@ -1094,8 +810,8 @@ public final class CarLights {
             double f = dx * fx + dz * fz;
             double l = Math.abs(dx * rx + dz * rz);
             // 調べた範囲の奥と横の端でなめらかに消す。切れ目がそのまま見えないように
-            double fade = (1.0 - HeadlightBeam.smoothstep(GROUND_FADE_START, GROUND_RANGE, f))
-                    * (1.0 - HeadlightBeam.smoothstep(halfWidth(Math.max(0.0, f)) - 2.5, halfWidth(Math.max(0.0, f)), l));
+            double fade = (1.0 - HeadlightBeam.smoothstep(HeadlightGround.GROUND_FADE_START, HeadlightGround.GROUND_RANGE, f))
+                    * (1.0 - HeadlightBeam.smoothstep(HeadlightGround.halfWidth(Math.max(0.0, f)) - 2.5, HeadlightGround.halfWidth(Math.max(0.0, f)), l));
             if (fade <= 0.0) {
                 return 0.0F;
             }

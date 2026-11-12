@@ -14,7 +14,7 @@ import net.minecraft.world.level.material.MapColor;
 /**
  * 車輪が掻き飛ばした砂塵と、タイヤが擦れて上げる白煙。
  *
- * <p>2 つは<b>同じ動かし方で、数字（{@link Look}）と絵だけが違う</b>。
+ * <p>2 つは<b>同じ動かし方で、数字（{@link DustLook}）と絵だけが違う</b>。
  * 砂利道の土煙の見え方が良かったので、舗装路の煙もそれに揃えた。</p>
  *
  * <p><b>その場に残る</b>のがこの粒の役目。車は自分が
@@ -45,73 +45,17 @@ import net.minecraft.world.level.material.MapColor;
  */
 public class DustParticle extends TextureSheetParticle {
 
-    /**
-     * 粒の性格。形（スプライト）と動かし方は共通で、数字だけが違う。
-     *
-     * @param rise           毎ティック上向きに足す速度 [blocks/tick]。浮いていくぶん
-     * @param friction       毎ティック速度に掛ける減衰。空気に食われて初速がすぐ抜ける
-     * @param minLifetime    いちばん短い寿命 [ティック]
-     * @param lifetimeSpread 寿命の振れ幅 [ティック]
-     * @param growth         寿命の終わりまでに大きさが何倍になるか（1 に足す量）
-     * @param peakAlpha      いちばん濃いときの不透明度
-     * @param fadePower      消えぎわの落ち方。大きいほど早く薄くなる
-     * @param minSize        いちばん小さいときの大きさ [blocks]
-     * @param maxSize        いちばん大きいときの大きさ [blocks]
-     * @param groundColor    足元のブロックの色を取るか。取らなければ明るい灰色
-     */
-    public record Look(double rise, float friction, int minLifetime, int lifetimeSpread,
-                       float growth, float peakAlpha, float fadePower,
-                       float minSize, float maxSize, boolean groundColor) {
-    }
-
-    /**
-     * 未舗装で掻き飛ばした砂塵。
-     *
-     * <p><b>不透明度を薄くしすぎると色が出ない。</b>見えている画素のほとんどが<b>後ろの空</b>に
-     * なるので、粒がどんな色を持っていても画面には空の色が出る（＝土煙が青く見える）。
-     * 寿命を通した平均は {@code peakAlpha / (fadePower + 1)} なので、数字よりずっと薄い。
-     * 減衰を 2 にすると粒が 4 つ重なっても空の色に負ける（実測: 画面の R-B が -0.25）。
-     * 1.5 なら -0.02 とほぼ中立になるが、見た目が悪くなったので 2 のままにしてある。</p>
-     */
-    public static final Look DUST = new Look(0.0032, 0.93F, 40, 36, 2.6F, 0.42F, 2.0F,
-            0.35F, 1.1F, true);
-
-    /**
-     * 舗装路でタイヤが擦れて上げる白煙。
-     *
-     * <p>砂塵と同じく<b>その場に残って帯になる</b>のが肝。ドリフトで車が通り過ぎたあとに
-     * 煙の壁が残るのはこれ。砂塵より<b>大きく・長く残り・よく昇る</b>（熱いので）。
-     * 濃さは寿命の後ろまで残したいので落ち方を緩め（1.5）、そのぶん頂点も少し上げてある。</p>
-     *
-     * <p><b>絵は自前の白い {@code tire_smoke_*}</b>（{@code tools/make_particles.py} が描く）。
-     * {@code big_smoke_*} は灰色なので白を指定しても半分の明るさにしかならず、白い
-     * {@code generic_*} は形がドット絵の丸い塊で煙に見えなかった。形は big_smoke の流儀に
-     * 合わせてあるが、<b>バニラの絵の塗り直しではない</b>（改変した絵を配ることになるため）。</p>
-     */
-    public static final Look TIRE_SMOKE = new Look(0.0055, 0.90F, 55, 55, 3.4F, 0.50F, 1.5F,
-            0.55F, 1.4F, false);
-
-    /** 速度 1 blocks/tick ぶんで足す大きさ。強く弾かれた粒ほど大きく舞う。 */
-    private static final float SIZE_PER_SPEED = 1.6F;
-    /** 出てから濃さが乗りきるまでのティック数。いきなり現れると点滅して見える。 */
-    private static final float FADE_IN_TICKS = 4.0F;
-
-    /** ブロックの色が引けなかったときの色。乾いた土の色。 */
-    private static final int FALLBACK_COLOR = 0xA08050;
-    /**
-     * ブロックの色をどれだけ白へ寄せるか。舞い上がった粉は地面より明るく見えるため。
-     *
-     * <p><b>寄せすぎると色が消える。</b>これは明るさを上げる代わりに<b>彩度を落として</b>
-     * いるので、砂のようにもともと淡い色は無彩色に近づき、後ろの空に染められてしまう。</p>
-     */
-    private static final float WHITEN = 0.42F;
+    /** 砂塵（{@link DustLook#DUST}）。 */
+    public static final DustLook DUST = DustLook.DUST;
+    /** 白煙（{@link DustLook#TIRE_SMOKE}）。 */
+    public static final DustLook TIRE_SMOKE = DustLook.TIRE_SMOKE;
 
     private final SpriteSet sprites;
-    private final Look look;
+    private final DustLook look;
     private final float baseSize;
 
     private DustParticle(ClientLevel level, double x, double y, double z,
-                         double xd, double yd, double zd, float size, SpriteSet sprites, Look look) {
+                         double xd, double yd, double zd, float size, SpriteSet sprites, DustLook look) {
         // 速度を渡さない 4 引数のほうを使うこと。7 引数の Particle は
         // 渡した速度を大きく撹拌して上書きしてしまうので、狙った向きへ飛ばせない
         super(level, x, y, z);
@@ -144,21 +88,16 @@ public class DustParticle extends TextureSheetParticle {
         BlockPos pos = BlockPos.containing(x, y - 0.15, z);
         BlockState state = level.getBlockState(pos);
         MapColor color = state.getMapColor(level, pos);
-        int rgb = color == MapColor.NONE ? FALLBACK_COLOR : color.col;
+        int rgb = color == MapColor.NONE ? DustLook.FALLBACK_COLOR : color.col;
         if (rgb == 0) {
-            rgb = FALLBACK_COLOR;
+            rgb = DustLook.FALLBACK_COLOR;
         }
         // 同じ色ばかりだと板に見えるので、粒ごとに明るさを少し散らす
         float shade = 0.85F + this.random.nextFloat() * 0.25F;
-        setColor(
-                whiten(((rgb >> 16) & 0xFF) / 255.0F) * shade,
-                whiten(((rgb >> 8) & 0xFF) / 255.0F) * shade,
-                whiten((rgb & 0xFF) / 255.0F) * shade);
+        float[] tint = DustLook.groundTint(rgb, shade);
+        setColor(tint[0], tint[1], tint[2]);
     }
 
-    private static float whiten(float channel) {
-        return channel + (1.0F - channel) * WHITEN;
-    }
 
     @Override
     public void tick() {
@@ -177,18 +116,13 @@ public class DustParticle extends TextureSheetParticle {
         this.yd *= this.friction;
         this.zd *= this.friction;
 
-        // 出るときは素早く、消えるときはゆっくり。切れ目が見えないように
-        float life = (float) this.age / this.lifetime;
-        float fadeIn = Math.min(1.0F, this.age / FADE_IN_TICKS);
-        float fadeOut = (float) Math.pow(1.0F - life, this.look.fadePower());
-        this.alpha = this.look.peakAlpha() * fadeIn * fadeOut;
+        this.alpha = this.look.alpha(this.age, this.lifetime);
     }
 
     /** 時間とともに膨らむ。{@code partialTick} を効かせないと 20Hz の階段になる。 */
     @Override
     public float getQuadSize(float partialTick) {
-        float life = Math.min(1.0F, (this.age + partialTick) / this.lifetime);
-        return this.baseSize * (1.0F + this.look.growth() * life);
+        return this.look.quadSize(this.baseSize, this.age, partialTick, this.lifetime);
     }
 
     @Override
@@ -201,14 +135,14 @@ public class DustParticle extends TextureSheetParticle {
      *
      * <p>{@code ParticleOptions} には数字を 1 つも載せられない（{@code SimpleParticleType}）ので、
      * <b>速度の大きさから大きさを決めている</b>——強く弾き飛ばされた粒ほど大きく舞う、という
-     * 意味づけになるので都合がよい。粒の種類ごとに {@link Look} を渡して作る。</p>
+     * 意味づけになるので都合がよい。粒の種類ごとに {@link DustLook} を渡して作る。</p>
      */
     public static class Provider implements ParticleProvider<SimpleParticleType> {
 
         private final SpriteSet sprites;
-        private final Look look;
+        private final DustLook look;
 
-        public Provider(SpriteSet sprites, Look look) {
+        public Provider(SpriteSet sprites, DustLook look) {
             this.sprites = sprites;
             this.look = look;
         }
@@ -217,8 +151,7 @@ public class DustParticle extends TextureSheetParticle {
         public Particle createParticle(SimpleParticleType options, ClientLevel level,
                                        double x, double y, double z,
                                        double xd, double yd, double zd) {
-            double speed = Math.sqrt(xd * xd + yd * yd + zd * zd);
-            float size = (float) Math.min(look.maxSize(), look.minSize() + speed * SIZE_PER_SPEED);
+            float size = look.sizeFor(Math.sqrt(xd * xd + yd * yd + zd * zd));
             return new DustParticle(level, x, y, z, xd, yd, zd, size, sprites, look);
         }
     }

@@ -20,7 +20,7 @@ import org.joml.Quaternionf;
  *
  * <p><b>点ではなく、飛んでいる向きに伸びた筋として描く</b>（{@link #extract}）。カメラを向いた四角の
  * ままだと小さな点の集まりにしか見えず、走りながらでは火花だと分からなかった。筋の長さは
- * 直前のティックに動いた距離 × {@link #STREAK_TICKS}。速く飛ぶほど長く、地面に落ちて止まれば
+ * 直前のティックに動いた距離 × {@code SparkLife.STREAK_TICKS}。速く飛ぶほど長く、地面に落ちて止まれば
  * 短い点に縮む。絵（{@code textures/particle/spark.png}、{@code tools/make_particles.py} が描く）は
  * 先頭が太く濃く、尾へ向かって細く薄くなる。</p>
  *
@@ -30,20 +30,6 @@ import org.joml.Quaternionf;
  */
 public class SparkParticle extends SingleQuadParticle {
 
-    /** 生まれたときの色（白っぽい黄色）。 */
-    private static final float HOT_R = 1.0F;
-    private static final float HOT_G = 0.96F;
-    private static final float HOT_B = 0.72F;
-    /** 冷えきったときの色（赤みの強い橙）。 */
-    private static final float COLD_R = 1.0F;
-    private static final float COLD_G = 0.35F;
-    private static final float COLD_B = 0.08F;
-    /** 最後のどれだけの割合で薄れていくか。 */
-    private static final float FADE_SHARE = 0.4F;
-    /** 筋の長さを、直前のティックに動いた距離の何倍にするか。 */
-    private static final float STREAK_TICKS = 1.8F;
-    /** 筋の長さの下限（幅の何倍か）。止まった粒も短い筋として見える。 */
-    private static final float MIN_LENGTH_PER_WIDTH = 1.5F;
 
     /** 最後に動いた向き（単位ベクトル）。止まったあとも筋の向きを保つ。 */
     private float dirX;
@@ -63,7 +49,8 @@ public class SparkParticle extends SingleQuadParticle {
         this.lifetime = 10 + random.nextInt(11);
         // 筋の幅
         this.quadSize = 0.06F + random.nextFloat() * 0.04F;
-        setColor(HOT_R, HOT_G, HOT_B);
+        float[] hot = SparkLife.color(0.0F);
+        setColor(hot[0], hot[1], hot[2]);
         float length = Mth.sqrt((float) (xd * xd + yd * yd + zd * zd));
         if (length > 1.0e-4F) {
             dirX = (float) xd / length;
@@ -79,8 +66,9 @@ public class SparkParticle extends SingleQuadParticle {
             return;
         }
         float t = Mth.clamp(age / (float) lifetime, 0.0F, 1.0F);
-        setColor(Mth.lerp(t, HOT_R, COLD_R), Mth.lerp(t, HOT_G, COLD_G), Mth.lerp(t, HOT_B, COLD_B));
-        setAlpha(Mth.clamp((1.0F - t) / FADE_SHARE, 0.0F, 1.0F));
+        float[] color = SparkLife.color(t);
+        setColor(color[0], color[1], color[2]);
+        setAlpha(SparkLife.alpha(t));
     }
 
     /**
@@ -108,7 +96,7 @@ public class SparkParticle extends SingleQuadParticle {
             dirZ = mz / moved;
         }
         float width = quadSize;
-        float length = Math.max(moved * STREAK_TICKS, width * MIN_LENGTH_PER_WIDTH);
+        float length = SparkLife.length(moved, width);
 
         // 幅の向き = 筋 × 視線（カメラが原点なので、先頭の位置がそのまま視線）
         float sx = dirY * hz - dirZ * hy;
