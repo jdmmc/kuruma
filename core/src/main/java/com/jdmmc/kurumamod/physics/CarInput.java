@@ -31,14 +31,53 @@ package com.jdmmc.kurumamod.physics;
  * @param steerAxis    ステアの位置 -1..1。正で右。同上
  * @param handbrakeAxis サイドブレーキの引き量 0..1。同上。ハンコンのサイドレバーのように無段階に引ける入力
  * @param analog       コントローラなど、位置をそのまま渡せる入力か
+ * @param gearSelect   H シフターで選んでいる段（バック -1・ニュートラル 0・1 速〜）。H シフターを使っていなければ
+ *                     {@link #NO_GEAR_SELECT}。押した瞬間ではなく<b>今入っている位置</b>なので、刻みごとに渡してよい
+ * @param directSteer  ハンコンの直結。{@code steerAxis} をそのままハンドルの角度にし（± 最大切れ角）、
+ *                     舵の変化率・切れ角の上限・自動カウンター・舵戻しを掛けない。{@code analog} のときだけ意味を持つ
  */
 public record CarInput(boolean throttle, boolean brake, boolean left, boolean right,
                        boolean shiftUp, boolean shiftDown, boolean handbrake,
                        double throttleAxis, double brakeAxis, double steerAxis, double handbrakeAxis,
-                       boolean analog) {
+                       boolean analog, int gearSelect, boolean directSteer) {
 
     /** 軸がこの値を超えたら「踏んでいる」と見なす。 */
     public static final double AXIS_THRESHOLD = 0.05;
+
+    /** H シフターを使っていない（段はシフトアップ・ダウンで動かす）。 */
+    public static final int NO_GEAR_SELECT = Integer.MIN_VALUE;
+
+    /** H シフター無し・直結無し。 */
+    public CarInput(boolean throttle, boolean brake, boolean left, boolean right,
+                    boolean shiftUp, boolean shiftDown, boolean handbrake,
+                    double throttleAxis, double brakeAxis, double steerAxis, double handbrakeAxis,
+                    boolean analog) {
+        this(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, NO_GEAR_SELECT, false);
+    }
+
+    /** H シフターで段を選んでいるか。 */
+    public boolean hasGearSelect() {
+        return gearSelect != NO_GEAR_SELECT;
+    }
+
+    /** H シフターの段を載せたもの。 */
+    public CarInput withGearSelect(int gear) {
+        if (gear == gearSelect) {
+            return this;
+        }
+        return new CarInput(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gear, directSteer);
+    }
+
+    /** ハンコンの直結にしたもの。 */
+    public CarInput withDirectSteer(boolean direct) {
+        if (direct == directSteer) {
+            return this;
+        }
+        return new CarInput(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, direct);
+    }
 
     /** キーボード相当。変速もサイドブレーキも使わない。実験用のコードがそのまま通るように残してある。 */
     public CarInput(boolean throttle, boolean brake, boolean left, boolean right) {
@@ -97,7 +136,7 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
             return this;
         }
         return new CarInput(throttle, brake, left, right, false, false, handbrake,
-                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog);
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, directSteer);
     }
 
     /** 無操作。誰も乗っていない車や、運転していない側で使う。 */

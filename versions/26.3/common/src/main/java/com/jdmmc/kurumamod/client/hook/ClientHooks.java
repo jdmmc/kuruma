@@ -5,6 +5,7 @@ import com.jdmmc.kurumamod.client.CarCamera;
 import com.jdmmc.kurumamod.client.CarChaseCamera;
 import com.jdmmc.kurumamod.client.CarClientDriver;
 import com.jdmmc.kurumamod.client.CarCockpitCamera;
+import com.jdmmc.kurumamod.client.ForceFeedbackDevice;
 import com.jdmmc.kurumamod.client.CarDust;
 import com.jdmmc.kurumamod.platform.McRaceClient;
 import com.jdmmc.kurumamod.platform.McUiGraphics;
@@ -81,6 +82,7 @@ public final class ClientHooks {
     public static void clientTickPost() {
         CarCamera.onClientTick();
         CarDust.onClientTick();
+        ForceFeedbackDevice.onClientTick();
         CarGhosts.onClientTickPost();
         CarImpact.onClientTick();
         CarSkidMarks.onClientTick();
@@ -185,6 +187,7 @@ public final class ClientHooks {
     /** 1 フレームを描き始める前。 */
     public static void renderFramePre(FrameRender event) {
         CarIcons.onRenderTick(event);
+        ForceFeedbackDevice.onFrame();
         MirrorRenderer.onRenderTick(event);
     }
 

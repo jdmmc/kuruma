@@ -1,20 +1,30 @@
 package com.jdmmc.kurumamod.client;
 
 import com.mojang.logging.LogUtils;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.sdl.SDLError;
+import org.lwjgl.sdl.SDLGUID;
 import org.lwjgl.sdl.SDLGamepad;
 import org.lwjgl.sdl.SDLInit;
 import org.lwjgl.sdl.SDLJoystick;
 import org.lwjgl.sdl.SDLStdinc;
+import org.lwjgl.sdl.SDL_GUID;
 import org.slf4j.Logger;
 
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import com.jdmmc.kurumamod.client.input.ControllerInput;
 
 /**
  * コントローラを SDL3 で読む（core の {@link ControllerInput.Device}）。26.3 でウィンドウと入力が GLFW から SDL3 に
  * なった。SDL の gamepad は対応表で多くのコントローラを Xbox 系の並びへ正規化してくれるので、まずこれを試し、
- * 対応表に無い機器では生の軸とボタン（joystick）へ落とす。
+ * 対応表に無い機器では生の軸とボタン（joystick）へ落とす。<b>つながっている機器を全部開いて読む</b>
+ * （ハンコン・ペダル・シフター・サイドブレーキが別々の USB 機器でも、それぞれを割り当てられるように）。
  *
  * <p><b>軸とボタンの番号は GLFW のゲームパッドの並びへ並べ替える</b>（{@link ControllerInput#AXIS_LEFT_X} など）。
  * 保存してある割り当てを 1.21.1 と同じに読むため。値の範囲も GLFW と同じ（スティック −1〜1、トリガーは離して −1・
@@ -49,21 +59,43 @@ public final class ControllerDevice implements ControllerInput.Device {
             SDLGamepad.SDL_GAMEPAD_BUTTON_MISC6,
     };
 
-    /** 未接続のとき、何ティックおきに探し直すか。毎ティック一覧を取るほどのことではない。 */
+    /** 何ティックおきに新しくつながった機器を探すか。毎ティック一覧を取るほどのことではない。 */
     private static final int RESCAN_TICKS = 20;
 
-    /** 使うコントローラの SDL の ID。-1 なら未接続。 */
-    private int joystick = -1;
-    /** 開いているゲームパッド（対応表のある機器）。0 なら開いていない。 */
-    private long gamepad;
-    /** 対応表の無い機器を生のまま開いたもの。0 なら開いていない。 */
-    private long rawJoystick;
+    /** GUID を 16 進の文字列にするときの長さ（32 文字と終端）。 */
+    private static final int GUID_STRING_BYTES = 33;
+
+    /** 開いている機器。SDL の ID（つなぐたびに増える）の順に並べる＝つないだ順。 */
+    private final Map<Integer, Opened> opened = new TreeMap<>();
     /** SDL のゲームパッドのサブシステム。0 = まだ、1 = 使える、-1 = 立ち上げに失敗した。 */
     private int sdlState;
     private int rescanCooldown;
 
-    private float[] axes = new float[0];
-    private boolean[] buttons = new boolean[0];
+    /**
+     * GUID を受ける入れ物と、文字列にするバッファ。<b>1 度だけ作って使い回す</b>（どちらも GC 管理の
+     * バッファなので {@code free()} してはいけない。{@code GLFWGamepadState} で踏んだのと同じ）。
+     */
+    private SDL_GUID guidStruct;
+    private ByteBuffer guidText;
+
+    private List<ControllerInput.Reading> readings = List.of();
+
+    /** 開いた機器 1 台。どちらか一方のハンドルだけを持つ。 */
+    private static final class Opened {
+        /** 対応表のある機器をゲームパッドとして開いたもの。0 なら開いていない。 */
+        long gamepad;
+        /** 対応表の無い機器を生のまま開いたもの。0 なら開いていない。 */
+        long rawJoystick;
+        String guid;
+        /** SDL の ID。フォースフィードバックが機器を引き直すのに使う */
+        int id;
+        /**
+         * SDL がハンコンと言っているか（{@code SDL_JOYSTICK_TYPE_WHEEL}）。Xbox 向けのハンコンはゲームパッドとして
+         * 開けてしまうので、ゲームパッドでもこれを見る。生の機器は種類が分からなくてもハンコンと推測する
+         * （一覧に無い DD ハンコンなど）
+         */
+        boolean wheel;
+    }
 
     @Override
     public void poll() {
@@ -71,59 +103,68 @@ public final class ControllerDevice implements ControllerInput.Device {
             pollUnsafe();
         } catch (RuntimeException | LinkageError e) {
             // SDL の native が読めない環境でも運転は続けられるべきなので、ここで止める
-            axes = new float[0];
-            buttons = new boolean[0];
+            readings = List.of();
             sdlState = -1;
-            gamepad = 0L;
-            rawJoystick = 0L;
-            joystick = -1;
+            opened.clear();
         }
     }
 
     private void pollUnsafe() {
         if (!initSdl()) {
-            axes = new float[0];
-            buttons = new boolean[0];
+            readings = List.of();
             return;
         }
-        if (joystick >= 0 && !stillConnected()) {
-            close();
+        // 抜かれた機器を閉じる
+        Iterator<Opened> it = opened.values().iterator();
+        while (it.hasNext()) {
+            Opened device = it.next();
+            if (!stillConnected(device)) {
+                close(device);
+                it.remove();
+            }
         }
-        if (joystick < 0 && rescanCooldown-- <= 0) {
+        if (rescanCooldown-- <= 0) {
             rescanCooldown = RESCAN_TICKS;
-            open();
+            openNew();
         }
-        if (joystick < 0) {
-            axes = new float[0];
-            buttons = new boolean[0];
-            return;
+        List<ControllerInput.Reading> result = new ArrayList<>(opened.size());
+        for (Opened device : opened.values()) {
+            result.add(device.gamepad != 0L ? readGamepad(device) : readRaw(device));
         }
-        // 対応表がある機器は Xbox 系の並びへ正規化して読む
-        if (gamepad != 0L) {
-            axes = new float[SDLGamepad.SDL_GAMEPAD_AXIS_COUNT];
-            for (int i = 0; i < axes.length; i++) {
-                float value = SDLGamepad.SDL_GetGamepadAxis(gamepad, i) / 32767.0F;
-                // SDL のトリガーは 0〜1、GLFW は離して −1・引ききって 1。保存した割り当てのため GLFW に揃える
-                if (i == ControllerInput.AXIS_LEFT_TRIGGER || i == ControllerInput.AXIS_RIGHT_TRIGGER) {
-                    value = value * 2.0F - 1.0F;
-                }
-                axes[i] = Math.max(-1.0F, Math.min(1.0F, value));
+        readings = result;
+    }
+
+    /** 対応表がある機器は Xbox 系の並びへ正規化して読む。 */
+    private static ControllerInput.Reading readGamepad(Opened device) {
+        long gamepad = device.gamepad;
+        float[] axes = new float[SDLGamepad.SDL_GAMEPAD_AXIS_COUNT];
+        for (int i = 0; i < axes.length; i++) {
+            float value = SDLGamepad.SDL_GetGamepadAxis(gamepad, i) / 32767.0F;
+            // SDL のトリガーは 0〜1、GLFW は離して −1・引ききって 1。保存した割り当てのため GLFW に揃える
+            if (i == ControllerInput.AXIS_LEFT_TRIGGER || i == ControllerInput.AXIS_RIGHT_TRIGGER) {
+                value = value * 2.0F - 1.0F;
             }
-            buttons = new boolean[SDL_BUTTON_OF.length];
-            for (int i = 0; i < buttons.length; i++) {
-                buttons[i] = SDLGamepad.SDL_GetGamepadButton(gamepad, SDL_BUTTON_OF[i]);
-            }
-            return;
+            axes[i] = Math.max(-1.0F, Math.min(1.0F, value));
         }
-        // 対応表に無い機器は生のまま。GLFW と同じく、ハット（十字キー）は上・右・下・左の 4 つのボタンとして後ろへ足す
+        boolean[] buttons = new boolean[SDL_BUTTON_OF.length];
+        for (int i = 0; i < buttons.length; i++) {
+            buttons[i] = SDLGamepad.SDL_GetGamepadButton(gamepad, SDL_BUTTON_OF[i]);
+        }
+        return new ControllerInput.Reading(device.guid, SDLGamepad.SDL_GetGamepadName(gamepad), true, device.wheel, device.id,
+                axes, buttons);
+    }
+
+    /** 対応表に無い機器は生のまま。GLFW と同じく、ハット（十字キー）は上・右・下・左の 4 つのボタンとして後ろへ足す。 */
+    private static ControllerInput.Reading readRaw(Opened device) {
+        long rawJoystick = device.rawJoystick;
         int axisCount = Math.max(0, SDLJoystick.SDL_GetNumJoystickAxes(rawJoystick));
-        axes = new float[axisCount];
+        float[] axes = new float[axisCount];
         for (int i = 0; i < axisCount; i++) {
             axes[i] = Math.max(-1.0F, Math.min(1.0F, SDLJoystick.SDL_GetJoystickAxis(rawJoystick, i) / 32767.0F));
         }
         int buttonCount = Math.max(0, SDLJoystick.SDL_GetNumJoystickButtons(rawJoystick));
         int hatCount = Math.max(0, SDLJoystick.SDL_GetNumJoystickHats(rawJoystick));
-        buttons = new boolean[buttonCount + hatCount * 4];
+        boolean[] buttons = new boolean[buttonCount + hatCount * 4];
         for (int i = 0; i < buttonCount; i++) {
             buttons[i] = SDLJoystick.SDL_GetJoystickButton(rawJoystick, i);
         }
@@ -135,6 +176,8 @@ public final class ControllerDevice implements ControllerInput.Device {
             buttons[base + 2] = (bits & 0x04) != 0; // 下
             buttons[base + 3] = (bits & 0x08) != 0; // 左
         }
+        return new ControllerInput.Reading(device.guid, SDLJoystick.SDL_GetJoystickName(rawJoystick), false, true, device.id,
+                axes, buttons);
     }
 
     /**
@@ -157,13 +200,13 @@ public final class ControllerDevice implements ControllerInput.Device {
         return sdlState > 0;
     }
 
-    private boolean stillConnected() {
-        return gamepad != 0L ? SDLGamepad.SDL_GamepadConnected(gamepad)
-                : rawJoystick != 0L && SDLJoystick.SDL_JoystickConnected(rawJoystick);
+    private static boolean stillConnected(Opened device) {
+        return device.gamepad != 0L ? SDLGamepad.SDL_GamepadConnected(device.gamepad)
+                : device.rawJoystick != 0L && SDLJoystick.SDL_JoystickConnected(device.rawJoystick);
     }
 
-    /** つながっている最初の機器を開く。ゲームパッドとして開けるならそちらを優先する。 */
-    private void open() {
+    /** まだ開いていない機器を全部開く。ゲームパッドとして開けるならそちらを優先する。 */
+    private void openNew() {
         IntBuffer ids = SDLJoystick.SDL_GetJoysticks();
         if (ids == null) {
             return;
@@ -171,59 +214,73 @@ public final class ControllerDevice implements ControllerInput.Device {
         try {
             for (int i = ids.position(); i < ids.limit(); i++) {
                 int id = ids.get(i);
+                if (opened.containsKey(id)) {
+                    continue;
+                }
+                Opened device = new Opened();
                 if (SDLGamepad.SDL_IsGamepad(id)) {
-                    long handle = SDLGamepad.SDL_OpenGamepad(id);
-                    if (handle != 0L) {
-                        gamepad = handle;
-                        joystick = id;
-                        return;
-                    }
+                    device.gamepad = SDLGamepad.SDL_OpenGamepad(id);
                 }
-                long handle = SDLJoystick.SDL_OpenJoystick(id);
-                if (handle != 0L) {
-                    rawJoystick = handle;
-                    joystick = id;
-                    return;
+                if (device.gamepad == 0L) {
+                    device.rawJoystick = SDLJoystick.SDL_OpenJoystick(id);
                 }
+                if (device.gamepad == 0L && device.rawJoystick == 0L) {
+                    continue;
+                }
+                device.id = id;
+                device.guid = guidOf(id);
+                device.wheel = SDLJoystick.SDL_GetJoystickTypeForID(id) == SDLJoystick.SDL_JOYSTICK_TYPE_WHEEL;
+                opened.put(id, device);
             }
         } finally {
             SDLStdinc.SDL_free(ids);
         }
     }
 
-    private void close() {
-        if (gamepad != 0L) {
-            SDLGamepad.SDL_CloseGamepad(gamepad);
+    /** SDL の GUID を 16 進 32 文字で。GLFW の {@code glfwGetJoystickGUID} と同じ形式。 */
+    private String guidOf(int id) {
+        if (guidStruct == null) {
+            guidStruct = SDL_GUID.create();
+            guidText = BufferUtils.createByteBuffer(GUID_STRING_BYTES);
         }
-        if (rawJoystick != 0L) {
-            SDLJoystick.SDL_CloseJoystick(rawJoystick);
+        SDLJoystick.SDL_GetJoystickGUIDForID(id, guidStruct);
+        SDLGUID.SDL_GUIDToString(guidStruct, guidText);
+        StringBuilder text = new StringBuilder(GUID_STRING_BYTES - 1);
+        for (int i = 0; i < guidText.capacity(); i++) {
+            byte b = guidText.get(i);
+            if (b == 0) {
+                break;
+            }
+            text.append((char) b);
         }
-        gamepad = 0L;
-        rawJoystick = 0L;
-        joystick = -1;
-        rescanCooldown = 0;
+        return text.isEmpty() ? null : text.toString();
     }
 
-    @Override
-    public float[] axes() {
-        return axes;
-    }
-
-    @Override
-    public boolean[] buttons() {
-        return buttons;
-    }
-
-    @Override
-    public boolean connected() {
-        return joystick >= 0;
-    }
-
-    @Override
-    public String name() {
-        if (gamepad != 0L) {
-            return SDLGamepad.SDL_GetGamepadName(gamepad);
+    private static void close(Opened device) {
+        if (device.gamepad != 0L) {
+            SDLGamepad.SDL_CloseGamepad(device.gamepad);
         }
-        return rawJoystick != 0L ? SDLJoystick.SDL_GetJoystickName(rawJoystick) : null;
+        if (device.rawJoystick != 0L) {
+            SDLJoystick.SDL_CloseJoystick(device.rawJoystick);
+        }
+    }
+
+    @Override
+    public List<ControllerInput.Reading> readings() {
+        return readings;
+    }
+
+    /**
+     * 開いている機器の SDL のジョイスティック（{@code SDL_Joystick*}）。フォースフィードバックが
+     * {@code SDL_OpenHapticFromJoystick} に渡す。開いていなければ 0。
+     *
+     * @param id {@link ControllerInput.Pad#nativeId}
+     */
+    public long joystickHandle(int id) {
+        Opened device = opened.get(id);
+        if (device == null) {
+            return 0L;
+        }
+        return device.gamepad != 0L ? SDLGamepad.SDL_GetGamepadJoystick(device.gamepad) : device.rawJoystick;
     }
 }

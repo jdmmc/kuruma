@@ -215,6 +215,13 @@ public final class CarState {
      */
     public final double[] wheelFrictionPower = new double[Wheel.COUNT];
     /**
+     * 各輪の横力 [N]（タイヤ基準、摩擦円で削ったあと）。正でタイヤの右向き。浮いている輪は 0。
+     * <b>物理は読まない</b>（フォースフィードバックのセルフアライニングトルクに使う）。
+     */
+    public final double[] wheelLateralForce = new double[Wheel.COUNT];
+    /** 各輪のスリップ角 [rad]（タイヤの向きと進む向きのずれ）。浮いている輪は 0。物理は読まない。 */
+    public final double[] wheelSlipAngle = new double[Wheel.COUNT];
+    /**
      * 各輪の実際の切れ角 [rad]。正で右。
      *
      * <p>{@link #steerAngle} はハンドルの角度で、タイヤはそこからアッカーマン・トー・

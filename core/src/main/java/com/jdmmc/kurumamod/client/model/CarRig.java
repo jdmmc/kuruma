@@ -10,8 +10,15 @@ import com.jdmmc.kurumamod.physics.Wheel;
  */
 public final class CarRig {
 
-    /** 最大の切れ角でハンドルが回る角度 [rad]。ロック・トゥ・ロック 3 回転の半分。 */
-    public static final double HANDWHEEL_LOCK = Math.toRadians(540.0);
+    /**
+     * 最大の切れ角でハンドルが回る角度 [rad]。片側 450°（ロック・トゥ・ロック 900°、2.5 回転）。
+     *
+     * <p><b>ハンコンの直結はこの角度を車のロックとして 1:1 で写す</b>（{@code ControllerInput#CAR_LOCK_DEGREES}）。
+     * 900° はハンコンで最も多い上限（Logitech G29・G920・G923）で、ダイレクトドライブも 900° に合わせられる。
+     * 以前は見た目だけで決めた 540°（3 回転）で、900° のハンコンでは目いっぱいの 83% までしか切れなかった
+     * （2026-11-13 に変えた）。</p>
+     */
+    public static final double HANDWHEEL_LOCK = Math.toRadians(450.0);
 
     private CarRig() {
     }

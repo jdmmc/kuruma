@@ -41,6 +41,9 @@ public final class CarPhysics {
 
     /** これ以下の速さは「停止している」とみなす [m/s] */
     private static final double STOP_THRESHOLD = 0.3;
+
+    /** H シフターでバックに入れられる前向きの速さの上限 [m/s]（約 7km/h。止まりかけ） */
+    private static final double REVERSE_ENGAGE_SPEED = 2.0;
     /**
      * 回転の上限の手前で駆動を絞り始める幅 [rpm]（{@link #limitedTorque}）。<b>自動の変速点（レブの
      * {@code UPSHIFT_CEILING}）より上だけで絞る</b>——広げると、上がる直前に駆動を削って前進の加速が遅くなる
@@ -339,6 +342,16 @@ public final class CarPhysics {
      */
     private static void updateSteering(CarSpec spec, CarState state, GroundContact contact,
                                        double dt, CarInput input) {
+        if (input.analog() && input.directSteer()) {
+            // ハンコンの直結。手元のハンドルの角度がそのままハンドルの角度（Assetto Corsa・BeamNG と同じ）。
+            // 下の補助は<b>どれも掛けない</b>——ゲームの側で舵を動かすと、手元のハンドルは動かないので
+            // 手の位置とタイヤの向きがずれる。切りすぎ・当て舵は運転者が手で決める
+            state.steerAngle = Math.max(-1.0, Math.min(1.0, input.steerAxis())) * spec.maxSteerAngle();
+            // パッドの扱いへ戻ったとき、基準のずれを持ち越さない
+            state.steerFrame = 0.0;
+            updateWheelSteer(spec, state);
+            return;
+        }
         double dir = input.analog()
                 ? input.steerAxis()
                 : (input.right() ? 1 : 0) - (input.left() ? 1 : 0);
@@ -887,7 +900,8 @@ public final class CarPhysics {
     }
 
     /**
-     * マニュアルの段選び。R と F の要求で 1 段ずつ動かすだけ。
+     * マニュアルの段選び。R と F の要求で 1 段ずつ動かすだけ。H シフターを使っているときは
+     * 入っている位置の段へ直接入れる（{@link CarInput#gearSelect}）。
      *
      * <p>並びは バック(-1) → ニュートラル(0) → 1 速 → … 最高段。オートマのような
      * 「停止して S でバックに入る」挙動は無く、<b>バックも自分で入れる</b>。</p>
@@ -902,7 +916,17 @@ public final class CarPhysics {
     private static int selectGearManually(CarSpec spec, CarState state, CarInput input) {
         int gear = state.gear;
         int requested = gear;
-        if (input.shiftUp()) {
+        if (input.hasGearSelect()) {
+            // H シフター。入っている位置の段へ直接入れる。<b>その車に無い段（5 速の車で 6 速の位置）はニュートラル</b>
+            // ——ゲートはあっても歯車が無い。位置で渡されるので、変速の途中（shiftTimer）で入らなかったぶんは
+            // 次の刻みでまた要求され、変速が終わったところで入る
+            requested = input.gearSelect() > spec.forwardGears() ? 0 : Math.max(-1, input.gearSelect());
+            // 前へ走っている間のバックは入らない（実車ならギアが鳴って弾かれる）。入れると 100km/h から R に入り、
+            // 滑りクラッチがレッドラインで引きずって急減速した（実測）。止まりかけになれば入る
+            if (requested == -1 && state.forwardSpeed > REVERSE_ENGAGE_SPEED) {
+                requested = 0;
+            }
+        } else if (input.shiftUp()) {
             requested = Math.min(spec.forwardGears(), gear + 1);
         } else if (input.shiftDown()) {
             requested = Math.max(-1, gear - 1);
@@ -1569,6 +1593,8 @@ public final class CarPhysics {
             // 滑り角ではなく速度を使うので、止まりかけでは自然に 0 へ落ちる
             double slipSpeed = Math.hypot(angularVelocity * spec.wheelRadius() - rollingSpeed, slidingSpeed);
             state.wheelFrictionPower[index] = Math.hypot(longitudinalForce, lateralForce) * slipSpeed;
+            state.wheelLateralForce[index] = lateralForce;
+            state.wheelSlipAngle[index] = c.slipAngle;
 
             // タイヤの力を車体基準へ戻す。切れ角のぶん、縦力と横力が混ざる
             double bodyForward = longitudinalForce * cos - lateralForce * sin;
@@ -1596,6 +1622,7 @@ public final class CarPhysics {
         double rollingSpeed;
         double slidingSpeed;
         double slipReference;
+        double slipAngle;
         double lateralForce;
         double longitudinalStiffness;
         double gripLimit;
@@ -1674,6 +1701,7 @@ public final class CarPhysics {
         c.rollingSpeed = rollingSpeed;
         c.slidingSpeed = slidingSpeed;
         c.slipReference = slipReference;
+        c.slipAngle = slipAngle;
         c.lateralForce = lateralForce;
         c.longitudinalStiffness = longitudinalStiffness;
         c.gripLimit = gripLimit;
@@ -1989,6 +2017,8 @@ public final class CarPhysics {
         state.wheelSlipRatio[index] = 0.0;
         // 路面に触れていないので摩擦は生じない。空転していても煙は出ない
         state.wheelFrictionPower[index] = 0.0;
+        state.wheelLateralForce[index] = 0.0;
+        state.wheelSlipAngle[index] = 0.0;
     }
 
     /**

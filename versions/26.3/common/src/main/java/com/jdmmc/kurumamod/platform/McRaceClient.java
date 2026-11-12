@@ -60,7 +60,11 @@ public final class McRaceClient implements RaceClient {
         MeshShape.set(ObjModel::get);
         // 車まわりの画面（core）が設定と版の状態を引く口
         ClientOptions.set(new ConfigClientOptions());
-        ControllerInput.setDevice(new ControllerDevice(), com.jdmmc.kurumamod.Platform.configDir());
+        ControllerDevice controllers = new ControllerDevice();
+        ControllerInput.setDevice(controllers, com.jdmmc.kurumamod.Platform.configDir());
+        // ハンコンへ返す力。26.3 は SDL の haptic で出せる（1.20.1・1.21.1 は出す口が無いので置かない）
+        com.jdmmc.kurumamod.client.input.ForceFeedback.setOutput(
+                new com.jdmmc.kurumamod.client.ForceFeedbackDevice(controllers));
         CarClient.set(new McCarClient());
         CarGhosts.install();
         RaceText.setResolver(text -> RaceTexts.of(text).getString());
