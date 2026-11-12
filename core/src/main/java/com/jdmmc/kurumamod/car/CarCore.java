@@ -5,6 +5,16 @@ import com.jdmmc.kurumamod.part.CarParts;
 import com.jdmmc.kurumamod.part.PartFitment;
 import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.CarSpec;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import com.jdmmc.kurumamod.surface.RoadSurface;
+import com.jdmmc.kurumamod.physics.CarBody;
+import com.jdmmc.kurumamod.physics.BlockField;
+import com.jdmmc.kurumamod.ground.GroundSensor;
+import com.jdmmc.kurumamod.debug.GroundTrace;
+import com.jdmmc.kurumamod.config.ClientConfig;
+import com.jdmmc.kurumamod.client.effect.SparkEmitter;
 import org.jetbrains.annotations.Nullable;
 import com.jdmmc.kurumamod.physics.CarInput;
 import com.jdmmc.kurumamod.util.Mth;
@@ -92,6 +102,43 @@ public final class CarCore {
      */
     private boolean headlightsOn;
 
+    /** 1 ティック = 50ms は粗いので、物理はこの回数に分割して解く */
+    private static final int PHYSICS_SUBSTEPS = 4;
+    /** 接地を探すタイヤの端を、幅の端からどれだけ内へ寄せるか [m]。 */
+    private static final double TIRE_EDGE_INSET = 0.03;
+    /** 雨に入ってから濡れきるまでの時定数 [s]。 */
+    private static final double WET_SECONDS = 3.0;
+    /** 雨から出てから乾くまでの時定数 [s]。濡れるより遅い。 */
+    private static final double DRY_SECONDS = 20.0;
+    /**
+     * これ以下の速度差では衝突として扱わない [m/s]。
+     *
+     * <p>縁石を擦った程度で毎回鳴ると安っぽくなる。クライアント側の
+     * {@code ImpactShake.MIN_IMPACT_SPEED} と同じ値だが、<b>ここで弾いておかないと
+     * 毎ティック無駄なパケットが飛ぶ</b>ので両方に置いてある。</p>
+     */
+    public static final double IMPACT_MIN_SPEED = 2.5;
+    /**
+     * 車体が壁とこれより速く擦れたら火花を出す [m/s]（{@code CarSparks}）。
+     * ゆっくり押し付けているだけでは飛ばない。
+     */
+    public static final double SPARK_MIN_SPEED = SparkEmitter.MIN_SPEED;
+    /** F3+B で見えない壁を描く、車の中心からの距離 [m]。 */
+    private static final double STAIRCASE_LINE_RANGE = 6.0;
+
+    /** 4 輪の接地面を探すもの。世界を読む口は版の車が持つ（{@link GroundSensor.World}）。 */
+    private final GroundSensor ground;
+    /** 車体の周りのブロックの当たり判定の箱。物理の 1 ティックの間、使い回す。 */
+    private final BlockField blockField = new BlockField();
+    /** 路面の濡れ具合 0..1。天候から作るので同期も保存もしない。 */
+    private double wetness;
+    /**
+     * 描画で測ったタイヤの幅（{@link CarBody#tireSpan}）。物理上のタイヤの位置から外向きに {内側の端, 外側の端}。
+     * 描いていない車（サーバーが動かす無人の車）は null のままで、{@link CarBody#defaultTireSpan} を使う。
+     */
+    @Nullable
+    private double[] visualTireSpan;
+
     /** 版の {@code CarEntity}。同期した値・向き・どちらの側で解いているかを聞く。 */
     private final CarHost host;
     /** 物理の状態。運転権を持っている側だけが進める。 */
@@ -143,6 +190,7 @@ public final class CarCore {
 
     public CarCore(CarHost host) {
         this.host = host;
+        this.ground = new GroundSensor(host);
     }
 
     /** 物理の状態。 */
@@ -861,5 +909,355 @@ public final class CarCore {
             return false;
         }
         return ++abandonedTicks > lifetimeSeconds * 20;
+    }
+
+    // ------------------------------------------------------------------
+    // 物理を回す（運転クライアント、または無人時のサーバーだけが呼ぶ）
+    // ------------------------------------------------------------------
+
+    /** 各輪へ渡した地面の少し前までの記録（F3+B で描く）。 */
+    public GroundTrace groundTrace() {
+        return ground.trace();
+    }
+
+    /**
+     * 運転権を得た（あるいはサーバーが無人の車を引き継いだ）ときに、
+     * 現在のエンティティの状態から物理の状態を作り直す。
+     */
+    public void takeOverPhysics() {
+        // 向きは描いているのと同じ値から取る。クライアントの getYRot() はバニラの位置同期
+        // （1.4 度刻み・3 ティックかけて寄せる）を補間した途中の値で、ピッチ・ロール（同期値）とも
+        // 揃っていないので、乗った瞬間に車が水平に回った。サーバーの getYRot() は運転者の移動
+        // パケットそのもので、最初のティックはまだ同期値が無いので getYRot() のまま
+        float yaw = host.clientSide() ? host.synced().yaw() : host.vanillaYaw();
+        host.setVanillaYaw(yaw);
+        state.yaw = yaw * Mth.DEG_TO_RAD;
+        state.forwardSpeed = host.synced().speed();
+        state.lateralSpeed = 0.0;
+        state.yawRate = 0.0;
+        state.height = host.posY();
+        state.verticalSpeed = 0.0;
+        state.pitch = host.synced().pitch();
+        state.roll = host.synced().roll();
+        state.pitchRate = 0.0;
+        state.rollRate = 0.0;
+        // 車輪の回転を車速に合わせておく。0 のままだと乗った瞬間に
+        // 「全輪ロック」と判定されて急制動がかかる
+        double angularVelocity = state.forwardSpeed / baseSpec.wheelRadius();
+        Arrays.fill(state.wheelAngularVelocity, angularVelocity);
+        Arrays.fill(state.wheelSlipRatio, 0.0);
+        // 段差の立ち上がり制限は前ティックの値を見るので、引き継いだ時点では捨てる
+        ground.forgetHeights();
+    }
+
+    /**
+     * 物理を 1 ティック解いて実際に動かす。運転クライアント、または無人時のサーバーでのみ呼ぶ。
+     * 無人の車をサーバーが動かしたときに結果を同期項目へ写すのは、呼んだ版の側。
+     */
+    public void physicsTick(CarInput input) {
+        updateWetness();
+
+        // 車体（CarBody）とブロックの当たりは物理の 1 ステップごとに解き、位置もここで積む。
+        // 車体は硬い箱で、ブロックと交わらない。当たった点に力積を掛けるので、当たったところを
+        // 支点に車が回る（腹が乗れば亀、転がれば屋根の角が当たる）
+        CarSpec carSpec = spec();
+        double[] span = tireSpan();
+        CarBody body = CarBody.of(carSpec, bodyShape()).tireSpan(span[0], span[1]).virtualWalls(ClientConfig.virtualWalls);
+        double x = host.posX();
+        double z = host.posZ();
+        fillBlockField(body, x, z);
+        double dt = TICK_SECONDS / PHYSICS_SUBSTEPS;
+        double impact = 0.0;
+        boolean wall = false;
+        boolean floor = false;
+        double scrapeSpeed = 0.0;
+        // 地形とぶつかった強さ（車体と、底を打ったサスペンション）。車同士のぶんは入れない
+        double terrainImpact = 0.0;
+        float[] scrapeOffset = null;
+        float[] scrapeNormal = null;
+        float[] scrapeVelocity = null;
+        for (int i = 0; i < PHYSICS_SUBSTEPS; i++) {
+            // 接地は物理の 1 刻みごとに探す。1 ティックに 1 回だと、20m/s では次に探すまでに 1m 進み、
+            // その間に越えた段の縁を知らないまま新しい段の中を走って、スラブの坂でタイヤが床に埋まった
+            ground.update(state, baseSpec, spec(), wetness, x, z, dt);
+            // 変速の要求は押した瞬間の 1 回なので、最初の刻みにだけ渡す
+            CarPhysics.step(carSpec, state, ground.contact(), dt, i == 0 ? input : input.withoutShift());
+            CarBody.Result hit = body.solve(carSpec, state, ground.contact(), x, z, blockField, dt);
+            impact = Math.max(impact, hit.impact);
+            terrainImpact = Math.max(terrainImpact, hit.impact);
+            // 火花は 1 ティックのうちいちばん速く擦れた刻みから出す。位置はその刻みの車からのずれで持つ
+            if (hit.scrapeSpeed > scrapeSpeed) {
+                scrapeSpeed = hit.scrapeSpeed;
+                scrapeOffset = new float[]{(float) (hit.scrapeX - x), (float) (hit.scrapeY - state.height),
+                        (float) (hit.scrapeZ - z)};
+                scrapeNormal = new float[]{(float) hit.scrapeNormalX, (float) hit.scrapeNormalZ};
+                scrapeVelocity = new float[]{(float) hit.scrapeVelocityX, (float) hit.scrapeVelocityY,
+                        (float) hit.scrapeVelocityZ};
+            }
+            wall |= hit.horizontal;
+            floor |= hit.vertical;
+            x += state.velocityX() * dt;
+            z += state.velocityZ() * dt;
+        }
+
+        host.setVanillaYaw((float) (state.yaw * Mth.RAD_TO_DEG));
+        host.wrapVanillaRotation();
+
+        // 車同士の当たりは、車同士用の箱（CarHull#body）で解く。相手が車なら運動量のやりとりもそこで
+        CarHost.Move move = host.moveWithCars(x - host.posX(), state.height - host.posY(), z - host.posZ());
+        host.setCollisions(wall || move.horizontal(), floor);
+        // 衝撃は相手へ近づいていた速さ（当たっていなければ 0）
+        impact = Math.max(impact, move.closing());
+        host.reportImpact(impact);
+        float[][] carSparks = move.sparks();
+        if (carSparks != null) {
+            // 車同士でぶつかったティックは、そちらを優先する（T ボーンなど、いちばん派手に散る場面）
+            host.reportScrape(carSparks[0], carSparks[1], carSparks[2], carSparks[3][0]);
+        } else if (scrapeOffset != null
+                && (scrapeSpeed >= SPARK_MIN_SPEED || terrainImpact >= IMPACT_MIN_SPEED)) {
+            host.reportScrape(scrapeOffset, scrapeNormal, scrapeVelocity,
+                    terrainImpact >= IMPACT_MIN_SPEED ? (float) terrainImpact : 0.0F);
+        }
+        state.height = host.posY();
+        unbury(body);
+    }
+
+    /**
+     * 車体が地形に深く埋まっていたら、真上へ持ち上げて出す。<b>原因を問わない最後の安全策。</b>
+     *
+     * <p>車体の当たり（{@link CarBody}）は、ブロックに入ったぶんを少しずつ押し戻すだけで、
+     * 深く入り込んだものを引き上げる仕組みは持っていない（地面の中のブロックは上も横も
+     * 隣がブロックなので、押し出す向きが見つからない）。いったん深く入ると、そのまま
+     * 地面に刺さって動けなくなった。落下や転がりでは物理の検算で再現しない入り方をしているので、
+     * 入り方を塞ぐ代わりに、入ってしまったものを出す。</p>
+     *
+     * <p>埋まったかどうかと持ち上げる量は {@link GroundSensor#buriedLift}。傾きはそのまま
+     * （起こすのは {@code CarPhysics} の起き上がり補助）。落ちる速さは捨てる。</p>
+     */
+    private void unbury(CarBody body) {
+        double x = host.posX();
+        double y = host.posY();
+        double z = host.posZ();
+        double lift = ground.buriedLift(state, body.corners(), CarBody.axes(state.yaw, state.pitch, state.roll), x, y, z);
+        if (lift <= 0.0) {
+            return;
+        }
+        host.placeAt(x, y + lift, z);
+        state.height = host.posY();
+        state.verticalSpeed = Math.max(0.0, state.verticalSpeed);
+        // 地面の高さの記憶は埋まっていたときのもの。上がる速さの制限が古い値から効かないよう捨てる
+        ground.forgetHeights();
+    }
+
+    /**
+     * 車体の大きさを決める諸元。<b>車種の元の諸元</b>（調整画面の値を含まない）。
+     *
+     * <p>調整画面でタイヤ半径・ホイールベース・トレッドを動かしても、見た目の車体は伸び縮み
+     * しない（タイヤだけが動く）。当たり判定の大きさもそれに合わせて変えない。</p>
+     */
+    public CarSpec bodyShape() {
+        return CarTypes.get(carId).spec();
+    }
+
+    /**
+     * 車体の周りのブロックの当たり判定を {@link #blockField} に集める。1 ティックで動ける範囲
+     * （速さ × 1 ティック + 1m）まで広げて取る。
+     */
+    private void fillBlockField(CarBody body, double x, double z) {
+        blockField.clear();
+        double[] b = body.bounds(x, state.height, z, CarBody.axes(state.yaw, state.pitch, state.roll));
+        double reach = Math.hypot(state.velocityX(), state.velocityZ()) * TICK_SECONDS
+                + Math.abs(state.verticalSpeed) * TICK_SECONDS + 1.0;
+        // Minecraft の AABB と同じく、角を小さい側・大きい側へ並べ直してから広げる
+        double[] area = {
+                Math.min(b[0], b[3]) - reach, Math.min(b[1], b[4]) - reach, Math.min(b[2], b[5]) - reach,
+                Math.max(b[0], b[3]) + reach, Math.max(b[1], b[4]) + reach, Math.max(b[2], b[5]) + reach};
+        host.collectBlocks(blockField, area, x, z);
+    }
+
+    /**
+     * 路面がどれだけ濡れているかを進める。
+     *
+     * <p>雨かどうかは版が {@code Level#isRainingAt}（その地点に実際に雨が当たっているか）で答える。
+     * 空が見えるかとバイオームの降水種別まで見るので、<b>トンネルや橋の下は自動で乾いたまま</b>になり、
+     * 寒冷地では雨ではなく雪が降る。</p>
+     *
+     * <p><b>切り替えは瞬時にしない。</b>トンネルの出入口でグリップが 1 ティックで 0.7 倍に
+     * 飛ぶと、旋回中なら横 G が跳ねる。濡れるのは速く、乾くのは遅い時定数で追従させる。</p>
+     */
+    private void updateWetness() {
+        boolean raining = host.rainingHere();
+        double seconds = raining ? WET_SECONDS : DRY_SECONDS;
+        double rate = TICK_SECONDS / seconds;
+        double target = raining ? 1.0 : 0.0;
+        wetness += (target - wetness) * Math.min(1.0, rate);
+    }
+
+    /** 送信用に各輪のサスペンション長を float でまとめる。 */
+    public float[] suspensionSnapshot() {
+        float[] values = new float[Wheel.COUNT];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = (float) state.suspensionLength[i];
+        }
+        return values;
+    }
+
+    /** 送信用に各輪の摩擦の仕事率を float でまとめる。 */
+    public float[] frictionSnapshot() {
+        float[] values = new float[Wheel.COUNT];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = (float) state.wheelFrictionPower[i];
+        }
+        return values;
+    }
+
+    /** 送信用に各輪の回転角速度を float でまとめる。 */
+    public float[] wheelSpeedSnapshot() {
+        float[] values = new float[Wheel.COUNT];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = (float) state.wheelAngularVelocity[i];
+        }
+        return values;
+    }
+
+    /** 4 輪の路面を 1 つの整数へ詰める。{@code CarStatePacket} は 2 バイトで運ぶ。 */
+    public int packSurfaces() {
+        int packed = 0;
+        for (int i = 0; i < ground.surfaces().length; i++) {
+            int bits = ground.surfaces()[i].ordinal();
+            if (state.wheelLoad[i] <= 0.0) {
+                bits |= AIRBORNE_BIT;
+            }
+            packed |= bits << (i * SURFACE_BITS);
+        }
+        return packed;
+    }
+
+    /** 4 輪とも同じ路面を詰めた値。 */
+    public static int packSurfaces(RoadSurface surface) {
+        int packed = 0;
+        for (int i = 0; i < Wheel.COUNT; i++) {
+            packed |= surface.ordinal() << (i * SURFACE_BITS);
+        }
+        return packed;
+    }
+
+    /**
+     * その輪が今どの路面に乗っているか。
+     *
+     * <p>煙・土煙・タイヤ痕のように<b>輪の足元で起きること</b>はこちらを使う。
+     * 手元で解いていないときは同期された値。</p>
+     */
+    public RoadSurface getRenderSurface(Wheel wheel) {
+        if (hasLocalState()) {
+            return ground.surfaces()[wheel.ordinal()];
+        }
+        int packed = host.synced().surface();
+        return RoadSurface.byIndex((packed >> (wheel.ordinal() * SURFACE_BITS)) & SURFACE_MASK);
+    }
+
+    /**
+     * 表示と音に使う、車全体で 1 つの路面。いちばんグリップの低い輪のもの。
+     *
+     * <p>ロードノイズや HUD のように車に 1 つしかないもの向け。<b>輪の足元で起きることに
+     * 使ってはいけない</b>（{@link #getRenderSurface(Wheel)}）。</p>
+     */
+    public RoadSurface getRenderSurface() {
+        RoadSurface worst = getRenderSurface(Wheel.VALUES[0]);
+        for (Wheel wheel : Wheel.VALUES) {
+            RoadSurface surface = getRenderSurface(wheel);
+            if (surface.gripScale() < worst.gripScale()) {
+                worst = surface;
+            }
+        }
+        return worst;
+    }
+
+    /** 路面の濡れ具合。0 で乾いている、1 で濡れきっている。 */
+    public double getRenderWetness() {
+        return wetness;
+    }
+
+    /**
+     * タイヤの当たりを見る点のワールド座標（{@link CarBody#tireRims}）。描画用。
+     * サスペンションの伸びは手元で物理を解いている車しか持っていないので、それ以外は null。
+     */
+    @Nullable
+    public double[][][] tireRims() {
+        if (!host.simulatedHere()) {
+            return null;
+        }
+        double[] span = tireSpan();
+        return CarBody.tireRims(spec(), state, host.posX(), host.posZ(), span[0], span[1]);
+    }
+
+    /**
+     * 階段状の壁をならした線（{@link CarBody#staircaseLines}）。F3+B 用。
+     * 描くのは車から {@link #STAIRCASE_LINE_RANGE} 以内の線だけ（近づいた壁だけが出る）。
+     * それを持っているのは手元で物理を解いている車だけなので、それ以外は null。
+     */
+    @Nullable
+    public List<double[]> staircaseLines() {
+        if (!host.simulatedHere() || !ClientConfig.virtualWalls) {
+            return null;
+        }
+        // 見えない壁は車の周りの壁から先へたどって作るので、描くのは車の近くの線だけ
+        double carX = host.posX();
+        double carZ = host.posZ();
+        List<double[]> near = new ArrayList<>();
+        for (double[] line : CarBody.staircaseLines(blockField, ground.contact(), carX, carZ)) {
+            double dx = line[2] - line[0];
+            double dz = line[3] - line[1];
+            double lengthSq = dx * dx + dz * dz;
+            double t = lengthSq < 1.0e-9 ? 0.0
+                    : Mth.clamp(((carX - line[0]) * dx + (carZ - line[1]) * dz) / lengthSq, 0.0, 1.0);
+            double ox = line[0] + dx * t - carX;
+            double oz = line[1] + dz * t - carZ;
+            if (ox * ox + oz * oz <= STAIRCASE_LINE_RANGE * STAIRCASE_LINE_RANGE) {
+                near.add(line);
+            }
+        }
+        return near;
+    }
+
+    /** 描画側が、いま描いたタイヤの幅を知らせる。 */
+    public void setVisualTireSpan(double inner, double outer) {
+        visualTireSpan = new double[]{inner, outer};
+    }
+
+    private double[] tireSpan() {
+        return visualTireSpan != null ? visualTireSpan : CarBody.defaultTireSpan(spec());
+    }
+
+    /**
+     * 接地を探すタイヤの内側と外側の端。幅の端そのものだと、隣のブロックの面にちょうど
+     * 触れているだけで乗り上げるので、少し内へ寄せる。
+     */
+    public double[] tireGroundEdges() {
+        double[] span = tireSpan();
+        double inset = Math.min(TIRE_EDGE_INSET, (span[1] - span[0]) / 2.0);
+        return new double[]{span[0] + inset, span[1] - inset};
+    }
+
+    /** 車体（{@link CarBody}）の角のワールド座標。描画用。順番は {@link CarBody#corners()} と同じ。 */
+    public double[][] bodyCorners() {
+        boolean local = host.simulatedHere();
+        double yaw = local ? state.yaw : remoteYaw();
+        double pitch = local ? state.pitch : host.synced().pitch();
+        double roll = local ? state.roll : host.synced().roll();
+        double[][] ax = CarBody.axes(yaw, pitch, roll);
+        double[][] corners = CarBody.of(spec(), bodyShape()).corners();
+        double px = host.posX();
+        double py = host.posY();
+        double pz = host.posZ();
+        double[][] out = new double[corners.length][];
+        for (int i = 0; i < corners.length; i++) {
+            double[] c = corners[i];
+            out[i] = new double[]{
+                    px + ax[0][0] * c[0] + ax[1][0] * c[1] + ax[2][0] * c[2],
+                    py + ax[0][1] * c[0] + ax[1][1] * c[1] + ax[2][1] * c[2],
+                    pz + ax[0][2] * c[0] + ax[1][2] * c[1] + ax[2][2] * c[2]};
+        }
+        return out;
     }
 }
