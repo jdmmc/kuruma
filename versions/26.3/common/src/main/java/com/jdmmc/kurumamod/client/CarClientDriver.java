@@ -327,7 +327,7 @@ public final class CarClientDriver {
             requested = true;
         }
         if (requested && minecraft.gui.screen() == null) {
-            minecraft.gui.setScreen(new ControllerScreen());
+            minecraft.gui.setScreen(new McUiScreen(new ControllerScreen()));
         }
     }
 

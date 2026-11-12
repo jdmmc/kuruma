@@ -1,7 +1,9 @@
 package com.jdmmc.kurumamod.entity;
 
 import com.jdmmc.kurumamod.ClientConfig;
+import com.jdmmc.kurumamod.client.EmitterCar;
 import com.jdmmc.kurumamod.client.HudCar;
+import com.jdmmc.kurumamod.client.SkidMarkTrails;
 import com.jdmmc.kurumamod.car.CarPose;
 import com.jdmmc.kurumamod.ground.GroundSensor;
 import com.jdmmc.kurumamod.race.RaceTexts;
@@ -105,7 +107,7 @@ import java.util.Map;
  * <p><b>エンティティの Y はシャシー基準面（サスペンションのハードポイントが並ぶ面）を指す。</b>
  * 地面ではない。タイヤは AABB の下にぶら下がっているので、AABB は車体だけを表す。</p>
  */
-public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.World {
+public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.World, SkidMarkTrails.Car, EmitterCar {
 
     /** 前輪の切れ角 [rad]。運転していないクライアントでの描画用。 */
     private static final EntityDataAccessor<Float> DATA_STEER_ANGLE =
@@ -220,16 +222,6 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
     private static final int PHYSICS_SUBSTEPS = 4;
     /** 1 ティックの長さ [s] */
     private static final double TICK_SECONDS = 0.05;
-    /** 車体の角がこれより深くブロックに入っていたら、埋まったと見て持ち上げる [m]（{@link #unbury}）。 */
-    private static final double BURIED_DEPTH = 0.5;
-    /** 起き上がり補助の最中に、潜ったぶんとして持ち上げる上限 [m]。これより深いのは壁（上へ乗せない）。 */
-    private static final double RIGHTING_MAX_LIFT = 1.0;
-    /** 起き上がり補助の最中に、潜った角の横をどこまで見るか [m]。壁に触れた角を地面と取り違えないよう。 */
-    private static final double RIGHTING_SIDE_CHECK = 0.2;
-    /** 持ち上げるとき、ブロックの天面からさらに離す量 [m]。 */
-    private static final double BURIED_CLEARANCE = 0.05;
-    /** 1 回で持ち上げる上限 [m]。地中深くに落ちたものを地上まで飛ばさない（次のティックでまた上げる）。 */
-    private static final double BURIED_MAX_LIFT = 6.0;
     /** 接地を探すタイヤの端を、幅の端からどれだけ内へ寄せるか [m]。 */
     private static final double TIRE_EDGE_INSET = 0.03;
     /**
@@ -255,7 +247,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      * 車体が壁とこれより速く擦れたら火花を出す [m/s]（{@code CarSparks}）。
      * ゆっくり押し付けているだけでは飛ばない。
      */
-    public static final double SPARK_MIN_SPEED = 3.0;
+    public static final double SPARK_MIN_SPEED = com.jdmmc.kurumamod.client.SparkEmitter.MIN_SPEED;
     /** 車同士でぶつかった火花を出す高さ（重心のシャシー基準面から） [m]。車体の真ん中あたり。 */
     private static final double CAR_SPARK_HEIGHT = 0.25;
     /**
@@ -1098,47 +1090,19 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
      * 手助けなので、位置を直接動かしてよい。</p>
      */
     private void unbury(CarBody body) {
-        double[][] axes = CarBody.axes(state.yaw, state.pitch, state.roll);
         double x = getX();
         double y = getY();
         double z = getZ();
-        double lift = 0.0;
-        // 起き上がり補助は重心まわりに回すので、地面側の縁が潜る（車体の当たりが押し返しても、
-        // 補助が毎刻み角速度を置き直すので追いつかない）。その間は浅く潜ったぶんも持ち上げる
-        boolean righting = CarPhysics.isRighting(state);
-        for (double[] corner : body.corners()) {
-            double cx = x + axes[0][0] * corner[0] + axes[1][0] * corner[1] + axes[2][0] * corner[2];
-            double cy = y + axes[0][1] * corner[0] + axes[1][1] * corner[1] + axes[2][1] * corner[2];
-            double cz = z + axes[0][2] * corner[0] + axes[1][2] * corner[1] + axes[2][2] * corner[2];
-            double top = solidTopAbove(cx, cy, cz);
-            // 縦に深いだけでは足りない。壁に数 cm 入った角も「上まで 0.5m 以上ある」ので、
-            // 横にも深く囲まれていること（前後左右に離れた点もブロックの中）を見る。
-            // そうでないと、壁に当たっただけの車を壁の上へ持ち上げてしまう
-            double depth = top - cy;
-            if (depth > BURIED_DEPTH && surroundedSideways(cx, cy, cz, BURIED_DEPTH)) {
-                lift = Math.max(lift, depth + BURIED_CLEARANCE);
-            } else if (righting && depth > 0.0 && depth <= RIGHTING_MAX_LIFT
-                    && surroundedSideways(cx, cy, cz, RIGHTING_SIDE_CHECK)) {
-                lift = Math.max(lift, depth);
-            }
-        }
+        // どれだけ持ち上げるかは core（GroundSensor#buriedLift）
+        double lift = ground.buriedLift(state, body.corners(), CarBody.axes(state.yaw, state.pitch, state.roll), x, y, z);
         if (lift <= 0.0) {
             return;
         }
-        lift = Math.min(lift, BURIED_MAX_LIFT);
         setPos(x, y + lift, z);
         state.height = getY();
         state.verticalSpeed = Math.max(0.0, state.verticalSpeed);
         // 地面の高さの記憶は埋まっていたときのもの。上がる速さの制限が古い値から効かないよう捨てる
         ground.forgetHeights();
-    }
-
-    /** 点から東西南北へ {@code distance} 離れた 4 点が、すべてブロックの中にあるか。壁に触れているだけの点を除く。 */
-    private boolean surroundedSideways(double x, double y, double z, double distance) {
-        return solidTopAbove(x + distance, y, z) > y
-                && solidTopAbove(x - distance, y, z) > y
-                && solidTopAbove(x, y, z + distance) > y
-                && solidTopAbove(x, y, z - distance) > y;
     }
 
     /**
@@ -1268,24 +1232,13 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         double maxX = worldBorder.getMaxX();
         double maxZ = worldBorder.getMaxZ();
         border = new double[]{minX, minZ, maxX, maxZ};
-        // 壁は集める範囲に収まるぶんだけ（ボーダーは無限に高く長い）
-        if (area.minX < minX) {
-            blockField.add(area.minX, area.minY, area.minZ, minX, area.maxY, area.maxZ);
-        }
-        if (area.maxX > maxX) {
-            blockField.add(maxX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ);
-        }
-        if (area.minZ < minZ) {
-            blockField.add(area.minX, area.minY, area.minZ, area.maxX, area.maxY, minZ);
-        }
-        if (area.maxZ > maxZ) {
-            blockField.add(area.minX, area.minY, maxZ, area.maxX, area.maxY, area.maxZ);
-        }
+        blockField.addBorderWalls(new double[]{area.minX, area.minY, area.minZ, area.maxX, area.maxY, area.maxZ},
+                border);
     }
 
     /** 点が車を止めるワールドボーダーの外か。範囲の外を聞かれたときも、壁が途切れないように答える。 */
     private boolean outsideBorder(double x, double z) {
-        return border != null && (x < border[0] || z < border[1] || x > border[2] || z > border[3]);
+        return BlockField.outsideBorder(border, x, z);
     }
 
     /** {@link #blockField} の範囲の外を引いたブロックの形。1 ティックの間だけ覚えておく。 */
@@ -1473,7 +1426,7 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         if (hasLocalState()) {
             return state.velocityX();
         }
-        return remoteForward() * -Math.sin(remoteYaw()) + remoteLateral() * -Math.cos(remoteYaw());
+        return remoteVelocity()[0];
     }
 
     /** ワールド座標での速度の Z 成分 [m/s]。 */
@@ -1481,26 +1434,17 @@ public class CarEntity extends CarEntityBase implements HudCar, GroundSensor.Wor
         if (hasLocalState()) {
             return state.velocityZ();
         }
-        return remoteForward() * Math.cos(remoteYaw()) + remoteLateral() * -Math.sin(remoteYaw());
+        return remoteVelocity()[1];
     }
 
+    /** 同期された値から組み立てたワールド座標の速度 {x, z}（{@link CarPose#remoteVelocity}）。 */
+    private double[] remoteVelocity() {
+        return CarPose.remoteVelocity(entityData.get(DATA_YAW), entityData.get(DATA_SPEED), entityData.get(DATA_SLIP_ANGLE));
+    }
+
+    /** 同期されたヨー角 [rad]。 */
     private double remoteYaw() {
         return entityData.get(DATA_YAW) * Mth.DEG_TO_RAD;
-    }
-
-    private double remoteForward() {
-        return entityData.get(DATA_SPEED);
-    }
-
-    /**
-     * 同期された値から組み立てた横速度 [m/s]。
-     *
-     * <p>横速度そのものは配っていないが、ドリフト角
-     * （{@code atan2(横速度, |前後速度|)}）は配ってあるので、そこから戻せる。</p>
-     */
-    private double remoteLateral() {
-        return Math.tan(entityData.get(DATA_SLIP_ANGLE) * Mth.DEG_TO_RAD)
-                * Math.abs(entityData.get(DATA_SPEED));
     }
 
     /**

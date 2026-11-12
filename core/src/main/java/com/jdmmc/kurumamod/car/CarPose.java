@@ -152,4 +152,22 @@ public final class CarPose {
         double cos = Math.cos(Math.toRadians(slipDegrees));
         return Math.abs(forwardSpeed) / Math.max(cos, 0.05);
     }
+
+    /**
+     * 同期された値から組み立てたワールド座標の速度 {x, z} [m/s]（手元で解いていない車）。
+     *
+     * <p>横速度そのものは配っていないが、ドリフト角（{@code atan2(横速度, |前後速度|)}）は配ってあるので、
+     * そこから戻せる。</p>
+     *
+     * @param yawDegrees  同期されたヨー角 [度]
+     * @param speed       同期された前後の速度 [m/s]
+     * @param slipDegrees 同期されたドリフト角 [度]
+     */
+    public static double[] remoteVelocity(float yawDegrees, float speed, float slipDegrees) {
+        double yaw = yawDegrees * DEG_TO_RAD;
+        double lateral = Math.tan(slipDegrees * DEG_TO_RAD) * Math.abs(speed);
+        return new double[]{
+                speed * -Math.sin(yaw) + lateral * -Math.cos(yaw),
+                speed * Math.cos(yaw) + lateral * -Math.sin(yaw)};
+    }
 }

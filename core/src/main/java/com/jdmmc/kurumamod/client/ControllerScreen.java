@@ -1,15 +1,15 @@
 package com.jdmmc.kurumamod.client;
 
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
+import com.jdmmc.kurumamod.client.ui.UiButton;
+import com.jdmmc.kurumamod.client.ui.UiGraphics;
+import com.jdmmc.kurumamod.client.ui.UiScreen;
+import com.jdmmc.kurumamod.race.RaceText;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * コントローラの割り当て画面。
+ * コントローラの割り当て画面。版の {@code McUiScreen} に包んで開く。
  *
  * <p>1 行が 1 操作。行を押すと待ち受けに入り、<b>次に動かした軸か押したボタンをそのまま割り当てる</b>。
  * 番号を選ばせる形にすると、どの軸がどれか分からないので使えない。</p>
@@ -17,7 +17,7 @@ import java.util.List;
  * <p>右側に今の入力値を出しているのは、割り当てた直後に<b>正しく動いているかその場で
  * 確かめられる</b>ようにするため。向きが逆なら「反転」で直せる。</p>
  */
-public class ControllerScreen extends Screen {
+public class ControllerScreen extends UiScreen {
 
     private static final int PANEL_WIDTH = 320;
     private static final int ROW_HEIGHT = 22;
@@ -41,7 +41,7 @@ public class ControllerScreen extends Screen {
     private float[] baseline = new float[0];
 
     public ControllerScreen() {
-        super(Component.translatable("screen.kurumamod.controller.title"));
+        super(RaceText.translatable("screen.kurumamod.controller.title"));
     }
 
     @Override
@@ -51,13 +51,13 @@ public class ControllerScreen extends Screen {
 
         int y = LIST_TOP;
         for (ControllerAction action : ControllerAction.values()) {
-            Button assign = addRenderableWidget(Button.builder(
-                            Component.translatable("screen.kurumamod.controller.assign"),
+            UiButton assign = addRenderableWidget(UiButton.builder(
+                            RaceText.translatable("screen.kurumamod.controller.assign"),
                             button -> startListening(action))
                     .bounds(panelLeft + 150, y, 70, 20)
                     .build());
-            Button invert = addRenderableWidget(Button.builder(
-                            Component.translatable("screen.kurumamod.controller.invert"),
+            UiButton invert = addRenderableWidget(UiButton.builder(
+                            RaceText.translatable("screen.kurumamod.controller.invert"),
                             button -> toggleInvert(action))
                     .bounds(panelLeft + 226, y, 54, 20)
                     .build());
@@ -68,8 +68,8 @@ public class ControllerScreen extends Screen {
         }
 
         int footer = LIST_TOP + ControllerAction.values().length * ROW_HEIGHT + 10;
-        addRenderableWidget(Button.builder(
-                        Component.translatable(ControllerInput.isEnabled()
+        addRenderableWidget(UiButton.builder(
+                        RaceText.translatable(ControllerInput.isEnabled()
                                 ? "screen.kurumamod.controller.on"
                                 : "screen.kurumamod.controller.off"),
                         button -> {
@@ -78,15 +78,15 @@ public class ControllerScreen extends Screen {
                         })
                 .bounds(panelLeft, footer, 100, 20)
                 .build());
-        addRenderableWidget(Button.builder(
-                        Component.translatable("screen.kurumamod.controller.reset"),
+        addRenderableWidget(UiButton.builder(
+                        RaceText.translatable("screen.kurumamod.controller.reset"),
                         button -> {
                             ControllerInput.resetBindings();
                             rebuildWidgets();
                         })
                 .bounds(panelLeft + 106, footer, 100, 20)
                 .build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
+        addRenderableWidget(UiButton.builder(RaceText.translatable("gui.done"), button -> onClose())
                 .bounds(panelLeft + 212, footer, 108, 20)
                 .build());
     }
@@ -136,47 +136,43 @@ public class ControllerScreen extends Screen {
     }
 
     /**
-     * 背景は自分で描く（または描かない）。<b>1.21 の {@code Screen#render} は先に背景（暗幕とぼかし）を
-     * 描く</b>ので、ここで止めておかないと、この画面の上に描いたものが背景で塗りつぶされるうえ、
-     * 走りながら見たい車がぼけて見えなくなる。ワールドの外（タイトル画面から開いたとき）だけは
-     * 後ろに何も無いので、ふつうの背景を描く。
+     * 背景と、部品より下に敷くもの。ワールドの中では 1.20.1 と同じ半透明の暗幕（ぼかさない。後ろのゲームが
+     * 見えるように）、ワールドの外（タイトル画面から開いたとき）はふつうの背景。
      */
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        if (minecraft == null || minecraft.level == null) {
+    public void renderBackground(UiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (inWorld()) {
+            renderTransparentBackground(graphics);
+        } else {
             super.renderBackground(graphics, mouseX, mouseY, partialTick);
         }
-    }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // 1.20.1 の renderBackground と同じ半透明の暗幕。1.21 の既定（ぼかし）だと後ろのゲームが見えない
-        renderTransparentBackground(graphics);
-        detect();
-
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFFFF);
 
         String device = ControllerInput.name();
-        Component status = device == null
-                ? Component.translatable("screen.kurumamod.controller.none")
-                : Component.literal(device);
+        RaceText status = device == null
+                ? RaceText.translatable("screen.kurumamod.controller.none")
+                : RaceText.literal(device);
         graphics.drawCenteredString(font, status, width / 2, 26,
                 device == null ? COLOR_HINT : COLOR_VALUE);
 
         int listHeight = ControllerAction.values().length * ROW_HEIGHT;
         graphics.fill(panelLeft - 4, LIST_TOP - 4, panelLeft + PANEL_WIDTH + 4,
                 LIST_TOP + listHeight, COLOR_PANEL);
+    }
 
+    @Override
+    public void render(UiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        detect();
         super.render(graphics, mouseX, mouseY, partialTick);
 
         for (Row row : rows) {
-            graphics.drawString(font, Component.translatable(row.action.translationKey()),
+            graphics.drawString(font, RaceText.translatable(row.action.translationKey()),
                     panelLeft + 4, row.y + 6, COLOR_LABEL, false);
 
-            Component value;
+            RaceText value;
             int color;
             if (listening == row.action) {
-                value = Component.translatable("screen.kurumamod.controller.listening");
+                value = RaceText.translatable("screen.kurumamod.controller.listening");
                 color = COLOR_LISTENING;
             } else {
                 value = describe(row.action);
@@ -185,21 +181,22 @@ public class ControllerScreen extends Screen {
             graphics.drawString(font, value, panelLeft + 84, row.y + 6, color, false);
         }
 
+        int listHeight = ControllerAction.values().length * ROW_HEIGHT;
         graphics.drawCenteredString(font,
-                Component.translatable("screen.kurumamod.controller.hint"),
+                RaceText.translatable("screen.kurumamod.controller.hint"),
                 width / 2, LIST_TOP + listHeight + 36, COLOR_HINT);
     }
 
     /** 割り当てと、今の値を並べて出す。動かせばその場で確かめられる。 */
-    private Component describe(ControllerAction action) {
+    private RaceText describe(ControllerAction action) {
         ControllerBinding binding = ControllerInput.binding(action);
         if (!binding.isBound()) {
-            return Component.translatable("screen.kurumamod.controller.unbound");
+            return RaceText.translatable("screen.kurumamod.controller.unbound");
         }
         String where = binding.type() == ControllerBinding.Type.AXIS
-                ? Component.translatable("screen.kurumamod.controller.axis", binding.index()).getString()
-                : Component.translatable("screen.kurumamod.controller.button", binding.index()).getString();
-        return Component.literal(String.format("%s  %+.2f", where, ControllerInput.value(action)));
+                ? RaceText.translatable("screen.kurumamod.controller.axis", binding.index()).getString()
+                : RaceText.translatable("screen.kurumamod.controller.button", binding.index()).getString();
+        return RaceText.literal(String.format("%s  %+.2f", where, ControllerInput.value(action)));
     }
 
     /** 割り当て画面では車が動かないよう、ゲームを止める。 */
@@ -208,6 +205,6 @@ public class ControllerScreen extends Screen {
         return true;
     }
 
-    private record Row(ControllerAction action, int y, Button assign, Button invert) {
+    private record Row(ControllerAction action, int y, UiButton assign, UiButton invert) {
     }
 }

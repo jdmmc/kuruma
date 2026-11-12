@@ -166,6 +166,17 @@ public final class GroundSensor {
     /** 車体の上向きの鉛直成分がこれ以下（70 度より傾いた）なら、タイヤは地面に届かない。 */
     private static final double WHEEL_UPRIGHT_MIN = 0.34;
 
+    /** 車体の角がこれより深くブロックに入っていたら、埋まったと見て持ち上げる [m]（{@link #buriedLift}）。 */
+    private static final double BURIED_DEPTH = 0.5;
+    /** 起き上がり補助の最中に、潜ったぶんとして持ち上げる上限 [m]。これより深いのは壁（上へ乗せない）。 */
+    private static final double RIGHTING_MAX_LIFT = 1.0;
+    /** 起き上がり補助の最中に、潜った角の横をどこまで見るか [m]。壁に触れた角を地面と取り違えないよう。 */
+    private static final double RIGHTING_SIDE_CHECK = 0.2;
+    /** 持ち上げるとき、ブロックの天面からさらに離す量 [m]。 */
+    private static final double BURIED_CLEARANCE = 0.05;
+    /** 1 回で持ち上げる上限 [m]。地中深くに落ちたものを地上まで飛ばさない（次のティックでまた上げる）。 */
+    private static final double BURIED_MAX_LIFT = 6.0;
+
     private final World world;
     private CarState state;
     private CarSpec spec;
@@ -794,5 +805,44 @@ public final class GroundSensor {
         aheadIsStair = false;
         previousGroundHeight[index] = limited;
         groundContact.set(wheel, limited, gripScale, rollingScale);
+    }
+
+    /**
+     * 車体の角が地面に埋まっていたら、持ち上げる量 [m]（上限 {@link #BURIED_MAX_LIFT}）。埋まっていなければ 0。
+     *
+     * <p>縦に深いだけでは足りない。壁に数 cm 入った角も「上まで 0.5m 以上ある」ので、
+     * 横にも深く囲まれていること（前後左右に離れた点もブロックの中）を見る。
+     * そうでないと、壁に当たっただけの車を壁の上へ持ち上げてしまう。</p>
+     *
+     * <p>起き上がり補助は重心まわりに回すので、地面側の縁が潜る（車体の当たりが押し返しても、
+     * 補助が毎刻み角速度を置き直すので追いつかない）。その間は浅く潜ったぶんも持ち上げる。</p>
+     *
+     * @param corners 車体の角（車体の座標。{@code CarBody#corners}）
+     * @param axes    車体の向き（{@code CarBody#axes}）
+     */
+    public double buriedLift(CarState carState, double[][] corners, double[][] axes, double x, double y, double z) {
+        double lift = 0.0;
+        boolean righting = com.jdmmc.kurumamod.physics.CarPhysics.isRighting(carState);
+        for (double[] corner : corners) {
+            double cx = x + axes[0][0] * corner[0] + axes[1][0] * corner[1] + axes[2][0] * corner[2];
+            double cy = y + axes[0][1] * corner[0] + axes[1][1] * corner[1] + axes[2][1] * corner[2];
+            double cz = z + axes[0][2] * corner[0] + axes[1][2] * corner[1] + axes[2][2] * corner[2];
+            double depth = world.solidTopAbove(cx, cy, cz) - cy;
+            if (depth > BURIED_DEPTH && surroundedSideways(cx, cy, cz, BURIED_DEPTH)) {
+                lift = Math.max(lift, depth + BURIED_CLEARANCE);
+            } else if (righting && depth > 0.0 && depth <= RIGHTING_MAX_LIFT
+                    && surroundedSideways(cx, cy, cz, RIGHTING_SIDE_CHECK)) {
+                lift = Math.max(lift, depth);
+            }
+        }
+        return Math.min(lift, BURIED_MAX_LIFT);
+    }
+
+    /** 点から東西南北へ {@code distance} 離れた 4 点が、すべてブロックの中にあるか。壁に触れているだけの点を除く。 */
+    private boolean surroundedSideways(double x, double y, double z, double distance) {
+        return world.solidTopAbove(x + distance, y, z) > y
+                && world.solidTopAbove(x - distance, y, z) > y
+                && world.solidTopAbove(x, y, z + distance) > y
+                && world.solidTopAbove(x, y, z - distance) > y;
     }
 }

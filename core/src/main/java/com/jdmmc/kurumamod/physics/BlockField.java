@@ -113,4 +113,34 @@ public final class BlockField {
     private static long key(int x, int y, int z) {
         return ((long) (x & 0x1FFFFF) << 42) | ((long) (y & 0x1FFFFF) << 21) | (z & 0x1FFFFF);
     }
+
+    /**
+     * ワールドボーダーを壁として足す。壁は集める範囲 {@code area}（{minX, minY, minZ, maxX, maxY, maxZ}）に
+     * 収まるぶんだけ（ボーダーは無限に高く長い）。
+     *
+     * @param border ボーダーの内側 {minX, minZ, maxX, maxZ}
+     */
+    public void addBorderWalls(double[] area, double[] border) {
+        double minX = border[0];
+        double minZ = border[1];
+        double maxX = border[2];
+        double maxZ = border[3];
+        if (area[0] < minX) {
+            add(area[0], area[1], area[2], minX, area[4], area[5]);
+        }
+        if (area[3] > maxX) {
+            add(maxX, area[1], area[2], area[3], area[4], area[5]);
+        }
+        if (area[2] < minZ) {
+            add(area[0], area[1], area[2], area[3], area[4], minZ);
+        }
+        if (area[5] > maxZ) {
+            add(area[0], area[1], maxZ, area[3], area[4], area[5]);
+        }
+    }
+
+    /** 点がボーダー {minX, minZ, maxX, maxZ} の外か。{@code border} が null なら外ではない。 */
+    public static boolean outsideBorder(double[] border, double x, double z) {
+        return border != null && (x < border[0] || z < border[1] || x > border[2] || z > border[3]);
+    }
 }
