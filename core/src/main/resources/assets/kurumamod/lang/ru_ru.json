@@ -633,6 +633,8 @@
   "screen.kurumamod.race_host.class_admin_only": "Сохранять и удалять классы могут только операторы",
   "race.kurumamod.invite.detail_class": "%s · %s · кругов: %s · участников: %s",
   "race.kurumamod.host_left": "Гонка отменена: организатор %s вышел",
+  "race.kurumamod.race_cancelled_by": "%s отменил(а) гонку",
+  "race.kurumamod.race_ended_by": "%s завершил(а) гонку",
   "controller.kurumamod.throttle": "Газ",
   "controller.kurumamod.brake": "Тормоз",
   "controller.kurumamod.steer": "Руль",

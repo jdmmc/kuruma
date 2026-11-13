@@ -633,6 +633,8 @@
   "screen.kurumamod.race_host.class_admin_only": "只有 OP 可以保存或删除组别",
   "race.kurumamod.invite.detail_class": "%s · %s · %s 圈 · %s 人",
   "race.kurumamod.host_left": "主办者 %s 已离开，比赛已取消",
+  "race.kurumamod.race_cancelled_by": "%s 取消了比赛",
+  "race.kurumamod.race_ended_by": "%s 结束了比赛",
   "controller.kurumamod.throttle": "油门",
   "controller.kurumamod.brake": "刹车",
   "controller.kurumamod.steer": "方向盘",

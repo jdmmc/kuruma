@@ -1024,6 +1024,8 @@
   "screen.kurumamod.race_host.class_admin_only": "Only OPs can save or delete classes",
   "race.kurumamod.invite.detail_class": "%s · %s · %s laps · %s in",
   "race.kurumamod.host_left": "The race was cancelled because the host, %s, left",
+  "race.kurumamod.race_cancelled_by": "%s cancelled the race",
+  "race.kurumamod.race_ended_by": "%s ended the race",
   "race.kurumamod.host_left_running": "Host %s left. The race carries on",
   "race.kurumamod.host_left_dimension": "%s, the host, went to another dimension, so the race was ended",
   "screen.kurumamod.race_info.spectate": "Spectate",

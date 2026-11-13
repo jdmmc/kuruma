@@ -551,6 +551,15 @@ public final class RaceEngine {
         }
     }
 
+    /**
+     * レースの始まりと終わりの告知（開催・中止・終了）。<b>サーバーの全員へ</b>出す。
+     * チャットで知らせるのは、ほかのワールドにいる人にも届けるため。走っている最中の知らせ（ゴール・リタイアなど）は
+     * {@link #broadcast} でレースのワールドだけ。
+     */
+    private void announce(RaceLevel level, RaceText message) {
+        level.getServer().broadcastSystemMessage(message);
+    }
+
     // ------------------------------------------------------------------
     // 横断判定
     // ------------------------------------------------------------------
@@ -979,7 +988,7 @@ public final class RaceEngine {
             // 参加者が全員ゴールしたらリザルト
             if (allFinished(level, session)) {
                 broadcastResult(level, session, states);
-                broadcast(level, raceOver(session)
+                announce(level, raceOver(session)
                         .withStyle(RaceColor.GOLD));
             }
             return;
@@ -1060,7 +1069,7 @@ public final class RaceEngine {
             return;
         }
         broadcastResult(level, session, states);
-        broadcast(level, raceOver(session)
+        announce(level, raceOver(session)
                 .withStyle(RaceColor.GOLD));
     }
 
@@ -1677,6 +1686,16 @@ public final class RaceEngine {
                 } else if (!canManage(player)) {
                     tell(player, RaceText.translatable("race.kurumamod.not_host_named", session.hostName));
                 } else {
+                    // <b>サーバーの全員へチャットで知らせる</b>（開催の告知と同じく、ほかのワールドにいる人にも）。
+                    // 以前は押した本人の行動バーにしか出ず、ほかの参加者には何も届かなかった。
+                    // リザルトの表示を閉じるだけなら、もう誰にも関係ないので知らせない
+                    if (session.started && !session.showingResult) {
+                        announce(level, RaceText.translatable("race.kurumamod.race_ended_by", player.name())
+                                .withStyle(RaceColor.GOLD));
+                    } else if (!session.showingResult) {
+                        announce(level, RaceText.translatable("race.kurumamod.race_cancelled_by", player.name())
+                                .withStyle(RaceColor.GRAY));
+                    }
                     stopRace(level);
                     tell(player, RaceText.translatable("race.kurumamod.race_stopped"));
                     Session after = SESSIONS.get(level.dimension());

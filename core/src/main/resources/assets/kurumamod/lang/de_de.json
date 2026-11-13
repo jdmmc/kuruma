@@ -633,6 +633,8 @@
   "screen.kurumamod.race_host.class_admin_only": "Nur OPs können Klassen speichern oder löschen",
   "race.kurumamod.invite.detail_class": "%s · %s · %s Runden · %s angemeldet",
   "race.kurumamod.host_left": "Das Rennen wurde abgebrochen, weil der Gastgeber %s gegangen ist",
+  "race.kurumamod.race_cancelled_by": "%s hat das Rennen abgesagt",
+  "race.kurumamod.race_ended_by": "%s hat das Rennen beendet",
   "controller.kurumamod.throttle": "Gas",
   "controller.kurumamod.brake": "Bremse",
   "controller.kurumamod.steer": "Lenkung",

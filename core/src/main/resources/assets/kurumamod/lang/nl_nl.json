@@ -633,6 +633,8 @@
   "screen.kurumamod.race_host.class_admin_only": "Alleen OP's kunnen klassen opslaan of verwijderen",
   "race.kurumamod.invite.detail_class": "%s · %s · %s ronden · %s ingeschreven",
   "race.kurumamod.host_left": "De race is geannuleerd omdat host %s is vertrokken",
+  "race.kurumamod.race_cancelled_by": "%s heeft de race geannuleerd",
+  "race.kurumamod.race_ended_by": "%s heeft de race beëindigd",
   "controller.kurumamod.throttle": "Gas",
   "controller.kurumamod.brake": "Rem",
   "controller.kurumamod.steer": "Sturen",
