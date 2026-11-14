@@ -1158,6 +1158,22 @@ public final class RaceHud {
                     RaceText.translatable("race.kurumamod.notice_kicked_sub", who), RaceNotice.RED);
             case JOINED -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_joined"),
                     RaceText.translatable("race.kurumamod.notice_joined_sub"), RaceNotice.GREEN);
+            case ABORTED -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_aborted"),
+                    RaceText.translatable("race.kurumamod.notice_aborted_sub"), RaceNotice.RED);
+            case AWAY_RETIRED -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_not_driving"),
+                    RaceText.translatable("race.kurumamod.notice_away_sub"), RaceNotice.RED);
+            case RETIRED -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_retired"),
+                    RaceText.translatable("race.kurumamod.notice_retired_sub"), RaceNotice.RED);
+            case ALL_RETIRED -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_ended"),
+                    RaceText.translatable("race.kurumamod.notice_all_retired_sub"), RaceNotice.GOLD);
+            case HOST_LEFT -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_cancelled"),
+                    RaceText.translatable("race.kurumamod.notice_host_left_sub", who), RaceNotice.RED);
+            case HOST_LEFT_RUNNING -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_host_gone"),
+                    RaceText.translatable("race.kurumamod.notice_host_gone_sub", who), RaceNotice.GOLD);
+            case HOST_LEFT_DIMENSION -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_ended"),
+                    RaceText.translatable("race.kurumamod.notice_host_dimension_sub", who), RaceNotice.GOLD);
+            case DISQUALIFIED -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_disqualified"),
+                    RaceText.translatable("race.kurumamod.notice_disqualified_sub"), RaceNotice.RED);
             case LEFT -> RaceNotice.show(RaceText.translatable("race.kurumamod.notice_left"),
                     RaceText.translatable("race.kurumamod.notice_left_sub",
                             RaceClient.get().openRaceKey().getString()), RaceNotice.RED);

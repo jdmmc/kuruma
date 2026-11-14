@@ -207,10 +207,14 @@ public final class RaceEngine {
             // リザルトの表示中は何もしない。表示が終われば自分で片付く（ここで畳むと、全員のリザルトが途中で消えた）
             return;
         }
+        // 帯で知らせる相手（エントリー・観戦の人）。畳むと名簿が消えるので先に控える。抜けた主催者には出さない
+        Set<UUID> told = involved(session);
+        told.remove(session.host);
         if (session.started && changedDimension) {
             broadcast(level, RaceText.translatable("race.kurumamod.host_left_dimension", session.hostName)
                     .withStyle(RaceColor.GOLD));
             stopRace(level);
+            notice(level, told, RaceEventPacket.Notice.HOST_LEFT_DIMENSION, session.hostName);
             return;
         }
         if (session.started) {
@@ -218,12 +222,35 @@ public final class RaceEngine {
             // OP と（主催者がいない間は）参加者が「終える」を押せる（canManage）
             broadcast(level, RaceText.translatable("race.kurumamod.host_left_running", session.hostName)
                     .withStyle(RaceColor.GRAY));
+            notice(level, told, RaceEventPacket.Notice.HOST_LEFT_RUNNING, session.hostName);
             broadcastLobby(level, session);
             return;
         }
+        String hostName = session.hostName;
         cleanup(level, session);
-        broadcast(level, RaceText.translatable("race.kurumamod.host_left", session.hostName)
+        broadcast(level, RaceText.translatable("race.kurumamod.host_left", hostName)
                 .withStyle(RaceColor.GRAY));
+        notice(level, told, RaceEventPacket.Notice.HOST_LEFT, hostName);
+    }
+
+    /** レースに関わっている人（エントリー・観戦の人と主催者）。帯で知らせる相手を、畳む前に控えるのに使う。 */
+    private static Set<UUID> involved(Session session) {
+        Set<UUID> ids = new LinkedHashSet<>(session.entrants);
+        ids.addAll(session.spectators);
+        if (session.host != null) {
+            ids.add(session.host);
+        }
+        return ids;
+    }
+
+    /** 帯の知らせを送る。<b>レースの次元にいる人だけ</b>（ほかの次元の人にはチャットの告知で足りる）。 */
+    private void notice(RaceLevel level, Set<UUID> ids, RaceEventPacket.Notice notice, String who) {
+        for (UUID id : ids) {
+            RacePlayer player = level.getServer().player(id);
+            if (player != null && player.level().dimension().equals(level.dimension())) {
+                send(player, RaceEventPacket.notice(notice, who));
+            }
+        }
     }
 
     /**
@@ -348,6 +375,7 @@ public final class RaceEngine {
             retire(session, states, id);
             // レースの HUD を消す（以後はレースに参加していない人として扱う）
             send(player, RaceEventPacket.cleared());
+            send(player, RaceEventPacket.notice(RaceEventPacket.Notice.AWAY_RETIRED, ""));
             player.sendSystemMessage(RaceText.translatable("race.kurumamod.away_retired_self")
                     .withStyle(RaceColor.RED));
             broadcast(level, RaceText.translatable("race.kurumamod.away_retired",
@@ -412,6 +440,8 @@ public final class RaceEngine {
         // 走る人のいないレースが猶予のあいだ残る。受付に戻す。<b>落ちた人はリタイアとして名簿に残る</b>ので、
         // 名簿が空かどうかでは見分けられない（全員が落ちてもスタートしていた）
         if (session.retired.containsAll(session.entrants)) {
+            // 帯で知らせる相手（主催者・観戦の人・抜けた人）。名簿を空にする前に控える
+            Set<UUID> told = involved(session);
             session.countdown = -1;
             // 受付に戻すので、リタイアにした人は名簿から外す（落ちた人は受付中なら外す、と同じ）
             session.entrants.removeAll(session.retired);
@@ -420,6 +450,7 @@ public final class RaceEngine {
             toViewers(level, session, RaceEventPacket.cleared());
             broadcast(level, RaceText.translatable("race.kurumamod.countdown_aborted")
                     .withStyle(RaceColor.GRAY));
+            notice(level, told, RaceEventPacket.Notice.ABORTED, "");
             broadcastLobby(level, session);
             return;
         }
@@ -1100,8 +1131,11 @@ public final class RaceEngine {
      */
     private void finish(RaceLevel level, Session session, Map<UUID, LapState> states) {
         if (session.finishOrder.isEmpty() && session.retired.containsAll(session.entrants)) {
+            // リザルトが出ないので、帯が無いと終わったことに気づけない
+            Set<UUID> told = involved(session);
             cleanup(level, session);
             broadcast(level, RaceText.translatable("race.kurumamod.all_retired").withStyle(RaceColor.GRAY));
+            notice(level, told, RaceEventPacket.Notice.ALL_RETIRED, "");
             return;
         }
         broadcastResult(level, session, states);
@@ -1396,6 +1430,8 @@ public final class RaceEngine {
             retire(session, states, id);
             removed = true;
             send(player, RaceEventPacket.cleared());
+            // 乗り換えで失格になった人は、チャットだけでは気づかない
+            send(player, RaceEventPacket.notice(RaceEventPacket.Notice.DISQUALIFIED, ""));
             player.sendSystemMessage(RaceText.translatable("race.kurumamod.disqualified")
                     .withStyle(RaceColor.RED));
             broadcast(level, RaceText.translatable("race.kurumamod.disqualified_announce",
@@ -1613,7 +1649,7 @@ public final class RaceEngine {
             case LEAVE -> {
                 switch (leave(player)) {
                     case NOT_ENTERED -> tell(player, RaceText.translatable("race.kurumamod.not_entered"));
-                    case RETIRED -> tell(player, RaceText.translatable("race.kurumamod.retired_self"));
+                    case RETIRED -> send(player, RaceEventPacket.notice(RaceEventPacket.Notice.RETIRED, ""));
                     case LEFT -> send(player, RaceEventPacket.notice(RaceEventPacket.Notice.LEFT, ""));
                     case FINISHED -> tell(player, RaceText.translatable("race.kurumamod.leave_finished"));
                 }

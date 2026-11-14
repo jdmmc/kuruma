@@ -29,7 +29,8 @@ public final class RaceNotice {
 
     private static final int WHITE = 0xFFFFFFFF;
     private static final int INK = 0xFF111111;
-    private static final int TICKS = 100;
+    /** 出しておく長さ（3 秒）。 */
+    private static final int TICKS = 60;
 
     private static RaceText title;
     private static RaceText sub;
@@ -73,7 +74,7 @@ public final class RaceNotice {
             ticks = 0;
         } else if (RaceClient.get().raceScreen() == null) {
             // K の画面を開いている間は減らさない（受付を始めた・中止したのは K の画面の中で、帯は画面の下に隠れる）。
-            // 閉じてから 5 秒出す
+            // 閉じてから 3 秒出す
             ticks--;
         }
     }

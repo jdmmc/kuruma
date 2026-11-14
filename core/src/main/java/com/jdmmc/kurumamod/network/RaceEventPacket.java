@@ -95,7 +95,23 @@ public record RaceEventPacket(Type kind, int lights, boolean frozen, int lap, in
         /** エントリーした。 */
         JOINED,
         /** エントリーを取り消した（受付中に自分で抜けた）。 */
-        LEFT
+        LEFT,
+        /** 信号の途中でエントリーがいなくなったので、スタートを取りやめた。 */
+        ABORTED,
+        /** 車を降りたまま戻らなかったのでリタイアになった。 */
+        AWAY_RETIRED,
+        /** 自分でリタイアした（走行中に抜けた）。 */
+        RETIRED,
+        /** 全員がリタイアしたので、リザルトを出さずに終わった。 */
+        ALL_RETIRED,
+        /** 主催者（名前）が受付中に抜けたので中止になった。 */
+        HOST_LEFT,
+        /** 主催者（名前）が走行中に抜けた。レースは続く。 */
+        HOST_LEFT_RUNNING,
+        /** 主催者（名前）が別の次元へ移ったので終わった。 */
+        HOST_LEFT_DIMENSION,
+        /** 走行中に決まりの外へ出たので失格になった（別の車への乗り換えなど）。 */
+        DISQUALIFIED
     }
 
     private static final Type[] TYPES = Type.values();
