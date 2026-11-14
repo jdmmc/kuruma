@@ -885,6 +885,20 @@ public final class CarCore {
     }
 
     /**
+     * H シフターのレバーの位置（バック -1・ニュートラル 0・1 速〜）。メーターで「入っていない」ことを見せるのに使う。
+     *
+     * <p>クラッチを踏まないと段に入らないのは、マニュアルの車で H シフターとクラッチペダルを両方使っているときだけ
+     * （{@code CarPhysics#selectGearWithClutchPedal}）。それ以外と、手元で解いていないときは
+     * {@link CarInput#NO_GEAR_SELECT}。</p>
+     */
+    public int getRenderLeverGear() {
+        if (!hasLocalState() || !spec().isManual() || !driverInput.hasClutch() || !driverInput.hasGearSelect()) {
+            return CarInput.NO_GEAR_SELECT;
+        }
+        return driverInput.gearSelect();
+    }
+
+    /**
      * クラッチペダルの踏み込み量 0..1（1 で切れきる）。メーターの棒に使う。
      *
      * <p>出すのは<b>マニュアルの車で、クラッチペダルを割り当てている運転者</b>だけ。それ以外は

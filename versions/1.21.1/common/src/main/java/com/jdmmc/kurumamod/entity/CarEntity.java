@@ -1193,6 +1193,11 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         return carCore.getRenderClutchPedal();
     }
 
+    /** {@link CarCore#getRenderLeverGear}。 */
+    public int getRenderLeverGear() {
+        return carCore.getRenderLeverGear();
+    }
+
     /** {@link CarCore#isAbsActive}。 */
     public boolean isAbsActive() {
         return carCore.isAbsActive();

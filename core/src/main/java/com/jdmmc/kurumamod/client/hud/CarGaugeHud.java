@@ -9,6 +9,7 @@ import com.jdmmc.kurumamod.util.Mth;
 import com.jdmmc.kurumamod.config.ClientConfig;
 import com.jdmmc.kurumamod.config.GaugeTheme;
 import com.jdmmc.kurumamod.config.SpeedUnit;
+import com.jdmmc.kurumamod.physics.CarInput;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.client.CarClient;
 import com.jdmmc.kurumamod.client.race.RaceClient;
@@ -109,6 +110,8 @@ public final class CarGaugeHud {
     private static final float SUBGAUGE_TOP = 19.0F;
     /** 速度計の単位の位置。ペダルの棒を 4 段まで入れるため、回転計（{@link #UNIT_DY}）より上。 */
     private static final float SPEED_UNIT_DY = 8.8F;
+    /** 段の枠の右上に添えるレバーの位置の文字の大きさ。 */
+    private static final float LEVER_TEXT_SCALE = 0.5F;
     /**
      * ペダルの棒の置き場所（速度計の中心から）。<b>名前の分だけ右へずらす</b>ので、棒そのものは中心から
      * 少し右に寄る。4 段目の下端（28.8）でも文字盤の縁の内側（39）に収まり、最上段（14.4）は
@@ -610,13 +613,23 @@ public final class CarGaugeHud {
         float boxLeft = -half + 6.0F;
         float boxTop = -PANEL_HEIGHT + 5.0F;
         float boxSize = 22.0F;
-        GaugeShapes.rect(graphics, boxLeft, boxTop, boxLeft + boxSize, boxTop + boxSize,
-                theme.gearBox);
+        int gear = car.getRenderGear();
+        // クラッチを踏まないと入らない場面で、レバーは段の位置なのに入っていない。赤地をやめて黄色い枠にし、
+        // 右上にレバーの位置を添える（「入れたつもりなのに N」に気づけるように）。踏めばその場で入る
+        int lever = car.getRenderLeverGear();
+        boolean waiting = lever != CarInput.NO_GEAR_SELECT && lever != 0 && lever != gear;
+        if (waiting) {
+            GaugeShapes.rect(graphics, boxLeft, boxTop, boxLeft + boxSize, boxTop + boxSize, theme.aidOn);
+            GaugeShapes.rect(graphics, boxLeft + 1.0F, boxTop + 1.0F, boxLeft + boxSize - 1.0F, boxTop + boxSize - 1.0F,
+                    theme.hub);
+        } else {
+            GaugeShapes.rect(graphics, boxLeft, boxTop, boxLeft + boxSize, boxTop + boxSize,
+                    theme.gearBox);
+        }
 
         GaugeShapes.flush(graphics);
 
-        int gear = car.getRenderGear();
-        String gearText = gear > 0 ? String.valueOf(gear) : gear < 0 ? "R" : "N";
+        String gearText = gearLabel(gear);
         float gearScale = 1.7F;
         graphics.pushPose();
         graphics.translate(boxLeft + boxSize / 2.0F - font.width(gearText) * gearScale / 2.0F,
@@ -624,6 +637,14 @@ public final class CarGaugeHud {
         graphics.scale(gearScale, gearScale);
         graphics.drawString(font, gearText, 0, 0, theme.gearText, false);
         graphics.popPose();
+        if (waiting) {
+            String leverText = gearLabel(lever);
+            graphics.pushPose();
+            graphics.translate(boxLeft + boxSize - 1.5F - font.width(leverText) * LEVER_TEXT_SCALE, boxTop + 1.5F);
+            graphics.scale(LEVER_TEXT_SCALE, LEVER_TEXT_SCALE);
+            graphics.drawString(font, leverText, 0, 0, theme.aidOn, false);
+            graphics.popPose();
+        }
 
         RaceText mode = RaceText.translatable(spec.isManual()
                 ? "hud.kurumamod.transmission_mt" : "hud.kurumamod.transmission_at");
@@ -652,6 +673,11 @@ public final class CarGaugeHud {
         graphics.popPose();
 
         graphics.popPose();
+    }
+
+    /** 段の表示。1 以上はその数字、負は R、0 は N。 */
+    private static String gearLabel(int gear) {
+        return gear > 0 ? String.valueOf(gear) : gear < 0 ? "R" : "N";
     }
 
     /**

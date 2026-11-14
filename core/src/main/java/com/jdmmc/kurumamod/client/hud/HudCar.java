@@ -42,6 +42,12 @@ public interface HudCar {
      */
     double getRenderClutchPedal();
 
+    /**
+     * H シフターのレバーの位置。クラッチを踏まないと段に入らない場面（マニュアル・H シフター・クラッチペダル）で
+     * なければ {@code CarInput#NO_GEAR_SELECT}。入っている段と違えば、メーターがレバーの位置を添える。
+     */
+    int getRenderLeverGear();
+
     /** 段。正が前進、0 がニュートラル、負がバック。 */
     int getRenderGear();
 

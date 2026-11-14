@@ -163,6 +163,19 @@ public final class CarPhysics {
     private static final double CLUTCH_RELEASE_SECONDS = 0.08;
 
     /**
+     * H シフターとクラッチペダルで変速するとき、段に入るクラッチの繋がり具合の上限（{@link CarState#clutch}）。
+     * ペダルの遊び（5%）を越えて 7 割ほど踏めば届く。実車より甘めにしてある——ペダルの奥まで踏み切らないと
+     * 入らないと、届いていないことに気づけないまま「入らない」になるため。
+     */
+    private static final double PEDAL_SHIFT_CLUTCH = 0.3;
+
+    /**
+     * クラッチペダルで段に入れたあと、回転合わせが回転を保つ時間の上限 [s]。踏んだまま惰性で走っている間ずっと
+     * 車輪の回転に貼り付けておくと、切っているのに回転計と排気音が車速に付いてくる。繋ぐまでの普通の間（0.2〜0.5 秒）は覆う。
+     */
+    private static final double REV_MATCH_HOLD_SECONDS = 1.0;
+
+    /**
      * クラッチを繋ぎきるまでの時間 [s]。<b>切るときよりずっと遅くすること。</b>
      *
      * <p>ここが速いと、空吹かししたエンジンが車輪の回転へ<b>一瞬で引き戻される</b>。
@@ -736,6 +749,16 @@ public final class CarPhysics {
         // <b>普通に走っているだけで滑りっぱなしになる</b>（実測で制動距離が 21.4→12.1m、
         // 氷での車体スリップ角が 0.5→90 度になった）。切れるのはクラッチを踏んだとき
         // （サイドブレーキ）とニュートラルと、駆動側がアイドルを割り込んだときだけ
+        // クラッチペダルで入れた段へ回転を合わせる（selectGearWithClutchPedal）。アクセルを踏んだら自分で回すので外す。
+        // 直結の判定より前に置くこと——合わせた回転のまま繋げば、繋いだ瞬間に直結へ戻る
+        if (state.revMatchHold > 0.0) {
+            if (state.clutchLocked || state.throttle > 0.0 || state.gear == 0) {
+                state.revMatchHold = 0.0;
+            } else {
+                state.revMatchHold = Math.max(0.0, state.revMatchHold - dt);
+                state.engineRpm = Math.min(spec.redlineRpm(), target);
+            }
+        }
         if (clutchEngagement(spec, state) < 1.0 || belowIdle || overRev) {
             state.clutchLocked = false;
         } else if (!state.clutchLocked) {
@@ -926,6 +949,9 @@ public final class CarPhysics {
             if (requested == -1 && state.forwardSpeed > REVERSE_ENGAGE_SPEED) {
                 requested = 0;
             }
+            if (input.hasClutch()) {
+                return selectGearWithClutchPedal(spec, state, requested);
+            }
         } else if (input.shiftUp()) {
             requested = Math.min(spec.forwardGears(), gear + 1);
         } else if (input.shiftDown()) {
@@ -936,6 +962,41 @@ public final class CarPhysics {
         }
         state.shiftTimer = spec.shiftSeconds();
         return shiftTo(spec, state, requested);
+    }
+
+    /**
+     * H シフターとクラッチペダルの両方を使っているときの段選び。<b>クラッチを切らないと段に入らない。</b>
+     *
+     * <ul>
+     *   <li>段から抜く（ニュートラルの位置へ動かす）のはクラッチ無しでよく、すぐ抜ける</li>
+     *   <li>段の位置へ入れても、クラッチが {@link #PEDAL_SHIFT_CLUTCH} まで切れていなければニュートラルのまま。
+     *       レバーの位置は毎刻み渡ってくるので、<b>そのままクラッチを踏めばその場で入る</b>（レバーを動かし直さなくてよい）。
+     *       乗った瞬間にレバーが段に入っていても、踏むまでは飛び出さない</li>
+     *   <li>入るときは<b>変速時間も自動の切りも掛けない</b>（{@code shiftTimer}・{@code pendingGear} を通さない）。
+     *       その時間はプレイヤーの手足の動きそのもので、速さは腕前で決まってよい（2026-11-14、ユーザーの判断）</li>
+     *   <li>回りすぎる段へも入る。繋げばスリッパークラッチが滑る（{@link #selectGearManually} と同じ）</li>
+     * </ul>
+     *
+     * <p><b>回転合わせ（{@link CarSpec#isRevMatching}）がオンなら、入れた段の回転へエンジンを合わせる</b>
+     * （シムのオートブリッピング）。自動の変速を通さないので、ここで合わせないと設定が効かない。
+     * 合わせるのは入った瞬間と、そのあとクラッチを踏んだまま・アクセルを踏まない間（{@link #REV_MATCH_HOLD_SECONDS}
+     * まで。{@link CarState#revMatchHold}）。オフにすれば自分で煽る（ヒール＆トゥ）。</p>
+     *
+     * <p>回転を合わせて入れる（フロートシフト）は、いまは許していない。</p>
+     */
+    private static int selectGearWithClutchPedal(CarSpec spec, CarState state, int requested) {
+        state.pendingGear = CarState.NO_PENDING_GEAR;
+        if (requested == state.gear) {
+            return state.gear;
+        }
+        if (requested == 0 || state.clutch > PEDAL_SHIFT_CLUTCH) {
+            state.revMatchHold = 0.0;
+            return 0;
+        }
+        if (spec.isRevMatching()) {
+            state.revMatchHold = REV_MATCH_HOLD_SECONDS;
+        }
+        return requested;
     }
 
     /**

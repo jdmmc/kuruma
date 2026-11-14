@@ -113,6 +113,8 @@ public final class CarState {
      * レッドラインに入ったら false。
      */
     public boolean overRevSlipping;
+    /** クラッチペダルで入れた段へ回転合わせが回転を保つ残り時間 [s]。{@code CarPhysics#selectGearWithClutchPedal} が入れる */
+    public double revMatchHold;
     /** 前の刻みでのクラッチの繋がり先の回転 [rpm]。直結へ戻る判定で、繋がり先の動く速さを見る */
     public double clutchTargetRpm;
     /**
