@@ -443,6 +443,39 @@ public final class RaceEngine {
             }
         }
         startFirstLap(level, session, states);
+        retireNonDrivers(level, session, states);
+    }
+
+    /**
+     * <b>号砲の時点で自分で運転していない参加者はリタイア</b>（車に乗っていない・助手席に乗っている）。
+     *
+     * <p>以前は乗っていない人もそのまま走る側に残し、乗ったところから測っていた。助手席の人や歩いている人が
+     * 名簿に残ると、全員ゴールの判定がその人を待ち、順位表にも走らない人が並んだ（2026-11-14）。
+     * 落ちている人・別のワールドにいる人は、そちらの扱いで先にリタイアになっている。
+     * 走り出してから降りた人は今までどおり {@link #watchAway}（降りたまま 60 秒でリタイア）。</p>
+     */
+    private void retireNonDrivers(RaceLevel level, Session session, Map<UUID, LapState> states) {
+        boolean changed = false;
+        for (UUID id : new ArrayList<>(session.entrants)) {
+            if (session.retired.contains(id)) {
+                continue;
+            }
+            RacePlayer player = level.getServer().player(id);
+            if (player == null || player.drivenCar() != null) {
+                continue;
+            }
+            retire(session, states, id);
+            // 号砲で配った時計と HUD を止める（走る側ではなくなった）
+            send(player, RaceEventPacket.cleared());
+            player.sendSystemMessage(RaceText.translatable("race.kurumamod.not_driving_self")
+                    .withStyle(RaceColor.GOLD));
+            broadcast(level, RaceText.translatable("race.kurumamod.not_driving_retired", player.name())
+                    .withStyle(RaceColor.GRAY));
+            changed = true;
+        }
+        if (changed) {
+            broadcastLobby(level, session);
+        }
     }
 
     /**
@@ -450,8 +483,8 @@ public final class RaceEngine {
      * 先でも、号砲からの時間がそのまま 1 周目と総時間になる。
      *
      * <p>グリッドがラインの手前にあると、号砲の直後にラインを越える。それを周回の終わりと数えないよう
-     * {@link LapState#gridStart} を立てておく（{@link #trackCar}）。車に乗っていない人も始めておき、
-     * 乗ったところから線分を取る。</p>
+     * {@link LapState#gridStart} を立てておく（{@link #trackCar}）。号砲の時点で運転していない人は、
+     * このあと {@link #retireNonDrivers} がリタイアにする。</p>
      */
     private void startFirstLap(RaceLevel level, Session session, Map<UUID, LapState> states) {
         Course course = level.records().course(session.course).orElse(null);
@@ -1896,21 +1929,29 @@ public final class RaceEngine {
         return true;
     }
 
-    /** 開催した本人か、OP なら操作してよい。 */
+    /**
+     * レースを操作してよいか（スタート・中止・終える・決まりの変更・外す）。
+     *
+     * <p><b>主催者がいる間は主催者だけ。</b>以前は OP ならいつでも操作できたので、主催者がいるのにほかの人が
+     * レースを中止できた。LAN に公開したワールドでは入ってきた人も OP になるので、誰でも中止できていた
+     * （2026-11-14）。主催者が落ちたままだとレースを畳めなくなるので、その間だけ OP と残った参加者に任せる。</p>
+     */
     public boolean canManage(RacePlayer player) {
         Session session = SESSIONS.get(player.level().dimension());
         if (session == null) {
             return false;
         }
-        if (player.getUUID().equals(session.host) || player.hasGamemasterPermission()) {
+        if (player.getUUID().equals(session.host)) {
             return true;
         }
-        // 主催が落ちたままだとレースを畳めなくなるので、その場合は参加者に任せる
         boolean hostOnline = session.host != null
                 && player.getServer() != null
                 && player.getServer().player(session.host) != null;
-        return !hostOnline && session.entrants.contains(player.getUUID())
-                && !session.retired.contains(player.getUUID());
+        if (hostOnline) {
+            return false;
+        }
+        return player.hasGamemasterPermission()
+                || session.entrants.contains(player.getUUID()) && !session.retired.contains(player.getUUID());
     }
 
     /** 受付中のレースのコース名。無ければ null。 */

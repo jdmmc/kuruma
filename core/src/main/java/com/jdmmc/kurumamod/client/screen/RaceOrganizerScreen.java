@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.function.BooleanSupplier;
 import com.jdmmc.kurumamod.client.race.RaceClient;
 import com.jdmmc.kurumamod.client.race.RaceLobby;
+import com.jdmmc.kurumamod.client.hud.RaceHud;
 
 /**
  * 主催者画面。<b>レースを開き、決まり（レギュレーション）を決め、参加者の判定を見てスタートする。</b>
@@ -63,6 +64,16 @@ public final class RaceOrganizerScreen extends UiScreen {
     private UiButton openButton;
     private UiButton startButton;
     private UiButton stopButton;
+    /**
+     * 主催者自身の参加・観戦（参加者の画面と同じ 4 つ）。<b>主催者も走るかどうかを選べる。</b>
+     * 開いた直後はエントリーしている（開いた人は自分も走ることが多い）。抜けても観戦に切り替えても、
+     * スタート・中止・決まりの変更はそのままできる（サーバーの権限は主催者か OP かで見ている）。
+     * 以前はこの画面に抜ける・観戦するが無く、主催者は必ず走る側にいた
+     */
+    private UiButton joinButton;
+    private UiButton leaveButton;
+    private UiButton spectateButton;
+    private UiButton unspectateButton;
 
     private int leftX;
     private int topY;
@@ -307,6 +318,20 @@ public final class RaceOrganizerScreen extends UiScreen {
                             onClose();
                         })
                 .bounds(frameRight - 110 - 6 - 90, by, 90, 20).build());
+        // 主催者自身の参加・観戦は左下（右下は進行のボタン）。参加と抜ける、観戦と観戦をやめるは同じ場所で入れ替わる
+        joinButton = addRenderableWidget(UiButton.builder(RaceText.translatable("screen.kurumamod.race_info.join"),
+                        button -> RaceClient.get().sendToServer(RaceActionPacket.of(RaceActionPacket.Action.JOIN)))
+                .bounds(leftX, by, 90, 20).build());
+        leaveButton = addRenderableWidget(UiButton.builder(RaceText.translatable("screen.kurumamod.race_info.leave"),
+                        button -> RaceClient.get().sendToServer(RaceActionPacket.of(RaceActionPacket.Action.LEAVE)))
+                .bounds(leftX, by, 90, 20).build());
+        spectateButton = addRenderableWidget(UiButton.builder(RaceText.translatable("screen.kurumamod.race_info.spectate"),
+                        button -> RaceClient.get().sendToServer(RaceActionPacket.of(RaceActionPacket.Action.SPECTATE)))
+                .bounds(leftX + 96, by, 90, 20).build());
+        unspectateButton = addRenderableWidget(UiButton.builder(
+                        RaceText.translatable("screen.kurumamod.race_info.unspectate"),
+                        button -> RaceClient.get().sendToServer(RaceActionPacket.of(RaceActionPacket.Action.UNSPECTATE)))
+                .bounds(leftX + 96, by, 90, 20).build());
         refreshWidgets();
     }
 
@@ -892,6 +917,16 @@ public final class RaceOrganizerScreen extends UiScreen {
         openButton.active = !courses.isEmpty();
         startButton.visible = open && manage && !classMode;
         stopButton.visible = !none && manage && !classMode;
+        // 主催者自身の参加・観戦。出し分けは参加者の画面（RaceInfoScreen#tick）と同じ
+        boolean result = phase == RaceLobbyPacket.Phase.RESULT;
+        boolean race = !none && !classMode && lobby != null;
+        boolean joined = race && lobby.joined();
+        boolean spectating = race && lobby.spectating();
+        // ゴールした人とリザルトの間は抜けられない・切り替えない（抜けるとリザルトから消える。サーバーも断る）
+        leaveButton.visible = joined && !result && !RaceHud.hasFinished();
+        joinButton.visible = race && !joined && open;
+        spectateButton.visible = race && !spectating && !result && !(joined && RaceHud.hasFinished());
+        unspectateButton.visible = spectating;
         int ok = 0;
         if (lobby != null) {
             for (RaceLobbyPacket.Entrant entrant : lobby.entrants()) {

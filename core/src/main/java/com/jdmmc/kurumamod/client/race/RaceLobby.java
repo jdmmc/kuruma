@@ -92,6 +92,11 @@ public final class RaceLobby {
         }
         // 自分が入った・抜けた（外された）ときの音。レースが終わって畳まれたときは鳴らさない
         boolean wasJoined = previous != null && previous.joined();
+        // 観戦に切り替わったら、HUD の中央に大きく出す。エントリーしていて、自分の判定が違反だったなら、
+        // サーバーが信号の前に観戦へ移した（RaceEngine#beginCountdown）
+        if (packet.spectating() && previous != null && !previous.spectating()) {
+            RaceHud.spectated(wasJoined && selfViolated(previous));
+        }
         if (packet.joined() && !wasJoined) {
             RaceSounds.entered();
         } else if (!packet.joined() && wasJoined && packet.phase() == RaceLobbyPacket.Phase.OPEN) {
@@ -263,6 +268,15 @@ public final class RaceLobby {
     }
 
     /** 観戦しているか。観戦者は信号の間も車を止めない。 */
+    /** 前の様子で、自分のエントリーの判定が違反だったか。 */
+    private static boolean selfViolated(RaceLobbyPacket packet) {
+        int self = packet.self();
+        if (self < 0 || self >= packet.entrants().size()) {
+            return false;
+        }
+        return packet.entrants().get(self).verdict() == RaceLobbyPacket.Verdict.VIOLATION;
+    }
+
     public static boolean spectating() {
         return lobby != null && lobby.spectating();
     }

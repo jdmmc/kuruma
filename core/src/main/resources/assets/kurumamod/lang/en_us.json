@@ -380,6 +380,8 @@
   "race.kurumamod.away_warning": "Get back in your car or you retire in %s s",
   "race.kurumamod.away_retired_self": "You were out of your car for 60 seconds and have retired",
   "race.kurumamod.away_retired": "%s was out of their car for 60 seconds and has retired",
+  "race.kurumamod.not_driving_retired": "%s wasn't driving when the race started, so they retired",
+  "race.kurumamod.not_driving_self": "You weren't driving a car when the race started, so you retired (not in a car, or in a passenger seat)",
   "race.kurumamod.not_timing": "No time attack is being timed",
   "race.kurumamod.reset_while_racing": "Cannot reset during a race (drop out from the race screen, K)",
   "race.kurumamod.timeattack_reset": "Time attack cancelled. Timing restarts at the next start line crossing",
@@ -397,7 +399,7 @@
   "race.kurumamod.already_open_running": "The race on %s is in progress.",
   "race.kurumamod.no_courses_hint": "No courses yet. Mark both ends with /kuruma-admin point, then /kuruma-admin course create <name>.",
   "race.kurumamod.need_second_point": "Only point A (%s, %s) is marked. Go to the other end and run /kuruma-admin point.",
-  "race.kurumamod.not_host_named": "Only %s (the host) and operators can do this.",
+  "race.kurumamod.not_host_named": "Only %s (the host) can do this. While the host is away, operators and entrants can too.",
   "race.kurumamod.retired_self": "You retired from the race. Your laps will not be recorded.",
   "race.kurumamod.leave_finished": "You have already finished. You stay in the race until the results are shown.",
   "race.kurumamod.kick_finished": "%s has already finished and stays in the results",
@@ -1032,5 +1034,10 @@
   "screen.kurumamod.race_info.unspectate": "Stop watching",
   "race.kurumamod.spectate_on": "You are now spectating (not entered)",
   "race.kurumamod.spectate_off": "You stopped spectating",
+  "race.kurumamod.hud_spectate_forced": "You're spectating",
+  "race.kurumamod.hud_spectate_forced_sub": "Your car doesn't meet the regulations, so you can't race this one. You can still follow the standings and results",
+  "race.kurumamod.hud_spectate_self": "Switched to spectating",
+  "race.kurumamod.hud_spectate_self_sub": "You're not entered. You can still follow the standings and results",
+  "race.kurumamod.hud_watching": "Spectating (not racing)",
   "race.kurumamod.countdown_aborted": "The start was called off because no one is entered"
 }

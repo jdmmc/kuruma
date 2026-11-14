@@ -111,6 +111,14 @@ public final class RaceHud {
     private static long finishMillis;
     /** 画面中央に大きく「ゴール」を出しておく残りティック。 */
     private static int finishTicks;
+    /**
+     * 観戦に切り替わったことを画面中央に出しておく残りティック。<b>チャットの 1 行だけでは気づかない</b>
+     * ——信号の間は走る人と同じ灯と帯が出るので、自分が走らないことが分からなかった（2026-11-14）。
+     */
+    private static int spectateTicks;
+    /** 観戦になった理由がレギュレーション違反か（false なら自分で切り替えた）。 */
+    private static boolean spectateForced;
+    private static final int SPECTATE_TICKS = 100;
     /** 最終周の帯の残りティック。 */
     private static int finalTicks;
     private static String courseName = "";
@@ -499,6 +507,9 @@ public final class RaceHud {
         if (finalTicks > 0) {
             finalTicks--;
         }
+        if (spectateTicks > 0) {
+            spectateTicks--;
+        }
         if (--classCheckTicks <= 0) {
             classCheckTicks = CLASS_CHECK_TICKS;
             classViolating = checkClassViolation();
@@ -570,6 +581,13 @@ public final class RaceHud {
             if (frozen && lobby != null && (lobby.joined() || lobby.spectating())) {
                 renderRegulationBand(graphics, font, width, height);
             }
+            // 観戦している人には、信号の下に「観戦中」を出し続ける（走る人と同じ灯と帯なので）
+            if (frozen && RaceLobby.spectating()) {
+                renderWatchingBadge(graphics, font, width);
+            }
+        }
+        if (spectateTicks > 0 && !results && finishTicks == 0) {
+            renderSpectateBand(graphics, font, width);
         }
 
         // 知らせ
@@ -1128,6 +1146,49 @@ public final class RaceHud {
             Slant.scaled(graphics, font, placeText, px + 8, y + 11, scale, INK);
             Slant.text(graphics, font, unit, px + 10 + Slant.width(font, placeText, scale), y + 24, INK);
         }
+    }
+
+    /**
+     * 観戦に切り替わったことを知らせる（{@link RaceLobby} が切り替わりを見て呼ぶ）。
+     *
+     * @param forced レギュレーション違反で観戦になったか（false なら自分で切り替えた）
+     */
+    public static void spectated(boolean forced) {
+        spectateTicks = SPECTATE_TICKS;
+        spectateForced = forced;
+    }
+
+    /** 画面中央の帯: 観戦になった・理由・走れないこと。 */
+    private static void renderSpectateBand(UiGraphics graphics, UiFont font, int width) {
+        int y = 84;
+        RaceText sub = RaceText.translatable(spectateForced
+                ? "race.kurumamod.hud_spectate_forced_sub" : "race.kurumamod.hud_spectate_self_sub");
+        // 説明は画面の幅で折り返す（英語だと 1 行では GUI スケール自動の幅 480 に収まらない）
+        java.util.List<RaceText> lines = font.split(sub, Math.max(100, width - 40));
+        int height = 28 + lines.size() * 10;
+        graphics.fill(0, y, width, y + height, INK);
+        graphics.fill(0, y, width, y + 2, ACCENT);
+        graphics.fill(0, y + height - 2, width, y + height, ACCENT);
+        String title = RaceText.translatable(spectateForced
+                ? "race.kurumamod.hud_spectate_forced" : "race.kurumamod.hud_spectate_self").getString();
+        float scale = 2.0F;
+        int w = Slant.width(font, title, scale);
+        Slant.scaled(graphics, font, title, (width - w) / 2.0F, y + 6, scale, ACCENT);
+        int lineY = y + 25;
+        for (RaceText line : lines) {
+            graphics.drawString(font, line, (width - font.width(line)) / 2, lineY, WHITE, false);
+            lineY += 10;
+        }
+    }
+
+    /** 信号の下の「観戦中」の札。 */
+    private static void renderWatchingBadge(UiGraphics graphics, UiFont font, int width) {
+        RaceText text = RaceText.translatable("race.kurumamod.hud_watching");
+        int w = font.width(text) + 12;
+        int x = (width - w) / 2;
+        int y = 58;
+        Slant.fill(graphics, x, y, w, 12, ACCENT);
+        Slant.text(graphics, font, text, x + 6, y + 2, INK);
     }
 
     /** リザルト。順位の塔と同じ斜めの列。 */

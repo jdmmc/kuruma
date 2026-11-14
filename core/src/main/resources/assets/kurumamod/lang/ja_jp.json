@@ -380,6 +380,8 @@
   "race.kurumamod.away_warning": "車に戻らないと、あと %s 秒でリタイアになります",
   "race.kurumamod.away_retired_self": "車を降りたまま 60 秒たったので、リタイアになりました",
   "race.kurumamod.away_retired": "%s さんは車を降りたまま 60 秒たったので、リタイアになりました",
+  "race.kurumamod.not_driving_retired": "%s さんは号砲の時点で運転していなかったので、リタイアになりました",
+  "race.kurumamod.not_driving_self": "号砲の時点で車を運転していなかったので、リタイアになりました（車に乗っていない・助手席に乗っている）",
   "race.kurumamod.not_timing": "タイムアタックを計測していません",
   "race.kurumamod.reset_while_racing": "レース中は取り消せません（抜けるならレースの画面（K）から）",
   "race.kurumamod.timeattack_reset": "タイムアタックを取り消しました。次にスタートラインを通ったところから測り直します",
@@ -397,7 +399,7 @@
   "race.kurumamod.already_open_running": "%s のレースが進行中です",
   "race.kurumamod.no_courses_hint": "コースがありません。両端で /kuruma-admin point を打ってから /kuruma-admin course create <名前>",
   "race.kurumamod.need_second_point": "1 点目 (%s, %s) だけ打たれています。もう一方の端で /kuruma-admin point",
-  "race.kurumamod.not_host_named": "開催した %s と OP だけが操作できます",
+  "race.kurumamod.not_host_named": "開催した %s だけが操作できます（主催者がいない間は OP と参加者も）",
   "race.kurumamod.retired_self": "レースからリタイアしました。周回の記録は残りません",
   "race.kurumamod.leave_finished": "ゴールしているので抜けられません。リザルトまでレースに残ります",
   "race.kurumamod.kick_finished": "%s はゴールしているので外せません（リザルトに残ります）",
@@ -1032,5 +1034,10 @@
   "screen.kurumamod.race_info.unspectate": "観戦をやめる",
   "race.kurumamod.spectate_on": "観戦に切り替えました（エントリーはしていません）",
   "race.kurumamod.spectate_off": "観戦をやめました",
+  "race.kurumamod.hud_spectate_forced": "観戦になりました",
+  "race.kurumamod.hud_spectate_forced_sub": "レギュレーションに合っていないため、このレースは走れません。順位とリザルトは見られます",
+  "race.kurumamod.hud_spectate_self": "観戦に切り替えました",
+  "race.kurumamod.hud_spectate_self_sub": "エントリーはしていません。順位とリザルトは見られます",
+  "race.kurumamod.hud_watching": "観戦中（このレースは走りません）",
   "race.kurumamod.countdown_aborted": "エントリーがいなくなったため、スタートを取りやめました"
 }
