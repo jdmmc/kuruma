@@ -62,6 +62,7 @@ public final class McRaceClient implements RaceClient {
         ControllerInput.setDevice(new ControllerDevice(), net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get());
         CarClient.set(new McCarClient());
         CarGhosts.install();
+        com.jdmmc.kurumamod.client.CarClientDriver.install();
         RaceText.setResolver(text -> RaceTexts.of(text).getString());
     }
 

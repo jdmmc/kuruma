@@ -2,6 +2,7 @@ package com.jdmmc.kurumamod.car;
 
 import com.jdmmc.kurumamod.ground.GroundSensor;
 import com.jdmmc.kurumamod.physics.BlockField;
+import com.jdmmc.kurumamod.physics.CarHull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -62,10 +63,23 @@ public interface CarHost extends GroundSensor.World {
     void collectBlocks(BlockField field, double[] area, double x, double z);
 
     /**
-     * 車同士の箱で動かし、他の車から押し出す。当たった車とは運動量をやりとりする（相手へも配る）。
-     * 地形は {@code CarBody} が解いてあるので、ここで見るのは車同士だけ。
+     * 車同士の箱（{@link CarHull#body}）で動かし、他の車から押し出す。地形は {@code CarBody} が解いてあるので、
+     * ここで見るのは車同士だけ。当たった車との運動量のやりとりは {@link CarCore} が決める。
      */
     Move moveWithCars(double dx, double dy, double dz);
+
+    /** この車の中身。当たった相手の速度と諸元を読むのに使う。 */
+    CarCore carCore();
+
+    /**
+     * 当たった車 {@code other}（{@link Move#other}）へ、押されたぶんを届ける。
+     * 相手の物理を解いている側（相手の運転者・無人ならサーバー）へ届ける道筋は版が決める。
+     *
+     * @param dx       ワールド座標での速度の足し X [m/s]
+     * @param dz       同じく Z
+     * @param dYawRate ヨー角速度の足し [rad/s]
+     */
+    void pushCar(CarHost other, float dx, float dz, float dYawRate);
 
     /** バニラの「横にぶつかった」「縦にぶつかった」の印（{@code horizontalCollision}・{@code verticalCollision}）。 */
     void setCollisions(boolean horizontal, boolean vertical);
@@ -79,10 +93,9 @@ public interface CarHost extends GroundSensor.World {
     /**
      * {@link #moveWithCars} の結果。
      *
-     * @param horizontal 車同士の箱で横に止められたか
-     * @param closing    当たった車へ近づいていた速さ [m/s]。当たっていなければ 0
-     * @param sparks     車同士の火花（{@link #reportScrape} へ渡す形。最後の要素は {強さ}）。出さないなら null
+     * @param motion 車同士の箱で動かした結果（横で止められたか・当たった面の向きと接点）
+     * @param other  いちばん深く当たった車。当たっていなければ null
      */
-    record Move(boolean horizontal, double closing, @Nullable float[][] sparks) {
+    record Move(CarHull.Motion motion, @Nullable CarHost other) {
     }
 }

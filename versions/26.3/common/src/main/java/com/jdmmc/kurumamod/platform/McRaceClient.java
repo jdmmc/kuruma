@@ -67,6 +67,7 @@ public final class McRaceClient implements RaceClient {
                 new com.jdmmc.kurumamod.client.ForceFeedbackDevice(controllers));
         CarClient.set(new McCarClient());
         CarGhosts.install();
+        com.jdmmc.kurumamod.client.CarClientDriver.install();
         RaceText.setResolver(text -> RaceTexts.of(text).getString());
     }
 

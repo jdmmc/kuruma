@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import com.jdmmc.kurumamod.surface.RoadSurface;
 import com.jdmmc.kurumamod.physics.CarBody;
+import com.jdmmc.kurumamod.physics.CarCollision;
+import com.jdmmc.kurumamod.physics.CarHull;
 import com.jdmmc.kurumamod.physics.BlockField;
 import com.jdmmc.kurumamod.ground.GroundSensor;
 import com.jdmmc.kurumamod.debug.GroundTrace;
@@ -1005,11 +1007,25 @@ public final class CarCore {
 
         // 車同士の当たりは、車同士用の箱（CarHull#body）で解く。相手が車なら運動量のやりとりもそこで
         CarHost.Move move = host.moveWithCars(x - host.posX(), state.height - host.posY(), z - host.posZ());
-        host.setCollisions(wall || move.horizontal(), floor);
+        CarHull.Motion motion = move.motion();
+        double closing = 0.0;
+        float[][] carSparks = null;
+        CarHost other = move.other();
+        if (other != null) {
+            CarCore otherCore = other.carCore();
+            // 衝撃は相手へ近づいていた速さ
+            closing = (state.velocityX() - otherCore.worldVelocityX()) * motion.carNormalX
+                    + (state.velocityZ() - otherCore.worldVelocityZ()) * motion.carNormalZ;
+            // 相手が車なら運動量のやりとりで決める（壁と違って相手も動く）
+            resolveCarImpact(other, motion);
+            if (closing >= IMPACT_MIN_SPEED) {
+                carSparks = carImpactSparks(otherCore, motion, closing);
+            }
+        }
+        host.setCollisions(wall || motion.horizontal, floor);
         // 衝撃は相手へ近づいていた速さ（当たっていなければ 0）
-        impact = Math.max(impact, move.closing());
+        impact = Math.max(impact, closing);
         host.reportImpact(impact);
-        float[][] carSparks = move.sparks();
         if (carSparks != null) {
             // 車同士でぶつかったティックは、そちらを優先する（T ボーンなど、いちばん派手に散る場面）
             host.reportScrape(carSparks[0], carSparks[1], carSparks[2], carSparks[3][0]);
@@ -1020,6 +1036,72 @@ public final class CarCore {
         }
         state.height = host.posY();
         unbury(body);
+    }
+
+    /** 車同士でぶつかったときの火花の高さ [m]。車体の真ん中あたり（車同士の箱は高さの情報を持たない）。 */
+    private static final double CAR_SPARK_HEIGHT = 0.25;
+
+    /**
+     * 車同士の衝突を運動量で解く。
+     *
+     * <p><b>壁と違って相手も動く。</b>反発係数つきの弾性衝突として、両者の速度差から力積を
+     * 求め、質量の比で分け合う（重い車がぶつかれば軽い車がよく飛ぶ）。自分のぶんはその場で
+     * 足し、<b>相手のぶんは {@link CarHost#pushCar} で相手の持ち主へ届ける</b>——物理を解いて
+     * いるのはそれぞれの運転クライアントなので、ここで相手を動かしても次のティックに
+     * 上書きされてしまう。</p>
+     *
+     * <p>当たった向きと接触点は車体の箱が押し出したときのもの（{@link CarHull.Motion}）。
+     * 接触点が相手の重心から離れていればその腕の長さぶんヨーのモーメントになるので、
+     * <b>側面に当てれば相手は回る</b>。</p>
+     *
+     * <p>速度は「出そうとした速度」から解く。版の {@code moveWithCars} が既に壁と同じように
+     * 止めてしまっているが、車同士では止まるのが正しいとは限らない（弾かれる）。</p>
+     */
+    private void resolveCarImpact(CarHost other, CarHull.Motion motion) {
+        CarCore otherCore = other.carCore();
+        CarSpec otherSpec = otherCore.spec();
+        CarCollision.Result result = CarCollision.solve(motion.carNormalX, motion.carNormalZ,
+                motion.contactX - other.posX(), motion.contactZ - other.posZ(),
+                state.velocityX(), state.velocityZ(),
+                otherCore.worldVelocityX(), otherCore.worldVelocityZ(),
+                baseSpec().mass(), otherSpec.mass(), otherSpec.yawInertia());
+        if (result == null) {
+            return;
+        }
+        state.addWorldVelocity(result.aDx(), result.aDz());
+        host.pushCar(other, (float) result.bDx(), (float) result.bDz(), (float) result.bYawRate());
+    }
+
+    /**
+     * ぶつけられたぶんを自分の物理へ足す（{@link CarHost#pushCar} で届いたもの）。
+     *
+     * <p><b>足せるのは物理を解いている側だけ。</b>運転していないクライアントで足しても、
+     * 次に届く同期で上書きされるだけなので捨てる。</p>
+     */
+    public void applyPush(double dx, double dz, double dYawRate) {
+        if (!host.simulatedHere()) {
+            return;
+        }
+        state.addWorldVelocity(dx, dz);
+        state.yawRate += dYawRate;
+        host.reportImpact(Math.hypot(dx, dz));
+    }
+
+    /**
+     * 車同士でぶつかったときの火花の出どころ。{@link CarHost#reportScrape} へ渡す形（ずれ・外向き・擦れる速度・{強さ}）。
+     *
+     * <p>接点は車同士の箱が押し出したときのもの（{@link CarHull.Motion}）。高さは {@link #CAR_SPARK_HEIGHT}。
+     * 外向きは相手の面からこちらへ戻る向き、擦れる速度は相手に対するこちらの速さのうち、面に沿った成分。</p>
+     */
+    private float[][] carImpactSparks(CarCore other, CarHull.Motion motion, double closing) {
+        double relativeX = state.velocityX() - other.worldVelocityX();
+        double relativeZ = state.velocityZ() - other.worldVelocityZ();
+        double toward = relativeX * motion.carNormalX + relativeZ * motion.carNormalZ;
+        return new float[][]{
+                {(float) (motion.contactX - host.posX()), (float) CAR_SPARK_HEIGHT, (float) (motion.contactZ - host.posZ())},
+                {(float) -motion.carNormalX, (float) -motion.carNormalZ},
+                {(float) (relativeX - toward * motion.carNormalX), 0.0F, (float) (relativeZ - toward * motion.carNormalZ)},
+                {(float) closing}};
     }
 
     /**

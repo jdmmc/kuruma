@@ -36,7 +36,6 @@ import com.jdmmc.kurumamod.network.CarSpecPacket;
 import com.jdmmc.kurumamod.network.CarStatePacket;
 import com.jdmmc.kurumamod.physics.BlockField;
 import com.jdmmc.kurumamod.physics.CarBody;
-import com.jdmmc.kurumamod.physics.CarCollision;
 import com.jdmmc.kurumamod.physics.CarHull;
 import com.jdmmc.kurumamod.physics.CarInput;
 import com.jdmmc.kurumamod.physics.CarPhysics;
@@ -103,7 +102,8 @@ import java.util.Map;
  * <p><b>エンティティの Y はシャシー基準面（サスペンションのハードポイントが並ぶ面）を指す。</b>
  * 地面ではない。タイヤは AABB の下にぶら下がっているので、AABB は車体だけを表す。</p>
  */
-public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundSensor.World, SkidMarkTrails.Car, EmitterCar {
+public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundSensor.World, SkidMarkTrails.Car, EmitterCar,
+        com.jdmmc.kurumamod.client.input.CarDriver.Car, com.jdmmc.kurumamod.part.PartRequests.Car {
 
     /** 前輪の切れ角 [rad]。運転していないクライアントでの描画用。 */
     private static final EntityDataAccessor<Float> DATA_STEER_ANGLE =
@@ -216,8 +216,6 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
     private static final double IMPACT_MIN_SPEED = CarCore.IMPACT_MIN_SPEED;
     /** 車体が壁とこれより速く擦れたら火花を出す [m/s]（{@link CarCore#SPARK_MIN_SPEED}）。 */
     public static final double SPARK_MIN_SPEED = CarCore.SPARK_MIN_SPEED;
-    /** 車同士でぶつかった火花を出す高さ（重心のシャシー基準面から） [m]。車体の真ん中あたり。 */
-    private static final double CAR_SPARK_HEIGHT = 0.25;
     /**
      * バニラの当たり判定の箱を、車体の箱（{@link CarHull}）の内側へさらに余らせる量 [m]。
      * サーバーが知っている姿勢は少し遅れて届くので、そのぶん小さくしておく。
@@ -796,41 +794,16 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
     }
 
     /**
-     * 車同士の衝突を運動量で解く。
+     * 当たった車へ押されたぶんを届ける（{@link CarCore} が決めた量）。
      *
-     * <p><b>壁と違って相手も動く。</b>反発係数つきの弾性衝突として、両者の速度差から力積を
-     * 求め、質量の比で分け合う（重い車がぶつかれば軽い車がよく飛ぶ）。自分のぶんはその場で
-     * 足し、<b>相手のぶんは {@link CarPushPacket} で相手の持ち主へ届ける</b>——物理を解いて
-     * いるのはそれぞれの運転クライアントなので、ここで相手を動かしても次のティックに
-     * 上書きされてしまう。</p>
-     *
-     * <p>当たった向きと接触点は車体の箱が押し出したときのもの（{@link CarHull.Motion}）。
-     * 接触点が相手の重心から離れていればその腕の長さぶんヨーのモーメントになるので、
-     * <b>側面に当てれば相手は回る</b>。</p>
-     *
-     * <p>速度は「出そうとした速度」から解く。{@link #moveCars} が既に壁と同じように
-     * 止めてしまっているが、車同士では止まるのが正しいとは限らない（弾かれる）。</p>
+     * <p>物理を解いているのは相手の持ち主なので、ここで相手を動かしても次のティックに上書きされる。
+     * クライアントからはサーバー経由（{@link CarPushPacket}）で、サーバー（無人の車を解いている）からは
+     * 相手の運転者へ直接届ける。運転者のいない相手はサーバーが解いているので、その場で足す。</p>
      */
-    private void resolveCarImpact(CarEntity other, CarHull.Motion motion) {
-        double nx = motion.carNormalX;
-        double nz = motion.carNormalZ;
-        double contactX = motion.contactX;
-        double contactZ = motion.contactZ;
-
-        // state はまだ「出そうとした速度」のまま（車が相手のときは move() の結果で
-        // 上書きしていない）。壁と違って、止まるのが正しいとは限らないため
-        CarCollision.Result result = CarCollision.solve(nx, nz,
-                contactX - other.getX(), contactZ - other.getZ(),
-                state.velocityX(), state.velocityZ(),
-                other.worldVelocityX(), other.worldVelocityZ(),
-                carCore.baseSpec().mass(), other.getSpec().mass(), other.getSpec().yawInertia());
-        if (result == null) {
-            return;
-        }
-
-        state.addWorldVelocity(result.aDx(), result.aDz());
-        CarPushPacket push = new CarPushPacket(other.getId(),
-                (float) result.bDx(), (float) result.bDz(), (float) result.bYawRate());
+    @Override
+    public void pushCar(CarHost target, float dx, float dz, float dYawRate) {
+        CarEntity other = (CarEntity) target;
+        CarPushPacket push = new CarPushPacket(other.getId(), dx, dz, dYawRate);
         if (level().isClientSide()) {
             KurumaNetwork.sendToServer(push);
             return;
@@ -845,19 +818,9 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         }
     }
 
-    /**
-     * ぶつけられたぶんを自分の物理へ足す。
-     *
-     * <p><b>足せるのは物理を解いている側だけ。</b>運転していないクライアントで足しても、
-     * 次に届く同期で上書きされるだけなので捨てる。</p>
-     */
+    /** {@link CarCore#applyPush}。 */
     public void applyPush(double dx, double dz, double dYawRate) {
-        if (!isLocalInstanceAuthoritative()) {
-            return;
-        }
-        state.addWorldVelocity(dx, dz);
-        state.yawRate += dYawRate;
-        reportImpact(Math.hypot(dx, dz));
+        carCore.applyPush(dx, dz, dYawRate);
     }
 
     /** {@link CarCore#worldVelocityX}。 */
@@ -906,25 +869,6 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
             CarPacketHandlers.broadcastScrape(this, offset, normal, velocity, impact);
         }
     }
-
-    /**
-     * 車同士でぶつかったときの火花の出どころ。{@link #reportScrape} へ渡す形（ずれ・外向き・擦れる速度・強さ）。
-     *
-     * <p>接点は車同士の箱が押し出したときのもの（{@link CarHull.Motion}）。高さは車体の真ん中あたり
-     * （箱は高さの情報を持たない）。外向きは相手の面からこちらへ戻る向き、擦れる速度は相手に対する
-     * こちらの速さのうち、面に沿った成分。</p>
-     */
-    private float[][] carImpactSparks(CarEntity other, CarHull.Motion motion, double closing) {
-        double relativeX = state.velocityX() - other.worldVelocityX();
-        double relativeZ = state.velocityZ() - other.worldVelocityZ();
-        double toward = relativeX * motion.carNormalX + relativeZ * motion.carNormalZ;
-        return new float[][]{
-                {(float) (motion.contactX - getX()), (float) CAR_SPARK_HEIGHT, (float) (motion.contactZ - getZ())},
-                {(float) -motion.carNormalX, (float) -motion.carNormalZ},
-                {(float) (relativeX - toward * motion.carNormalX), 0.0F, (float) (relativeZ - toward * motion.carNormalZ)},
-                {(float) closing}};
-    }
-
 
     private static final int SURFACE_BITS = CarCore.SURFACE_BITS;
     private static final int AIRBORNE_BIT = CarCore.AIRBORNE_BIT;
@@ -1725,21 +1669,7 @@ public class CarEntity extends CarEntityBase implements CarHost, HudCar, GroundS
         Vec3 velocity = new Vec3(dx, dy, dz);
         setDeltaMovement(velocity);
         HullMove hullMove = moveCars(velocity);
-        double closing = 0.0;
-        float[][] sparks = null;
-        if (hullMove.car() != null) {
-            CarHull.Motion motion = hullMove.motion();
-            CarEntity other = hullMove.car();
-            // 衝撃は相手へ近づいていた速さ
-            closing = (state.velocityX() - other.worldVelocityX()) * motion.carNormalX
-                    + (state.velocityZ() - other.worldVelocityZ()) * motion.carNormalZ;
-            // 相手が車なら運動量のやりとりで決める（壁と違って相手も動く）
-            resolveCarImpact(other, motion);
-            if (closing >= IMPACT_MIN_SPEED) {
-                sparks = carImpactSparks(other, motion, closing);
-            }
-        }
-        return new CarHost.Move(hullMove.motion().horizontal, closing, sparks);
+        return new CarHost.Move(hullMove.motion(), hullMove.car());
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.platform;
 
+import com.jdmmc.kurumamod.client.input.CarDriver;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.PartFitment;
@@ -185,34 +186,34 @@ final class McCarClient implements CarClient {
 
     @Override
     public boolean isDriver() {
-        return CarClientDriver.isDriver(Minecraft.getInstance());
+        return CarDriver.isDriver();
     }
 
     @Override
     public void requestPart(PartSlot slot, PartFitment.Setting setting) {
-        CarClientDriver.requestPart(slot, setting);
+        CarDriver.requestPart(slot, setting);
     }
 
     @Override
     public void requestPaint(String paint) {
-        CarClientDriver.requestPaint(paint);
+        CarDriver.requestPaint(paint);
     }
 
     @Override
     public void requestPlate(PlateLook plate) {
-        CarClientDriver.requestPlate(plate);
+        CarDriver.requestPlate(plate);
     }
 
     @Override
     public void sendTuningToServer() {
-        CarClientDriver.sendTuningToServer();
+        CarDriver.sendTuningToServer();
     }
 
     @Override
     public void viewPassengerCar(DrivenCar car) {
         CarEntity entity = CarClientDriver.ridingCar(Minecraft.getInstance());
         if (entity != null && car != null && entity.getId() == car.getId()) {
-            CarClientDriver.viewPassengerCar(entity);
+            CarDriver.viewPassengerCar(entity);
         }
     }
 

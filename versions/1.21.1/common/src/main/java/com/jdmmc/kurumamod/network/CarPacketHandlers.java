@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.network;
 
+import com.jdmmc.kurumamod.part.PartRequests;
 import com.jdmmc.kurumamod.Kurumamod;
 import com.jdmmc.kurumamod.car.CarId;
 import com.jdmmc.kurumamod.car.CarRules;
@@ -10,8 +11,6 @@ import com.jdmmc.kurumamod.client.CarClientPackets;
 import com.jdmmc.kurumamod.entity.CarEntity;
 import com.jdmmc.kurumamod.part.CarPart;
 import com.jdmmc.kurumamod.part.CarParts;
-import com.jdmmc.kurumamod.part.PartFitment;
-import com.jdmmc.kurumamod.part.PartSlot;
 import com.jdmmc.kurumamod.physics.Aero;
 import com.jdmmc.kurumamod.physics.CarSpec;
 import com.jdmmc.kurumamod.physics.Tire;
@@ -105,43 +104,11 @@ public final class CarPacketHandlers {
                 return;
             }
 
-            PartFitment.Setting wanted = packet.setting();
-            CarId partId = wanted.partId();
-            // 「なし」は初期装備のある場所でだけ意味を持つ。外せない初期装備は外させない
-            if (PartFitment.isNone(partId)) {
-                var defaults = com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).defaultPart(packet.slot());
-                if (defaults == null) {
-                    wanted = new PartFitment.Setting(null, wanted.camber(), wanted.offset(),
-                            wanted.width(), wanted.angle(), wanted.tone());
-                    partId = null;
-                } else if (!defaults.removable()) {
-                    return;
-                }
-            }
-            // いま履いている部品のまま角度だけ変える要求は、車種の制限で弾かない。
-            // カーパックの更新で付かなくなった部品を履いたままの車でも、調整はできるべきなので
-            if (partId != null && !PartFitment.isNone(partId) && !partId.equals(car.getFitment().getPart(packet.slot()))) {
-                CarPart part = CarParts.get(partId);
-                // 知らない部品、場所の合わない部品、その車種に付かない部品は履かせない
-                if (part == null || part.slot() != packet.slot() || !part.fits(car.getCarId())) {
-                    return;
-                }
-            }
-            // 角度は弾かずに押し込む（範囲は PartFitment.readSetting が既に掛けている）。
-            // 部品と違って「無い値」というものが無いので、弾くのではなく丸めるのが正しい
-
-            // setFitment がそのまま周囲のクライアントへ配る
-            PartFitment before = car.getFitment();
-            com.jdmmc.kurumamod.physics.CarSpec specBefore = car.getSpec();
-            car.setFitment(before.with(packet.slot(), wanted));
-            // レース中は決まりの外へ出る部品を履かせない（ターボ禁止・グリップの上限など）。
-            // 部品の効き方は車へ付けてみないと分からないので、付けてから測って戻す
-            com.jdmmc.kurumamod.tuning.Regulation regulation =
-                    com.jdmmc.kurumamod.race.RaceManager.restrictionFor(sender);
-            if (regulation != null && !regulation.allowsChange(specBefore, car.getSpec(),
-                    com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).spec())) {
-                car.setFitment(before);
-                sender.displayClientMessage(partBlocked(partId), true);
+            // 何を付けてよいかは core の決まり。弾いたときだけ、どの部品かを知らせる
+            PartRequests.Blocked blocked = PartRequests.apply(car, packet.slot(), packet.setting(),
+                    com.jdmmc.kurumamod.race.RaceManager.restrictionFor(sender));
+            if (blocked != null) {
+                sender.displayClientMessage(partBlocked(blocked.partId()), true);
             }
         });
     }
@@ -200,9 +167,7 @@ public final class CarPacketHandlers {
 
     /** 付けているプレートの欄の決まり。付けていない・知らない部品なら決まり無し（最低限の検査だけ）。 */
     private static PlateRules rulesOf(CarEntity car) {
-        CarId id = car.getEffectiveFitment().getPart(PartSlot.PLATE);
-        CarPart part = id == null ? null : CarParts.get(id);
-        return part == null || part.plate() == null ? PlateRules.NONE : part.plate();
+        return PartRequests.plateRules(car);
     }
 
     /** {@link CarPushPacket}（"car_push"）が届いたとき。 */
