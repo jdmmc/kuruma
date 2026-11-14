@@ -58,6 +58,10 @@ CASE_MB = 1500
 FAST_JVM = ["-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC"]
 
 JOIN_TIMEOUT = 420
+# 接続を始めてから入れるまでの待ち [s]。ふだんは 2 秒で入る。
+# Forge 1.20.1 でときどき、サーバーが握手のパケットを送ったのにクライアントが 1 つも受け取らないまま
+# 止まる（サーバーは 30 秒で切るが、クライアントは気づかずに何分も待つ）。そのときは状態を残して起動し直す
+CONNECT_TIMEOUT = 45
 SERVER_TIMEOUT = 400
 RENDER_SETTLE = 8   # 接続してからチャンクが見えるまで
 SHOT_SETTLE = 5     # 車を出してから、乗ってから画面を撮るまで
@@ -364,6 +368,32 @@ def wait_for(path, pattern, timeout, proc=None, count=1):
     return False
 
 
+def dump_stuck(case, procs):
+    """接続で止まったときの、スレッドの状態と接続の一覧を report に残す（次に原因を探すため）。"""
+    jcmd = case.java.parent / "jcmd.exe"
+    for proc in procs:
+        for pid in java_pids(proc.pid):
+            if jcmd.exists():
+                out = subprocess.run([str(jcmd), str(pid), "Thread.print"], capture_output=True, text=True,
+                                     errors="replace")
+                (case.report / f"stuck-threads-{pid}.txt").write_text(out.stdout + out.stderr, encoding="utf-8")
+    ns = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, errors="replace").stdout
+    (case.report / "stuck-netstat.txt").write_text(ns, encoding="utf-8")
+    for root, tag in ((case.server, "server"), (case.client, "client")):
+        debug = root / "logs/debug.log"
+        if debug.exists():
+            shutil.copy(debug, case.report / f"stuck-{tag}-debug.log")
+
+
+def java_pids(pid):
+    """pid と、その子のうち java のもの（ランチャーが間に挟まることがある）。"""
+    out = subprocess.run(["powershell.exe", "-NoProfile", "-Command",
+                          f"Get-CimInstance Win32_Process | Where-Object {{ $_.ProcessId -eq {pid} -or "
+                          f"$_.ParentProcessId -eq {pid} }} | Where-Object {{ $_.Name -like 'java*' }} | "
+                          "ForEach-Object { $_.ProcessId }"], capture_output=True, text=True)
+    return [int(x) for x in out.stdout.split() if x.isdigit()]
+
+
 def screenshot(proc, out):
     r = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(WORK / "shot.ps1"),
                         "-ProcId", str(proc.pid), "-Out", str(out)], capture_output=True, text=True)
@@ -426,9 +456,23 @@ def run_case(case, port, env):
         checks["server"] = wait_for(server_out, r"Done \([\d.,]+s\)", SERVER_TIMEOUT, server)
         if not checks["server"]:
             return r
-        client = subprocess.Popen(client_command(case) + ["--quickPlayMultiplayer", f"localhost:{port}"], cwd=case.client,
-                                  stdin=subprocess.DEVNULL, stdout=open(client_out, "wb"), stderr=subprocess.STDOUT)
-        checks["join"] = wait_for(server_out, PLAYER + " joined the game", JOIN_TIMEOUT, client)
+        for attempt in (1, 2):
+            client = subprocess.Popen(client_command(case) + ["--quickPlayMultiplayer", f"localhost:{port}"],
+                                      cwd=case.client, stdin=subprocess.DEVNULL,
+                                      stdout=open(client_out, "ab" if attempt > 1 else "wb"), stderr=subprocess.STDOUT)
+            started_at = time.time()
+            # 起動にかかる時間は組み合わせで大きく違うので、待つのは接続を始めてから
+            connecting = wait_for(client_out, r"Connecting to ", JOIN_TIMEOUT, client, count=attempt)
+            left = JOIN_TIMEOUT - (time.time() - started_at)
+            checks["join"] = connecting and wait_for(server_out, PLAYER + " joined the game",
+                                                     min(CONNECT_TIMEOUT, max(left, 1)), client)
+            if checks["join"] or not connecting or attempt == 2 or client.poll() is not None:
+                break
+            log(f"{case.name}: 接続を始めて {CONNECT_TIMEOUT} 秒たっても入れない。状態を report に残して、クライアントを起動し直す")
+            r["connect_retry"] = True
+            dump_stuck(case, (server, client))
+            kill_tree(client.pid)
+            client.wait(30)
         if not checks["join"]:
             return r
         time.sleep(RENDER_SETTLE)
@@ -582,7 +626,8 @@ def main():
     lines = [f"KurumaMod {env.mod_version}  {len(cases)} 組み  {jobs} 並列  {round(time.time() - started)} 秒"]
     for r in ordered:
         failed = [k for k, v in r["checks"].items() if not v]
-        lines.append(f"{'OK  ' if passed(r) else 'FAIL'} {r['case']:<22} {r['seconds']:>4} 秒  {' '.join(failed)}")
+        note = "  （1 回目の接続で止まったので起動し直した。stuck-* を残してある）" if r.get("connect_retry") else ""
+        lines.append(f"{'OK  ' if passed(r) else 'FAIL'} {r['case']:<22} {r['seconds']:>4} 秒  {' '.join(failed)}{note}")
         lines += [f"     {e}" for e in r["errors"]]
     summary = "\n".join(lines)
     (WORK / "report/summary.txt").write_text(summary + "\n", encoding="utf-8")
