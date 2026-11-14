@@ -33,6 +33,15 @@ public interface HudCar {
 
     boolean isHandbrakeOn();
 
+    /** サイドブレーキの引き量 0..1。運転している本人でなければ負（メーターに出さない）。 */
+    double getRenderHandbrake();
+
+    /**
+     * クラッチペダルの踏み込み量 0..1。マニュアルの車でクラッチペダルを割り当てた運転者でなければ負
+     * （メーターに出さない）。
+     */
+    double getRenderClutchPedal();
+
     /** 段。正が前進、0 がニュートラル、負がバック。 */
     int getRenderGear();
 

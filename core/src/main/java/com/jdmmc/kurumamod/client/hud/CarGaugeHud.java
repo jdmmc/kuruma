@@ -107,6 +107,19 @@ public final class CarGaugeHud {
     /** 単位の文字と、その下に置く小計器の位置（中心からの下向き）。 */
     private static final float UNIT_DY = 12.0F;
     private static final float SUBGAUGE_TOP = 19.0F;
+    /** 速度計の単位の位置。ペダルの棒を 4 段まで入れるため、回転計（{@link #UNIT_DY}）より上。 */
+    private static final float SPEED_UNIT_DY = 8.8F;
+    /**
+     * ペダルの棒の置き場所（速度計の中心から）。<b>名前の分だけ右へずらす</b>ので、棒そのものは中心から
+     * 少し右に寄る。4 段目の下端（28.8）でも文字盤の縁の内側（39）に収まり、最上段（14.4）は
+     * 目盛りの端（y=12）より下にある。
+     */
+    private static final float PEDAL_TOP = 14.4F;
+    private static final float PEDAL_LEFT = -8.4F;
+    private static final float PEDAL_WIDTH = 20.0F;
+    private static final float PEDAL_HEIGHT = 2.4F;
+    private static final float PEDAL_PITCH = 4.0F;
+    private static final float PEDAL_LABEL_GAP = 1.6F;
     /**
      * 警告灯の文字の大きさ。<b>ここだけ {@link #SMALL_TEXT_SCALE} より小さい。</b>
      *
@@ -332,15 +345,17 @@ public final class CarGaugeHud {
 
         plate(graphics, theme);
         ticks(graphics, theme, top, major, major / 2.0, Double.MAX_VALUE);
-        // アクセルとブレーキの踏み量。実車の燃料計の位置
-        pedalBars(graphics, theme, car);
+        // ペダルの踏み量。実車の燃料計の位置
+        pedalBars(graphics, font, theme, car, false);
         needle(graphics, theme, speed / top, false);
 
         GaugeShapes.flush(graphics);
 
         labels(graphics, font, theme, top, major, Double.MAX_VALUE);
+        pedalBars(graphics, font, theme, car, true);
+        // ペダルの棒を 4 段まで入れるため、単位は回転計より少し上に置く
         centerText(graphics, font, units.unit(),
-                UNIT_DY, theme.unit);
+                SPEED_UNIT_DY, theme.unit);
 
         graphics.popPose();
     }
@@ -434,32 +449,59 @@ public final class CarGaugeHud {
     }
 
     /**
-     * アクセルとブレーキの踏み量。速度計の中、実車の燃料計の位置。
+     * ペダルの踏み量。速度計の中、実車の燃料計の位置。上からアクセル・ブレーキ・クラッチ・サイド。
      *
      * <p><b>キーボードでも 0/100 では動かない</b>（変化率に上限がある）ので、
      * 押している長さがそのまま棒の伸びとして見える。コントローラならなおさら。</p>
      *
+     * <p><b>クラッチとサイドの段は、値が分かるときだけ出して上へ詰める。</b>クラッチはマニュアルの車で
+     * クラッチペダルを割り当てた運転者だけ（キーボードやパッドの人にクラッチを意識させない）。サイドは
+     * 運転している本人だけ（同期していない）。4 本に増えると色だけでは読めないので、左に名前を書く。</p>
+     *
      * <p>置けるのは<b>文字盤の下の、目盛りが回ってこない範囲</b>。開始角 160 度から
-     * 220 度なので、真下（90 度）の周りが空く。</p>
+     * 220 度なので、真下（90 度）の周りが空く。図形と文字で 2 回呼ぶ（{@code text}）。</p>
      */
-    private static void pedalBars(UiGraphics graphics, GaugeTheme theme, HudCar car) {
-        float width = 24.0F;
-        float height = 2.5F;
-        float left = -width / 2.0F;
-        pedalBar(graphics, theme, left, SUBGAUGE_TOP, width, height,
-                car.getRenderThrottle(), theme.throttle);
-        pedalBar(graphics, theme, left, SUBGAUGE_TOP + 4.5F, width, height,
-                car.getRenderBrake(), theme.brake);
+    private static void pedalBars(UiGraphics graphics, UiFont font, GaugeTheme theme, HudCar car,
+                                  boolean text) {
+        double clutch = car.getRenderClutchPedal();
+        double handbrake = car.getRenderHandbrake();
+        float top = PEDAL_TOP;
+        top = pedalRow(graphics, font, theme, "hud.kurumamod.pedal_throttle", top,
+                car.getRenderThrottle(), theme.throttle, text);
+        top = pedalRow(graphics, font, theme, "hud.kurumamod.pedal_brake", top,
+                car.getRenderBrake(), theme.brake, text);
+        if (clutch >= 0.0) {
+            top = pedalRow(graphics, font, theme, "hud.kurumamod.pedal_clutch", top,
+                    clutch, theme.clutch, text);
+        }
+        if (handbrake >= 0.0) {
+            pedalRow(graphics, font, theme, "hud.kurumamod.pedal_handbrake", top,
+                    handbrake, theme.handbrakeBar, text);
+        }
     }
 
-    private static void pedalBar(UiGraphics graphics, GaugeTheme theme,
-                                 float left, float top, float width, float height,
-                                 double value, int color) {
-        GaugeShapes.rect(graphics, left, top, left + width, top + height, theme.aidOff);
-        float filled = (float) Math.max(0.0, Math.min(1.0, value)) * width;
-        if (filled > 0.0F) {
-            GaugeShapes.rect(graphics, left, top, left + filled, top + height, color);
+    /** ペダルの棒 1 段。次の段の上端を返す。 */
+    private static float pedalRow(UiGraphics graphics, UiFont font, GaugeTheme theme, String labelKey,
+                                  float top, double value, int color, boolean text) {
+        if (text) {
+            RaceText label = RaceText.translatable(labelKey);
+            // 大文字の字面（7px）を棒の高さの真ん中へ、右端を棒の左に揃える
+            float glyph = 7.0F * LAMP_TEXT_SCALE;
+            graphics.pushPose();
+            graphics.translate(PEDAL_LEFT - PEDAL_LABEL_GAP - font.width(label) * LAMP_TEXT_SCALE,
+                    top + (PEDAL_HEIGHT - glyph) / 2.0F);
+            graphics.scale(LAMP_TEXT_SCALE, LAMP_TEXT_SCALE);
+            graphics.drawString(font, label, 0, 0, theme.unit, false);
+            graphics.popPose();
+        } else {
+            GaugeShapes.rect(graphics, PEDAL_LEFT, top, PEDAL_LEFT + PEDAL_WIDTH, top + PEDAL_HEIGHT,
+                    theme.aidOff);
+            float filled = (float) Math.max(0.0, Math.min(1.0, value)) * PEDAL_WIDTH;
+            if (filled > 0.0F) {
+                GaugeShapes.rect(graphics, PEDAL_LEFT, top, PEDAL_LEFT + filled, top + PEDAL_HEIGHT, color);
+            }
         }
+        return top + PEDAL_PITCH;
     }
 
     /**

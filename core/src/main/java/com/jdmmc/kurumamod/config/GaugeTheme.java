@@ -50,7 +50,9 @@ public enum GaugeTheme {
             0xFFFF3B30, // ledHigh
             0x40FFFFFF, // ledOff
             0xFF4CD964, // throttle
-            0xFFFF3B30), // brake
+            0xFFFF3B30, // brake
+            0xFF3D7BFF, // clutch      クラッチの棒。ターボ灯の水色とは明るさで分ける
+            0xFFFF9500), // handbrakeBar サイドの引き量の棒。ブレーキの赤と分ける
 
     /**
      * 深い縁、白い数字、細いオレンジの針。90 年代の国産スポーツの純正メーター。
@@ -88,7 +90,9 @@ public enum GaugeTheme {
             0xFFFF3B30, // ledHigh
             0x38FFFFFF, // ledOff
             0xFF4CD964, // throttle
-            0xFFFF5A28); // brake
+            0xFFFF5A28, // brake
+            0xFF4A7DFF, // clutch
+            0xFFFFA020); // handbrakeBar
 
     public final int face;
     public final int bezel;
@@ -120,13 +124,16 @@ public enum GaugeTheme {
     public final int ledOff;
     public final int throttle;
     public final int brake;
+    public final int clutch;
+    public final int handbrakeBar;
 
     GaugeTheme(int face, int bezel, int bezelRing, int glassInner, int glassOuter, int redline,
                int tickMajor, int tickMinor, int label, int unit, int sub,
                int needle, int hub, int hubRing, int panel, int text,
                int gearBox, int gearText, int aidOn, int aidOff,
                int aidLabel, int aidLabelOn, int handbrake, int turbo,
-               int ledLow, int ledMid, int ledHigh, int ledOff, int throttle, int brake) {
+               int ledLow, int ledMid, int ledHigh, int ledOff, int throttle, int brake,
+               int clutch, int handbrakeBar) {
         this.face = face;
         this.bezel = bezel;
         this.bezelRing = bezelRing;
@@ -157,6 +164,8 @@ public enum GaugeTheme {
         this.ledOff = ledOff;
         this.throttle = throttle;
         this.brake = brake;
+        this.clutch = clutch;
+        this.handbrakeBar = handbrakeBar;
     }
 
     /** シフトインジケーターの色。{@code position} は左端 0・右端 1。 */

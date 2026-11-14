@@ -876,6 +876,28 @@ public final class CarCore {
         return hasLocalState() && driverInput.handbrake();
     }
 
+    /**
+     * サイドブレーキの引き量 0..1。メーターの棒に使う。運転している本人にしか分からないので、
+     * 手元で解いていなければ負（棒を出さない）。
+     */
+    public double getRenderHandbrake() {
+        return hasLocalState() ? state.handbrake : -1.0;
+    }
+
+    /**
+     * クラッチペダルの踏み込み量 0..1（1 で切れきる）。メーターの棒に使う。
+     *
+     * <p>出すのは<b>マニュアルの車で、クラッチペダルを割り当てている運転者</b>だけ。それ以外は
+     * {@link CarInput#NO_CLUTCH}（棒を出さない）——キーボードやパッドの人にクラッチを意識させないため。
+     * 自動で切れたぶん（サイド・変速）ではなく、踏んでいる量そのもの。</p>
+     */
+    public double getRenderClutchPedal() {
+        if (!hasLocalState() || !spec().isManual() || !driverInput.hasClutch()) {
+            return CarInput.NO_CLUTCH;
+        }
+        return driverInput.clutchAxis();
+    }
+
     public boolean isGhost() {
         return ghost;
     }

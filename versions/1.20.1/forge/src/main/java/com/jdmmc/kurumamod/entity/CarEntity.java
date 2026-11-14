@@ -1190,6 +1190,16 @@ public class CarEntity extends Entity implements IEntityAdditionalSpawnData, Car
         return carCore.isHandbrakeOn();
     }
 
+    /** {@link CarCore#getRenderHandbrake}。 */
+    public double getRenderHandbrake() {
+        return carCore.getRenderHandbrake();
+    }
+
+    /** {@link CarCore#getRenderClutchPedal}。 */
+    public double getRenderClutchPedal() {
+        return carCore.getRenderClutchPedal();
+    }
+
     /** {@link CarCore#isAbsActive}。 */
     public boolean isAbsActive() {
         return carCore.isAbsActive();
