@@ -13,8 +13,10 @@ import com.jdmmc.kurumamod.tuning.Regulation;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -467,6 +469,7 @@ public final class RaceEngine {
             retire(session, states, id);
             // 号砲で配った時計と HUD を止める（走る側ではなくなった）
             send(player, RaceEventPacket.cleared());
+            send(player, RaceEventPacket.notice(RaceEventPacket.Notice.NOT_DRIVING, ""));
             player.sendSystemMessage(RaceText.translatable("race.kurumamod.not_driving_self")
                     .withStyle(RaceColor.GOLD));
             broadcast(level, RaceText.translatable("race.kurumamod.not_driving_retired", player.name())
@@ -1601,8 +1604,8 @@ public final class RaceEngine {
                     case ALREADY_STARTED -> tell(player,
                             RaceText.translatable("race.kurumamod.already_started", racingCourse(level)));
                     case ALREADY_JOINED -> tell(player, RaceText.translatable("race.kurumamod.already_joined"));
-                    case JOINED -> tell(player, RaceText.translatable("race.kurumamod.joined")
-                            .withStyle(RaceColor.GREEN));
+                    // 受付と参加の知らせは帯で出す（行動バーには出さない。2026-11-14）
+                    case JOINED -> send(player, RaceEventPacket.notice(RaceEventPacket.Notice.JOINED, ""));
                     default -> {
                     }
                 }
@@ -1611,7 +1614,7 @@ public final class RaceEngine {
                 switch (leave(player)) {
                     case NOT_ENTERED -> tell(player, RaceText.translatable("race.kurumamod.not_entered"));
                     case RETIRED -> tell(player, RaceText.translatable("race.kurumamod.retired_self"));
-                    case LEFT -> tell(player, RaceText.translatable("race.kurumamod.left"));
+                    case LEFT -> send(player, RaceEventPacket.notice(RaceEventPacket.Notice.LEFT, ""));
                     case FINISHED -> tell(player, RaceText.translatable("race.kurumamod.leave_finished"));
                 }
                 sendLobby(player);
@@ -1691,16 +1694,13 @@ public final class RaceEngine {
                 }
             }
             case SPECTATE -> {
-                if (spectate(player)) {
-                    tell(player, RaceText.translatable("race.kurumamod.spectate_on"));
-                } else {
+                // 切り替わったことはクライアントが帯で出す（RaceHud#spectated）
+                if (!spectate(player)) {
                     sendLobby(player);
                 }
             }
             case UNSPECTATE -> {
-                if (unspectate(player)) {
-                    tell(player, RaceText.translatable("race.kurumamod.spectate_off"));
-                } else {
+                if (!unspectate(player)) {
                     sendLobby(player);
                 }
             }
@@ -1722,14 +1722,31 @@ public final class RaceEngine {
                     // <b>サーバーの全員へチャットで知らせる</b>（開催の告知と同じく、ほかのワールドにいる人にも）。
                     // 以前は押した本人の行動バーにしか出ず、ほかの参加者には何も届かなかった。
                     // リザルトの表示を閉じるだけなら、もう誰にも関係ないので知らせない
+                    RaceEventPacket.Notice notice = null;
                     if (session.started && !session.showingResult) {
                         announce(level, RaceText.translatable("race.kurumamod.race_ended_by", player.name())
                                 .withStyle(RaceColor.GOLD));
+                        notice = RaceEventPacket.Notice.ENDED;
                     } else if (!session.showingResult) {
                         announce(level, RaceText.translatable("race.kurumamod.race_cancelled_by", player.name())
                                 .withStyle(RaceColor.GRAY));
+                        notice = RaceEventPacket.Notice.CANCELLED;
                     }
+                    // 巻き込まれた人（エントリー・観戦）と押した本人には帯でも知らせる。本人にも出すのは、
+                    // 押したことが確かに効いたと分かるように（エントリーしていない主催者・OP もいる）。
+                    // 畳むと名簿が消えるので、先に控える
+                    Set<UUID> involved = new LinkedHashSet<>(session.entrants);
+                    involved.addAll(session.spectators);
+                    involved.add(player.getUUID());
                     stopRace(level);
+                    if (notice != null) {
+                        for (UUID id : involved) {
+                            RacePlayer other = level.getServer().player(id);
+                            if (other != null) {
+                                send(other, RaceEventPacket.notice(notice, player.name()));
+                            }
+                        }
+                    }
                     tell(player, RaceText.translatable("race.kurumamod.race_stopped"));
                     Session after = SESSIONS.get(level.dimension());
                     if (after != null) {
@@ -1767,6 +1784,7 @@ public final class RaceEngine {
                 states.remove(id);
             }
             send(target, RaceEventPacket.cleared());
+            send(target, RaceEventPacket.notice(RaceEventPacket.Notice.KICKED, host.name()));
             target.sendSystemMessage(RaceText.translatable("race.kurumamod.kicked", session.hostName)
                     .withStyle(RaceColor.GOLD));
             broadcast(level, RaceText.translatable("race.kurumamod.kicked_announce", name)

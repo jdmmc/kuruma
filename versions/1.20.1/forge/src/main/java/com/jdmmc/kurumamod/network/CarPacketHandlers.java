@@ -151,11 +151,23 @@ public final class CarPacketHandlers {
             if (regulation != null && !regulation.allowsChange(specBefore, car.getSpec(),
                     com.jdmmc.kurumamod.car.CarTypes.get(car.getCarId()).spec())) {
                 car.setFitment(before);
-                sender.displayClientMessage(net.minecraft.network.chat.Component.translatable(
-                        "race.kurumamod.part_blocked"), true);
+                sender.displayClientMessage(partBlocked(partId), true);
             }
         });
         context.setPacketHandled(true);
+    }
+
+    /**
+     * 決まりの外になるので付けなかった、の知らせ。<b>どの部品かを書く</b>——プリセットは何か所も一度に換えるので、
+     * 名前が無いとどれが付かなかったのか分からない。名前はクライアントの言語で出す（サーバーは翻訳を持たない）。
+     */
+    private static net.minecraft.network.chat.Component partBlocked(com.jdmmc.kurumamod.car.CarId partId) {
+        CarPart part = partId == null ? null : CarParts.get(partId);
+        if (part == null) {
+            return net.minecraft.network.chat.Component.translatable("race.kurumamod.part_blocked");
+        }
+        return net.minecraft.network.chat.Component.translatable("race.kurumamod.part_blocked_named",
+                net.minecraft.network.chat.Component.translatableWithFallback(part.translationKey(), part.id().getPath()));
     }
 
     /** {@link CarPartTypesPacket}（"car_part_types"）が届いたとき。 */

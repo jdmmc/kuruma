@@ -75,6 +75,8 @@ public final class McUiScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         sync();
         model.render(new McUiGraphics(graphics), mouseX, mouseY, partialTick);
+        // アクションバーは画面の上へ（HUD のものは画面の下に隠れる）
+        com.jdmmc.kurumamod.client.hook.OverlayMessageFront.drawOverScreen(graphics);
     }
 
     @Override

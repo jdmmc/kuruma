@@ -24,6 +24,7 @@ import net.minecraft.client.player.LocalPlayer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.sdl.SDLMouse;
 import com.jdmmc.kurumamod.client.screen.CarPartScreen;
+import com.jdmmc.kurumamod.client.screen.CarPresetScreen;
 import com.jdmmc.kurumamod.client.screen.CarTuningScreen;
 import com.jdmmc.kurumamod.client.input.ControllerInput;
 import com.jdmmc.kurumamod.client.screen.ControllerScreen;
@@ -228,7 +229,7 @@ public final class CarClientDriver {
      * 開いたまま運転できる画面か。走りながら見て決める画面（セッティング・パーツ・メニュー・座席）。
      *
      * <p><b>入力欄（{@code EditBox}）のある画面を足してはいけない。</b>運転に使うキーを画面が握りつぶすので、
-     * W・A・S・D とスペースが打てなくなる（プリセットの名前を付ける画面がそう）。</p>
+     * W・A・S・D とスペースが打てなくなる。入力欄のある画面は、打っている間だけ外す（換装のナンバー・プリセットの名前）。</p>
      */
     public static boolean isDrivableScreen(Screen raw) {
         // core の画面（McUiScreen）は中身で見分ける
@@ -236,6 +237,10 @@ public final class CarClientDriver {
         // ナンバーの字を打っている間は運転しない。W・A・S・D を打つたびに車が動いてしまう
         if (screen instanceof CarPartScreen parts && parts.isTyping()) {
             return false;
+        }
+        // プリセットも G と同じく走りながら当てる。名前を打っている間だけは運転しない
+        if (screen instanceof CarPresetScreen preset) {
+            return !preset.isTyping();
         }
         return screen instanceof CarTuningScreen || screen instanceof CarPartScreen
                 || screen instanceof KurumaMenuScreen || screen instanceof SeatScreen;

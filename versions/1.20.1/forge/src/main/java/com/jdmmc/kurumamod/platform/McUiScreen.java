@@ -78,6 +78,8 @@ public final class McUiScreen extends Screen {
         McUiGraphics wrapped = new McUiGraphics(graphics);
         model.renderBackground(wrapped, mouseX, mouseY, partialTick);
         model.render(wrapped, mouseX, mouseY, partialTick);
+        // アクションバーは画面の上へ（HUD のものは画面の下に隠れる）
+        McHud.drawOverScreen(graphics, partialTick);
     }
 
     @Override

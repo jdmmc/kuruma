@@ -74,7 +74,28 @@ public record RaceEventPacket(Type kind, int lights, boolean frozen, int lap, in
          * タイムアタックのウォームアップが始まった（{@code course} を 1 回目に越えた）。<b>計測は次にスタートラインを
          * 越えたところから</b>。越えた瞬間から測ると助走が無く、ラインの手前の速さで 1 周目が決まってしまう。
          */
-        WARM_UP
+        WARM_UP,
+        /**
+         * 自分に関わる出来事を画面中央の帯で知らせる（{@link Notice}。どれかは {@code place}、名前は {@code course}）。
+         * チャットにも同じことが出るが、走っている最中は読まない。
+         */
+        NOTICE
+    }
+
+    /** {@link Type#NOTICE} の中身。<b>並びを変えないこと</b>（番号で送る）。 */
+    public enum Notice {
+        /** 主催者（名前）がスタート前にレースを中止した。 */
+        CANCELLED,
+        /** 主催者（名前）が走行中のレースを終えた。 */
+        ENDED,
+        /** 号砲の時点で運転していなかったのでリタイアになった。 */
+        NOT_DRIVING,
+        /** 主催者（名前）にエントリーから外された。 */
+        KICKED,
+        /** エントリーした。 */
+        JOINED,
+        /** エントリーを取り消した（受付中に自分で抜けた）。 */
+        LEFT
     }
 
     private static final Type[] TYPES = Type.values();
@@ -173,6 +194,28 @@ public record RaceEventPacket(Type kind, int lights, boolean frozen, int lap, in
     public static RaceEventPacket warmUp(String course, String raceClass) {
         return new RaceEventPacket(Type.WARM_UP, 0, false, 0, 0, 0, 0, false, 0,
                 0, 0, 0, false, 0, course, raceClass, "", false, false, 0L);
+    }
+
+    /**
+     * 画面中央の帯で知らせる。<b>{@link #cleared()} より後に送ること</b>（HUD を消す合図とは別に持つので消えないが、
+     * 順番を決めておけば受け取る側で迷わない）。
+     *
+     * @param who 知らせに出す名前（主催者など）。要らなければ空
+     */
+    public static RaceEventPacket notice(Notice notice, String who) {
+        return new RaceEventPacket(Type.NOTICE, 0, false, 0, 0, 0, 0, false, notice.ordinal(),
+                0, 0, 0, false, 0, who, "", "", false, false, 0L);
+    }
+
+    /** {@link Type#NOTICE} の中身。知らない番号（新しいサーバー）なら null。 */
+    public Notice notice() {
+        Notice[] all = Notice.values();
+        return place >= 0 && place < all.length ? all[place] : null;
+    }
+
+    /** {@link Type#NOTICE} に出す名前。 */
+    public String noticeName() {
+        return course;
     }
 
     public static RaceEventPacket cleared() {

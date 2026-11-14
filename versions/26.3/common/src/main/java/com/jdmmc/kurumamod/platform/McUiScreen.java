@@ -81,6 +81,8 @@ public final class McUiScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         sync();
         model.render(new McUiGraphics(graphics), mouseX, mouseY, partialTick);
+        // アクションバーは画面の上へ（HUD のものは画面の下に隠れる）
+        com.jdmmc.kurumamod.client.hook.OverlayMessageFront.drawOverScreen(graphics);
     }
 
     /** 26.3 の画面は先に背景の段を集めてから部品を集め、描いた順で重なる。表をボタンより下に置くのはここ。 */

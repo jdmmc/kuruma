@@ -1,5 +1,6 @@
 package com.jdmmc.kurumamod.client.race;
 
+import com.jdmmc.kurumamod.client.hud.RaceNotice;
 import com.jdmmc.kurumamod.client.ui.Slant;
 import com.jdmmc.kurumamod.client.ui.UiButton;
 import com.jdmmc.kurumamod.client.ui.UiEditBox;
@@ -105,9 +106,22 @@ public final class RaceLobby {
         // 受付が始まった瞬間だけ誘う。主催した本人と、もう入っている人には出さない
         if (!wasOpen && packet.phase() == RaceLobbyPacket.Phase.OPEN && !packet.isHost() && !packet.joined()) {
             inviteTicks = INVITE_TICKS;
+            // 中央の帯でも知らせる（右の誘いの枠は小さく、走っていると気づかない）。参加・観戦したら消す
+            RaceNotice.show(RaceText.translatable("race.kurumamod.notice_open"),
+                    RaceText.translatable("race.kurumamod.notice_open_sub", packet.hostName(), packet.course(),
+                            packet.laps(), keyName()),
+                    RaceNotice.GREEN, () -> lobby != null && lobby.phase() == RaceLobbyPacket.Phase.OPEN
+                            && !lobby.joined() && !lobby.spectating());
         }
         if (packet.joined() || packet.spectating() || packet.phase() != RaceLobbyPacket.Phase.OPEN) {
             inviteTicks = 0;
+        }
+        // 主催した本人にも、受付を始めたことを同じ帯で出す（押したことが効いたと分かるように）
+        if (!wasOpen && packet.phase() == RaceLobbyPacket.Phase.OPEN && packet.isHost()) {
+            RaceNotice.show(RaceText.translatable("race.kurumamod.notice_hosting"),
+                    RaceText.translatable("race.kurumamod.notice_hosting_sub", packet.course(), packet.laps(),
+                            keyName()),
+                    RaceNotice.GREEN, () -> lobby != null && lobby.phase() == RaceLobbyPacket.Phase.OPEN);
         }
         // 主催者には、参加・離脱を一言知らせる
         Set<String> names = new HashSet<>();
@@ -254,6 +268,8 @@ public final class RaceLobby {
         inviteTicks = 0;
         knownEntrants = new HashSet<>();
         pingTicks = 0;
+        // 抜けたサーバーの知らせを、次のワールドへ持ち越さない
+        RaceNotice.clear();
         TimeAttackClass.reset();
     }
 
@@ -343,6 +359,20 @@ public final class RaceLobby {
         }
         Regulation declared = TimeAttackClass.regulation();
         return declared == null || declared.isFree() ? null : declared;
+    }
+
+    /**
+     * いま縛っている決まりがどこから来ているか（「エントリー中のレース」「クラス「名前」」）。知らせの文に入れる。
+     * 縛られていなければ null。
+     */
+    public static RaceText restrictionSource() {
+        if (raceRestriction() != null) {
+            return RaceText.translatable("race.kurumamod.restriction_race");
+        }
+        if (restriction() != null) {
+            return RaceText.translatable("race.kurumamod.restriction_class", TimeAttackClass.declared());
+        }
+        return null;
     }
 
     /** エントリーしていてまだゴールしていない（宣言よりレースの決まりが優先される）。 */

@@ -137,6 +137,8 @@ public final class ClientHooks {
         CarGaugeHud.onRenderGui(graphics);
         CarHelp.onRenderGui(graphics);
         CarHud.onRenderGui(graphics);
+        // アクションバーはいちばん最後（この MOD の HUD より手前）
+        OverlayMessageFront.draw(event);
     }
 
     /** ホットバーの層を描き終えた直後（チャットなどより下）。 */

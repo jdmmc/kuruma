@@ -43,7 +43,8 @@ public final class ScreenStyle {
         UiScreen screen = com.jdmmc.kurumamod.client.race.RaceClient.get().raceScreen();
         return screen instanceof com.jdmmc.kurumamod.client.screen.CarPartScreen
                 || screen instanceof com.jdmmc.kurumamod.client.screen.CarTuningScreen
-                || screen instanceof com.jdmmc.kurumamod.client.screen.SeatScreen;
+                || screen instanceof com.jdmmc.kurumamod.client.screen.SeatScreen
+                || screen instanceof com.jdmmc.kurumamod.client.screen.CarPresetScreen;
     }
 
     /**

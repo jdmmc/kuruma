@@ -55,7 +55,8 @@ public class CarPresetScreen extends UiScreen {
     private static final int LIST_TOP = 34;
     private static final int FOOTER_HEIGHT = 60;
 
-    private static final int COLOR_PANEL = 0x60000000;
+    /** 後ろを暗くしないので、表だけ濃くして字を読めるようにする。 */
+    private static final int COLOR_PANEL = 0xA0000000;
     private static final int COLOR_STRIPE = 0x24FFFFFF;
     private static final int COLOR_NAME = 0xFFFFFFFF;
     private static final int COLOR_KIND = 0xFF909090;
@@ -184,9 +185,14 @@ public class CarPresetScreen extends UiScreen {
             return;
         }
         // 書いていない項目は乗っている車の値のまま（プリセットはその車の上に重ねる）
-        CarTuning.apply(setup.toSpec(CarTuning.base()));
+        // 決まり（エントリー中のレース・宣言したクラス）の外になるなら、パーツも含めて丸ごと読まない。
+        // 設定だけ弾いてパーツだけ付くと、プリセットとも元とも違う姿になる
+        if (!CarTuning.applyPreset(setup.toSpec(CarTuning.base()), entry.label())) {
+            return;
+        }
         CarClient.get().sendTuningToServer();
         if (setup.parts() != null) {
+            // 付けたパーツが決まりの外になるなら、サーバーが戻して部品の名前を行動バーに出す
             reportSkipped(PresetParts.apply(setup.parts()));
         }
         pendingDelete = null;
@@ -273,6 +279,11 @@ public class CarPresetScreen extends UiScreen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double delta) {
+        // 表の外なら車への寄り引き（G と同じ）
+        if (mouseX < panelLeft - 5 || mouseX > panelLeft + PANEL_WIDTH + 12) {
+            CarClient.get().zoomCamera(delta);
+            return true;
+        }
         int max = Math.max(0, rows.size() - visibleRows);
         int next = Math.max(0, Math.min(max, scroll - (int) Math.signum(delta)));
         if (next != scroll) {
@@ -303,16 +314,14 @@ public class CarPresetScreen extends UiScreen {
             rebuildWidgets();
         }
 
-        // 1.20.1 の renderBackground と同じ半透明の暗幕。1.21 の既定（ぼかし）だと後ろのゲームが見えない
-        renderTransparentBackground(graphics);
-
         for (Row row : rows) {
             row.refresh(row == pendingDelete);
         }
 
+        // 後ろは暗くしない（G と同じ。走りながら当てた効果を見る）。表の列だけ、見出しから案内まで敷く
         int listHeight = visibleRows * ROW_HEIGHT;
-        graphics.fill(panelLeft - 5, LIST_TOP - 5, panelLeft + PANEL_WIDTH + 5,
-                LIST_TOP + listHeight + 3, COLOR_PANEL);
+        graphics.fill(panelLeft - 5, TITLE_Y - 6, panelLeft + PANEL_WIDTH + 5,
+                LIST_TOP + listHeight + 66, COLOR_PANEL);
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
             if (row.visible && ((i - scroll) & 1) == 0) {
@@ -323,7 +332,8 @@ public class CarPresetScreen extends UiScreen {
 
         super.render(graphics, mouseX, mouseY, partialTick);
 
-        graphics.drawCenteredString(font, title, width / 2, TITLE_Y, 0xFFFFFFFF);
+        int center = panelLeft + PANEL_WIDTH / 2;
+        graphics.drawCenteredString(font, title, center, TITLE_Y, 0xFFFFFFFF);
 
         int nameWidth = PANEL_WIDTH - LOAD_WIDTH - DELETE_WIDTH - GAP * 2;
         for (Row row : rows) {
@@ -340,13 +350,13 @@ public class CarPresetScreen extends UiScreen {
 
         if (rows.isEmpty()) {
             graphics.drawCenteredString(font, RaceText.translatable("screen.kurumamod.preset.empty"),
-                    width / 2, LIST_TOP + 6, COLOR_HINT);
+                    center, LIST_TOP + 6, COLOR_HINT);
         }
 
         renderScrollBar(graphics, listHeight);
 
         graphics.drawCenteredString(font, RaceText.translatable("screen.kurumamod.preset.hint"),
-                width / 2, LIST_TOP + listHeight + 54, COLOR_HINT);
+                center, LIST_TOP + listHeight + 54, COLOR_HINT);
     }
 
     private void renderScrollBar(UiGraphics graphics, int listHeight) {
@@ -364,6 +374,35 @@ public class CarPresetScreen extends UiScreen {
     @Override
     public void onClose() {
         CarClient.get().returnTo(parent);
+    }
+
+    /**
+     * 何も無いところをドラッグしたら、車のまわりを回す（G と同じ）。先にウィジェットへ渡す。
+     */
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (super.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
+        CarClient.get().orbitCamera(dragX, dragY);
+        return true;
+    }
+
+    /**
+     * 運転に使うキーは画面へ渡さない（開いたまま運転できる。{@code CarClientDriver#isDrivableScreen}）。
+     * 名前を打っている間だけは渡す——W・A・S・D が打てなくなるため。
+     */
+    @Override
+    public boolean keyPressed(UiKey key) {
+        if (!isTyping() && key.driving()) {
+            return true;
+        }
+        return super.keyPressed(key);
+    }
+
+    /** 名前の欄に打っているか。打っている間は運転しない（打った字で車が動いてしまう）。 */
+    public boolean isTyping() {
+        return nameBox != null && nameBox.isFocused();
     }
 
     /** セッティング画面と揃える。プリセットを当てた効果をその場で見られるように。 */

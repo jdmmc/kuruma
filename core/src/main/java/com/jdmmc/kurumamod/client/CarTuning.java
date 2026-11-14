@@ -67,8 +67,15 @@ public final class CarTuning {
         if (RaceLobby.allowsTuning(spec, candidate)) {
             return true;
         }
-        RaceClient.get().overlayMessage(com.jdmmc.kurumamod.race.RaceText.translatable("race.kurumamod.tuning_blocked"));
+        RaceClient.get().overlayMessage(com.jdmmc.kurumamod.race.RaceText.translatable(
+                "race.kurumamod.tuning_blocked", restrictionSource()));
         return false;
+    }
+
+    /** 知らせに入れる、縛っている決まりの出どころ。 */
+    private static com.jdmmc.kurumamod.race.RaceText restrictionSource() {
+        com.jdmmc.kurumamod.race.RaceText source = RaceLobby.restrictionSource();
+        return source != null ? source : com.jdmmc.kurumamod.race.RaceText.translatable("race.kurumamod.restriction_race");
     }
 
     /** 1 項目を表示単位の値で設定する。 */
@@ -136,6 +143,23 @@ public final class CarTuning {
         }
         spec = loaded;
         revision++;
+    }
+
+    /**
+     * プリセットの設定を差し替える。決まりの外になるなら読み込まず、<b>プリセットの名前を書いて</b>知らせる
+     * （「エントリー中は変えられません」だけでは、プリセットが読まれなかったことに気づけなかった。2026-11-14）。
+     *
+     * @return 読み込んだか
+     */
+    public static boolean applyPreset(CarSpec loaded, com.jdmmc.kurumamod.race.RaceText presetName) {
+        if (!RaceLobby.allowsTuning(spec, loaded)) {
+            RaceClient.get().overlayMessage(com.jdmmc.kurumamod.race.RaceText.translatable(
+                    "setup.kurumamod.preset_blocked", presetName, restrictionSource()));
+            return false;
+        }
+        spec = loaded;
+        revision++;
+        return true;
     }
 
     /** 全項目を、いま乗っている車種の値に戻す。 */
