@@ -31,12 +31,14 @@ public final class DriverInput {
     /**
      * コントローラを触っていればその入力、触っていなければキーボードの入力。
      *
-     * <p><b>H シフターの段はどちらにも載せる。</b>ペダルから足を離した（コントローラが「触っていない」になった）
-     * だけでキーボードの入力へ切り替わり、シフターをニュートラルへ抜いたのが伝わらなくなるため。</p>
+     * <p><b>H シフターの段とクラッチペダルはどちらにも載せる。</b>ペダルから足を離した（コントローラが「触っていない」
+     * になった）だけでキーボードの入力へ切り替わり、シフターをニュートラルへ抜いたのが伝わらなくなる・クラッチが
+     * 自動へ戻ってしまうため。</p>
      */
     public static CarInput choose(CarInput keyboard) {
         CarInput pad = activePad();
-        return (pad != null ? pad : keyboard).withGearSelect(ControllerInput.selectedGear());
+        return (pad != null ? pad : keyboard).withGearSelect(ControllerInput.selectedGear())
+                .withClutch(ControllerInput.clutchPedal());
     }
 
     /**
@@ -50,11 +52,13 @@ public final class DriverInput {
         CarInput pad = activePad();
         // H シフターの段は渡す（グリッドで 1 速に入れて待てるように）
         int gear = ControllerInput.selectedGear();
+        // クラッチも渡す（クラッチを踏んで 1 速に入れ、繋いで飛び出す準備ができるように）
+        double clutch = ControllerInput.clutchPedal();
         if (pad != null) {
             return CarInput.analog(0.0, forward ? 1.0 : 0.0, pad.steerAxis(), false, false, 1.0)
-                    .withGearSelect(gear).withDirectSteer(pad.directSteer());
+                    .withGearSelect(gear).withDirectSteer(pad.directSteer()).withClutch(clutch);
         }
-        return new CarInput(false, forward, left, right, false, false, true).withGearSelect(gear);
+        return new CarInput(false, forward, left, right, false, false, true).withGearSelect(gear).withClutch(clutch);
     }
 
     /**

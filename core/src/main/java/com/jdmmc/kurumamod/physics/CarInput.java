@@ -35,11 +35,14 @@ package com.jdmmc.kurumamod.physics;
  *                     {@link #NO_GEAR_SELECT}。押した瞬間ではなく<b>今入っている位置</b>なので、刻みごとに渡してよい
  * @param directSteer  ハンコンの直結。{@code steerAxis} をそのままハンドルの角度にし（± 最大切れ角）、
  *                     舵の変化率・切れ角の上限・自動カウンター・舵戻しを掛けない。{@code analog} のときだけ意味を持つ
+ * @param clutchAxis   クラッチペダルの踏み込み量 0..1（1 で切れきる）。ペダルを割り当てていなければ {@link #NO_CLUTCH}
+ *                     で、クラッチは今までどおり自動で切れる（サイドブレーキ・止まりかけのブレーキ）。
+ *                     マニュアルの車だけに効く。押した瞬間ではなく<b>今の位置</b>なので、刻みごとに渡してよい
  */
 public record CarInput(boolean throttle, boolean brake, boolean left, boolean right,
                        boolean shiftUp, boolean shiftDown, boolean handbrake,
                        double throttleAxis, double brakeAxis, double steerAxis, double handbrakeAxis,
-                       boolean analog, int gearSelect, boolean directSteer) {
+                       boolean analog, int gearSelect, boolean directSteer, double clutchAxis) {
 
     /** 軸がこの値を超えたら「踏んでいる」と見なす。 */
     public static final double AXIS_THRESHOLD = 0.05;
@@ -47,13 +50,16 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
     /** H シフターを使っていない（段はシフトアップ・ダウンで動かす）。 */
     public static final int NO_GEAR_SELECT = Integer.MIN_VALUE;
 
+    /** クラッチペダルを使っていない（クラッチは自動）。 */
+    public static final double NO_CLUTCH = -1.0;
+
     /** H シフター無し・直結無し。 */
     public CarInput(boolean throttle, boolean brake, boolean left, boolean right,
                     boolean shiftUp, boolean shiftDown, boolean handbrake,
                     double throttleAxis, double brakeAxis, double steerAxis, double handbrakeAxis,
                     boolean analog) {
         this(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
-                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, NO_GEAR_SELECT, false);
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, NO_GEAR_SELECT, false, NO_CLUTCH);
     }
 
     /** H シフターで段を選んでいるか。 */
@@ -67,7 +73,22 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
             return this;
         }
         return new CarInput(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
-                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gear, directSteer);
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gear, directSteer, clutchAxis);
+    }
+
+    /** クラッチペダルを使っているか。使っていなければクラッチは自動。 */
+    public boolean hasClutch() {
+        return clutchAxis >= 0.0;
+    }
+
+    /** クラッチペダルの踏み込み量を載せたもの。{@link #NO_CLUTCH} で自動へ戻す。 */
+    public CarInput withClutch(double pedal) {
+        double value = pedal < 0.0 ? NO_CLUTCH : clamp01(pedal);
+        if (value == clutchAxis) {
+            return this;
+        }
+        return new CarInput(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, directSteer, value);
     }
 
     /** ハンコンの直結にしたもの。 */
@@ -76,7 +97,7 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
             return this;
         }
         return new CarInput(throttle, brake, left, right, shiftUp, shiftDown, handbrake,
-                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, direct);
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, direct, clutchAxis);
     }
 
     /** キーボード相当。変速もサイドブレーキも使わない。実験用のコードがそのまま通るように残してある。 */
@@ -136,7 +157,7 @@ public record CarInput(boolean throttle, boolean brake, boolean left, boolean ri
             return this;
         }
         return new CarInput(throttle, brake, left, right, false, false, handbrake,
-                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, directSteer);
+                throttleAxis, brakeAxis, steerAxis, handbrakeAxis, analog, gearSelect, directSteer, clutchAxis);
     }
 
     /** 無操作。誰も乗っていない車や、運転していない側で使う。 */

@@ -461,6 +461,20 @@ public final class ControllerInput {
         return shifter ? 0 : CarInput.NO_GEAR_SELECT;
     }
 
+    /**
+     * クラッチペダルの踏み込み量 0..1（1 で切れきる）。
+     *
+     * <p>割り当てていないか、割り当てた機器がつながっていなければ {@link CarInput#NO_CLUTCH}（クラッチは自動）。
+     * H シフターの段と同じく、{@code DriverInput} がキーボードの入力にも載せる——ペダルから足を離しただけで
+     * キーボードの入力へ切り替わり、クラッチが自動へ戻ってしまわないように。</p>
+     */
+    public static double clutchPedal() {
+        if (!isEnabled() || padOf(binding(ControllerAction.CLUTCH)) == null) {
+            return CarInput.NO_CLUTCH;
+        }
+        return Math.min(1.0, Math.abs(value(ControllerAction.CLUTCH)));
+    }
+
     /** 押した瞬間だけ true。変速に使う。 */
     public static boolean consumePress(ControllerAction action) {
         boolean down = value(action) > CarInput.AXIS_THRESHOLD;

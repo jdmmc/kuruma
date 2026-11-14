@@ -671,6 +671,7 @@
   "race.kurumamod.race_ended_by": "%s heeft de race beëindigd",
   "controller.kurumamod.throttle": "Gas",
   "controller.kurumamod.brake": "Rem",
+  "controller.kurumamod.clutch": "Koppeling",
   "controller.kurumamod.steer": "Sturen",
   "controller.kurumamod.shift_up": "Opschakelen",
   "controller.kurumamod.shift_down": "Terugschakelen",

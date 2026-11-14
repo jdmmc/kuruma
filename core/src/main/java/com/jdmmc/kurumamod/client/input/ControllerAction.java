@@ -17,6 +17,11 @@ public enum ControllerAction {
     THROTTLE("throttle", ControllerBinding.axis(ControllerInput.AXIS_RIGHT_TRIGGER, false, false)),
     /** ブレーキ。既定は左トリガー。 */
     BRAKE("brake", ControllerBinding.axis(ControllerInput.AXIS_LEFT_TRIGGER, false, false)),
+    /**
+     * クラッチ。既定は未割り当て（割り当てなければクラッチは自動）。ハンコンのクラッチペダル向け。
+     * 割り当てるとマニュアルの車で、ペダルの踏み込みがそのままクラッチの切れ具合になる。
+     */
+    CLUTCH("clutch", ControllerBinding.UNBOUND),
     /** ステア。既定は左スティックの横。 */
     STEER("steer", ControllerBinding.axis(ControllerInput.AXIS_LEFT_X, false, true)),
     /** シフトアップ。既定は R1。 */
@@ -70,7 +75,7 @@ public enum ControllerAction {
 
     /** 軸として使う操作か。ボタンに割り当てても動くが、既定は軸。 */
     public boolean isAxis() {
-        return this == THROTTLE || this == BRAKE || this == STEER;
+        return this == THROTTLE || this == BRAKE || this == CLUTCH || this == STEER;
     }
 
     /** 押した瞬間の 1 回として扱う操作か。 */

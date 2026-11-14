@@ -426,6 +426,7 @@
   "key.kurumamod.controller": "Open controller settings",
   "controller.kurumamod.throttle": "Throttle",
   "controller.kurumamod.brake": "Brake",
+  "controller.kurumamod.clutch": "Clutch",
   "controller.kurumamod.steer": "Steering",
   "controller.kurumamod.shift_up": "Shift up",
   "controller.kurumamod.shift_down": "Shift down",

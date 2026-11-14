@@ -671,6 +671,7 @@
   "race.kurumamod.race_ended_by": "%s hat das Rennen beendet",
   "controller.kurumamod.throttle": "Gas",
   "controller.kurumamod.brake": "Bremse",
+  "controller.kurumamod.clutch": "Kupplung",
   "controller.kurumamod.steer": "Lenkung",
   "controller.kurumamod.shift_up": "Hochschalten",
   "controller.kurumamod.shift_down": "Runterschalten",

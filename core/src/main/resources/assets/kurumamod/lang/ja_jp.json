@@ -426,6 +426,7 @@
   "key.kurumamod.controller": "コントローラ設定を開く",
   "controller.kurumamod.throttle": "アクセル",
   "controller.kurumamod.brake": "ブレーキ",
+  "controller.kurumamod.clutch": "クラッチ",
   "controller.kurumamod.steer": "ハンドル",
   "controller.kurumamod.shift_up": "シフトアップ",
   "controller.kurumamod.shift_down": "シフトダウン",

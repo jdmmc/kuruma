@@ -671,6 +671,7 @@
   "race.kurumamod.race_ended_by": "%s завершил(а) гонку",
   "controller.kurumamod.throttle": "Газ",
   "controller.kurumamod.brake": "Тормоз",
+  "controller.kurumamod.clutch": "Сцепление",
   "controller.kurumamod.steer": "Руль",
   "controller.kurumamod.shift_up": "Передача вверх",
   "controller.kurumamod.shift_down": "Передача вниз",

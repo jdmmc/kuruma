@@ -206,6 +206,7 @@ public class ControllerScreen extends UiScreen {
         y += ROW_HEIGHT;
         y = actionRow(ControllerAction.THROTTLE, y);
         y = actionRow(ControllerAction.BRAKE, y);
+        y = actionRow(ControllerAction.CLUTCH, y);
         y = actionRow(ControllerAction.HANDBRAKE, y);
         noteTop = y + 6;
     }

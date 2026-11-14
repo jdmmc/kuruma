@@ -671,6 +671,7 @@
   "race.kurumamod.race_ended_by": "%s 结束了比赛",
   "controller.kurumamod.throttle": "油门",
   "controller.kurumamod.brake": "刹车",
+  "controller.kurumamod.clutch": "离合器",
   "controller.kurumamod.steer": "方向盘",
   "controller.kurumamod.shift_up": "升挡",
   "controller.kurumamod.shift_down": "降挡",

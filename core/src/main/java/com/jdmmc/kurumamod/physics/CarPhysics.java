@@ -1247,6 +1247,22 @@ public final class CarPhysics {
      * それでよい。</p>
      */
     private static void updateClutch(CarSpec spec, CarState state, double dt, CarInput input) {
+        // クラッチペダル（ハンコンのペダル）を割り当てたマニュアルは、プレイヤーが切って繋ぐ。
+        // 自動の切り（サイドブレーキ・止まりかけのブレーキ）は入れない——ペダルで切れる人にとっては、
+        // 踏んでいないのに切れるほうが邪魔になる。発進の滑り（converterTorque）は残るので、
+        // 止まったまま繋いでもエンストはしない（容量にペダルの繋がり具合が掛かるので半クラッチは効く）
+        if (input.hasClutch() && spec.isManual()) {
+            // 足を載せただけの揺れ（数 %）で直結が外れ続けないよう、踏み始めに遊びを置く
+            double depressed = Math.max(0.0, input.clutchAxis() - CarInput.AXIS_THRESHOLD)
+                    / (1.0 - CarInput.AXIS_THRESHOLD);
+            double pedal = 1.0 - depressed;
+            // 足で動かすペダルなので位置をそのまま追う。ただし 1 刻みで 0/1 を飛ばさないよう、
+            // 切り・繋ぎとも切りきる速さ（0.08 秒）で頭打ちにする（自動の繋ぎ 0.30 秒は掛けない。
+            // ゆっくり繋ぐのはプレイヤーの足の仕事で、蹴り出しもできるように）
+            double step = dt / CLUTCH_RELEASE_SECONDS;
+            state.clutch = Math.max(state.clutch - step, Math.min(state.clutch + step, pedal));
+            return;
+        }
         // 少しでも引いていれば切る（引き量でクラッチを半分にはしない）
         boolean handbrake = state.handbrake > 0.0 && spec.driveBias() > 0.0;
         // MT は発進の滑りの域（止まりかけ）でブレーキを踏んだら切る。繋いだままだと
