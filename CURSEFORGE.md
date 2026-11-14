@@ -36,7 +36,7 @@ Build a course anywhere and race your friends, timed to the millisecond.
 
 ![Racing](https://media.forgecdn.net/attachments/1980/926/race-jpg.jpg)
 
-**Also:** asphalt, dirt, gravel, sand, snow, ice and rain · off-road preset · automatic or manual · full analog wheel and gamepad support
+**Also:** asphalt, dirt, gravel, sand, snow, ice and rain · off-road preset · automatic or manual · full analog wheel and gamepad support, with separate pedal and shifter devices, a clutch pedal and force feedback (26.3)
 
 ***
 
@@ -103,7 +103,7 @@ Videos and streams are welcome with a link to this page. Modpacks are welcome to
 
 ![レース](https://media.forgecdn.net/attachments/1980/926/race-jpg.jpg)
 
-**ほかにも:** 舗装・土・砂利・砂・雪・氷・雨 · オフロードプリセット · AT / MT · ハンコン・パッドのフルアナログ操作
+**ほかにも:** 舗装・土・砂利・砂・雪・氷・雨 · オフロードプリセット · AT / MT · ハンコン・パッドのフルアナログ操作（ペダル・シフターを別の機器で、クラッチペダル、26.3 はフォースフィードバック）
 
 ***
 
