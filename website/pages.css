@@ -70,7 +70,7 @@ section[id] { scroll-margin-top: 64px; }
 
 .figures.light div { border-top-color: var(--line); }
 .figures.light span { color: var(--grey); }
-.figures.light { padding-bottom: 0; margin-top: 0; }
+.figures.light { padding-bottom: 0; margin-top: clamp(32px, 4vw, 56px); }
 
 /* 文と写真を左右に */
 .split { display: grid; grid-template-columns: 5fr 7fr; gap: clamp(32px, 5vw, 80px); align-items: center; }

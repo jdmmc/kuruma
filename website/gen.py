@@ -44,17 +44,21 @@ def ALT(en, ja):
     return f'alt="{en}" data-alt-ja="{ja}"'
 
 
-def SHOT(name, alt, note, top=32):
+def SHOT(name, alt, note, top=32, align=None, whole=False):
     """スクリーンショットを差し込む。img/<name>.jpg があれば出し、<name>-ja.jpg もあれば言語で切り替える。
-    <b>まだ無ければプレースホルダー</b>（点線の枠に、置くファイル名と写すもの）。撮って置けば、作り直すだけで入れ替わる。"""
-    style = f'margin-top:{top}px'
+    <b>まだ無ければプレースホルダー</b>（点線の枠に、置くファイル名と写すもの）。撮って置けば、作り直すだけで入れ替わる。
+    枠（.media）は 16:10 で、16:9 のスクリーンショットは左右が切れる。画面の端に見せたいものがあるときは
+    align に "right" か "left" を渡して、そちらの端に寄せる（object-position）。
+    両端とも見せたい画面（左右いっぱいに中身がある GUI）は whole=True で、枠を 16:9 にして切らない。"""
+    style = f'margin-top:{top}px' + (';aspect-ratio:16/9' if whole else '')
+    pos = f' style="object-position:{align} center"' if align else ''
     en = HERE / "img" / f"{name}.jpg"
     ja = HERE / "img" / f"{name}-ja.jpg"
     if en.exists():
         if ja.exists():
-            body = T(f'<img src="img/{name}.jpg" alt="{alt[0]}">', f'<img src="img/{name}-ja.jpg" alt="{alt[1]}">')
+            body = T(f'<img src="img/{name}.jpg" alt="{alt[0]}"{pos}>', f'<img src="img/{name}-ja.jpg" alt="{alt[1]}"{pos}>')
         else:
-            body = f'<img src="img/{name}.jpg" {ALT(*alt)}>'
+            body = f'<img src="img/{name}.jpg" {ALT(*alt)}{pos}>'
         return f'<div class="media" style="{style}">{body}</div>'
     return (f'<div class="media" style="{style};aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;'
             f'border:2px dashed #b9bec6;border-radius:12px;background:#f3f4f6;color:#6b7280;text-align:center;padding:24px">'
@@ -391,12 +395,12 @@ def tile(cls, anchor, img, alt, small, h, p):
 
 
 NEWS = [
-    (("Fabric and Minecraft 26.3", "Fabric と Minecraft 26.3"), ("Fabric joins on 1.21.1, and 26.3 runs on Forge, NeoForge and Fabric with OpenGL or Vulkan.", "1.21.1 に Fabric 版が加わり、26.3 は Forge・NeoForge・Fabric で動きます。OpenGL でも Vulkan でも。")),
-    (("Volumetric tyre smoke", "体積で描くタイヤの煙"), ("Smoke and dust are drawn as volumes, shaded by the sun and lit by your headlights.", "煙と土煙を体積として描きます。太陽で陰影が付き、ヘッドライトに照らされます。")),
-    (("Licence plates", "ナンバープレート"), ("Japanese, EU, UK and US plates with your own text. Choose where they mount.", "日本・EU・UK・US のプレートに好きな文字を。付ける位置も選べます。")),
-    (("Much lighter with shader packs", "シェーダーパック使用中が大幅に軽く"), ("Cars stay on the GPU. 30 cars with Complementary Unbound: about 60 ms per frame down to 10-17 ms.", "車を GPU に置いたまま描きます。Complementary Unbound、30 台の実測で 1 フレーム約 60ms が 10〜17ms に。")),
-    (("Front and rear track width", "トレッドを前後別々に"), ("Set each end on its own in the tuning screen, or lock them to move together.", "調整画面で前後を別々に。鍵を閉じれば一緒に動きます。")),
-    (("One jar for every loader", "カーパックは 1 つの jar ですべてのローダーへ"), ("A car pack can load on Forge, NeoForge and Fabric, including 26.3.", "カーパックは Forge・NeoForge・Fabric、26.3 にも 1 つの jar で対応できます。")),
+    (("Races from the K screen", "レースは K の画面から"), ("Host, join, start and end races from one screen. An invite shows up when someone opens a race.", "主催・参加・開始・終了を 1 つの画面で。誰かがレースを開くと招待が届きます。")),
+    (("Regulations and classes", "レギュレーションとクラス"), ("Cap power, weight, grip and downforce, save the rules as a class, and race under them.", "出力・車重・グリップ・ダウンフォースの上限を決め、クラスとして保存して、その条件で走れます。")),
+    (("Time attack in classes", "クラスごとのタイムアタック"), ("Best laps are kept per course and class, so laps run under the same rules compete.", "ベストラップをコースとクラスごとに記録。同じ条件で走ったラップどうしで競えます。")),
+    (("Broadcast-style race HUD", "中継風のレース HUD"), ("Start lights, a live tower, your gap at every checkpoint, results, and spectating.", "スタートシグナル、リアルタイムの順位、チェックポイントごとの差、結果、観戦も。")),
+    (("Braking while turning", "曲がりながらのブレーキ"), ("ABS keeps grip for steering, so full braking with full lock turns about twice as far.", "ABS が舵のぶんのグリップを残すので、フルブレーキでいっぱいに切ると 2 倍ほど曲がります。")),
+    (("km/h or mph", "km/h か mph か"), ("Choose the speed unit for the speedometer and the setup screens.", "速度計とセッティング画面の速度の単位を選べます。")),
 ]
 news = "".join(f"<div><dt>{T(*h)}</dt><dd>{T(*d)}</dd></div>" for h, d in NEWS)
 cards = "".join(model_card(m) for m in MODELS.values())
@@ -460,7 +464,7 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
       {tile("two", "lighting", "eyecatch.jpg", ("Headlights on a night track", "夜のサーキットをヘッドライトで照らして走る"), ("Lighting", "ライティング"), key_l + T("Headlights that really light the road", "路面を本当に照らすヘッドライト"), ("A proper low beam, shadows from trees and walls, beams in fog and rain. Works with shader packs.", "カットオフの付いたロービーム、木や壁の影、霧や雨の中の光の筋。シェーダーパックにも対応。"))}
       {tile("third", "surface", "gravel.jpg", ("A car leaving a smoke trail on loose ground", "未舗装路に煙の跡を残して走る車"), ("Surfaces", "路面"), T("Six surfaces and rain", "6 種類の路面と雨"), ("Tarmac, dirt, gravel, sand, snow and ice each drive differently.", "舗装、土、砂利、砂、雪、氷で、走りがまったく変わります。"))}
       {tile("third", "custom", "camber.jpg", ("Wheels with negative camber", "キャンバーを付けたホイール"), ("Customise", "カスタマイズ"), T("Aero, mufflers, wheels", "エアロ、マフラー、ホイール"), ("Camber, offset and width, plus wings that make real downforce.", "キャンバー、オフセット、幅。ウイングは本当にダウンフォースを生みます。"))}
-      {tile("two", "racing", "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends", "友だちとレースを"), ("Start lights, live standings and split times, in multiplayer.", "スタートシグナル、リアルタイムの順位、区間タイム。マルチプレイで。"))}
+      {tile("two", "racing", "race-hud.jpg", ("A race in progress with the standings and lap clock", "順位表とタイムが出ているレース中の画面"), ("Racing", "レース"), T("Race your friends", "友だちとレースを"), ("Start lights, live standings and split times, in multiplayer.", "スタートシグナル、リアルタイムの順位、区間タイム。マルチプレイで。"))}
     </div>
   </div>
 </section>
@@ -505,8 +509,8 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
     <div class="split" style="align-items:start">
       <div>
         <div class="eyebrow">{T("What's new", "新着")}</div>
-        <h2 class="title">KurumaMod 2.0.0</h2>
-        <p>{T("Now on Fabric and Minecraft 26.3, with volumetric tyre smoke, licence plates and far better performance with shader packs.", "Fabric と Minecraft 26.3 に対応。体積で描くタイヤの煙、ナンバープレート、シェーダーパック使用中の大幅な軽量化も。")}</p>
+        <h2 class="title">KurumaMod 2.1.0</h2>
+        <p>{T("Racing rebuilt around the K key: host and join from a screen, regulations, classes, class-based time attack and spectating.", "レースを K キー中心に作り直しました。画面から主催と参加、レギュレーション、クラス、クラスごとのタイムアタック、観戦。")}</p>
         <div class="cta-row"><a class="btn arrow" href="{CF}" target="_blank" rel="noopener">{ICON_CF}{T("Download on CurseForge", "CurseForge でダウンロード")}</a><a class="btn arrow" href="{MR}" target="_blank" rel="noopener">{ICON_MR}{T("Download on Modrinth", "Modrinth でダウンロード")}</a></div>
       </div>
       <dl class="news-list">{news}</dl>
@@ -527,15 +531,18 @@ page("index.html", "KurumaMod", "KurumaMod", f"""
 
 
 # ---------- 特徴 ----------
-def feature(id_, cls, rev, img, alt, eyebrow, title, text):
+def feature(id_, cls, rev, img, alt, eyebrow, title, text, link=None):
+    """link は (href, (英語, 日本語)) で、本文の下にボタンを置く（詳しいページがある項目）"""
     rev_cls = " rev" if rev else ""
+    cta = (f'\n        <div class="cta-row"><a class="btn arrow" href="{link[0]}">{T(*link[1])}</a></div>'
+           if link else "")
     return f"""<section class="{cls}" id="{id_}">
   <div class="wrap">
     <div class="split{rev_cls}">
       <div>
         <div class="eyebrow">{T(*eyebrow)}</div>
         <h2 class="title">{title}</h2>
-        <p>{T(*text)}</p>
+        <p>{T(*text)}</p>{cta}
       </div>
       <div class="media"><img src="img/{img}" {ALT(*alt)}></div>
     </div>
@@ -633,7 +640,7 @@ page("features.html", "Features | KurumaMod", "特徴 | KurumaMod", f"""
     <div class="split rev">
       <div>
         <div class="eyebrow">{T("Surfaces and weather", "路面と天候")}</div>
-        <h2 class="title">{T("Change the surface, change the car.", "路面が変われば、別の車になる。")}</h2>
+        <h2 class="title">{T("Change the surface, change how it drives.", "路面が変われば、走りも変わる。")}</h2>
         <p>{T("Tarmac, dirt, gravel, sand, snow, ice. Rain makes the road slippery, while tunnels and bridges stay dry. Roads from other mods work as they are.",
               "舗装・土・砂利・砂・雪・氷。雨が降れば滑りやすくなり、トンネルや橋の下は乾いたまま。他 MOD の道路ブロックの上でも、そのまま走れます。")}</p>
       </div>
@@ -652,9 +659,10 @@ page("features.html", "Features | KurumaMod", "特徴 | KurumaMod", f"""
 {feature("custom", "mist", False, "camber.jpg", ("Wheels with negative camber", "キャンバーを付けたホイール"), ("Customise", "カスタマイズ"), T("Make it yours.", "見た目を自分好みに。"),
          ("Set camber, offset and wheel width until it sits just right: flush, poke, or full oni-kyan. Bolt on bumpers, side skirts, fenders, a rear wing and a diffuser. Wings and diffusers make real downforce. Mufflers change the exhaust note, and everyone nearby hears it. Gauges come in 90s JDM factory or modern style.",
           "キャンバー・オフセット・ホイールの太さで、好きな姿に。ツライチも、ハミタイも、鬼キャンも。バンパー、サイドスカート、フェンダー、リアウイング、ディフューザーも付けられ、ウイングとディフューザーは本当にダウンフォースを生みます。マフラーで排気音が変わり、周りの人にも同じ音で聞こえます。メーターは 90 年代の国産純正風とモダンの 2 種類。"))}
-{feature("racing", "", True, "race.jpg", ("Start lights on a race track", "スタートシグナルの点いたコース"), ("Racing", "レース"), T("Race your friends.", "友だちとレースを。"),
-         ("Place a start line and checkpoints anywhere in your world and hold a proper race. Host and join with one key, set a regulation for power, weight and grip, and race with start lights, a live tower and your gap to your best lap at every checkpoint. Multiplayer, timed to the millisecond. <a href='race.html'>More about racing</a>",
-          "ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的なレースを開けます。主催も参加もキー 1 つ。出力・車重・グリップなどのレギュレーションを決めて、スタートシグナル、リアルタイムの順位、チェックポイントごとのベストラップとの差。マルチプレイ対応、計測はミリ秒単位。<a href='race.html'>レースについて詳しく</a>"))}
+{feature("racing", "", True, "race-hud.jpg", ("A race in progress with the standings and lap clock", "順位表とタイムが出ているレース中の画面"), ("Racing", "レース"), T("Race your friends.", "友だちとレースを。"),
+         ("Place a start line and checkpoints anywhere in your world and hold a proper race. Host and join with one key, set a regulation for power, weight and grip, and race with start lights, a live tower and your gap to your best lap at every checkpoint. Multiplayer, timed to the millisecond.",
+          "ワールドのどこにでもスタートラインとチェックポイントを置いて、本格的なレースを開けます。主催も参加もキー 1 つ。出力・車重・グリップなどのレギュレーションを決めて、スタートシグナル、リアルタイムの順位、チェックポイントごとのベストラップとの差。マルチプレイ対応、計測はミリ秒単位。"),
+         link=("race.html", ("More about racing", "レースについて詳しく")))}
 {feature("offroad", "mist", False, "offroad.jpg", ("Land Cruiser Prado climbing a rocky trail", "山道の段差を登るランドクルーザー プラド"), ("Off-road", "オフロード"), T("Head for the hills.", "土煙を上げて、山へ。"),
          ("Load the Off-road preset for four-wheel drive, a locking diff, long suspension travel and big tyres. Climb one-block ledges, let the diff pull you out of a ditch with a wheel in the air, and head into the hills with dust trailing behind you.",
           "オフロードプリセットを読み込めば、四駆・ロックするデフ・長いストローク・大径タイヤの仕様に。1 ブロックの段差をよじ登り、片輪が浮いた溝もデフの力で抜け出して、土煙を上げながら山へ。"))}
@@ -769,7 +777,7 @@ race_rules = "".join(f"<tr><th scope=\"row\">{T(*n)}</th><td>{T(*d)}</td></tr>" 
 
 page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
 <section class="hero page" style="padding:0">
-  <img src="img/race.jpg" {ALT("Start lights on a race track", "スタートシグナルの点いたコース")}>
+  <img src="img/race-hud.jpg" {ALT("A race in progress with the standings and lap clock", "順位表とタイムが出ているレース中の画面")}>
   <div class="copy">
     <div class="wrap">
       <div class="crumb"><a href="index.html">KurumaMod</a> / {T("Racing", "レース")}</div>
@@ -805,7 +813,8 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
       <li><h3>{T("Start", "スタート")}</h3><p>{T("Start lights, then everyone goes on GO.", "スタートシグナルが消えたら、一斉にスタート。")}</p></li>
     </ol>
     {SHOT("race-invite", ("The race invite at the right edge while driving", "走行中に右端に出た参加の案内"),
-          ("Driving with the race invite or the ENTERED panel at the right edge", "走行中、右端に参加の案内か ENTERED の欄が出ているところ"))}
+          ("Driving with the race invite or the ENTERED panel at the right edge", "走行中、右端に参加の案内か ENTERED の欄が出ているところ"),
+          align="right")}
   </div>
 </section>
 
@@ -821,7 +830,8 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
       </table>
     </div>
     {SHOT("race-host", ("The host screen with the regulation and each entrant's check", "決まりと参加者の判定が並ぶ主催者画面"),
-          ("Host screen: regulation on the left, entrants with blue OK and red breaches on the right", "主催者画面。左に決まり、右に参加者と判定（適合は青、違反は赤）"))}
+          ("Host screen: regulation on the left, entrants with blue OK and red breaches on the right", "主催者画面。左に決まり、右に参加者と判定（適合は青、違反は赤）"),
+          whole=True)}
     <div class="packs">
       <div class="pack static"><small>{T("Check", "判定")}</small><h3>{T("Blue OK, red breach", "青が適合、赤が違反")}</h3><p>{T("Every entrant's car is checked automatically.", "参加者全員の車を自動で判定します。")}</p></div>
       <div class="pack static"><small>{T("At the start", "スタート")}</small><h3>{T("Breach means spectating", "違反なら観戦")}</h3><p>{T("Cars outside the rules watch instead of racing.", "条件を外れた車は観戦に回ります。")}</p></div>
@@ -836,7 +846,8 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
     <h2 class="title">{T("G knows the rules.", "G 画面もレギュレーションに従います。")}</h2>
     <p class="lead">{T("In a race or a class, the setup screen only lets you tune within the rules.", "レース中もクラスで走るときも、セッティング画面は条件の範囲内でしか動かせません。")}</p>
     {SHOT("race-setup", ("The setup screen with hatched out-of-range areas", "範囲外が斜線になったセッティング画面"),
-          ("Setup screen (G): out-of-range parts hatched in orange, breaching items and tab in red", "セッティング画面（G）。範囲外が橙の斜線、違反の項目とタブが赤"))}
+          ("Setup screen (G): out-of-range parts hatched in orange, breaching items and tab in red", "セッティング画面（G）。範囲外が橙の斜線、違反の項目とタブが赤"),
+          whole=True)}
   </div>
 </section>
 
@@ -845,7 +856,8 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
     <div class="eyebrow">{T("On track", "走行中")}</div>
     <h2 class="title">{T("Graphics like a real racing game.", "本格的なレーシングゲームのような画面。")}</h2>
     {SHOT("race-hud", ("A race in progress with the tower, clock and checkpoint delta", "順位の塔・時計・チェックポイントの差が出ているレース中の画面"),
-          ("Mid-race with other cars: tower top left, clock and CLASS top right, checkpoint delta top centre", "ほかの車もいるレース中。左上に順位の塔、右上に時計と CLASS、上の真ん中にチェックポイントの差"))}
+          ("Mid-race with other cars: tower top left, clock and CLASS top right, checkpoint delta top centre", "ほかの車もいるレース中。左上に順位の塔、右上に時計と CLASS、上の真ん中にチェックポイントの差"),
+          whole=True)}
     <div class="packs">
       <div class="pack static"><small>{T("Top left", "左上")}</small><h3>{T("The tower", "順位表")}</h3><p>{T("Everyone's position and gap to the leader, live.", "全員の順位とトップとの差をリアルタイムで。")}</p></div>
       <div class="pack static"><small>{T("Top right", "右上")}</small><h3>{T("Your clock", "ラップタイム")}</h3><p>{T("Lap time and your gap to your best.", "ラップタイムと、自己ベストとの差。")}</p></div>
@@ -862,13 +874,15 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
     <h2 class="title">{T("Just drive across the line.", "スタートラインを越えるだけ。")}</h2>
     <p class="lead">{T("Cross a start line and timing begins. Sector times, your gap to your best, and your best lap as a ghost.", "スタートラインを越えれば計測開始。区間タイム、自己ベストとの差、ベストの走りをゴーストで。")}</p>
     {SHOT("race-ghost", ("Time attack beside your ghost", "ゴーストと並んで走るタイムアタック"),
-          ("Time attack beside the ghost: sector tower top left, CLASS and BEST top right", "ゴーストと並んで走るタイムアタック。左上に区間の塔、右上に CLASS と BEST"))}
+          ("Time attack beside the ghost: sector tower top left, CLASS and BEST top right", "ゴーストと並んで走るタイムアタック。左上に区間の塔、右上に CLASS と BEST"),
+          whole=True)}
     <dl class="news-list wide">
       <div><dt>{T("Run in a class", "クラスで走る")}</dt><dd>{T("Pick a class with K and set laps against drivers in the same class.", "K でクラスを選べば、同じクラスの車どうしでタイムを競えます。")}</dd></div>
       <div><dt>{T("Records and rankings", "記録とランキング")}</dt><dd>{T("Rankings for each class and for no class on every track, right on the K screen.", "トラックごとに、クラスなしとクラス別のランキングを K の画面で。")}</dd></div>
     </dl>
     {SHOT("race-timeattack", ("The time attack screen with classes and rankings", "クラスとランキングが並ぶタイムアタックの画面"),
-          ("K, Time attack tab: class dropdown on the left, no-class and class rankings on the right (your row highlighted)", "K のタイムアタックのタブ。左にクラスのドロップダウン、右にクラスなしとクラスのランキング（自分の行が光っている）"))}
+          ("K, Time attack tab: class dropdown on the left, no-class and class rankings on the right (your row highlighted)", "K のタイムアタックのタブ。左にクラスのドロップダウン、右にクラスなしとクラスのランキング（自分の行が光っている）"),
+          whole=True)}
   </div>
 </section>
 
@@ -882,7 +896,7 @@ page("race.html", "Racing | KurumaMod", "レース | KurumaMod", f"""
     <div class="acts"><a class="btn light arrow" href="{DISCORD}">Discord</a></div>
   </div>
 </section>
-""", desc="Host and join races with one key. Set a regulation for power, weight, grip and more, and race with broadcast-style graphics.", image="img/race.jpg")
+""", desc="Host and join races with one key. Set a regulation for power, weight, grip and more, and race with broadcast-style graphics.", image="img/race-hud.jpg")
 
 page("start.html", "Get started | KurumaMod", "はじめかた | KurumaMod", f"""
 <section class="hero page" style="padding:0">
